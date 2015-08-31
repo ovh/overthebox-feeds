@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+#   Apply selected tcp congestion in uci
+#
+/sbin/sysctl -qw net.ipv4.tcp_congestion_control=`uci -q get network.globals.tcp_congestion_control` 2>/dev/null

@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# Handle macvlan type from config file
+#
+old_IFS=$IFS
+IFS=$'\n'
+for IFNAME in `uci show network | grep "interface='$DEVICE'" | cut -f2 -d'.'`
+do
+    interfaceType=`uci get network.$IFNAME.type`
+    # Handle macvlan type
+    if [ "$interfaceType" = "macvlan" ]; then
+        if [ "$ACTION" = ifup -o "$ACTION" = ifupdate ]; then
+            if uci get network.$IFNAME.macaddr 2>/dev/null; then
+                    MACADDR=$(uci get network.$IFNAME.macaddr 2>/dev/null)
+            else
+                    MACPREFIX="42:42:42"
+                    MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+                    MACADDR="$MACPREFIX$MACSUFFIX"
+                    uci set network.$IFNAME.macaddr="$MACADDR"
+            fi
+            # handle macsource mode
+            vlanmacs=`uci get network.$IFNAME.vlanmacs`
+            if [ -n "$vlanmacs" ]; then
+                ip link add link $DEVICE $IFNAME address $MACADDR type macvlan mode source
+                ip link set link dev $IFNAME type macvlan macaddr flush
+                for mac in $vlanmacs;
+                do
+                    ip link set link dev $IFNAME type macvlan macaddr add $vlanmacs
+                done
+            else
+
+                ip link add link $DEVICE $IFNAME address $MACADDR type macvlan mode private
+
+                proto=`uci get network.$IFNAME.proto`
+                if [ "$proto" = "dhcp" ]; then
+                    iptables -N ${IFNAME}_DHCP
+                    # Forward dhcp
+                    iptables -D INPUT -i $IFNAME -p udp --dport 67:68 --sport 67:68 -j ${IFNAME}_DHCP
+                    iptables -A INPUT -i $IFNAME -p udp --dport 67:68 --sport 67:68 -j ${IFNAME}_DHCP
+                    # Accept non dhcp traffic
+                    iptables -D ${IFNAME}_DHCP -j ACCEPT
+                    iptables -A ${IFNAME}_DHCP -j ACCEPT
+
+                    dhcpmac=`uci get network.$IFNAME.dhcpmac`
+                    if [ -n "$dhcpmac" ]; then
+                        # do not accept all dhcp
+                        iptables -D ${IFNAME}_DHCP -j ACCEPT
+                        # Accept DHCP response from already know dhcp mac
+                        iptables -D ${IFNAME}_DHCP -m mac --mac-source $dhcpmac -j ACCEPT
+                        iptables -A ${IFNAME}_DHCP -m mac --mac-source $dhcpmac -j ACCEPT
+                        # Tell if0 to ignore already known dhcp mac
+                        iptables -D if0_DHCP -j ACCEPT
+                        iptables -D if0_DHCP -m mac --mac-source $dhcpmac -j DROP
+                        iptables -I if0_DHCP -m mac --mac-source $dhcpmac -j DROP
+                        iptables -A if0_DHCP -j ACCEPT
+                        # Drop other dhcp request
+                        iptables -D ${IFNAME}_DHCP -j DROP
+                        iptables -A ${IFNAME}_DHCP -j DROP
+                    fi
+                fi
+            fi
+
+        elif [ "$ACTION" = "ifdown" ]; then
+            ip link delete link $DEVICE $IFNAME type macvlan
+        fi
+    fi
+done
+IFS=$old_IFS
+#EOF
