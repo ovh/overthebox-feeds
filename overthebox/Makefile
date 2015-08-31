@@ -33,15 +33,12 @@ define Package/overthebox/conffiles
 endef
 
 define Build/Prepare
-	echo Prepare $(PKG_BUILD_DIR)
 endef
 
 define Build/Configure
-	echo configure $(PKG_BUILD_DIR)
 endef
 
 define Build/Compile
-	echo compile $(PKG_BUILD_DIR)
 endef
 
 define Package/overthebox/install
