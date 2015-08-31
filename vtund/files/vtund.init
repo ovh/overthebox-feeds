@@ -1,0 +1,95 @@
+#!/bin/sh /etc/rc.common
+# "new(er)" style init script
+# Look at /lib/functions/service.sh on a running system for explanations of what other SERVICE_
+# options you can use, and when you might want them.
+
+START=80
+APP="vtund"
+HOST=Sticky
+SERVICE_WRITE_PID=1
+SERVICE_DAEMONIZE=1
+CONF=/etc/vtund.conf
+
+
+
+start() {
+
+	if [ "$1" = "delayed" ] ; then
+		[ "$(pgrep -fn $0)" -ne "$(pgrep -fo $0)" ] && echo "time already been set" && exit 1
+		sleep 10
+		/etc/init.d/vtund restart
+		exit 1
+	fi
+
+
+        for x in `pgrep vtund`; do kill -KILL $x ; done
+	sleep 2
+
+	/bin/touch /etc/config/vtund
+	SERVER=$(uci get vtund.tunnel.server || echo 127.0.0.1 )
+	PORT=$(uci get vtund.tunnel.port || echo 5005)
+	CIPHER=$(uci get vtund.tunnel.cipher || echo aes256cbc)
+	LOCALIP=$(uci get vtund.tunnel.localip || echo 10.166.177.2)
+	REMOTEIP=$(uci get vtund.tunnel.remoteip || echo 10.166.177.1)
+	PSK=$(uci get vtund.tunnel.psk || echo foobar )
+
+
+	cat <<EOF >$CONF
+
+options {
+	ip /usr/sbin/ip;
+	ifconfig /sbin/ifconfig;
+	firewall /usr/sbin/iptables;
+
+	timeout 15;
+	port $PORT;
+}
+
+# Default session options
+default {
+	compress no;          # Compression is off by default
+		speed 0;              # By default maximum speed, NO shaping
+}
+
+
+
+Sticky
+{
+	passwd $PSK;
+	type tun;
+	proto tcp;
+	persist yes;
+	keepalive yes;
+	timeout 15;
+#compress zlib:9;
+	encrypt $CIPHER ;
+	multi killold;
+	up
+	{
+		ifconfig "%% $LOCALIP pointopoint $REMOTEIP up";
+		program "/usr/bin/multipath %% off";
+		ip "rule add from $LOCALIP table 100 pref 10100";
+		ip "route add default via $REMOTEIP table 100";
+		ip "route add default via $REMOTEIP metric 1000";
+	};
+	down
+	{
+		ifconfig "%% down ";
+		ip "rule del from $LOCALIP table 100";
+		ip "route del default via $REMOTEIP table 100";
+	};
+}
+
+EOF
+
+
+
+	service_start /usr/sbin/$APP -f /etc/vtund.conf $HOST $SERVER
+}
+
+stop() {
+        for x in `pgrep vtund`; do kill -KILL $x ; done
+	sleep 2
+
+#	service_stop /usr/sbin/$APP  -f /etc/vtund.conf $HOST $SERVER
+}

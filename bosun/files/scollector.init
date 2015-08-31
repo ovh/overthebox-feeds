@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+# "new(er)" style init script
+# Look at /lib/functions/service.sh on a running system for explanations of what other SERVICE_
+# options you can use, and when you might want them.
+
+START=80
+APP="scollector"
+SERVICE_WRITE_PID=1
+SERVICE_DAEMONIZE=1
+CONF=/etc/scollector.cfg
+
+
+/bin/touch $CONF
+HOST=$(uci -q get scollector.opentsdb.host )
+PORT=$(uci -q get scollector.opentsdb.port || echo 80 )
+FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
+WRTOKEN=$(uci -q get scollector.opentsdb.wrtoken)
+
+
+
+
+start() {
+	if [ -n "$HOST" -a -n "$WRTOKEN" ]
+	then
+
+		cat <<BOF >$CONF
+
+Host = "$HOST"
+FullHost = true
+Freq = $FREQ
+[Tags]
+ "ovh.auth" = "$WRTOKEN"
+
+BOF
+
+		service_start /usr/bin/$APP -conf $CONF
+	fi
+}
+
+stop() {
+	service_stop /usr/bin/$APP  -conf $CONF
+}

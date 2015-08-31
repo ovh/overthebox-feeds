@@ -1,0 +1,3 @@
+config config 'me'
+	option token ''
+	option device_id ''

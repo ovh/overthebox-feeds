@@ -1,0 +1,11 @@
+#!/bin/sh
+
+iptables -t nat -A OUTPUT -p tcp -d 188.165.12.106 -j SOCKS
+
+wget http://proof.ovh.net/files/10Gio.dat -O /dev/null &
+WPID=$!
+trap "kill $WPID" SIGINT SIGTERM
+wait $WPID
+
+echo stopped
+iptables -t nat -D OUTPUT -p tcp -d 188.165.12.106 -j SOCKS

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+usage() { echo "Usage: $0 [-f] [-h] [-q]" 1>&2; exit 1; }
+
+while getopts ":fq" o; do
+    case "${o}" in
+        f)
+            f=1
+            ;;
+        q)
+            q="-q"
+            ;;
+        h)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z ${f} ]
+then
+	echo this script will download and upgrade the overthebox with the last version
+	read -p "Are you sure? " -r REPLY
+	if [[ "$REPLY" != "y" ]]
+	then
+	    exit 1
+	fi
+fi
+
+wget http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /tmp/openwrt-x86-64-combined-ext4.img.gz ${q}
+
+sysupgrade /tmp/openwrt-x86-64-combined-ext4.img.gz
