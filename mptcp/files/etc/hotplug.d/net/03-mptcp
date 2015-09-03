@@ -4,7 +4,7 @@
 #
 enable=$(uci -q get network.globals.multipath)
 if [ "$enable" = "disable" ]; then
-    sysctl -qw net.mptcp.mptcp_enabled=0 2>/dev/null
+	sysctl -qw net.mptcp.mptcp_enabled=0 2>/dev/null
 elif [ "$enable" = "enable" ]; then
         sysctl -qw net.mptcp.mptcp_enabled=1 2>/dev/null
 else
