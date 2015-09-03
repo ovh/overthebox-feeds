@@ -30,6 +30,7 @@ endef
 
 define Package/overthebox/conffiles
 /etc/config/overthebox
+/etc/config/network
 endef
 
 define Build/Prepare
