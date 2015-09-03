@@ -41,14 +41,14 @@
 			}
 			else
 			{
-				status.innerHTML = '<strong>No MWAN interfaces found</strong>';
+				status.innerHTML = '<strong>No interface found</strong>';
 			}
 		}
 	);
 //]]></script>
 
 <fieldset id="interface_field" class="cbi-section">
-	<legend><%:MWAN Interface Live Status%></legend>
+	<legend><%:Interfaces Live Status%></legend>
 	<div id="mwan_status_text"><img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Collecting data...</div>
 </fieldset>
 
@@ -94,7 +94,7 @@
            s.innerHTML = '<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Updating ...';
         // call backend
         var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "dhcpserver", "confmwan")%>', null,
+        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "update_conf")%>', null,
             function(x)
             {
                 if (x.responseText)

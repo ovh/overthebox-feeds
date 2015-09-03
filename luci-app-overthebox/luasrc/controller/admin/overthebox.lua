@@ -21,16 +21,16 @@ function index()
 	e.sysauth = false
 
 	--
-        local e = entry({"admin", "overthebox", "dhcp", "overview"},  call("dhcpdiscovert_status"))
+        local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
         e.sysauth = false
 
-        entry({"admin", "overthebox", "dhcp", "recheck"},  call("action_recheck"))
+        entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
 
-        entry({"admin", "overthebox", "dhcp", "skiptimer"},  call("action_skiptimer"))
+        entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
 
-        entry({"admin", "overthebox", "startdhcpserver"},  call("action_startdhcpserver"))
+        entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
 
-        entry({"admin", "overthebox", "confmwan"},  call("action_confmwan"))
+        entry({"admin", "overthebox", "update_conf"},  call("action_update_conf"))
 
 end
 
@@ -64,16 +64,7 @@ function multipath_bandwidth()
 end
 
 -- DHCP overview functions
-function getDhcpd()
-        local result = {}
-        local dhcpd = (sys.exec("cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','"))
-        for line in string.gmatch(dhcpd,'[^\r\n]+') do
-                result[line] = true
-        end
-        return result
-end
-
-function dhcpdiscovert_status()
+function dhcp_status()
         local uci = luci.model.uci.cursor()
         local result = {}
 
@@ -87,7 +78,7 @@ function dhcpdiscovert_status()
                 end
         )
 
-        local dhcpd = getDhcpd()
+        local dhcpd = require('overthebox').list_running_dhcp()
         uci:foreach("dhcp", "dhcp",
                 function (section)
                         if dhcpd[section[".name"]] then
@@ -121,11 +112,12 @@ function dhcpdiscovert_status()
                         result.user["isFromDhcpLease"] = "true"
                 end
         end
+
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)
 end
 
-function action_recheck()
+function action_dhcp_recheck()
 	sys.exec("uci set dhcpdiscovery.if0.lastcheck=`date +%s`")
 	sys.exec("uci delete dhcpdiscovery.if0.siaddr")
 	sys.exec("uci delete dhcpdiscovery.if0.serverid")
@@ -144,7 +136,7 @@ function action_recheck()
 	luci.http.write_json("OK")
 end
 
-function action_skiptimer()
+function action_dhcp_skip_timer()
 	sys.exec("uci delete dhcpdiscovery.if0.timestamp")
 	sys.exec("pkill -USR1 \"dhcpc -p /var/run/udhcpc-if0.pid\"")
 
@@ -152,13 +144,13 @@ function action_skiptimer()
 	luci.http.write_json("OK")
 end
 
-function action_startdhcpserver()
+function action_dhcp_start_server()
         local result = require('overthebox').create_dhcp_server()
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
 end
 
-function update_confmwan()
+function action_update_conf()
         local result = require('overthebox').update_confmwan()
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)

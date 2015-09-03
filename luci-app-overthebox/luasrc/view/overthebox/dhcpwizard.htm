@@ -25,7 +25,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         }
         // call backend
         var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "dhcpserver", "recheck")%>', null,
+        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_recheck")%>', null,
 			function(x)
 			{
 				if (x.responseText)
@@ -54,7 +54,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         }
         // call backend
         var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "dhcpserver", "skiptimer")%>', null,
+        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_skiptimer")%>', null,
             function(x)
             {
                 if (x.responseText)
@@ -85,7 +85,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         }
         // call backend
 		var output = document.getElementById('dhcpserver_output');
-		stxhr.get('<%=luci.dispatcher.build_url("admin", "dhcpserver", "startdhcpserver")%>', null,
+		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_start_server")%>', null,
 			function(x)
 			{
                 if (x.responseText)
@@ -104,7 +104,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 	 	);
 	}
 
-	XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "dhcpserver", "overview")%>', null,
+	XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_status")%>', null,
         function(x, mArray)
         {
             var status = document.getElementById('dhcpserver_status_text');
