@@ -29,10 +29,10 @@ sig.signal (sig.SIGINT,  handle_exit)
 
 overthebox.debug = true
 
-local rcode, ret = overthebox.get_service()
-if rcode == 200 and ret.service then
-	overthebox.confirm_service(ret.service)
-end
+-- local rcode, ret = overthebox.get_service()
+-- if rcode == 200 and ret.service then
+--	overthebox.confirm_service(ret.service)
+-- end
 
 overthebox.notify_boot()
 
