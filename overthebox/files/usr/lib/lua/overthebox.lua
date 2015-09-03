@@ -6,7 +6,8 @@
 local require = require
 local json	= require "luci.json"
 
-local http	= require("socket.http")
+--local http	= require("socket.http")
+local https     = require("ssl.https")
 local ltn12	= require("ltn12")
 local io 	= require("io")
 local os 	= require("os")
@@ -157,7 +158,7 @@ function notify_shutdown()
 end
 
 function notify(event)
-	return POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/events", {event_name = event, timestamp = os.time()})
+	return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time()})
 end
 
 
@@ -187,9 +188,10 @@ function API(uri, method, data)
 	local reqbody 	= json.encode(data)
 	local respbody 	= {}
 	-- Building Request
-	local body, code, headers, status = http.request{
+	local body, code, headers, status = https.request{
 		method = method,
 		url = url,
+		protocol = "tlsv1",
 		headers = 
 		{
                         ["Content-Type"] = "application/json",
