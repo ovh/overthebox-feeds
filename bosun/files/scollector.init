@@ -12,24 +12,18 @@ CONF=/etc/scollector.cfg
 
 /bin/touch $CONF
 HOST=$(uci -q get scollector.opentsdb.host )
-PORT=$(uci -q get scollector.opentsdb.port || echo 80 )
 FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
-WRTOKEN=$(uci -q get scollector.opentsdb.wrtoken)
-
 
 
 
 start() {
-	if [ -n "$HOST" -a -n "$WRTOKEN" ]
+	if [ -n "$HOST" ]
 	then
 
 		cat <<BOF >$CONF
 
 Host = "$HOST"
-FullHost = true
 Freq = $FREQ
-[Tags]
- "ovh.auth" = "$WRTOKEN"
 
 BOF
 
@@ -40,3 +34,4 @@ BOF
 stop() {
 	service_stop /usr/bin/$APP  -conf $CONF
 }
+
