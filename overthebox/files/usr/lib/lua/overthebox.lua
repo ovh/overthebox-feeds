@@ -617,6 +617,21 @@ end
 
 
 -- Debug utils
+function log(msg)
+        if (type(msg) == "table") then
+                for key, val in pairs(msg) do
+                        log('{')
+                        log(key)
+                        log(':')
+                        log(val)
+                        log('}')
+        	end
+	else
+		luci.sys.exec("logger -t luci \"" .. tostring(msg) .. '"')
+	end
+end
+
+
 function tprint (tbl, indent)
   if not indent then indent = 0 end
   if not tbl then return end
