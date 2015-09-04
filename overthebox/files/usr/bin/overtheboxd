@@ -1,3 +1,5 @@
+#!/usr/bin/env lua
+
 -- Copyright 2015 OVH
 -- Author: Simon Lelievre <sim@ovh.net>
 -- Licensed to the public under the ?
