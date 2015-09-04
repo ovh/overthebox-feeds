@@ -233,15 +233,22 @@ end
 
 -- Mwan conf generator
 function update_confmwan()
+	local uci = luci.model.uci.cursor()
+	-- Check if we need to update mwan conf
+	local oldmd5 = uci:get("mwan3", "netconfchecksum")
+	local newmd5 = luci.sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
+	if oldmd5 and (oldmd5 == newmd5) then
+		log("update_confmwan: no changes !")
+		return false, nil
+	end
 	-- Avoid race condition
 	local l = lock("update_confmwan")
 	if not l then
 		log("Could not acquire lock !")
-		return false
+		return false, nil
 	end
 	log("Lock on update_confmwan() acquired")
 	-- Start main code
-	local uci = luci.model.uci.cursor()
 	local results={}
 	-- clear up mwan config
 	uci:delete_all("mwan3","policy")
@@ -442,8 +449,12 @@ function update_confmwan()
 
 	uci:save("mwan3")
 	uci:commit("mwan3")
-	-- @TODO : find a cleaner way
-	os.execute("mwan3 status 1>/dev/null 2>/dev/null && uci set mwan3.netconfchecksum=`uci -q export network | md5sum | cut -f1 -d' '` && uci commit")
+	-- Saving net conf md5 and restarting services
+	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") then
+		local newmd5 = luci.sys.exec(uci -q export network | md5sum | cut -f1 -d' ')
+		uci:set("mwan3", "netconfchecksum", newmd5)
+		os.execute("nohup /usr/sbin/mwan3 restart && /etc/init.d/vtund restart")
+	end
 	l:close()
 	return result, interfaces
 end
