@@ -237,7 +237,7 @@ function update_confmwan()
 	local uci = require('luci.model.uci').cursor()
 	-- Check if we need to update mwan conf
 	local oldmd5 = uci:get("mwan3", "netconfchecksum")
-	local newmd5 = sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
+	local newmd5 = string.match(sys.exec("uci -q export network | md5sum"), "[0-9a-f]*")
 	if oldmd5 and (oldmd5 == newmd5) then
 		log("update_confmwan: no changes !")
 		return false, nil
@@ -435,7 +435,7 @@ function update_confmwan()
 		if n < 4 then
 			generate_all_routes({}, key_members, 0)
 		end
-        -- Generate failover policy
+		-- Generate failover policy
    		uci:set("mwan3", "failover", "policy")
 		local metric=0
 		local my_members = {}
@@ -447,14 +447,13 @@ function update_confmwan()
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
 	end
-
+	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
 	uci:commit("mwan3")
 	-- Saving net conf md5 and restarting services
-	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") then
-		local newmd5 = sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
-		uci:set("mwan3", "netconfchecksum", newmd5)
-		os.execute("nohup /usr/sbin/mwan3 restart && /etc/init.d/vtund restart")
+	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") == 0 then
+		os.execute("nohup /usr/sbin/mwan3 restart &")
+		os.execute("nohup /etc/init.d/vtund restart &")
 	end
 	l:close()
 	return result, interfaces
