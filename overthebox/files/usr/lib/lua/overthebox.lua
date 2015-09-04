@@ -65,35 +65,35 @@ function config()
 	local ret = {}
 
 	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-		uci:set('shadowsocksdev','proxy','client')
-		uci:set('shadowsocksdev','proxy','server',   res.shadow_conf.server )
-		uci:set('shadowsocksdev','proxy','port',     res.shadow_conf.port)
-		uci:set('shadowsocksdev','proxy','lport',    res.shadow_conf.lport)
-		uci:set('shadowsocksdev','proxy','password', res.shadow_conf.password)
-		uci:set('shadowsocksdev','proxy','method',   res.shadow_conf.method)
-		uci:set('shadowsocksdev','proxy','timeout',  res.shadow_conf.timeout)
-		uci:save('shadowsocksdev')
+		uci:set('shadowsocks','proxy','client')
+		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+		uci:save('shadowsocks')
 		table.insert(ret, "shadowsock")
 	end
 
 	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk') then
-		uci:set('vtunddev', 'tunnel', 'client')
-		uci:set('vtunddev', 'tunnel', 'server', res.vtun_conf.server )
-		uci:set('vtunddev', 'tunnel', 'port',   res.vtun_conf.port )
-		uci:set('vtunddev', 'tunnel', 'cipher', res.vtun_conf.cipher )
-		uci:set('vtunddev', 'tunnel', 'psk',    res.vtun_conf.psk )
-		uci:set('vtunddev', 'tunnel', 'localip', '10.166.177.2')
-		uci:set('vtunddev', 'tunnel', 'remoteip', '10.166.177.1')
-		uci:save('vtunddev')
+		uci:set('vtund', 'tunnel', 'client')
+		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
+		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
+		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
+		uci:set('vtund', 'tunnel', 'localip', '10.166.177.2')
+		uci:set('vtund', 'tunnel', 'remoteip', '10.166.177.1')
+		uci:save('vtund')
 		table.insert(ret, "vtund")
 	end
 
 	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-		uci:set('scollectordev','opentsdb', 'client')
-		uci:set('scollectordev', 'opentsdb', 'host', res.graph_conf.host )
-		uci:set('scollectordev', 'opentsdb', 'freq', (res.graph_conf.freq or 300) )
-		uci:set('scollectordev', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
-		uci:save('scollectordev')
+		uci:set('scollector','opentsdb', 'client')
+		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.freq or 300) )
+		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+		uci:save('scollector')
 		table.insert(ret, 'scollector')
 	end
 
@@ -163,6 +163,13 @@ end
 
 
 -- service ovh
+function ask_service_confirmation(service)
+	uci:set("overthebox", "me", "service", service)
+	uci:set("overthebox", "me", "askserviceconfirmation", "1")
+	uci:save("overthebox")
+
+	return true
+end
 function get_service()
 	return GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
 end

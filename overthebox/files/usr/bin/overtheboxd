@@ -40,7 +40,6 @@ overthebox.notify_boot()
 
 local delay = 10
 while run do
-	log("run")
 	local rcode, ret = overthebox.status()
 	
 	if rcode == 401 then
@@ -51,7 +50,7 @@ while run do
 	elseif rcode == 200 and ret.action then
 		local actionreturn 
 		local msg 
-		print("I do : "..ret.action)
+		debug("I do : "..ret.action)
 		
 		if     ret.action == "update" then
 			actionreturn, msg = overthebox.opkg_update()	
@@ -71,10 +70,21 @@ while run do
 			-- actionreturn, msg = overthebox.reboot()
 			actionreturn = true
 			msg = "ok"
-		elseif ret.action == "wait" then
-			delay = ret.arguments.delay or 10
+		elseif ret.action == "askServiceConfirmation" then
+			actionreturn, msg = overthebox.get_service()
+			if actionreturn == 200 then
+				if msg and msg.service then
+					overthebox.ask_service_confirmation(msg.service)
+				else
+					actionreturn == 500
+					msg = "can not retreive service"
+				end
+			end
+                elseif ret.action == "" then
+                        delay = ret.arguments.delay or 10
 		end
 		if actionreturn ~= nil then
+			log(actionreturn, msg)
 			overthebox.confirm_action(ret.id, actionreturn, msg)
 		end
 	end
