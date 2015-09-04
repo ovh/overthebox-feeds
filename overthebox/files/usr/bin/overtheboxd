@@ -61,9 +61,7 @@ while run do
 		elseif ret.action == "upgrade" then
                         actionreturn, msg = overthebox.upgrade()
 		elseif ret.action == "sysupgrade" then
-                        -- actionreturn, msg = overthebox.sysupgrade()
-			actionreturn = true
-                        msg = "ok"
+                        actionreturn, msg = overthebox.sysupgrade()
 		elseif ret.action == "configure" then
 			actionreturn, msg = overthebox.config()
 		        for i = 1, #msgs do
