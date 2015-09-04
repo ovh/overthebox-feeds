@@ -1,12 +1,2 @@
 #!/bin/sh
-OLD_NETCONFMD5=$(uci -q get mwan3.netconfchecksum)
-NEW_NETCONFMD5=$(uci -q export network | md5sum | cut -f1 -d' ')
-
-if [ "$OLD_NETCONFMD5" != "$NEW_NETCONFMD5" ]; then
-    # Update mwan 3 config
-    /usr/bin/lua -e "require('overthebox').update_confmwan()"
-    # Restart services
-    nohup /usr/sbin/mwan3 restart 1>/dev/null &
-    nohup sleep 10 && /etc/init.d/openvpn restart 1>/dev/null &
-    nohup sleep 5 && /etc/init.d/vtund restart 1>/dev/null &
-fi
+/usr/bin/lua -e "require('overthebox').update_confmwan()"
