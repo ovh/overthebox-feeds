@@ -331,20 +331,25 @@ pingdeleta.default = "100"
 pingdeleta.rmempty = true
 pingdeleta:depends("autoshape", "auto")
 
-bandwidthdelta = s:taboption("autoshape", Value, "bandwidthdelta", translate("Minimum rate delta in kbit/s between mesures before reloading QoS"))
-bandwidthdelta.default = "100"
-bandwidthdelta.rmempty = true
-bandwidthdelta:depends("autoshape", "auto")
+mindownload = s:taboption("autoshape", Value, "mindownload", translate("Minimal shaping speed in kbit/s"))
+mindownload.default = "512"
+mindownload.rmempty = true
+mindownload:depends("autoshape", "auto")
+
+minupload = s:taboption("autoshape", Value, "minupload", translate("Minimal shaping speed in kbit/s"))
+minupload.default = "128"
+minupload.rmempty = true
+minupload:depends("autoshape", "auto")
+
+-- bandwidthdelta = s:taboption("autoshape", Value, "bandwidthdelta", translate("Minimum rate delta in kbit/s between mesures before reloading QoS"))
+-- bandwidthdelta.default = "100"
+-- bandwidthdelta.rmempty = true
+-- bandwidthdelta:depends("autoshape", "auto")
 
 qostimeout = s:taboption("autoshape", Value, "qostimeout", translate("Time in min to keep detected rate"))
 qostimeout.default = "30"
 qostimeout.rmempty = true
 qostimeout:depends("autoshape", "auto")
-
-minspeed = s:taboption("autoshape", Value, "minspeed", translate("Minimal shaping speed in kbit/s"))
-minspeed.default = "64"
-minspeed.rmempty = true
-minspeed:depends("autoshape", "auto")
 
 ratefactor = s:taboption("autoshape", Value, "ratefactor", translate("Factor to apply on mesured rate"))
 ratefactor.default = "1"
