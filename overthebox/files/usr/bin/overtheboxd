@@ -64,7 +64,7 @@ while run do
                         actionreturn, msg = overthebox.sysupgrade()
 		elseif ret.action == "configure" then
 			actionreturn, msg = overthebox.config()
-		        for i = 1, #msgs do
+		        for i = 1, #msg do
 				overthebox.restart(msg[i])
         		end
 

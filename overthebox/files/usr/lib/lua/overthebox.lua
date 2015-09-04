@@ -73,7 +73,7 @@ function config()
 		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
 		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
 		uci:save('shadowsocks')
-		table.insert(ret, "shadowsock")
+		table.insert(ret, "shadowsocks")
 	end
 
 	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk') then
