@@ -321,8 +321,8 @@ end
 
 aushape = s:taboption("autoshape", ListValue, "autoshape", translate("Adaptive Shaping"))
 aushape:value("off", translate("Disabled"))
-aushape:value("auto", translate("Adaptive"))
 aushape:value("static", translate("Static"))
+aushape:value("auto", translate("Adaptive (experimental)"))
 aushape.default = "off"
 aushape:depends("multipath", "on")
 
