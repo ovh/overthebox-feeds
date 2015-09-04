@@ -15,7 +15,7 @@ local string	= require("string")
 
 local print = print
 local ipairs, pairs, next, type, tostring, error = ipairs, pairs, next, type, tostring, error
-local table = table
+local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci").cursor()
 local debug = false
@@ -444,7 +444,7 @@ function update_confmwan()
 	uci:commit("mwan3")
 	-- @TODO : find a cleaner way
 	os.execute("mwan3 status 1>/dev/null 2>/dev/null && uci set mwan3.netconfchecksum=`uci -q export network | md5sum | cut -f1 -d' '` && uci commit")
-	l.close()
+	-- l.close() - bad argument 1
 	return result, interfaces
 end
 
@@ -459,7 +459,7 @@ end
 
 function start_dhcp_server()
 	local result = {}
-	local uci = luci.model.uci.cursor()
+	local uci = require('luci.model.uci').cursor()
 	-- Setup a dhcp server if needed
 	local dhcpd_configured = 0
 	local dhcpd = list_running_dhcp()
@@ -542,6 +542,7 @@ end
 -- helpers
 function lock(name)
         -- Open fd for appending
+	local nixio = require('nixio')
         local oflags = nixio.open_flags("wronly", "creat")
         local file, code, msg = nixio.open("/tmp/" .. name, oflags)
 
