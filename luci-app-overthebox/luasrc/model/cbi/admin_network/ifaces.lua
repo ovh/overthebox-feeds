@@ -226,6 +226,7 @@ if fs.access("/proc/sys/net/mptcp") then
     mptcp:value("master", translate("master"))
     mptcp:value("backup", translate("backup"))
     mptcp:value("handover", translate("handover"))
+    mptcp.default = "off"
 end
 
 delegate = s:taboption("advanced", Flag, "delegate", translate("Use builtin IPv6-management"))
