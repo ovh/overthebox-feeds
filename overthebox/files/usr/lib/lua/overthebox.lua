@@ -592,17 +592,6 @@ function iface_info(iface)
 end
 
 
-
-function error(str)
-        p.syslog( p.LOG_ERROR, opts["i"] .. '.' .. str)
-end
-function log(str)
-        p.syslog( p.LOG_NOTICE, opts["i"] .. '.' .. str)
-end
-function debug(str)
-        p.syslog( p.LOG_DEBUG, opts["i"] .. '.' .. str)
-end
-
 -- Debug utils
 function tprint (tbl, indent)
   if not indent then indent = 0 end
