@@ -2,6 +2,8 @@
 -- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
 -- Licensed to the public under the Apache License 2.0.
 
+local tools = require "luci.tools.status"
+local sys = require "luci.sys"
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
