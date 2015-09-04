@@ -103,6 +103,11 @@ end
 
 
 -- exec command local
+function restart(service)
+        local ret = run("/etc/init.d/"..service.." restart")
+        return true, ret
+end
+
 function opkg_update()
 	local ret = run("opkg update")
 	return true, ret
