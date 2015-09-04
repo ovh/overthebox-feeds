@@ -444,7 +444,7 @@ function update_confmwan()
 	uci:commit("mwan3")
 	-- @TODO : find a cleaner way
 	os.execute("mwan3 status 1>/dev/null 2>/dev/null && uci set mwan3.netconfchecksum=`uci -q export network | md5sum | cut -f1 -d' '` && uci commit")
-	-- l.close() - bad argument 1
+	l:close()
 	return result, interfaces
 end
 
@@ -547,7 +547,7 @@ function lock(name)
         local file, code, msg = nixio.open("/tmp/" .. name, oflags)
 
         if not file then
-        return file, code, msg
+        	return file, code, msg
         end
 
         -- Acquire lock
