@@ -3,8 +3,9 @@
 -- Author: DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
 -- Licensed to the public under the ?
 
-local require = require
+local require 	= require
 local json	= require "luci.json"
+local sys 	= require "luci.sys"
 
 --local http	= require("socket.http")
 local https     = require("ssl.https")
@@ -233,10 +234,10 @@ end
 
 -- Mwan conf generator
 function update_confmwan()
-	local uci = luci.model.uci.cursor()
+	local uci = require('luci.model.uci').cursor()
 	-- Check if we need to update mwan conf
 	local oldmd5 = uci:get("mwan3", "netconfchecksum")
-	local newmd5 = luci.sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
+	local newmd5 = sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
 	if oldmd5 and (oldmd5 == newmd5) then
 		log("update_confmwan: no changes !")
 		return false, nil
@@ -451,7 +452,7 @@ function update_confmwan()
 	uci:commit("mwan3")
 	-- Saving net conf md5 and restarting services
 	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") then
-		local newmd5 = luci.sys.exec(uci -q export network | md5sum | cut -f1 -d' ')
+		local newmd5 = sys.exec("uci -q export network | md5sum | cut -f1 -d' '")
 		uci:set("mwan3", "netconfchecksum", newmd5)
 		os.execute("nohup /usr/sbin/mwan3 restart && /etc/init.d/vtund restart")
 	end
@@ -627,7 +628,7 @@ function log(msg)
                         log('}')
         	end
 	else
-		luci.sys.exec("logger -t luci \"" .. tostring(msg) .. '"')
+		sys.exec("logger -t luci \"" .. tostring(msg) .. '"')
 	end
 end
 
