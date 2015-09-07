@@ -15,7 +15,7 @@ local os 	= require("os")
 local string	= require("string")
 
 local print = print
-local ipairs, pairs, next, type, tostring, error = ipairs, pairs, next, type, tostring, error
+local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next, type, tostring, tonumber, error
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci").cursor()
