@@ -614,7 +614,7 @@ function shaper:disableQos()
 	uci:commit("qos")
 	-- restarting qos
 	run(string.format("/etc/init.d/qos enabled && /usr/lib/qos/generate.sh interface %s | sh", shaper.interface))
-	run("/etc/init.d/qos reload")
+--	run("/etc/init.d/qos reload")
 	shaper.qostimestamp=nil
 	shaper.congestedtimestamp=nil
 end
