@@ -44,6 +44,7 @@ function subscribe()
 		uci:set("overthebox", "me", "token", res.token)
 		uci:set("overthebox", "me", "device_id", res.device_id)
 		uci:save("overthebox")
+		uci:commit("overthebox")
 	end
 	return rcode, res
 end
@@ -74,6 +75,7 @@ function config()
 		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
 		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
 		uci:save('shadowsocks')
+		uci:commit('shadowsocks')
 		table.insert(ret, "shadowsocks")
 	end
 
@@ -86,6 +88,7 @@ function config()
 		uci:set('vtund', 'tunnel', 'localip', '10.166.177.2')
 		uci:set('vtund', 'tunnel', 'remoteip', '10.166.177.1')
 		uci:save('vtund')
+		uci:commit('vtund')
 		table.insert(ret, "vtund")
 	end
 
@@ -95,6 +98,7 @@ function config()
 		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.freq or 300) )
 		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
 		uci:save('scollector')
+		uci:commit('scollector')
 		table.insert(ret, 'scollector')
 	end
 
@@ -123,15 +127,15 @@ function opkg_install(package)
 	return true, ret
 end
 function upgrade()
-	local packages = {'overthebox', 'overthebox-luci', 'mwan3otb', 'mwan3otb-luci', 'shadowsocks-libev', 'bosun', 'vtund'}
-	local retcode = 0
+	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'mwan3otb-luci', 'shadowsocks-libev', 'bosun', 'vtund'}
+	local retcode = 200
 	local ret = {}
 	for i = 1, #packages do
 		-- install package
 		local p = packages[i]
 		local c, r = opkg_install(p)
-		if c > retcode then -- BUG
-			retcode = c
+		if c == false then
+			retcode = 500
 		end
 		table.insert(ret, p .. ": " .. r)
 	end
@@ -144,6 +148,9 @@ end
 
 -- action api
 function confirm_action(action, status, msg )
+	if action == nil then
+		return
+	end
 	local str_status
 	if status == true then
 		str_status = "done"
