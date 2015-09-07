@@ -31,7 +31,7 @@ function index()
         local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
 	e.sysauth = false
 
-        lcoal e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
+        local e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
 	e.sysauth = false
 
         entry({"admin", "overthebox", "update_conf"},  call("action_update_conf"))
