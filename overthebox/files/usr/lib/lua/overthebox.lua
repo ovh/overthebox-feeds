@@ -127,7 +127,7 @@ function opkg_install(package)
 	return true, ret
 end
 function upgrade()
-	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'mwan3otb-luci', 'shadowsocks-libev', 'bosun', 'vtund'}
+	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund'}
 	local retcode = 200
 	local ret = {}
 	for i = 1, #packages do
