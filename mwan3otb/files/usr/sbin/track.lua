@@ -5,7 +5,7 @@ local sig = require "posix.signal"
 
 local json	= require("luci.json")
 local uci	= require("luci.model.uci").cursor()
-local sys   = require("luci.sys")
+local sys	= require("luci.sys")
 
 -- sig.signal (sig.SIGQUIT, handle_exit)
 -- sig.signal (sig.SIGTERM, handle_exit)
@@ -553,9 +553,6 @@ function shaper:update()
 				end
 			else
 				shaper.download = math.floor(download * shaper.ratefactor)
-				if shaper.upload == nil then
-					shaper.upload = shaper.download
-				end
 				shaper:enableQos()
 			end
 		end
@@ -569,27 +566,35 @@ function shaper:update()
 end
 
 function shaper:enableQos()
-	if shaper.qostimestamp and ((os.time() - shaper.qostimestamp) < 60) then
-		log("Link still congested reducing rate of 5%")
-		shaper.download = math.floor(shaper.download * 0.95)
-		shaper.upload = math.floor(shaper.upload * 0.95)
-	end
-
-	if shaper.download == nil or shaper.upload == nil then
-		log("no speed setted")
+	local download = shaper.download
+	local upload = shaper.upload
+	-- Check download speed
+	if download == nil then
+		log("no download speed setted")
 		return false
 	end
-	if (shaper.download < shaper.mindownload) or (shaper.upload < shaper.minupload) then
-		log("min speeds not reached")
+	-- If no upload set use download speed
+	if upload == nil then
+		upload = download
+	end
+	--
+	if shaper.qostimestamp and ((os.time() - shaper.qostimestamp) < 60) then
+		log("Link still congested reducing rate of 5%")
+		download	= math.floor(download * 0.95)
+		upload		= math.floor(upload * 0.95)
+	end
+	-- Check minimal speeds
+	if (download < shaper.mindownload) or (upload < shaper.minupload) then
+		log("minimal speeds are not reached")
 	end
 	-- Min speeds are reach applying QoS
-	log("Setting QoS download to " .. shaper.download .. " kbit/s and upload to " .. shaper.upload .. " kbit/s")
+	log("Setting QoS download to " .. download .. " kbit/s and upload to " .. upload .. " kbit/s")
 	uci:set("qos", shaper.interface, "interface")
 	uci:set("qos", shaper.interface, "classgroup", 'Default')
 	uci:delete("qos", shaper.interface, "halfduplex")
 	uci:set("qos", shaper.interface, "overhead", '1')
-	uci:set("qos", shaper.interface, "download", shaper.download)
-	uci:set("qos", shaper.interface, "upload", shaper.upload)
+	uci:set("qos", shaper.interface, "download", download)
+	uci:set("qos", shaper.interface, "upload", upload)
 	uci:set("qos", shaper.interface, "enabled", '1')
 	uci:commit("qos")
 	-- reloading QoS
@@ -644,24 +649,35 @@ while true do
 		score = score - 1
 		if score < nb_up then score = 0 end 
 		if score == nb_up then
-		        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
-		        local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
-		        if (dlspeed ~= nil and dlspeed < minspeed) or (upspeed ~= nil and upspeed < minspeed) then
+			if shaper.losttimestamp == nil then
 	    			log(string.format("Interface %s (%s) is offline", opts["i"], opts["d"]))
-    			-- exec hotplug iface
-    --			run(string.format("/usr/bin/env ACTION='ifdown' INTERFACE='%s' DEVICE='%s' /sbin/hotplug-call iface", opts["i"], opts["d"]))
-    			run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
-			-- clear QoS on interface down
-			shaper:disableQos()
-    			score = 0
-                losttimestamp = nil
-            else
-                log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
-                losttimestamp = os.time()
-                
-                lost = 0
-                score = score + 1
-            end
+	   			-- exec hotplug iface
+				run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
+				-- clear QoS on interface down
+				shaper:disableQos()
+				losttimestamp = nil
+
+				score = 0
+			else
+			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
+				local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
+			        if (dlspeed ~= nil and dlspeed < mindownload) or (upspeed ~= nil and upspeed < minupload) then
+		    			log(string.format("Interface %s (%s) is offline", opts["i"], opts["d"]))
+		   			-- exec hotplug iface
+					run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
+					-- clear QoS on interface down
+					shaper:disableQos()
+					losttimestamp = nil
+
+					score = 0
+				else
+					log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
+					losttimestamp = os.time()
+
+					lost = 0
+					score = score + 1
+				end
+			end
 		end
 	else
 		if score < init_score and lost > 0 then
@@ -676,7 +692,6 @@ while true do
 		if score == nb_up then
 			log(string.format("Interface %s (%s) is online", opts["i"],    opts["d"]))
 			-- exec hotplug iface	
---			run(string.format("env -i ACTION=ifup INTERFACE=%s DEVICE=%s /sbin/hotplug-call iface", opts["i"],    opts["d"]))
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
 			shaper:enableQos()
 		end
