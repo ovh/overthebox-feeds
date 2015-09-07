@@ -26,12 +26,12 @@ start() {
 	sleep 2
 
 	/bin/touch /etc/config/vtund
-	SERVER=$(uci get vtund.tunnel.server || echo 127.0.0.1 )
-	PORT=$(uci get vtund.tunnel.port || echo 5005)
-	CIPHER=$(uci get vtund.tunnel.cipher || echo aes256cbc)
-	LOCALIP=$(uci get vtund.tunnel.localip || echo 10.166.177.2)
-	REMOTEIP=$(uci get vtund.tunnel.remoteip || echo 10.166.177.1)
-	PSK=$(uci get vtund.tunnel.psk || echo foobar )
+	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
+	PORT=$(uci -q get vtund.tunnel.port || echo 5005)
+	CIPHER=$(uci -q get vtund.tunnel.cipher || echo aes256cbc)
+	LOCALIP=$(uci -q get vtund.tunnel.localip || echo 10.166.177.2)
+	REMOTEIP=$(uci -q get vtund.tunnel.remoteip || echo 10.166.177.1)
+	PSK=$(uci -q get vtund.tunnel.psk || echo foobar )
 
 
 	cat <<EOF >$CONF
@@ -82,6 +82,12 @@ Sticky
 
 EOF
 
+# exit if conf is missing!
+if [ "$SERVER" == "127.0.0.1" ] 
+	then
+	logger no vtund server conf exists
+	exit 1
+fi
 
 
 	service_start /usr/sbin/$APP -f /etc/vtund.conf $HOST $SERVER
