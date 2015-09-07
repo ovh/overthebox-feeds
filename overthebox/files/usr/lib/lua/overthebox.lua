@@ -19,7 +19,7 @@ local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci").cursor()
-local debug = false
+debug = false
 local VERSION = "<VERSION>"
 module "overthebox"
 
@@ -127,7 +127,7 @@ function opkg_install(package)
 	return true, ret
 end
 function upgrade()
-	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'mwan3otb-luci', 'shadowsocks-libev', 'bosun', 'vtund'}
+	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund'}
 	local retcode = 200
 	local ret = {}
 	for i = 1, #packages do
@@ -145,21 +145,18 @@ function sysupgrade()
 	local ret = run("overthebox_last_upgrade -f")
         return true, ret
 end
+function reboot()
+        local ret = run("reboot")
+        return true, ret
+end
+
 
 -- action api
 function confirm_action(action, status, msg )
 	if action == nil then
 		return
 	end
-	local str_status
-	if status == true then
-		str_status = "done"
-	elseif status == false then
-		str_status = "error"
-	else
-		str_status = status  -- if got other than a boolean
-	end
-	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=str_status, msg = msg})
+	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, msg = msg})
 end
 
 -- notification events
@@ -180,7 +177,7 @@ function ask_service_confirmation(service)
 	uci:set("overthebox", "me", "service", service)
 	uci:set("overthebox", "me", "askserviceconfirmation", "1")
 	uci:save("overthebox")
-
+	uci:commit("overthebox")
 	return true
 end
 function get_service()

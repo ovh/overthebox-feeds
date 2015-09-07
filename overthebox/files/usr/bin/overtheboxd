@@ -41,19 +41,20 @@ overthebox.notify_boot()
 local delay = 10
 while run do
 	local rcode, ret = overthebox.status()
-	
+
 	if rcode == 401 then
 		rcode, ret = overthebox.subscribe()
+		debug("subscribe : ", ret)
 		if rcode ~= 200 then
-			error("can not subscribe to api : " .. ret.error )	
+			error("can not subscribe to api : " .. ret.error )
 		end
 	elseif rcode == 200 and ret.action then
-		local actionreturn 
-		local msg 
+		local actionreturn
+		local msg
 		debug("I do : "..ret.action)
-		
+
 		if     ret.action == "update" then
-			actionreturn, msg = overthebox.opkg_update()	
+			actionreturn, msg = overthebox.opkg_update()
 		elseif ret.action == "upgradable" then
 			actionreturn, msg = overthebox.opkg_upgradable()
 		elseif ret.action == "install" then
@@ -69,9 +70,7 @@ while run do
         		end
 
 		elseif ret.action == "reboot" then
-			-- actionreturn, msg = overthebox.reboot()
-			actionreturn = true
-			msg = "ok"
+			actionreturn, msg = overthebox.reboot()
 		elseif ret.action == "askServiceConfirmation" then
 			actionreturn, msg = overthebox.get_service()
 			if actionreturn == 200 then
@@ -86,6 +85,11 @@ while run do
                         delay = ret.arguments.delay or 10
 		end
 		if actionreturn ~= nil then
+			if actionreturn == true then
+				actionreturn = "done"
+			elseif actionreturn == false then
+				actionreturn = "error"
+			end
 			log(actionreturn, msg)
 			overthebox.confirm_action(ret.id, actionreturn, msg)
 		end
