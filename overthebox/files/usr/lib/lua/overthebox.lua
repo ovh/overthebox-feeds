@@ -19,7 +19,7 @@ local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci").cursor()
-local debug = false
+debug = false
 local VERSION = "<VERSION>"
 module "overthebox"
 
