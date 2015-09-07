@@ -22,15 +22,17 @@ function index()
 	local e = entry({"admin", "overthebox", "interfaces_status"}, call("interfaces_status"))
 	e.sysauth = false
 
-	--
         local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
         e.sysauth = false
 
-        entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
+        local e = entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
+	e.sysauth = false
 
-        entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
+        local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
+	e.sysauth = false
 
-        entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
+        lcoal e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
+	e.sysauth = false
 
         entry({"admin", "overthebox", "update_conf"},  call("action_update_conf"))
 
