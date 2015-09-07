@@ -155,12 +155,19 @@ end
 function backup_last_action(id)
         uci:set("overthebox", "me", "last_action_id", id)
         uci:save("overthebox")
-        uci:save("overthebox")
+        uci:commit("overthebox")
 end
 
 function get_last_action()
         return uci:get("overthebox", "me", "last_action_id")
 end
+
+function flush_action(id)
+        uci:delete("overthebox", "me", "last_action_id", id)
+        uci:save("overthebox")
+        uci:commit("overthebox")
+end
+
 
 function confirm_action(action, status, msg )
 	if action == nil then

@@ -38,10 +38,13 @@ overthebox.debug = true
 
 overthebox.notify_boot()
 
+
 -- flush last action beforce start, next a reboot or a sysupgrade
 local last_action_id = overthebox.get_last_action()
 if last_action_id ~= nil then
-        overthebox.confirm_action(last_action_id, true, "done")
+        print("flush last action")
+        overthebox.confirm_action(last_action_id, "done", "done")
+        overthebox.flush_action(last_action_id)
 end
 
 
@@ -106,7 +109,9 @@ while run do
 		end
 	end
 
-        p.sleep(delay)
+        if run then
+                p.sleep(delay)
+        end
 end
 
 overthebox.notify_shutdown()
