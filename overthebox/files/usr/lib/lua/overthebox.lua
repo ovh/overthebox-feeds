@@ -468,7 +468,7 @@ function list_running_dhcp()
 	return result
 end
 
-function start_dhcp_server()
+function create_dhcp_server()
 	local result = {}
 	local uci = require('luci.model.uci').cursor()
 	-- Setup a dhcp server if needed
