@@ -258,14 +258,15 @@ function update_confmwan()
 	-- Get trackers IPs
 	local interfaces= {}
 	local size_interfaces = 0 -- table.getn( does not work....
-	local openvpn_servers = {}
-	uci:foreach("openvpn", "openvpn",
-		function (section)
-			if section["enabled"] == "1" and section["remote"] ~= nil then
-				table.insert( openvpn_servers, section["remote"])
-			end
-		end
-	)
+	local tracking_servers = {}
+--	uci:foreach("openvpn", "openvpn",
+--		function (section)
+--			if section["enabled"] == "1" and section["remote"] ~= nil then
+--				table.insert( tracking_servers, section["remote"])
+--			end
+--		end
+--	)
+	table.insert( tracking_servers, "213.186.33.99" )
 	-- Create a tracker for each mptcp interface
 	uci:foreach("network", "interface",
 		function (section)
@@ -276,8 +277,8 @@ function update_confmwan()
 						interfaces[ section[".name"] ] = section
 						uci:set("mwan3", section[".name"], "interface")
 						uci:set("mwan3", section[".name"], "enabled", "1")
-						if next(openvpn_servers) then
-							uci:set_list("mwan3", section[".name"], "track_ip", openvpn_servers)
+						if next(tracking_servers) then
+							uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
 						end
 						uci:set("mwan3", section[".name"], "reliability", "1")
 						uci:set("mwan3", section[".name"], "count", "1")
