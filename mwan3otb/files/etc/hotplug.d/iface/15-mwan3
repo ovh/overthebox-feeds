@@ -169,7 +169,7 @@ mwan3_track()
 		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
 		$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
 
-		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track $INTERFACE $DEVICE $reliability $count $timeout $interval $down $up $track_ips &
+		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track -i $INTERFACE -d $DEVICE -m icmp -r $reliability -c $count -t $timeout -v $interval -o $down -u $up $track_ips &
 	else
 		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
 		$IPS destroy mwan3_track_$INTERFACE

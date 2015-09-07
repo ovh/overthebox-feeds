@@ -43,9 +43,7 @@ case "$ACTION" in
         then
                 G=$(uci -q get network.$DEVICE.gateway )
                 S=$(uci -q get shadowsocks.proxy.server)
-                O=$(uci -q get openvpn.sticky_server.remote)
                 [ -n $S -a -n $G ] && route add $S gw $G $DEVICE
-                [ -n $O -a -n $G ] && route add $O gw $G $DEVICE
         fi
     ;;
     ifdown)
@@ -57,9 +55,7 @@ case "$ACTION" in
         then
                 G=$(uci -q get network.$DEVICE.gateway )
                 S=$(uci -q get shadowsocks.proxy.server)
-                O=$(uci -q get openvpn.sticky_server.remote)
                 [ -n $S -a -n $G ] && route delete $S gw $G $DEVICE
-                [ -n $O -a -n $G ] && route delete $O gw $G $DEVICE
         fi
 
 	if [ "$DEVICE" == "tun0" ]
