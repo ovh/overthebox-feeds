@@ -20,7 +20,7 @@ local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci").cursor()
 local debug = false
-local VERSION = "0.01a"
+local VERSION = "<VERSION>"
 module "overthebox"
 
 api_url = 'https://provisionning.overthebox.net:4443/'

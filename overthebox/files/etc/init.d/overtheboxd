@@ -1,17 +1,12 @@
 #!/bin/sh /etc/rc.common
-# "new(er)" style init script
-# Look at /lib/functions/service.sh on a running system for explanations of what other SERVICE_
-# options you can use, and when you might want them.
 
-START=80
-APP="overtheboxd"
-SERVICE_WRITE_PID=1
-SERVICE_DAEMONIZE=1
+START=95
+STOP=95
 
-start() {
-	service_start /usr/bin/$APP
-}
+USE_PROCD=1
 
-stop() {
-	service_stop /usr/bin/$APP
+start_service() {
+        procd_open_instance
+        procd_set_param command /usr/bin/overtheboxd
+        procd_close_instance
 }

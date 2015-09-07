@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -44,6 +44,7 @@ endef
 
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
+	sed -i -e "s/<VERSION>/$PKG_VERSION:$PKG_RELEASE/" $(1)/usr/lib/lua/overthebox.lua 
 endef
 
 $(eval $(call BuildPackage,overthebox))
