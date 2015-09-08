@@ -46,7 +46,7 @@ function subscribe()
 		uci:save("overthebox")
 		uci:commit("overthebox")
 	end
-	return rcode, res
+	return (rcode == 200), res
 end
 
 function status()
@@ -128,16 +128,16 @@ function opkg_install(package)
 end
 function upgrade()
 	local packages = {'overthebox', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund'}
-	local retcode = 200
-	local ret = {}
+	local retcode = true
+	local ret = ""
 	for i = 1, #packages do
 		-- install package
 		local p = packages[i]
 		local c, r = opkg_install(p)
 		if c == false then
-			retcode = 500
+			retcode = false
 		end
-		table.insert(ret, p .. ": " .. r)
+		ret = ret ..  p .. ": \n" .. r .."\n"
 	end
 	return retcode, ret
 end
@@ -152,6 +152,23 @@ end
 
 
 -- action api
+function backup_last_action(id)
+        uci:set("overthebox", "me", "last_action_id", id)
+        uci:save("overthebox")
+        uci:commit("overthebox")
+end
+
+function get_last_action()
+        return uci:get("overthebox", "me", "last_action_id")
+end
+
+function flush_action(id)
+        uci:delete("overthebox", "me", "last_action_id", id)
+        uci:save("overthebox")
+        uci:commit("overthebox")
+end
+
+
 function confirm_action(action, status, msg )
 	if action == nil then
 		return

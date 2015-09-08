@@ -38,6 +38,16 @@ overthebox.debug = true
 
 overthebox.notify_boot()
 
+
+-- flush last action beforce start, next a reboot or a sysupgrade
+local last_action_id = overthebox.get_last_action()
+if last_action_id ~= nil then
+        print("flush last action")
+        overthebox.confirm_action(last_action_id, "done", "done")
+        overthebox.flush_action(last_action_id)
+end
+
+
 local delay = 10
 while run do
 	local rcode, ret = overthebox.status()
@@ -45,7 +55,7 @@ while run do
 	if rcode == 401 then
 		rcode, ret = overthebox.subscribe()
 		debug("subscribe : ", ret)
-		if rcode ~= 200 then
+		if not rcode then
 			error("can not subscribe to api : " .. ret.error )
 		end
 	elseif rcode == 200 and ret.action then
@@ -62,7 +72,9 @@ while run do
 		elseif ret.action == "upgrade" then
                         actionreturn, msg = overthebox.upgrade()
 		elseif ret.action == "sysupgrade" then
-                        actionreturn, msg = overthebox.sysupgrade()
+			overthebox.backup_last_action(ret.id)
+                        overthebox.sysupgrade()
+			run = false
 		elseif ret.action == "configure" then
 			actionreturn, msg = overthebox.config()
 		        for i = 1, #msg do
@@ -70,7 +82,9 @@ while run do
         		end
 
 		elseif ret.action == "reboot" then
-			actionreturn, msg = overthebox.reboot()
+			overthebox.backup_last_action(ret.id)
+			overthebox.reboot()
+			run = false
 		elseif ret.action == "askServiceConfirmation" then
 			actionreturn, msg = overthebox.get_service()
 			if actionreturn == 200 then
@@ -95,7 +109,9 @@ while run do
 		end
 	end
 
-        p.sleep(delay)
+        if run then
+                p.sleep(delay)
+        end
 end
 
 overthebox.notify_shutdown()
