@@ -176,8 +176,12 @@ stop()
 {
 	local ipset route rule table
 
-	killall mwan3track &> /dev/null
+	for i in `cat /var/run/mwan3track-*`; do
+		kill $i
+	done
 	rm /var/run/mwan3track-* &> /dev/null
+
+	pkill -f mwan3track &> /dev/null
 
 	for route in $($IP route list table all | sed 's/.*table \([^ ]*\) .*/\1/' |  awk '{print $1}' | awk '{for(i=1;i<=NF;i++) if($i+0>0) if($i+0<255) {print;break}}'); do
 		$IP route flush table $route &> /dev/null
