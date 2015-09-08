@@ -515,10 +515,12 @@ shaper.losttimestamp = nil
 function shaper:pushPing(lat)
 	if lat == false then
 		lat = 1000
+		if shaper.losttimestamp == nil then
+			shaper.losttimestamp = os.time()
+		end
 		bw_stats:collect()
 	end
 	pingstats:push(lat)
-
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
 			log("Starting bandwidth stats collector on " .. opts["i"])
@@ -656,24 +658,23 @@ while true do
 				run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 				-- clear QoS on interface down
 				shaper:disableQos()
-				losttimestamp = nil
 
 				score = 0
 			else
 			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
 				local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
-			        if (dlspeed ~= nil and dlspeed < mindownload) or (upspeed ~= nil and upspeed < minupload) then
+			        if (dlspeed ~= nil and dlspeed < shaper.mindownload) or (upspeed ~= nil and upspeed < shaper.minupload) then
 		    			log(string.format("Interface %s (%s) is offline", opts["i"], opts["d"]))
 		   			-- exec hotplug iface
 					run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 					-- clear QoS on interface down
 					shaper:disableQos()
-					losttimestamp = nil
+					shaper.losttimestamp = nil
 
 					score = 0
 				else
 					log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
-					losttimestamp = os.time()
+					shaper.losttimestamp = os.time()
 
 					lost = 0
 					score = score + 1
@@ -682,7 +683,7 @@ while true do
 		end
 	else
 		if score < init_score and lost > 0 then
-			losttimestamp = nil
+			shaper.losttimestamp = nil
 			log(string.format("Lost %d ping(s) ont interface %s (%s)", (lost * opts["c"]), opts["i"], opts["d"]))
 		end
 
