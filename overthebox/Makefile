@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=11
+PKG_RELEASE:=12
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -48,6 +48,7 @@ define Package/overthebox/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./defaults/overthebox.defaults $(1)/etc/uci-defaults/overthebox.defaults
 	$(INSTALL_BIN) ./defaults/network.defaults $(1)/etc/uci-defaults/otb-network.defaults
+	$(INSTALL_BIN) ./defaults/dnsmasq.defaults $(1)/etc/uci-defaults/otb-dnsmasq.defaults
 endef
 
 define Package/overthebox/postinst
@@ -55,6 +56,7 @@ define Package/overthebox/postinst
 if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/overthebox.defaults ) && rm -f /etc/uci-defaults/overthebox.defaults
         ( . /etc/uci-defaults/otb-network.defaults ) && rm -f /etc/uci-defaults/otb-network.defaults
+        ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
 	[ -x /etc/init.d/network ] && /etc/init.d/network restart
         exit 0
 fi
