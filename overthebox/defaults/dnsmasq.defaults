@@ -3,6 +3,5 @@
 uci set dhcp.@dnsmasq[0].nonegcache='1'
 uci commit dhcp
 
-date > /tmp/test
 exit 0
 
