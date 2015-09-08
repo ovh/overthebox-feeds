@@ -52,3 +52,6 @@ if [ $? -ne 0 ]; then
 	commit network
 EOF
 fi
+
+
+exit 0

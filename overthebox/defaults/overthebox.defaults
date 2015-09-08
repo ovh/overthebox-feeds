@@ -9,3 +9,5 @@ if [ $? -ne 0 ]; then
 	commit overthebox
 EOF
 fi
+
+exit 0
