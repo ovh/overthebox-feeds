@@ -11,9 +11,9 @@ do
 		ip link show "$IFNAME" >> /tmp/macvlan.log
 		if ! ip link show "$IFNAME" 1>/dev/null ; then
 
-			DEVICE=$(uci get network.$IFNAME.interface)
-			if uci get network.$IFNAME.macaddr 2>/dev/null; then
-				MACADDR=$(uci get network.$IFNAME.macaddr 2>/dev/null)
+			DEVICE=$(uci -q get network.$IFNAME.interface)
+			if uci -q get network.$IFNAME.macaddr 2>/dev/null; then
+				MACADDR=$(uci -q get network.$IFNAME.macaddr 2>/dev/null)
 			else
 				MACPREFIX="42:42:42"
 				MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
@@ -21,7 +21,7 @@ do
 				uci set network.$IFNAME.macaddr="$MACADDR"
 			fi
 			# handle macsource mode
-			vlanmacs=`uci get network.$IFNAME.vlanmacs`
+			vlanmacs=`uci -q get network.$IFNAME.vlanmacs`
 			if [ -n "$vlanmacs" ]; then
 
 				ip link add link $DEVICE $IFNAME address $MACADDR type macvlan mode source
@@ -35,7 +35,7 @@ do
 
 				ip link add link $DEVICE $IFNAME address $MACADDR type macvlan mode private
 
-				proto=`uci get network.$IFNAME.proto`
+				proto=`uci -q get network.$IFNAME.proto`
 				if [ "$proto" = "dhcp" ]; then
 					iptables -N ${IFNAME}_DHCP
 					# Forward dhcp
@@ -45,7 +45,7 @@ do
 					iptables -D ${IFNAME}_DHCP -j ACCEPT
 					iptables -A ${IFNAME}_DHCP -j ACCEPT
 
-					dhcpmac=`uci get network.$IFNAME.dhcpmac`
+					dhcpmac=`uci -q get network.$IFNAME.dhcpmac`
 					if [ -n "$dhcpmac" ]; then
 						# do not accept all dhcp
 						iptables -D ${IFNAME}_DHCP -j ACCEPT
