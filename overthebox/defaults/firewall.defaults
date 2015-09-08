@@ -88,8 +88,8 @@ fi
 update_uci_section $ZMPTCP input=ACCEPT output=ACCEPT forward=ACCEPT masq=1
 
 
-find_or_new_uci_section forwarding src=wan dest=lan
-find_or_new_uci_section forwarding src=lan dest=wan
-find_or_new_uci_section forwarding src=lan dest=mptcp
-find_or_new_uci_section forwarding src=mptcp dest=lan
+find_or_new_uci_section forwarding src=wan dest=lan > /dev/null
+find_or_new_uci_section forwarding src=lan dest=wan > /dev/null
+find_or_new_uci_section forwarding src=lan dest=mptcp > /dev/null
+find_or_new_uci_section forwarding src=mptcp dest=lan > /dev/null
 
