@@ -17,24 +17,30 @@ function index()
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
+	e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "interfaces_status"}, call("interfaces_status"))
+	e.leaf = true
 	e.sysauth = false
 
         local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
+	e.leaf = true
         e.sysauth = false
 
         local e = entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
+	e.leaf = true
 	e.sysauth = false
 
         local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
+	e.leaf = true
 	e.sysauth = false
 
         local e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
+	e.leaf = true
 	e.sysauth = false
 
-        entry({"admin", "overthebox", "update_conf"},  call("action_update_conf"))
+        entry({"admin", "overthebox", "update_conf"},  call("action_update_conf")).leaf = true
 
 end
 
