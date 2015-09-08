@@ -540,6 +540,9 @@ end
 
 function shaper:update()
         if shaper.mode == "auto" then
+		if uci:get("network", shaper.interface, "upload") then
+			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
+		end
 		if shaper.qostimestamp and shaper.qostimeout and (os.time() > (shaper.qostimestamp + shaper.qostimeout * 60)) then
 			log(string.format("disabling download QoS after %s min", shaper.qostimeout))
 			shaper:disableQos()
@@ -550,9 +553,13 @@ function shaper:update()
 			log("avg rate since ".. shaper.congestedtimestamp .." is " .. download .. " kbit/s down and " .. upload .." kbit/s up")
 			-- upload congestion detected
 			if upload > download then
-				shaper.upload = math.floor(upload * shaper.ratefactor)
-				if shaper.download ~= nil then
-					shaper:enableQos()
+				if uci:get("network", shaper.interface, "upload") then
+					shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
+				else
+					shaper.upload = math.floor(upload * shaper.ratefactor)
+					if shaper.download ~= nil then
+						shaper:enableQos()
+					end
 				end
 			else
 				shaper.download = math.floor(download * shaper.ratefactor)
@@ -665,7 +672,7 @@ while true do
 			else
 			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
 				local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
-				if (dlspeed =~ nil and dlspeed < shaper.mindownload) and (upspeed =~ nil and upspeed < shaper.minupload) then
+				if (dlspeed ~= nil and dlspeed < shaper.mindownload) and (upspeed ~= nil and upspeed < shaper.minupload) then
 		    			log(string.format("Interface %s (%s) is offline (unsuficient bandwith)", opts["i"], opts["d"]))
 		   			-- exec hotplug iface
 					run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
@@ -677,7 +684,7 @@ while true do
 
 					score = 0
 				else
-					if dlspeed =~ nil or upspeed =~ nil then
+					if dlspeed ~= nil or upspeed ~= nil then
 						log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
 						shaper.losttimestamp = os.time()
 					else
