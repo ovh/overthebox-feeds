@@ -177,7 +177,7 @@ stop()
 	local ipset route rule table
 
 	for i in `cat /var/run/mwan3track-*`; do
-		kill $i
+		kill $i &> /dev/null
 	done
 	rm /var/run/mwan3track-* &> /dev/null
 
