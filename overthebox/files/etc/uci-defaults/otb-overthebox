@@ -1,0 +1,11 @@
+#!/bin/sh
+
+touch /etc/config/overthebox
+
+uci get overthebox.me >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+  uci -q batch <<-EOF >/dev/null
+	set overthebox.me=config
+	commit overthebox
+EOF
+fi
