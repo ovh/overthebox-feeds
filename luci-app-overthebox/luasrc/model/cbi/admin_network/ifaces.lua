@@ -326,17 +326,26 @@ aushape:value("auto", translate("Adaptive (experimental)"))
 aushape.default = "off"
 aushape:depends("multipath", "on")
 
+download = s:taboption("autoshape", Value, "download", translate("Download bandwidth in kbit/s"))
+download.rmempty = true
+download:depends("autoshape", "static")
+
+upload = s:taboption("autoshape", Value, "upload", translate("Upload bandwidth in kbit/s"))
+upload.rmempty = true
+upload:depends("autoshape", "static")
+upload:depends("autoshape", "auto")
+
 pingdeleta = s:taboption("autoshape", Value, "pingdelta", translate("Max ping increase in ms before consdering link as congested"))
 pingdeleta.default = "100"
 pingdeleta.rmempty = true
 pingdeleta:depends("autoshape", "auto")
 
-mindownload = s:taboption("autoshape", Value, "mindownload", translate("Minimal shaping speed in kbit/s"))
+mindownload = s:taboption("autoshape", Value, "mindownload", translate("Minimal download speed in kbit/s"))
 mindownload.default = "512"
 mindownload.rmempty = true
 mindownload:depends("autoshape", "auto")
 
-minupload = s:taboption("autoshape", Value, "minupload", translate("Minimal shaping speed in kbit/s"))
+minupload = s:taboption("autoshape", Value, "minupload", translate("Minimal upload speed in kbit/s"))
 minupload.default = "128"
 minupload.rmempty = true
 minupload:depends("autoshape", "auto")
@@ -355,14 +364,6 @@ ratefactor = s:taboption("autoshape", Value, "ratefactor", translate("Factor to 
 ratefactor.default = "1"
 ratefactor.rmempty = true
 ratefactor:depends("autoshape", "auto")
-
-download = s:taboption("autoshape", Value, "download", translate("Download bandwidth in kbit/s"))
-download.rmempty = true
-download:depends("autoshape", "static")
-
-upload = s:taboption("autoshape", Value, "upload", translate("Upload bandwidth in kbit/s"))
-upload.rmempty = true
-upload:depends("autoshape", "static")
 
 if has_firewall then
 	fwzone = s:taboption("firewall", Value, "_fwzone",
