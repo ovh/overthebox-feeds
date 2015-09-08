@@ -191,17 +191,25 @@ end
 
 -- service ovh
 function ask_service_confirmation(service)
-	uci:set("overthebox", "me", "service", service)
-	uci:set("overthebox", "me", "askserviceconfirmation", "1")
-	uci:save("overthebox")
-	uci:commit("overthebox")
-	return true
+        uci:set("overthebox", "me", "service", service)
+        uci:set("overthebox", "me", "askserviceconfirmation", "1")
+        uci:save("overthebox")
+        uci:commit("overthebox")
+        return true
 end
 function get_service()
-	return GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
+        return GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
 end
 function confirm_service(service)
-        return POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
+        if service ~= uci:get("overthebox", "me", "service", service) then
+                return false, "service does not match"
+        end
+
+        local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/  confirm", nil )
+        uci:set("overthebox", "me", "askserviceconfirmation", "")
+        uci:save("overthebox")
+        uci:commit("overthebox")
+        return (rcode == 200), ret
 end
 
 
