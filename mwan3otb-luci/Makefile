@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-mwan3otb
-PKG_VERSION:=1.4
+PKG_VERSION:=1.5
 PKG_RELEASE:=3
 PKG_MAINTAINER:=Aedan Renner <chipdankly@gmail.com>
 PKG_LICENSE:=GPLv2
