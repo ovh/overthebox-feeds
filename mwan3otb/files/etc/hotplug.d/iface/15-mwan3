@@ -148,6 +148,7 @@ mwan3_track()
 		rm /var/run/mwan3track-$INTERFACE.pid &> /dev/null
 	fi
 
+	config_get track_method $INTERFACE track_method icmp
 	if [ -n "$track_ips" ]; then
 		config_get reliability $INTERFACE reliability 1
 		config_get count $INTERFACE count 1
@@ -166,13 +167,33 @@ mwan3_track()
 		$IPS swap mwan3_track_temp_$INTERFACE mwan3_track_$INTERFACE
 		$IPS destroy mwan3_track_temp_$INTERFACE
 
-		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-		$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
+		if [ "$track_method" = "icmp" ]; then
+			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+			$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
+		fi
+                if [ "$track_method" = "udp" ]; then
+                        $IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+                        $IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
+                fi
+		if [ "$track_method" = "sock" ]; then
+                        $IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+                        $IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
+                fi
 
-		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track -i $INTERFACE -d $DEVICE -m icmp -r $reliability -c $count -t $timeout -v $interval -o $down -u $up $track_ips &
+	        [ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track -i $INTERFACE -d $DEVICE -m $track_method -r $reliability -c $count -t $timeout -v $interval -o $down -u $up $track_ips &
 	else
-		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-		$IPS destroy mwan3_track_$INTERFACE
+		if [ "$track_method" = "icmp" ]; then
+			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+			$IPS destroy mwan3_track_$INTERFACE
+		fi
+                if [ "$track_method" = "udp" ]; then
+                        $IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+                        $IPS destroy mwan3_track_$INTERFACE
+                fi
+                if [ "$track_method" = "sock" ]; then
+                        $IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+                        $IPS destroy mwan3_track_$INTERFACE
+                fi
 	fi
 }
 
