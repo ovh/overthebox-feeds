@@ -106,6 +106,12 @@ track_ip = mwan_interface:option(DynamicList, "track_ip", translate("Tracking IP
 	translate("This IP address will be pinged to dermine if the link is up or down. Leave blank to assume interface is always online"))
 	track_ip.datatype = "ipaddr"
 
+tracking_method = mwan_interface:option(ListValue, "track_method", translate("Tracking method"))
+        tracking_method.default = "icmp"
+        tracking_method:value("icmp", translate("ICMP"))
+        tracking_method:value("dns", translate("DNS (udp)"))
+        tracking_method:value("sock", translate("Sock (tcp)"))
+
 reliability = mwan_interface:option(Value, "reliability", translate("Tracking reliability"),
 	translate("Acceptable values: 1-100. This many Tracking IP addresses must respond for the link to be deemed up"))
 	reliability.datatype = "range(1, 100)"
