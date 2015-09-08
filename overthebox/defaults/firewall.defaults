@@ -1,0 +1,95 @@
+#!/bin/sh
+
+#
+# find a section in firewall which match all condition
+search_uci_section() {
+	Z=$1
+	shift
+	for I in $( uci show firewall -X | sed -n "s/=$Z$//p" )
+	do
+		OK="1"
+		for R in $@
+		do
+			K=${R%=*}
+			V=${R#*=}
+			if [ "$(uci -q get $I.$K)" != "$V" ]
+			then
+				OK="0"
+				break
+			fi
+		done
+		if [ "$OK" == 1 ]
+		then
+			echo $I
+			break
+		fi
+	done
+}
+
+add_uci_section(){
+        Z=$1
+	shift
+
+	# not found, create new section
+	S=$(uci add firewall $Z)
+	for R in $@
+	do
+		uci set firewall.$S.$R
+	done
+	echo firewall.$S
+}
+
+update_uci_section(){
+	S=$1
+	shift
+	for I in $@
+	do
+		uci set $S.$I
+	done
+}
+
+
+find_or_new_uci_section(){
+	R=$(search_uci_section $@)
+	if [ -z "$R" ]
+	then
+		add_uci_section $@
+	else
+		echo $R
+	fi
+}
+
+
+
+ZLAN=$(search_uci_section zone name=lan)
+if [ -z "$ZLAN" ]
+then
+	echo lan not found
+	ZLAN=$(add_uci_section zone name=lan)
+fi
+update_uci_section $ZLAN network=lan input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
+
+
+ZWAN=$(search_uci_section zone name=wan)
+if [ -z "$ZWAN" ]
+then
+        echo wan not found
+        ZWAN=$(add_uci_section zone name=wan)
+fi
+update_uci_section $ZWAN network=tun0 input=REJECT output=ACCEPT forward=REJECT masq=1
+
+
+ZMPTCP=$(search_uci_section zone name=mptcp)
+if [ -z "$ZMPTCP" ]
+then
+        echo mptcp not found
+        ZMPTCP=$(add_uci_section zone name=wan)
+fi
+update_uci_section $ZMPTCP input=ACCEPT output=ACCEPT forward=ACCEPT masq=1
+
+
+find_or_new_uci_section forwarding src=wan dest=lan > /dev/null
+find_or_new_uci_section forwarding src=lan dest=wan > /dev/null
+find_or_new_uci_section forwarding src=lan dest=mptcp > /dev/null
+find_or_new_uci_section forwarding src=mptcp dest=lan > /dev/null
+
