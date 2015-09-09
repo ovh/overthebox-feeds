@@ -40,6 +40,10 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
+	local e = entry({"admin", "overthebox", "activate"},  call("action_activate"))
+	e.leaf = true
+	e.sysauth = false
+
         entry({"admin", "overthebox", "update_conf"},  call("action_update_conf")).leaf = true
 
 end
@@ -125,6 +129,12 @@ function dhcp_status()
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)
+end
+
+function action_activate(service)
+	local result = require('overthebox').confirm_service(service)
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(result)
 end
 
 function action_dhcp_recheck()
