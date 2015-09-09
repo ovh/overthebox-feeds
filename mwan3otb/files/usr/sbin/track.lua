@@ -523,7 +523,7 @@ function shaper:pushPing(lat)
 	pingstats:push(lat)
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
-			log("Starting bandwidth stats collector on " .. opts["i"])
+			debug("Starting bandwidth stats collector on " .. opts["i"])
 			shaper.congestedtimestamp = os.time()
 		end
 	        bw_stats:collect()
@@ -580,7 +580,7 @@ function shaper:enableQos()
 	local upload = shaper.upload
 	-- Check download speed
 	if download == nil then
-		log("no download speed setted")
+		debug("no download speed setted")
 		return false
 	end
 	-- If no upload set use download speed
@@ -589,13 +589,14 @@ function shaper:enableQos()
 	end
 	--
 	if shaper.qostimestamp and ((os.time() - shaper.qostimestamp) < 60) then
-		log("Link still congested reducing rate of 5%")
+		debug("Link still congested reducing rate of 5%")
 		download	= math.floor(download * 0.95)
 		upload		= math.floor(upload * 0.95)
 	end
 	-- Check minimal speeds
 	if (download < shaper.mindownload) or (upload < shaper.minupload) then
-		log("minimal speeds are not reached")
+		debug("minimal speeds are not reached")
+		return false
 	end
 	-- Min speeds are reach applying QoS
 	log("Setting QoS download to " .. download .. " kbit/s and upload to " .. upload .. " kbit/s")
@@ -645,12 +646,12 @@ while true do
 			lat = tonumber(msg)
 			shaper:pushPing(lat)
 			local min = pingstats:min()
-			log("check: "..servers[i].. " OK " .. lat .. "ms" .. " was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3) .. " (" .. tostring(min) .. " min)")
+			debug("check: "..servers[i].. " OK " .. lat .. "ms" .. " was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3) .. " (" .. tostring(min) .. " min)")
 		else
 			lost = lost + 1
 
 			shaper:pushPing(false)
-			log("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
+			debug("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
 		end
 		shaper:update()
 	end
@@ -660,7 +661,7 @@ while true do
 		if score < nb_up then score = 0 end 
 		if score == nb_up then
 			if shaper.losttimestamp == nil then
-	    			log(string.format("Interface %s (%s) is offline (nil losttimestamp)", opts["i"], opts["d"]))
+	    			log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
 	   			-- exec hotplug iface
 				run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 				-- clear QoS on interface down
@@ -673,7 +674,7 @@ while true do
 			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
 				local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
 				if (dlspeed ~= nil and dlspeed < shaper.mindownload) and (upspeed ~= nil and upspeed < shaper.minupload) then
-		    			log(string.format("Interface %s (%s) is offline (unsuficient bandwith)", opts["i"], opts["d"]))
+		    			log(string.format("Interface %s (%s) is offline (unsuficient bandwith to keep alive)", opts["i"], opts["d"]))
 		   			-- exec hotplug iface
 					run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 					-- clear QoS on interface down
