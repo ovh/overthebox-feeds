@@ -326,7 +326,8 @@ function update_confmwan()
 	-- Create a tun0 tracker used for non tcp traffic
 	uci:set("mwan3", "tun0", "interface")
 	uci:set("mwan3", "tun0", "enabled", "1")
-	uci:set_list("mwan3", "tun0", "track_ip", uci:get("vtund", "tunnel", "remoteip"))
+--      uci:set_list("mwan3", "tun0", "track_ip", uci:get("vtund", "tunnel", "remoteip"))
+        uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
 	uci:set("mwan3", "tun0", "reliability", "1")
 	uci:set("mwan3", "tun0", "count", "1")
 	uci:set("mwan3", "tun0", "timeout", "2")
