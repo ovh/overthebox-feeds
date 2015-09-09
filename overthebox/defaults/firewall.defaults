@@ -42,9 +42,9 @@ add_uci_section(){
 update_uci_section(){
 	S=$1
 	shift
-	for I in $@
+	for I in "$@"
 	do
-		uci set $S.$I
+		uci set "$S.$I"
 	done
 }
 
@@ -67,7 +67,7 @@ then
 	echo lan not found
 	ZLAN=$(add_uci_section zone name=lan)
 fi
-update_uci_section $ZLAN network=lan input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
+update_uci_section $ZLAN network='lan if0' input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
 
 
 ZWAN=$(search_uci_section zone name=wan)
