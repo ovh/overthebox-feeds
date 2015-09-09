@@ -467,12 +467,10 @@ function update_confmwan()
 		end
 		-- Generate failover policy
    		uci:set("mwan3", "failover", "policy")
-		local metric=0
 		local my_members = {}
 		table.insert(my_members, first_tun0_policy)
-		for i=1,#members_wan do
-			metric = metric + 1
-			table.insert(my_members, members_wan[metric][metric])
+		for i=2,size_interfaces do
+			table.insert(my_members, members_wan[i][i - 1])
 		end
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
