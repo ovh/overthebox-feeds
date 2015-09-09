@@ -16,7 +16,7 @@
 
 	local config = require "luci.config"
 	local has_service_confirmation = false
-	if config.overthebox and config.overthebox.askserviceconfirmation == "1" then
+	if config.overthebox and config.overthebox.activate == "1" then
 		has_service_confirmation = true
 	end
 
