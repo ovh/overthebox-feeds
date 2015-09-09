@@ -1,0 +1,48 @@
+<%
+	local uci = require("luci.model.uci").cursor()
+
+	local device_id = uci:get("overthebox", "me", "device_id")
+	local service = uci:get("overthebox", "me", "service")
+%>
+
+<script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+<script type="text/javascript">//<![CDATA[
+var stxhr = new XHR();
+function activate_service(service)
+{
+	// display a loading icon
+	var s = document.getElementById('img-loader');
+	if (s)
+	{
+		s.style.display = '';
+	}
+        // call backend
+	var output = document.getElementById('service_output');
+	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate", "service")%>', null,
+		function(x)
+		{
+			if (x.responseText)
+			{
+				output.innerHTML = x.responseText
+			}
+			else
+			{
+				output.innerHTML = "no return"
+			}
+			// clear out loading icon
+			window.setTimeout(function() {
+				s.style.display = 'none';
+			}, 1000);
+		}
+	);
+}
+//]]></script>
+
+Service : <%=service%><br />
+Device ID : <%=device_id%><br />
+
+<div id="service_output"></div>
+<fieldset id="activate_button_field" class="cbi-section">
+    <div id="activate_action_button"><input type="button" onclick="activate_service(<%=service%>)" value="<%:Activate service%>" class="cbi-button cbi-button-apply" /><img id="img-loader" style="display:none" src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" height="20" /></div>
+</fieldset>
+

@@ -14,6 +14,12 @@
 	local has_dhcp = fs.access("/etc/config/dhcp")
 	local has_wifi = ((fs.stat("/etc/config/wireless", "size") or 0) > 0)
 
+	local config = require "luci.config"
+	local has_service_confirmation = false
+	if config.overthebox and config.overthebox.askserviceconfirmation == "1" then
+		has_service_confirmation = true
+	end
+
 	local sysinfo = luci.util.ubus("system", "info") or { }
 	local boardinfo = luci.util.ubus("system", "board") or { }
 	local unameinfo = nixio.uname() or { }
@@ -553,8 +559,14 @@
 
 <h2><a id="content" name="content"><%:OverTheBox overview%></a></h2>
 
-<% include("overthebox/dhcpwizard") %>                                     
-<% include("overthebox/wanstatus") %>                                                       
+<%
+if has_service_confirmation then
+	include("overthebox/activate")
+else
+	include("overthebox/dhcpwizard")
+	include("overthebox/wanstatus")
+end
+%>
 
 <fieldset class="cbi-section" style="display: none;">
 	<legend><%:System%></legend>
