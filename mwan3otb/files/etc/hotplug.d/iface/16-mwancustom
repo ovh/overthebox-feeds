@@ -82,9 +82,7 @@ case "$ACTION" in
         then
                 G=$(uci -q get network.$DEVICE.gateway )
                 S=$(uci -q get shadowsocks.proxy.server)
-                O=$(uci -q get openvpn.sticky_server.remote)
                 [ -n $S -a -n $G ] && route add $S gw $G $DEVICE
-                [ -n $O -a -n $G ] && route add $O gw $G $DEVICE
         fi
     ;;
     ifdown)
@@ -98,22 +96,20 @@ case "$ACTION" in
         then
                 G=$(uci -q get network.$DEVICE.gateway )
                 S=$(uci -q get shadowsocks.proxy.server)
-                O=$(uci -q get openvpn.sticky_server.remote)
                 [ -n $S -a -n $G ] && route delete $S gw $G $DEVICE
-                [ -n $O -a -n $G ] && route delete $O gw $G $DEVICE
         fi
 
-	if [ "$DEVICE" == "tun0" ]
-	then
+#	if [ "$DEVICE" == "tun0" ]
+#	then
 #		iptables-save | grep 0x1111 |  sed 's/^-A/iptables -t mangle -D /' | sh
 #		ip rule | grep "fwmark 0x1111 lookup"  | sed 's/0:/ip rule del /' | sh
 #
-                ip link show dev $DEVICE 1>/dev/null 2>/dev/null
-                if [ $? -eq 0 ]; then
-                        logger interface tun0 halted, restarting vtund
-                        /etc/init.d/vtund restart
-                        sleep 3
-                fi
+#                ip link show dev $DEVICE 1>/dev/null 2>/dev/null
+#                if [ $? -eq 0 ]; then
+#                        logger interface tun0 halted, restarting vtund
+#                        /etc/init.d/vtund restart
+#                        sleep 3
+#                fi
 #	else
 #                GW=$(uci get network.$INTERFACE.gateway)
 #                MET=$(uci get network.$INTERFACE.metric)
@@ -121,7 +117,7 @@ case "$ACTION" in
 #                then
 #                        ip route del default via $GW dev $INTERFACE proto static metric $MET
 #                fi
-	fi
+#	fi
 	;;
 esac
 
