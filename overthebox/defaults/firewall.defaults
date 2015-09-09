@@ -83,7 +83,7 @@ ZMPTCP=$(search_uci_section zone name=mptcp)
 if [ -z "$ZMPTCP" ]
 then
         echo mptcp not found
-        ZMPTCP=$(add_uci_section zone name=wan)
+        ZMPTCP=$(add_uci_section zone name=mptcp)
 fi
 update_uci_section $ZMPTCP input=ACCEPT output=ACCEPT forward=ACCEPT masq=1
 
