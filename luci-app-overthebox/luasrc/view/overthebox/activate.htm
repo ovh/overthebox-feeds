@@ -24,6 +24,7 @@ function activate_service(service)
 			if (x.responseText)
 			{
 				output.innerHTML = x.responseText
+				// on success reload page with location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")
 			}
 			else
 			{
@@ -35,6 +36,13 @@ function activate_service(service)
 			}, 1000);
 		}
 	);
+
+	// TODO: Add ajax requests to periodicaly test if activation is done
+	/* XHR.poll(3, '<%=build_url("admin/overthebox/bandwidth_status", curdev)%>', null,
+                                        function(x, dataarray)
+                                        {
+					}
+		) */
 }
 //]]></script>
 
