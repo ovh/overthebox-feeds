@@ -561,7 +561,7 @@ function create_dhcp_server()
 			uci:set("dhcp", minMetricInterface, "limit", "200")
 			uci:set("dhcp", minMetricInterface, "leasetime", "12h")
 			uci:set("dhcp", minMetricInterface, "dhcp_option", "option:router," .. uci:get("network", minMetricInterface, 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("network", minMetricInterface, 'ipaddr'))
-			sys.exec("echo 'host-record=overthebox.ovh,".. minMetricInterface  .."'  >> /etc/dnsmasq.conf")
+			sys.exec("echo 'host-record=overthebox.ovh,".. uci:get("network", minMetricInterface, 'ipaddr') .."'  >> /etc/dnsmasq.conf")
 			dhcpd_configured = dhcpd_configured + 1
 		end
 	end
