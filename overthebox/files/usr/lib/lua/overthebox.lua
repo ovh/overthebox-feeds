@@ -206,9 +206,11 @@ function confirm_service(service)
         end
 
         local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/  confirm", nil )
-        uci:set("overthebox", "me", "askserviceconfirmation", "")
-        uci:save("overthebox")
-        uci:commit("overthebox")
+	if rcode == 200 then
+	        uci:delete("overthebox", "me", "askserviceconfirmation")
+	        uci:save("overthebox")
+	        uci:commit("overthebox")
+	end
         return (rcode == 200), ret
 end
 
