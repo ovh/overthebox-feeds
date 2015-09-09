@@ -193,8 +193,14 @@ end
 function ask_service_confirmation(service)
         uci:set("overthebox", "me", "service", service)
         uci:set("overthebox", "me", "askserviceconfirmation", "1")
-        uci:save("overthebox")
+	uci:save("overthebox")
         uci:commit("overthebox")
+	-- Ask web interface to display activation form
+	uci:set("luci", "overthebox", "overthebox")
+	uci:set("luci", "overthebox", "activate", "1")
+	uci:save("luci")
+	uci:commit("luci")
+
         return true
 end
 function get_service()
@@ -210,6 +216,10 @@ function confirm_service(service)
 	        uci:delete("overthebox", "me", "askserviceconfirmation")
 	        uci:save("overthebox")
 	        uci:commit("overthebox")
+		-- Ask web interface to enter activated mode
+		uci:delete("luci", "overthebox", "activate")
+		uci:save("luci")
+		uci:commit("luci")
 	end
         return (rcode == 200), ret
 end
