@@ -60,7 +60,7 @@ function ping ( host, interface, timeout)
 	return false, "not raw socket"
 end
 
-function dns_request( host, interface, timeout, name)
+function dns_request( host, interface, timeout, domain)
 	local fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
 	if not fd then return fd, err end
 
@@ -74,7 +74,6 @@ function dns_request( host, interface, timeout, name)
 	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	if not ok then return ok, err end
 
-	local domain = "www.google.com"
 	math.randomseed( os.time() )
 
 	domain = string.gsub(domain, '%.', string.char(0x03))
@@ -90,7 +89,7 @@ function dns_request( host, interface, timeout, name)
 	if fd then p.close(fd) end
 	if data then
 		local r = string.byte(data, 3, 4) -- byte of the first char
-		if     r == 129 then return true, (diff_nsec(t1, t2)/1000000)
+		if     r > 127 then return true, (diff_nsec(t1, t2)/1000000)
 		else
 			-- hex_dump(data)
 			return false, "other error : "..r
@@ -266,7 +265,7 @@ end
 local method
 if opts["m"] == "dns" then
 	debug("test dns method")
-	method = function(s) return dns_request( s, opts["i"], opts["t"], "www.google.fr") end
+	method = function(s) return dns_request( s, opts["i"], opts["t"], "www.ovh.com") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	method = function(s) return socks_request(s, opts["i"], opts["t"], "1090") end

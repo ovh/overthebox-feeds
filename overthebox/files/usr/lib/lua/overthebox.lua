@@ -307,7 +307,8 @@ function update_confmwan()
 --			end
 --		end
 --	)
-	table.insert( tracking_servers, "213.251.128.136" )
+	table.insert( tracking_servers, "51.254.49.132" )
+	table.insert( tracking_servers, "51.254.49.133" )
 	-- Create a tracker for each mptcp interface
 	uci:foreach("network", "interface",
 		function (section)
