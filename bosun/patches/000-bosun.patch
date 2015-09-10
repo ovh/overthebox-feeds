@@ -2905,7 +2905,7 @@ index 898cbc9..44a643b 100644
  }
  
 -var ifstatRE = regexp.MustCompile(`\s+(eth\d+|em\d+_\d+/\d+|em\d+_\d+|em\d+|` +
-+var ifstatRE = regexp.MustCompile(`\s+(eth\d+|em\d+_\d+/\d+|vpn\d+|tun\d+|tap\d+|if\d+|em\d+_\d+|em\d+|` +
++var ifstatRE = regexp.MustCompile(`\s+(eth\d+|em\d+_\d+/\d+|vpn\d+|tun\d+|tap\d+|if\d+|lan|em\d+_\d+|em\d+|` +
  	`bond\d+|team\d+|` + `p\d+p\d+_\d+/\d+|p\d+p\d+_\d+|p\d+p\d+):(.*)`)
  
  func c_ipcount_linux() (opentsdb.MultiDataPoint, error) {
