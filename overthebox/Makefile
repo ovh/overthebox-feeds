@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=27
+PKG_RELEASE:=28
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -57,12 +57,11 @@ define Package/overthebox/postinst
 if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/overthebox.defaults ) && rm -f /etc/uci-defaults/overthebox.defaults
 	
-        ( . /etc/uci-defaults/otb-network.defaults )
-	if [ $? -eq 0 ]; then
-		[ -x /etc/init.d/network ] && /etc/init.d/network restart
-		[ -x /etc/init.d/openvpn ] && /etc/init.d/openvpn restart
-		[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart
-	fi
+        ( . /etc/uci-defaults/otb-network.defaults ) && (
+		[ -x /etc/init.d/network ] && /etc/init.d/network restart ;
+		[ -x /etc/init.d/openvpn ] && /etc/init.d/openvpn restart ;
+		[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
+	)
 	rm -f /etc/uci-defaults/otb-network.defaults
 
 
