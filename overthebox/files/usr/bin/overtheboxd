@@ -70,7 +70,10 @@ while run do
 		elseif ret.action == "install" then
 			actionreturn, msg = overthebox.opkg_install(ret.param)
 		elseif ret.action == "upgrade" then
-                        actionreturn, msg = overthebox.upgrade()
+			actionreturn, msg = overthebox.opkg_update()
+			if actionreturn then
+	                        actionreturn, msg = overthebox.upgrade()
+			end
 		elseif ret.action == "sysupgrade" then
 			overthebox.backup_last_action(ret.id)
                         overthebox.sysupgrade()
