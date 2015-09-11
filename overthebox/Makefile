@@ -64,9 +64,10 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	)
 	rm -f /etc/uci-defaults/otb-network.defaults
 
-
         ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
         ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
+
+	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
 	[ -x /etc/init.d/overthebox ] && /etc/init.d/overthebox restart
         exit 0
 fi
