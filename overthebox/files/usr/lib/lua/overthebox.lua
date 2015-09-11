@@ -207,11 +207,11 @@ function get_service()
         return GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
 end
 function confirm_service(service)
-        if service ~= uci:get("overthebox", "me", "service", service) then
+        if service ~= uci:get("overthebox", "me", "service") then
                 return false, "service does not match"
         end
 
-        local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/  confirm", nil )
+        local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
 	if rcode == 200 then
 	        uci:delete("overthebox", "me", "askserviceconfirmation")
 	        uci:save("overthebox")
