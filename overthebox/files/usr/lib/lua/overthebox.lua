@@ -322,6 +322,7 @@ function update_confmwan()
 						if next(tracking_servers) then
 							uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
 						end
+						uci:set("mwan3", section[".name"], "track_method","dns")
 						uci:set("mwan3", section[".name"], "reliability", "1")
 						uci:set("mwan3", section[".name"], "count", "1")
 						uci:set("mwan3", section[".name"], "timeout", "2")
