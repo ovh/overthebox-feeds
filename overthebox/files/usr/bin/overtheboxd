@@ -76,22 +76,22 @@ while run do
                         overthebox.sysupgrade()
 			run = false
 		elseif ret.action == "configure" then
-			actionreturn, msg = overthebox.config()
-		        for i = 1, #msg do
-				overthebox.restart(msg[i])
-        		end
-
+                        actionreturn, services = overthebox.config()
+                        for i = 1, #services do
+                                overthebox.restart(services[i])
+                        end
+                        msg = table.concat(services, ", ")
 		elseif ret.action == "reboot" then
 			overthebox.backup_last_action(ret.id)
 			overthebox.reboot()
 			run = false
 		elseif ret.action == "askServiceConfirmation" then
 			actionreturn, msg = overthebox.get_service()
-			if actionreturn == 200 then
+			if actionreturn then
 				if msg and msg.service then
 					overthebox.ask_service_confirmation(msg.service)
 				else
-					actionreturn = 500
+					actionreturn = false
 					msg = "can not retreive service"
 				end
 			end

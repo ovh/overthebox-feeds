@@ -18,7 +18,7 @@ function activate_service(service)
 	}
         // call backend
 	var output = document.getElementById('service_output');
-	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate", "service")%>', null,
+	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate", service)%>', null,
 		function(x)
 		{
 			if (x.responseText)

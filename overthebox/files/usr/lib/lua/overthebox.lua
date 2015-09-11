@@ -204,7 +204,8 @@ function ask_service_confirmation(service)
         return true
 end
 function get_service()
-        return GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
+        local rcode, ret = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
+        return (rcode == 200), ret
 end
 function confirm_service(service)
         if service ~= uci:get("overthebox", "me", "service") then
