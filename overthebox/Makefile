@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=30
+PKG_RELEASE:=31
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -68,7 +68,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
 
 	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
-	[ -x /etc/init.d/overthebox ] && /etc/init.d/overthebox restart
+	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
         exit 0
 fi
 endef
