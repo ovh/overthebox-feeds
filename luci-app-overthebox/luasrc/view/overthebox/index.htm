@@ -11,7 +11,8 @@
 	local ver = require "luci.version"
 
         local uci = require("luci.model.uci").cursor()
-        local device_id = uci:get("overthebox", "me", "device_id")
+	local device_id	= uci:get("overthebox", "me", "device_id")
+	local service_id = uci:get("overthebox", "me", "service")
 	local has_service_confirmation = false
 	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
 		has_service_confirmation = true
@@ -693,6 +694,9 @@ else
 		<!--	<legend><%:OverTheBox overview%></legend> -->
 			<table width="100%" cellspacing="10">
 				<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
+				<% if service_id then %>
+				<tr><td width="33%"><%:Service name%></td><td><%=service_id or "?"%></td></tr>
+				<% end %>
 			</table>
 		</fieldset>
 	<%
