@@ -700,6 +700,18 @@ else
 			</table>
 		</fieldset>
 	<%
+	if device_id and service_id then
+	%>
+		<script type="text/javascript">stepbar.activate.status = "done";</script>
+	<%
+	else
+        %>
+                <script type="text/javascript">
+			stepbar.activate.caption = "<%:Register%>";
+			stepbar.activate.status = "error";
+		</script>
+        <%
+	end
 end
 
 include("overthebox/dhcpwizard")
