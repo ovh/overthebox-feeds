@@ -7,6 +7,7 @@
 
 <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
 <script type="text/javascript">//<![CDATA[
+stepbar.activate.status = "warn";
 var stxhr = new XHR();
 function activate_service(service)
 {
@@ -18,7 +19,7 @@ function activate_service(service)
 	}
         // call backend
 	var output = document.getElementById('service_output');
-	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate", service)%>', null,
+	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate")%>/' + service, null,
 		function(x)
 		{
 			if (x.responseText)
@@ -46,11 +47,16 @@ function activate_service(service)
 }
 //]]></script>
 
-Service : <%=service%><br />
-Device ID : <%=device_id%><br />
-
-<div id="service_output"></div>
 <fieldset id="activate_button_field" class="cbi-section">
-    <div id="activate_action_button"><input type="button" onclick="activate_service('<%=service%>')" value="<%:Activate service%>" class="cbi-button cbi-button-apply" /><img id="img-loader" style="display:none" src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" height="20" /></div>
+	<legend><%:Activate service%></legend>
+        <table width="100%" cellspacing="10">
+		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
+                <tr><td width="33%"><%:Service name%></td><td><%=service or "?"%></td></tr>
+		<tr><td width="33%"><%:State%></td><td><div id="service_output"><%=service_state or "?"%></div></td></tr>
+        </table>
+	<div id="activate_action_button" class="cbi-page-actions">
+		<input type="button" onclick="activate_service('<%=service%>')" value="<%:Activate%>" class="cbi-button cbi-button-apply" />
+		<img id="img-loader" style="display:none" src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" height="20" />
+	</div>
 </fieldset>
 

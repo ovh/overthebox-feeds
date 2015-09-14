@@ -12,16 +12,14 @@
 
         local uci = require("luci.model.uci").cursor()
         local device_id = uci:get("overthebox", "me", "device_id")
+	local has_service_confirmation = false
+	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
+		has_service_confirmation = true
+	end
 
 	local has_ipv6 = fs.access("/proc/net/ipv6_route")
 	local has_dhcp = fs.access("/etc/config/dhcp")
 	local has_wifi = ((fs.stat("/etc/config/wireless", "size") or 0) > 0)
-
-	local config = require "luci.config"
-	local has_service_confirmation = false
-	if config.overthebox and config.overthebox.activate == "1" then
-		has_service_confirmation = true
-	end
 
 	local sysinfo = luci.util.ubus("system", "info") or { }
 	local boardinfo = luci.util.ubus("system", "board") or { }
@@ -561,10 +559,10 @@
 
 	/* Over_The_Box Step bar */
 	var stepbar = {
-		activate:	{ status: 'todo', caption: "Activate" },
-		remoteDhcp:	{ status: 'todo', caption: "Disable DHCP" },
-		dhcp:		{ status: 'todo', caption: "Enable OverTheBox DHCP" },
-		securedNetwork:	{ status: 'todo', caption: "Secured Network" },
+		activate:	{ status: 'todo', caption: "<%:Activate%>" },
+		remoteDhcp:	{ status: 'todo', caption: "<%:Disable your DHCP%>" },
+		dhcp:		{ status: 'todo', caption: "<%:Enable OverTheBox DHCP%>" },
+		securedNetwork:	{ status: 'todo', caption: "<%:Secured Network%>" },
 	}
 	function refreshStepBar()
 	{
@@ -581,7 +579,6 @@
 		}
 	}
 	window.setInterval("refreshStepBar()", 1000);
-
 
 //]]></script>
 <style type="text/css">
@@ -684,22 +681,27 @@ ol.progtrckr li.progtrckr-error:before {
 }
 </style>
 
-
-<h2><a id="content" name="content"><%:OverTheBox overview%></a></h2>
 <!-- Display the general status bar -->
+<h2><a id="content" name="content"><%:OverTheBox overview%></a></h2>
 <div id="overthebox_status_bar"></div>
-
 <%
 if has_service_confirmation then
 	include("overthebox/activate")
 else
-	include("overthebox/dhcpwizard")
-	include("overthebox/wanstatus")
+	%>
+		<fieldset class="cbi-section">
+		<!--	<legend><%:OverTheBox overview%></legend> -->
+			<table width="100%" cellspacing="10">
+				<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
+			</table>
+		</fieldset>
+	<%
 end
+
+include("overthebox/dhcpwizard")
+include("overthebox/wanstatus")
 %>
 
-
-<%=device_id%>
 <fieldset class="cbi-section" style="display: none;">
 	<legend><%:System%></legend>
 
