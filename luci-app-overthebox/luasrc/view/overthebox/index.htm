@@ -10,6 +10,9 @@
 	local stat = require "luci.tools.status"
 	local ver = require "luci.version"
 
+        local uci = require("luci.model.uci").cursor()
+        local device_id = uci:get("overthebox", "me", "device_id")
+
 	local has_ipv6 = fs.access("/proc/net/ipv6_route")
 	local has_dhcp = fs.access("/etc/config/dhcp")
 	local has_wifi = ((fs.stat("/etc/config/wireless", "size") or 0) > 0)
@@ -555,9 +558,136 @@
 
 		}
 	);
+
+	/* Over_The_Box Step bar */
+	var stepbar = {
+		activate:	{ status: 'todo', caption: "Activate" },
+		remoteDhcp:	{ status: 'todo', caption: "Disable DHCP" },
+		dhcp:		{ status: 'todo', caption: "Enable OverTheBox DHCP" },
+		securedNetwork:	{ status: 'todo', caption: "Secured Network" },
+	}
+	function refreshStepBar()
+	{
+		var status = document.getElementById('overthebox_status_bar');
+		if(status)
+		{
+			var nstep  = Object.keys(stepbar).length;
+			var html = '<ol class="progtrckr" data-progtrckr-steps="'+ nstep +'">'
+			for (step in stepbar) {
+				html += String.format('<li class="progtrckr-%s">%s</li>', stepbar[step].status, stepbar[step].caption)
+			}
+			html += '</ol>';
+			status.innerHTML = html;
+		}
+	}
+	window.setInterval("refreshStepBar()", 1000);
+
+
 //]]></script>
+<style type="text/css">
+
+ol.progtrckr {
+    margin: 0;
+    padding: 0;
+    list-style-type none;
+}
+
+ol.progtrckr li {
+    display: inline-block;
+    text-align: center;
+    line-height: 3em;
+}
+
+ol.progtrckr[data-progtrckr-steps="2"] li { width: 49%; }
+ol.progtrckr[data-progtrckr-steps="3"] li { width: 33%; }
+ol.progtrckr[data-progtrckr-steps="4"] li { width: 24%; }
+ol.progtrckr[data-progtrckr-steps="5"] li { width: 19%; }
+ol.progtrckr[data-progtrckr-steps="6"] li { width: 16%; }
+ol.progtrckr[data-progtrckr-steps="7"] li { width: 14%; }
+ol.progtrckr[data-progtrckr-steps="8"] li { width: 12%; }
+ol.progtrckr[data-progtrckr-steps="9"] li { width: 11%; }
+
+ol.progtrckr li.progtrckr-error {
+    color: black;
+    border-bottom: 4px solid red;
+}
+ol.progtrckr li.progtrckr-done {
+    color: black;
+    border-bottom: 4px solid yellowgreen;
+}
+ol.progtrckr li.progtrckr-doing {
+    color: black;
+    border-bottom: 4px solid orange;
+}
+ol.progtrckr li.progtrckr-warn {
+    color: black;
+    border-bottom: 4px solid orangered;
+}
+ol.progtrckr li.progtrckr-todo {
+    color: silver;
+    border-bottom: 4px solid silver;
+}
+
+ol.progtrckr li:after {
+    content: "\00a0\00a0";
+}
+ol.progtrckr li:before {
+    position: relative;
+    bottom: -2.5em;
+    float: left;
+    left: 50%;
+    line-height: 1em;
+}
+ol.progtrckr li.progtrckr-done:before {
+    content: "\2713";
+    color: white;
+    background-color: yellowgreen;
+    height: 1.2em;
+    width: 1.2em;
+    line-height: 1.2em;
+    border: none;
+    border-radius: 1.2em;
+}
+ol.progtrckr li.progtrckr-doing:before {
+    content: "\27F2";
+    color: orange;
+    background-color: white;
+    font-size: 1.5em;
+    bottom: -1.6em;
+    border: none;
+    border-radius: 1.2em;
+}
+ol.progtrckr li.progtrckr-warn:before {
+    content: "\26A0";
+    color: orangered;
+    background-color: white;
+    font-size: 1.5em;
+    bottom: -1.6em;
+    border: none;
+    border-radius: 1.2em;
+}
+ol.progtrckr li.progtrckr-todo:before {
+    content: "\039F";
+    color: silver;
+    background-color: white;
+    font-size: 1.5em;
+    bottom: -1.6em;
+}
+ol.progtrckr li.progtrckr-error:before {
+    content: "\2716";
+    color: red;
+    background-color: white;
+    font-size: 1.5em;
+    bottom: -1.6em;
+    border: none;
+    border-radius: 1.2em;
+}
+</style>
+
 
 <h2><a id="content" name="content"><%:OverTheBox overview%></a></h2>
+<!-- Display the general status bar -->
+<div id="overthebox_status_bar"></div>
 
 <%
 if has_service_confirmation then
@@ -568,6 +698,8 @@ else
 end
 %>
 
+
+<%=device_id%>
 <fieldset class="cbi-section" style="display: none;">
 	<legend><%:System%></legend>
 

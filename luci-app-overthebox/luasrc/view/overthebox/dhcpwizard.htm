@@ -270,152 +270,50 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         }
     );
 
-    function updateStepBar(disableRemoteDhcp, startDhcp, mwanConfig, securedNet)
-    {
-        var status = document.getElementById('dhcpserver_status_bar');
-
-        if(securedNet)
-        {
-                if(startDhcp)
-                {
-                        securedNet = "done";
-                }
-                else
-                {
-                        securedNet = "error";
-                }
-        }
-        else
-        {
-                if(startDhcp)
-                {
-                        securedNet = "doing";
-                }
-                else
-                {
-                        securedNet = "todo";
-                }
-        }
-
-        var template = '<ol class="progtrckr" data-progtrckr-steps="3"><li class="progtrckr-%s">Disable your DHCP</li><li class="progtrckr-%s">Enable Sticky DHCP</li><li class="progtrckr-%s">Secured Network</li></ol>';
-        status.innerHTML = String.format(template, disableRemoteDhcp, startDhcp ? "done" : "todo", securedNet);
-        // Show mwan button if config is not set correctly
-        var mwanButtonField = document.getElementById('mwan_button_field');
-        if(mwanButtonField)
-        {
-            if(mwanConfig)
-            {
-                mwanButtonField.style.display = 'none';
-            }
-            else
-            {
-                mwanButtonField.style.display = '';
-            }
-        }
-    }
-    
-
+	function updateStepBar(disableRemoteDhcp, startDhcp, mwanConfig, securedNet)
+	{
+		if(securedNet)
+		{
+			if(startDhcp)
+			{
+				stepbar.securedNetwork.status = "done";
+			}
+			else
+			{
+				stepbar.securedNetwork.status = "error";
+			}
+		}
+		else
+		{
+			if(startDhcp)
+			{
+				stepbar.securedNetwork.status = "doing";
+			}
+			else
+			{
+				stepbar.securedNetwork.status = "todo";
+			}
+		}
+		stepbar.activate.status = "done"
+		stepbar.remoteDhcp.status = disableRemoteDhcp
+		stepbar.dhcp.status = startDhcp ? "done" : "todo"
+		// Show mwan button if config is not set correctly
+		var mwanButtonField = document.getElementById('mwan_button_field');
+		if(mwanButtonField)
+		{
+			if(mwanConfig)
+			{
+				mwanButtonField.style.display = 'none';
+			}
+			else
+			{
+				mwanButtonField.style.display = '';
+			}
+		}
+	}
 //]]></script>
 
 <style type="text/css">
-
-ol.progtrckr {
-    margin: 0;
-    padding: 0;
-    list-style-type none;
-}
-
-ol.progtrckr li {
-    display: inline-block;
-    text-align: center;
-    line-height: 3em;
-}
-
-ol.progtrckr[data-progtrckr-steps="2"] li { width: 49%; }
-ol.progtrckr[data-progtrckr-steps="3"] li { width: 33%; }
-ol.progtrckr[data-progtrckr-steps="4"] li { width: 24%; }
-ol.progtrckr[data-progtrckr-steps="5"] li { width: 19%; }
-ol.progtrckr[data-progtrckr-steps="6"] li { width: 16%; }
-ol.progtrckr[data-progtrckr-steps="7"] li { width: 14%; }
-ol.progtrckr[data-progtrckr-steps="8"] li { width: 12%; }
-ol.progtrckr[data-progtrckr-steps="9"] li { width: 11%; }
-
-ol.progtrckr li.progtrckr-error {
-    color: black;
-    border-bottom: 4px solid red;
-}
-ol.progtrckr li.progtrckr-done {
-    color: black;
-    border-bottom: 4px solid yellowgreen;
-}
-ol.progtrckr li.progtrckr-doing {
-    color: black;
-    border-bottom: 4px solid orange;
-}
-ol.progtrckr li.progtrckr-warn {
-    color: black;
-    border-bottom: 4px solid orangered;
-}
-ol.progtrckr li.progtrckr-todo {
-    color: silver;
-    border-bottom: 4px solid silver;
-}
-
-ol.progtrckr li:after {
-    content: "\00a0\00a0";
-}
-ol.progtrckr li:before {
-    position: relative;
-    bottom: -2.5em;
-    float: left;
-    left: 50%;
-    line-height: 1em;
-}
-ol.progtrckr li.progtrckr-done:before {
-    content: "\2713";
-    color: white;
-    background-color: yellowgreen;
-    height: 1.2em;
-    width: 1.2em;
-    line-height: 1.2em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-doing:before {
-    content: "\27F2";
-    color: orange;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-warn:before {
-    content: "\26A0";
-    color: orangered;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-todo:before {
-    content: "\039F";
-    color: silver;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-}
-ol.progtrckr li.progtrckr-error:before {
-    content: "\2716";
-    color: red;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-
 .wanon {
     background-color: rgb(144, 240, 144);
 }
@@ -437,14 +335,6 @@ ol.progtrckr li.progtrckr-error:before {
 }
 
 </style>
-
-<div id="dhcpserver_status_bar">
-    <ol class="progtrckr" data-progtrckr-steps="3"><!--
-        --><li class="progtrckr-todo">Disable your DHCP</li><!--
-        --><li class="progtrckr-todo">Enable Sticky DHCP</li><!--
-        --><li class="progtrckr-todo">Secured Network</li>
-    </ol>
-</div>
 
 <fieldset class="cbi-section">
         <legend><%:Scanning for DHCP servers on your network%></legend>
