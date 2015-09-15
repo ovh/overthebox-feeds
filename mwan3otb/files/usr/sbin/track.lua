@@ -652,6 +652,12 @@ while true do
 			shaper:pushPing(false)
 			debug("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
 		end
+		uci:set("tracker", shaper.interface, "tracker")
+		uci:set("tracker", shaper.interface, "minping", pingstats:min())
+		uci:set("tracker", shaper.interface, "avgping", pingstats:avg())
+		uci:set("tracker", shaper.interface, "curping", pingstats:getn(0))
+		uci:commit("tracker")
+		uci:save("tracker")
 		shaper:update()
 	end
 
