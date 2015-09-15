@@ -288,6 +288,8 @@ io.output(fd)
 io.write(p.getpid(), "\n")
 io.close(fd)
 
+os.execute("mkdir -p /var/lib/tracker/if")
+
 local nb_up = tonumber(opts["u"])
 local nb_down = tonumber(opts["o"])
 
@@ -371,6 +373,19 @@ function pingstats:setn(index, value)
                 pos = pingstats.numvalue + pos
         end
 	pingstats[pos] = value
+end
+
+function pingstats:write()
+	local interface = opts["i"]
+	local result = {}
+	result[interface] = {}
+	result[interface].minping = pingstats:min()
+	result[interface].curping = pingstats:getn(0)
+	result[interface].avgping = pingstats:avg()
+	-- write file
+	local file = io.open( string.format("/var/lib/tracker/if/%s", interface), "w" )
+	file:write(json.encode(result))
+	file:close()
 end
 
 -- Bandwith stats
@@ -652,12 +667,7 @@ while true do
 			shaper:pushPing(false)
 			debug("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
 		end
-		uci:set("tracker", shaper.interface, "tracker")
-		uci:set("tracker", shaper.interface, "minping", pingstats:min())
-		uci:set("tracker", shaper.interface, "avgping", pingstats:avg())
-		uci:set("tracker", shaper.interface, "curping", pingstats:getn(0))
-		uci:commit("tracker")
-		uci:save("tracker")
+		pingstats:write()
 		shaper:update()
 	end
 
