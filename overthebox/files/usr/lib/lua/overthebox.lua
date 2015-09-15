@@ -90,6 +90,12 @@ function config()
 		uci:save('vtund')
 		uci:commit('vtund')
 		table.insert(ret, "vtund")
+
+
+		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server )
+		uci:delete('mwan3', 'socks', 'dest_port')
+		uci:save('mwan3')
+		uci:commit('mwan3')
 	end
 
 	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
