@@ -1,11 +1,12 @@
 <fieldset id="mwan_button_field" class="cbi-section" style="display:none">
     <div id="mwan_action_button"><input type="button" onclick="confmwan_dhpcserver()" value="<%:Update MWAN config%>" class="cbi-button cbi-button-apply" /></div>
 </fieldset>
+
 <script type="text/javascript">//<![CDATA[
 	XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "overthebox", "interfaces_status")%>', null,
 		function(x, mArray)
 		{
-			var status = document.getElementById('mwan_status_text');
+			var status = document.getElementById('interface_status_text');
 			if (mArray.wans)
 			{
 				var temp = '';
@@ -32,9 +33,14 @@
 							cssc = 'wanoff';
 							break;
 					}
+					var curping = Math.floor(mArray.wans[i].curping);
+					var minping = Math.floor(mArray.wans[i].minping);
+					var avgping = Math.floor(mArray.wans[i].avgping);
+					var multipath = mArray.wans[i].multipath;
+
 					temp += String.format(
-						'<span class="%s"><strong>%s (<a href="%q">%s</a>)</strong><br />%s</span>',
-						cssc, mArray.wans[i].name, mArray.wans[i].link, mArray.wans[i].ifname, stat
+						'<span class="%s"><strong>%s (<a href="%q">%s</a>)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</span>',
+						cssc, mArray.wans[i].name, mArray.wans[i].link, mArray.wans[i].ifname, stat, curping, multipath
 					);
 				}
 				status.innerHTML = temp;
@@ -49,7 +55,7 @@
 
 <fieldset id="interface_field" class="cbi-section">
 	<legend><%:Interfaces live status%></legend>
-	<div id="mwan_status_text"><img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Collecting data...</div>
+	<div id="interface_status_text"><img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Collecting data...</div>
 </fieldset>
 
 <style type="text/css">
@@ -59,7 +65,7 @@
   #interface_field {
 	padding: 12px 20px 20px 20px;
   }
-  #mwan_status_text {
+  #interface_status_text {
 	display: table;
 	font-size: 14px;
 	margin: auto;
@@ -74,7 +80,7 @@
 	background-color: rgb(240, 144, 144);
   }
   .wanon, .wanoff {
-	border-radius: 60px;
+	border-radius: 30px;
 	box-shadow: 0px 2px 5px -3px;
 	float: left;
 	margin: 8px 3px 0px 3px;
@@ -89,7 +95,7 @@
     function confmwan_dhpcserver()
     {
         // display a loading icon
-        var s = document.getElementById('mwan_status_text');
+        var s = document.getElementById('interface_status_text');
         if(s)
            s.innerHTML = '<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Updating ...';
         // call backend
