@@ -1,0 +1,29 @@
+#!/bin/sh
+
+cat <<'EOF' > /etc/rc.button/power
+#!/bin/sh
+
+touch /var/log/power
+[ "${ACTION}" = "released" ] || exit 0
+echo `date +"%s"`   >> /var/log/power
+
+limit=$((`date +"%s"`-5))
+occur=`cat /var/log/power  | awk '{if($1>'"$limit"')print $1}' | wc -l`
+
+if [ "$occur" -ge 5 ] && [ -f /recovery/openwrt-x86-64-combined-ext4.img.gz ]
+then
+logger "Power button pressed more than 5 time within 5 sec."
+logger "Factory Reset initialized manually by user."
+
+cd /recovery/ && sysupgrade -n openwrt-x86-64-combined-ext4.img.gz
+
+elif [ "$occur" -ge 5 ]
+then
+logger "Factory Reset requested but rom file doesn't exists"
+exit 1 
+
+fi
+EOF
+
+chmod +x /etc/rc.button/power
+exit 0
