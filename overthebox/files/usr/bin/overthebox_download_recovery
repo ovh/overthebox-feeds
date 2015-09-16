@@ -1,0 +1,24 @@
+#!/bin/sh
+
+MD5ONLINE=`curl --silent http://downloads.overthebox.ovh/trunk/x86/64/md5sums | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}'`
+
+download() {
+    logger "RECOVERY: Downloading the latest stable rom"
+        wget http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /recovery/openwrt-x86-64-combined-ext4.img.gz > /dev/null 2>&1
+    logger "RECOVERY: Finshed Downloading the lastest rom"
+}
+
+if [ ! -f /recovery/openwrt-x86-64-combined-ext4.img.gz ]
+    then
+    mkdir /recovery/  > /dev/null 2>&1
+    logger "RECOVERY: No local rom available, getting one for you!"
+    download
+
+elif [ -f /recovery/openwrt-x86-64-combined-ext4.img.gz ] && [ "$MD5ONLINE" == "$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')" ]
+        then
+    logger "RECOVERY: You have the latest Built, No need to upgrade!"
+
+else 
+    logger "RECOVERY: New stable rom is available online!"
+    download
+fi
