@@ -51,7 +51,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/dnsmasq.defaults $(1)/etc/uci-defaults/otb-dnsmasq.defaults
 	$(INSTALL_BIN) ./defaults/firewall.defaults $(1)/etc/uci-defaults/otb-firewall.defaults
 	$(INSTALL_BIN) ./defaults/power.defaults $(1)/etc/uci-defaults/otb-power.defaults
-	$(INSTALL_BIN) ./defaults/recovery.defaults $(1)/etc/uci-defaults/otb-recovery.defaults
+	$(INSTALL_BIN) ./defaults/download_recovery.defaults $(1)/etc/uci-defaults/otb-recovery.defaults
 endef
 
 define Package/overthebox/postinst
