@@ -40,7 +40,7 @@
 
 					mArray.wans[i].color = stringToColour(mArray.wans[i].name)
 					temp += String.format(
-						'<span class="%s" style="border-style: solid; border-color: %s;"><strong>%s (<a href="%q">%s</a>)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</span>',
+						'<span class="%s" style="border-style: solid; border-color: %s;"><img src="<%=resource%>/box.png" width="100" /><br /><strong>%s (<a href="%q">%s</a>)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</span>',
 						cssc, mArray.wans[i].color, mArray.wans[i].name, mArray.wans[i].link, mArray.wans[i].ifname, stat, curping, multipath
 					);
 				}
