@@ -1,0 +1,6 @@
+#!/bin/sh
+
+/usr/bin/overthebox_download_recovery
+
+exit 0
+
