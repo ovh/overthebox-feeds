@@ -288,7 +288,7 @@ io.output(fd)
 io.write(p.getpid(), "\n")
 io.close(fd)
 
-os.execute("mkdir -p /var/lib/tracker/if")
+os.execute("mkdir -p /tmp/tracker/if")
 
 local nb_up = tonumber(opts["u"])
 local nb_down = tonumber(opts["o"])
@@ -383,7 +383,7 @@ function pingstats:write()
 	result[interface].curping = pingstats:getn(0)
 	result[interface].avgping = pingstats:avg()
 	-- write file
-	local file = io.open( string.format("/var/lib/tracker/if/%s", interface), "w" )
+	local file = io.open( string.format("/tmp/tracker/if/%s", interface), "w" )
 	file:write(json.encode(result))
 	file:close()
 end
