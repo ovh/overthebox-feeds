@@ -314,30 +314,49 @@
 							}
 						}
 
-						for (var itf in data)
-						{
-							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
-							{
-								/* skip overlapping entries */
-								if (data[itf][i][TIME] <= data_stamp)
-									continue;
+                                                /* Applying smoothing algorythm */
+                                                function simple_moving_averager(period) {
+                                                    var nums = [];
+                                                    return function(num) {
+                                                        nums.push(num);
+                                                        if (nums.length > period)
+                                                            nums.splice(0,1);  // remove the first element of the array
+                                                        var sum = 0;
+                                                        for (var i in nums)
+                                                            sum += nums[i];
+                                                        var n = period;
+                                                        if (nums.length < period)
+                                                                n = nums.length;
+                                                        return(sum/n);
+                                                            }
+                                                }
 
-								/* normalize difference against time interval */
-								if (i > 0)
-								{
-									var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
-									if (time_delta)
-									{
-										dndata[itf].push((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta);
-										updata[itf].push((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta);
-									}
-								}
-							}
-							/* cut off outdated entries */
-							dndata[itf] = dndata[itf].slice(dndata[itf].length - data_wanted, dndata[itf].length);
-							updata[itf] = updata[itf].slice(updata[itf].length - data_wanted, updata[itf].length);
-						}
-						
+                                                var upsma = simple_moving_averager(5);
+                                                var dnsma = simple_moving_averager(5);
+                                                for (var itf in data)
+                                                {
+                                                        for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
+                                                        {
+                                                                /* skip overlapping entries */
+                                                                if (data[itf][i][TIME] <= data_stamp)
+                                                                        continue;
+
+                                                                /* normalize difference against time interval */
+                                                                if (i > 0)
+                                                                {
+                                                                        var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
+                                                                        if (time_delta)
+                                                                        {
+                                                                                dndata[itf].push(dnsma((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
+                                                                                updata[itf].push(upsma((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
+                                                                        }
+                                                                }
+                                                        }
+                                                        /* cut off outdated entries */
+                                                        dndata[itf] = dndata[itf].slice(dndata[itf].length - data_wanted, dndata[itf].length);
+                                                        updata[itf] = updata[itf].slice(updata[itf].length - data_wanted, updata[itf].length);
+                                                }
+
 						/* remember current timestamp, calculate horizontal scale */
 						for (var itf in data)
 						{
