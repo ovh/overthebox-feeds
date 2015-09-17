@@ -1,119 +1,209 @@
-<fieldset id="mwan_button_field" class="cbi-section" style="display:none">
-    <div id="mwan_action_button"><input type="button" onclick="confmwan_dhpcserver()" value="<%:Update MWAN config%>" class="cbi-button cbi-button-apply" /></div>
-</fieldset>
-
 <script type="text/javascript">//<![CDATA[
-	XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "overthebox", "interfaces_status")%>', null,
+	XHR.poll(5, '/cgi-bin/luci/admin/overthebox/interfaces_status', null,
 		function(x, mArray)
 		{
-			var status = document.getElementById('interface_status_text');
+			var status = document.getElementById('overthebox_status');
+
+			var temp = '<figure class="tree">';
+			temp += '<ul>';
+			/*
+			if (true) // or mArray.service)
+			{
+				temp += '<li>';
+				temp += '<a href="#" style="background-color: lightgreen;"><img src="/luci-static/resources/infrastructure-cloud.jpg" width="200" /><br /><strong>Remote gateway</strong><br />overthebox.3314117e-f7a2-49be-99cb-8aec29c20512</a>';
+				temp += '<ul>'
+			}
+			*/
+			if (true) // or mArray.overthebox)
+			{
+				temp += '<li>';
+				temp += '<a href="#" style="background-color: lightgreen;"><img src="/luci-static/resources/overthebox.png" width="150" /><br />OverTheBox<br />34168981-7ede-4972-ac0f-a696573a1873</a>';
+			}
 			if (mArray.wans)
 			{
-				var temp = '';
+				temp += '<ul>';
 				for( var i = 0; i < mArray.wans.length; i++ )
 				{
+					// Get link color
+					mArray.wans[i].color = stringToColour(mArray.wans[i].name)
+					// Mwan status infos and colors
 					var stat = '';
 					var cssc = '';
 					switch (mArray.wans[i].status)
 					{
 						case 'online':
 							stat = 'Online (tracking active)';
-							cssc = 'wanon';
+							cssc = 'rgb(144, 240, 144)';
 							break;
 						case 'notMonitored':
 							stat = 'Online (tracking off)';
-							cssc = 'wanon';
+							cssc = 'rgb(144, 240, 144)';
 							break;
 						case 'offline':
 							stat = 'Offline';
-							cssc = 'wanoff';
+							cssc = 'rgb(240, 144, 144)';
 							break;
 						case 'notEnabled':
 							stat = 'Disabled';
-							cssc = 'wanoff';
+							cssc = 'rgb(224,224,224)';
 							break;
 					}
+					// Select color following multipath status
+					switch (mArray.wans[i].multipath)
+					{
+						case 'off':
+							cssc = 'rgb(255,153,51)';
+						case 'failover':
+							cssc = 'rgb(224,224,224)';
+						case 'handover':
+							cssc = 'rgb(255,153,51)';
+					}
+					// Populate info
 					var curping = Math.floor(mArray.wans[i].curping);
 					var minping = Math.floor(mArray.wans[i].minping);
 					var avgping = Math.floor(mArray.wans[i].avgping);
 					var multipath = mArray.wans[i].multipath;
-
-					mArray.wans[i].color = stringToColour(mArray.wans[i].name)
+					// Generate template
 					temp += String.format(
-						'<span class="%s" style="border-style: solid; border-color: %s;"><img src="<%=resource%>/box.png" width="100" /><br /><strong>%s (<a href="%q">%s</a>)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</span>',
-						cssc, mArray.wans[i].color, mArray.wans[i].name, mArray.wans[i].link, mArray.wans[i].ifname, stat, curping, multipath
+						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/box.png" width="100" /><br /><strong>%s</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
+						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, stat, curping, multipath
 					);
 				}
-				status.innerHTML = temp;
+				temp += '</ul>';
 			}
-			else
-			{
-				status.innerHTML = '<strong>No interface found</strong>';
-			}
+			temp += '</li>';
+			/*
+			temp += '</ul></li>';
+			*/
+			// Close tree
+			temp += '</ul>';
+			temp += '</figure>';
+			status.innerHTML = temp;
 		}
 	);
 //]]></script>
 
 <fieldset id="interface_field" class="cbi-section">
-	<legend><%:Interfaces live status%></legend>
-	<div id="interface_status_text"><img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Collecting data...</div>
+	<legend>Network overview</legen>
+	<table style=""><tr><td><div id="overthebox_status"></div></td></tr></table>
 </fieldset>
 
 <style type="text/css">
-  .container {	/* container for entire page. fixes bootstrap theme's ridiculously small page width */
+/* Mwan3 ligthed CSS */
+.container {	/* container for entire page. fixes bootstrap theme's ridiculously small page width */
 	max-width: 1044px;
-  }
-  #interface_field {
+}
+#interface_field {
 	padding: 12px 20px 20px 20px;
-  }
-  #interface_status_text {
+}
+#interface_status_text {
 	display: table;
 	font-size: 14px;
 	margin: auto;
 	max-width: 1044px;
 	min-width: 246px;
 	width: 100%;
-  }
-  .wanon {
-	background-color: rgb(144, 240, 144);
-  }
-  .wanoff {
-	background-color: rgb(240, 144, 144);
-  }
-  .wanon, .wanoff {
-	border-radius: 30px;
-	box-shadow: 0px 2px 5px -3px;
-	float: left;
-	margin: 8px 3px 0px 3px;
-	min-height: 30px;
-	min-width: 235px;
-	padding: 5px 10px 8px 10px;
-	text-align: center;
-  }
+}
+
+/*Now the CSS*/
+.tree ul {
+	padding-top: 20px; position: relative;
+	
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+.tree li {
+	float: left; text-align: center;
+	list-style-type: none;
+	position: relative;
+	padding: 20px 5px 0 5px;
+	
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+/*We will use ::before and ::after to draw the connectors*/
+
+.tree li::before, .tree li::after{
+	content: '';
+	position: absolute; top: 0; right: 50%;
+	border-top: 1px solid #ccc;
+	width: 50%; height: 20px;
+}
+.tree li::after{
+	right: auto; left: 50%;
+	border-left: 1px solid #ccc;
+}
+
+/*We need to remove left-right connectors from elements without 
+any siblings*/
+.tree li:only-child::after, .tree li:only-child::before {
+	display: none;
+}
+
+/*Remove space from the top of single children*/
+.tree li:only-child{ padding-top: 0;}
+
+/*Remove left connector from first child and 
+right connector from last child*/
+.tree li:first-child::before, .tree li:last-child::after{
+	border: 0 none;
+}
+/*Adding back the vertical connector to the last nodes*/
+.tree li:last-child::before{
+	border-right: 1px solid #ccc;
+	border-radius: 0 5px 0 0;
+	-webkit-border-radius: 0 5px 0 0;
+	-moz-border-radius: 0 5px 0 0;
+}
+.tree li:first-child::after{
+	border-radius: 5px 0 0 0;
+	-webkit-border-radius: 5px 0 0 0;
+	-moz-border-radius: 5px 0 0 0;
+}
+
+/*Time to add downward connectors from parents*/
+.tree ul ul::before{
+	content: '';
+	position: absolute; top: 0; left: 50%;
+	border-left: 1px solid #ccc;
+	width: 0; height: 20px;
+}
+
+.tree li a{
+	border: 1px solid #ccc;
+	padding: 5px 10px;
+	text-decoration: none;
+	color: #666;
+	font-family: arial, verdana, tahoma;
+	font-size: 11px;
+	display: inline-block;
+	
+	border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+/*Time for some hover effects*/
+/*We will apply the hover effect the the lineage of the element also*/
+.tree li a:hover, .tree li a:hover+ul li a {
+	background: #c8e4f8; color: #000; border: 1px solid #94a0b4;
+}
+/*Connector styles on hover*/
+.tree li a:hover+ul li::after, 
+.tree li a:hover+ul li::before, 
+.tree li a:hover+ul::before, 
+.tree li a:hover+ul ul::before{
+	border-color:  #94a0b4;
+}
+
+/*Thats all. I hope you enjoyed it.
+Thanks :)*/
 </style>
-
-<script type="text/javascript">//<![CDATA[
-    function confmwan_dhpcserver()
-    {
-        // display a loading icon
-        var s = document.getElementById('interface_status_text');
-        if(s)
-           s.innerHTML = '<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> Updating ...';
-        // call backend
-        var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "update_conf")%>', null,
-            function(x)
-            {
-                if (x.responseText)
-                {
-                    output.innerHTML = x.responseText
-                }
-                else
-                {
-                    output.innerHTML = "no return"
-                }
-            }
-        );
-    }
-//]]></script>
-
