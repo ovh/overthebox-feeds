@@ -50,6 +50,7 @@ end
 
 -- Multipath overview functions
 function interfaces_status()
+
 	local mwan3 	= require("luci.controller.mwan3")
 	local ut 	= require "luci.util"
         local ntm 	= require "luci.model.network".init()
@@ -57,6 +58,10 @@ function interfaces_status()
 	local json      = require("luci.json")
 
         local mArray = {}
+
+	-- Check overthebox
+	mArray.overthebox = {}
+
 
 	-- Parse mptcp kernel info
 	local mptcp = {}
@@ -76,35 +81,37 @@ function interfaces_status()
                 wansid = {}
 
                 for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
-			if wanName ~= "tun0" then
-	                        local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
-        	                        if wanInterfaceName == "" then
-	                                        wanInterfaceName = "X"
-	                                end
-	                        local wanDeviceLink = ntm:get_interface(wanInterfaceName)
-	                                wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
-	                                wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
-	                        wansid[wanName] = #mArray.wans + 1
-				-- Add multipath info
-				local ipaddr	= uci:get("network", wanName, "ipaddr")
-				local multipath = "default";
-				if ipaddr and mptcp[ipaddr] then
-					multipath = uci:get("network", wanName, "multipath") or "on"
-				else
-					multipath = "off"
-				end
-				-- Add ping info
-				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
-				local minping = "NaN"
-				local avgping = "NaN"
-				local curping = "NaN"
-				if data and data[wanName] then
-					minping = data[wanName].minping
-					avgping = data[wanName].avgping
-					curping = data[wanName].curping
-				end
-				-- Return info
-	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, data = data }
+                        local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
+       	                        if wanInterfaceName == "" then
+                                        wanInterfaceName = "X"
+                                end
+                        local wanDeviceLink = ntm:get_interface(wanInterfaceName)
+                                wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
+                                wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
+                        wansid[wanName] = #mArray.wans + 1
+			-- Add multipath info
+			local ipaddr	= uci:get("network", wanName, "ipaddr")
+			local multipath = "default";
+			if ipaddr and mptcp[ipaddr] then
+				multipath = uci:get("network", wanName, "multipath") or "on"
+			else
+				multipath = "off"
+			end
+			-- Add ping info
+			data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
+			local minping = "NaN"
+			local avgping = "NaN"
+			local curping = "NaN"
+			if data and data[wanName] then
+				minping = data[wanName].minping
+				avgping = data[wanName].avgping
+				curping = data[wanName].curping
+			end
+			-- Return info
+			if wanName == "tun0" then
+				mArray.overthebox["vtund"] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping =       minping, avgping = avgping, curping = curping }
+			else
+	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
 			end
                 end
         end
