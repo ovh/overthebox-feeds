@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bosun
 PKG_VERSION:=0.2.0
-PKG_RELEASE:=0.6
+PKG_RELEASE:=0.7
 
 PKG_SOURCE:=$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/bosun-monitor/bosun/archive/
