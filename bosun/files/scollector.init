@@ -9,17 +9,12 @@ SERVICE_WRITE_PID=1
 SERVICE_DAEMONIZE=1
 CONF=/etc/scollector.cfg
 
-
-/bin/touch $CONF
-HOST=$(uci -q get scollector.opentsdb.host )
-FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
-
-
-
 start() {
+	/bin/touch $CONF
+	HOST=$(uci -q get scollector.opentsdb.host )
+	FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
 	if [ -n "$HOST" ]
 	then
-
 		cat <<BOF >$CONF
 
 Host = "$HOST"
