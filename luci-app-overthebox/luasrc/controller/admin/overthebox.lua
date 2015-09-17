@@ -54,6 +54,7 @@ function interfaces_status()
 	local ut 	= require "luci.util"
         local ntm 	= require "luci.model.network".init()
 	local uci 	= require "luci.model.uci".cursor()
+	local json      = require("luci.json")
 
         local mArray = {}
 
@@ -93,11 +94,17 @@ function interfaces_status()
 					multipath = "off"
 				end
 				-- Add ping info
-				local minping = uci:get("tracker", wanName, "minping")
-				local avgping = uci:get("tracker", wanName, "avgping")
-				local curping = uci:get("tracker", wanName, "curping")
+				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
+				local minping = "NaN"
+				local avgping = "NaN"
+				local curping = "NaN"
+				if data and data[wanName] then
+					minping = data[wanName].minping
+					avgping = data[wanName].avgping
+					curping = data[wanName].curping
+				end
 				-- Return info
-	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
+	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, data = data }
 			end
                 end
         end
