@@ -118,6 +118,11 @@ function restart(service)
         local ret = run("/etc/init.d/"..service.." restart")
         return true, ret
 end
+function restartmwan3()
+        local ret = os.execute("nohup /usr/sbin/mwan3 restart &")
+        return true, ret
+end
+
 
 function opkg_update()
 	local ret = run("opkg update")
