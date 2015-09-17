@@ -80,6 +80,9 @@ while run do
 			run = false
 		elseif ret.action == "configure" then
                         actionreturn, services = overthebox.config()
+			if #services > 1 then
+                                overthebox.restartmwan3()
+                        end
                         for i = 1, #services do
                                 overthebox.restart(services[i])
                         end

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cat <<'EOF' > /etc/crontabs/root 
+00 02 * * 0 /usr/bin/overthebox_download_recovery > /dev/null 2>&1
+EOF
+chmod 600 /etc/crontabs/root
+chown root:root /etc/crontabs/root
+
+
+exit 0
