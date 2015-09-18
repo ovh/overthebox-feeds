@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# restart network after script only in case of modification
-EXIT=1
-
 touch /etc/config/network
 
 uci get network.globals.multipath >/dev/null 2>&1
@@ -10,8 +7,6 @@ if [ $? -ne 0 ]; then
   uci -q batch <<-EOF >/dev/null
 	set network.globals=globals
 	set network.globals.multipath='enable'
-	commit network
-	EXIT=0
 EOF
 fi
 
@@ -24,8 +19,6 @@ if [ $? -ne 0 ]; then
 	set network.lan.type='macvlan'
 	set network.lan.interface='eth0'
 	set network.lan.metric='0'
-	commit network
-	EXIT=0
 EOF
 fi
 
@@ -41,8 +34,6 @@ if [ $? -ne 0 ]; then
 	set network.if0.peerdns='0'
 	set network.if0.delegate='0'
 	set network.if0.multipath='off'
-	commit network
-	EXIT=0
 EOF
 fi
 
@@ -55,10 +46,16 @@ if [ $? -ne 0 ]; then
         set network.tun0.multipath='off'
         set network.tun0.delegate='0'
         set network.tun0.metric='100'
-	commit network
-	EXIT=0
 EOF
 fi
 
 
-exit $EXIT
+CHANGES=$(uci changes network)
+if [ -n "$CHANGES" ]
+then
+	uci commit network
+	/etc/init.d/network restart
+	[ -x /etc/init.d/openvpn ] && /etc/init.d/openvpn restart ;
+	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
+fi
+exit 0

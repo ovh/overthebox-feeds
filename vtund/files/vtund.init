@@ -23,7 +23,6 @@ start() {
 
 
         for x in `pgrep vtund`; do kill -KILL $x ; done
-	sleep 2
 
 	/bin/touch /etc/config/vtund
 	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
@@ -95,7 +94,6 @@ fi
 
 stop() {
         for x in `pgrep vtund`; do kill -KILL $x ; done
-	sleep 2
 
 #	service_stop /usr/sbin/$APP  -f /etc/vtund.conf $HOST $SERVER
 }
