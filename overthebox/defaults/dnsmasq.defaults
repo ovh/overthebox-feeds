@@ -1,6 +1,10 @@
 #!/bin/sh
 
+opkg remove dnsmasq
+opkg install dnsmasq-full
+
 uci set dhcp.@dnsmasq[0].nonegcache='1'
+uci set dhcp.@dnsmasq[0].filter_aaaa='1'
 uci commit dhcp
 
 exit 0
