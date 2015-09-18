@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=34
+PKG_RELEASE:=35
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -59,14 +59,7 @@ define Package/overthebox/postinst
 #!/bin/sh
 if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/overthebox.defaults ) && rm -f /etc/uci-defaults/overthebox.defaults
-	
-        ( . /etc/uci-defaults/otb-network.defaults ) && (
-		[ -x /etc/init.d/network ] && /etc/init.d/network restart ;
-		[ -x /etc/init.d/openvpn ] && /etc/init.d/openvpn restart ;
-		[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
-	)
-	rm -f /etc/uci-defaults/otb-network.defaults
-
+        ( . /etc/uci-defaults/otb-network.defaults ) && rm -f /etc/uci-defaults/otb-network.defaults
         ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
         ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
         ( . /etc/uci-defaults/otb-power.defaults ) 
@@ -74,7 +67,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 
 	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
 	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
-
 
         exit 0
 fi
