@@ -114,9 +114,10 @@
 				{
 					temp += '<li>';
 					temp += '<a href="#" style="background-color: orange">'
-                                        temp += '<img src="/luci-static/resources/computer.png" width="140"/>';
+                                        temp += '<img src="/luci-static/resources/computer.png"/>';
                                         temp +=  String.format('<br /><strong>You (%s)</strong>', mArray.overthebox.remote_addr);
-					temp += '<br /><strong style="color: red;">Your IP was not leased by OverTheBox</strong>';
+					temp += '<div style="width: 150px"><strong style="color: red;">Your IP was not leased by OTB</strong>';
+					temp += '<br /><strong style="color: black;">Please unplug and plug your ethernet cable or turn off and on your Wifi</strong></div>';
 					temp += '</a>';
 					temp += '</li>';
 				}
