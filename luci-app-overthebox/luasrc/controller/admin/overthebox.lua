@@ -72,7 +72,8 @@ function interfaces_status()
         local leases=tools.dhcp_leases()
         for _, value in pairs(leases) do
                 if value["ipaddr"] == mArray.overthebox["remote_addr"] then
-                        mArray.overthebox["remote_from_lease"] = true
+			mArray.overthebox["remote_from_lease"] = true
+			mArray.overthebox["remote_hostname"] = value["hostname"]
                 end
         end
 	-- Check overthebox service are running
