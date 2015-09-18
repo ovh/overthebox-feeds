@@ -24,6 +24,10 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
+        local e = entry({"admin", "overthebox", "lease_overview"}, call("lease_overview"))
+        e.leaf = true
+        e.sysauth = false
+
         local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
 	e.leaf = true
         e.sysauth = false
@@ -64,11 +68,11 @@ function interfaces_status()
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["remote_addr"]	= luci.http.getenv("REMOTE_ADDR") or ""
-        mArray.overthebox["remote_from_lease"]	= "false"
+        mArray.overthebox["remote_from_lease"]	= false
         local leases=tools.dhcp_leases()
         for _, value in pairs(leases) do
                 if value["ipaddr"] == mArray.overthebox["remote_addr"] then
-                        mArray.overthebox["remote_from_lease"] = "true"
+                        mArray.overthebox["remote_from_lease"] = true
                 end
         end
 	-- Check overthebox service are running
@@ -80,10 +84,28 @@ function interfaces_status()
 	if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
 		mArray.overthebox["socks_service"] = true
 	end
+	-- Add DHCP infos by parsing dnsmask config file
+	mArray.overthebox.dhcpd = {}
+	dnsmasq = ut.trim(sys.exec("cat /var/etc/dnsmasq.conf"))
+	for itf, range_start, range_end, mask, leasetime in dnsmasq:gmatch("range=(%w+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%w+)") do
+		mArray.overthebox.dhcpd[itf] = {}
+		mArray.overthebox.dhcpd[itf].interface = itf
+		mArray.overthebox.dhcpd[itf].range_start = range_start
+		mArray.overthebox.dhcpd[itf].range_end = range_end
+		mArray.overthebox.dhcpd[itf].netmask = mask
+		mArray.overthebox.dhcpd[itf].leasetime = leasetime
+	end
+	for itf, option, value in dnsmasq:gmatch("option=(%w+),([%w:-]+),(%d+\.%d+\.%d+\.%d+)") do
+		if option == "option:router" or option == "6" then
+			mArray.overthebox.dhcpd[itf].router = value
+		end
+		if option == "option:dns-server" or option == "" then
+			mArray.overthebox.dhcpd[itf].dns = value
+		end
+	end
 	-- Parse mptcp kernel info
 	local mptcp = {}
 	local fullmesh = ut.trim(sys.exec("cat /proc/net/mptcp_fullmesh"))
-	local hand
 	for ind, addressId, backup, ipaddr in fullmesh:gmatch("(%d+), (%d+), (%d+), (%d+\.%d+\.%d+\.%d+)") do
 		mptcp[ipaddr] = {}
 		mptcp[ipaddr].index = ind
@@ -142,6 +164,17 @@ function interfaces_status()
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(mArray)
+end
+
+function lease_overview()
+	local stat = require "luci.tools.status"
+	local rv = {
+		leases     = stat.dhcp_leases(),
+		leases6    = stat.dhcp6_leases(),
+		wifinets   = stat.wifi_networks()
+	}
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(rv)
 end
 
 function action_bandwidth_data(dev)
