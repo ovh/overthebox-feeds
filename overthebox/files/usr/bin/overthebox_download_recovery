@@ -15,7 +15,7 @@ checksum() {
 			logger "RECOVERY: Download verified successfuly"
 			exit 1
 		else
-			sleep 10
+			sleep 20
 			logger "RECOVERY: Problem getting the file, tried $i time(s)"
 		fi
 	done
