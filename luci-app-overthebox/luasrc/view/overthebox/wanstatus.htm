@@ -6,16 +6,16 @@
 
 			var temp = '<figure class="tree">';
 			temp += '<ul>';
-			/*
-			if (true) // or mArray.service)
-			{
-				temp += '<li>';
-				temp += '<a href="#" style="background-color: lightgreen;"><img src="/luci-static/resources/infrastructure-cloud.jpg" width="200" /><br /><strong>Remote gateway</strong><br />overthebox.3314117e-f7a2-49be-99cb-8aec29c20512</a>';
-				temp += '<ul>'
-			}
-			*/
 			if (mArray.overthebox)
 			{
+				if (mArray.overthebox.remote_from_lease)
+				{
+					temp += '<li>';
+					temp += '<a href="#" style="background-color: lightgreen;">';
+					temp += '<img src="/luci-static/resources/computer.png" width="140"/>';
+					temp +=  String.format('<br /><strong>You (%s)</strong>', mArray.overthebox.remote_addr);
+					temp += '</a>'
+				}
 				var color = "rgb(240, 144, 144)";
 				if (mArray.overthebox.socks_service) 
 				{
@@ -108,12 +108,25 @@
 						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath
 					);
 				}
+
+				// Check
+				if (mArray.overthebox && mArray.overthebox.remote_from_lease == false)
+				{
+					temp += '<li>';
+					temp += '<a href="#" style="background-color: orange">'
+                                        temp += '<img src="/luci-static/resources/computer.png" width="140"/>';
+                                        temp +=  String.format('<br /><strong>You (%s)</strong>', mArray.overthebox.remote_addr);
+					temp += '<br /><strong style="color: red;">Your IP was not leased by OverTheBox</strong>';
+					temp += '</a>';
+					temp += '</li>';
+				}
+
 				temp += '</ul>';
+
 			}
 			temp += '</li>';
-			/*
-			temp += '</ul></li>';
-			*/
+			if (mArray.overthebox && mArray.overthebox.remote_from_lease)
+				temp += '</ul></li>';
 			// Close tree
 			temp += '</ul>';
 			temp += '</figure>';
