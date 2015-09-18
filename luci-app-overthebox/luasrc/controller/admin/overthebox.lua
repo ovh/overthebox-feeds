@@ -80,10 +80,28 @@ function interfaces_status()
 	if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
 		mArray.overthebox["socks_service"] = true
 	end
+	-- Add DHCP infos by parsing dnsmask config file
+	mArray.overthebox.dhcpd = {}
+	dnsmasq = ut.trim(sys.exec("cat /var/etc/dnsmasq.conf"))
+	for itf, range_start, range_end, mask, leasetime in dnsmasq:gmatch("range=(%w+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%w+)") do
+		mArray.overthebox.dhcpd[itf] = {}
+		mArray.overthebox.dhcpd[itf].interface = itf
+		mArray.overthebox.dhcpd[itf].range_start = range_start
+		mArray.overthebox.dhcpd[itf].range_end = range_end
+		mArray.overthebox.dhcpd[itf].netmask = mask
+		mArray.overthebox.dhcpd[itf].leasetime = leasetime
+	end
+	for itf, option, value in dnsmasq:gmatch("option=(%w+),([%w:-]+),(%d+\.%d+\.%d+\.%d+)") do
+		if option == "option:router" or option == "6" then
+			mArray.overthebox.dhcpd[itf].router = value
+		end
+		if option == "option:dns-server" or option == "" then
+			mArray.overthebox.dhcpd[itf].dns = value
+		end
+	end
 	-- Parse mptcp kernel info
 	local mptcp = {}
 	local fullmesh = ut.trim(sys.exec("cat /proc/net/mptcp_fullmesh"))
-	local hand
 	for ind, addressId, backup, ipaddr in fullmesh:gmatch("(%d+), (%d+), (%d+), (%d+\.%d+\.%d+\.%d+)") do
 		mptcp[ipaddr] = {}
 		mptcp[ipaddr].index = ind
