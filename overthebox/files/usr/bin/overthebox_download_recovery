@@ -8,17 +8,32 @@ download() {
     logger "RECOVERY: Finshed Downloading the lastest rom"
 }
 
+checksum() {
+	for i in `seq 1 3` ; do
+		MD5LOCAL=$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')
+		if [ "$MD5LOCAL" == "$MD5ONLINE"  ] ; then
+			logger "RECOVERY: Download verified successfuly"
+			exit 1
+		else
+			sleep 10
+			logger "RECOVERY: Problem getting the file, tried $i time(s)"
+		fi
+	done
+}
+
 if [ ! -f /recovery/openwrt-x86-64-combined-ext4.img.gz ]
     then
     mkdir /recovery/  > /dev/null 2>&1
     logger "RECOVERY: No local rom available, getting one for you!"
     download
+    checksum
 
 elif [ -f /recovery/openwrt-x86-64-combined-ext4.img.gz ] && [ "$MD5ONLINE" == "$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')" ]
         then
     logger "RECOVERY: You have the latest Built, No need to upgrade!"
 
-else 
+else
     logger "RECOVERY: New stable rom is available online!"
     download
+    checksum
 fi
