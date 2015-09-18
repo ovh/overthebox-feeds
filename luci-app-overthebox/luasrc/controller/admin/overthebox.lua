@@ -24,6 +24,10 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
+        local e = entry({"admin", "overthebox", "lease_overview"}, call("lease_overview"))
+        e.leaf = true
+        e.sysauth = false
+
         local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
 	e.leaf = true
         e.sysauth = false
@@ -160,6 +164,17 @@ function interfaces_status()
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(mArray)
+end
+
+function lease_overview()
+	local stat = require "luci.tools.status"
+	local rv = {
+		leases     = stat.dhcp_leases(),
+		leases6    = stat.dhcp6_leases(),
+		wifinets   = stat.wifi_networks()
+	}
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(rv)
 end
 
 function action_bandwidth_data(dev)
