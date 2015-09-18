@@ -14,10 +14,37 @@
 				temp += '<ul>'
 			}
 			*/
-			if (true) // or mArray.overthebox)
+			if (mArray.overthebox)
 			{
+				var color = "rgb(240, 144, 144)";
+				if (mArray.overthebox.socks_service) 
+				{
+					color = "rgb(144, 240, 144)";
+					if (mArray.overthebox.vtun_service)
+					{
+						color = "rgb(144, 240, 144)";
+					}
+					else
+					{
+						color = "rgb(224,224,224)";
+					}
+				}
+				else
+				{
+					color = "rgb(240, 144, 144)";
+				}
 				temp += '<li>';
-				temp += '<a href="#" style="background-color: lightgreen;"><img src="/luci-static/resources/overthebox.png" width="150" /><br />OverTheBox<br />34168981-7ede-4972-ac0f-a696573a1873</a>';
+				temp += String.format('<a href="#" style="background-color: %s;"><img src="/luci-static/resources/overthebox.png" width="150" />', color);
+				temp += String.format('<br /><strong>lan (%s)</strong>', mArray.overthebox.local_addr);
+				if (mArray.overthebox.socks_service == false)
+				{
+					temp += String.format('<br /><strong style="color: red;">Socks service is not running</strong>');
+				}
+				if (mArray.overthebox.vtun_service == false)
+                                {
+                                        temp += String.format('<br /><strong style="color: red;">VTUN service is not running</strong>');
+                                }
+				temp += '</a>'
 			}
 			if (mArray.wans)
 			{
@@ -65,8 +92,8 @@
 					var multipath = mArray.wans[i].multipath;
 					// Generate template
 					temp += String.format(
-						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/box.png" width="100" /><br /><strong>%s</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
-						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, stat, curping, multipath
+						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/box.png" width="100" /><br /><strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
+						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath
 					);
 				}
 				temp += '</ul>';

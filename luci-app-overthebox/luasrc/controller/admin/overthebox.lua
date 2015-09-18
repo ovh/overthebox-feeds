@@ -59,10 +59,27 @@ function interfaces_status()
 
         local mArray = {}
 
-	-- Check overthebox
+	-- Overthebox info
 	mArray.overthebox = {}
-
-
+	-- Check that requester is in same network
+	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
+	mArray.overthebox["remote_addr"]	= luci.http.getenv("REMOTE_ADDR") or ""
+        mArray.overthebox["remote_from_lease"]	= "false"
+        local leases=tools.dhcp_leases()
+        for _, value in pairs(leases) do
+                if value["ipaddr"] == mArray.overthebox["remote_addr"] then
+                        mArray.overthebox["remote_from_lease"] = "true"
+                end
+        end
+	-- Check overthebox service are running
+	mArray.overthebox["vtun_service"] = false
+	if string.find(sys.exec("/usr/bin/pgrep vtund"), "%d+") then
+                mArray.overthebox["vtun_service"] = true
+        end
+	mArray.overthebox["socks_service"] = false
+	if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
+		mArray.overthebox["socks_service"] = true
+	end
 	-- Parse mptcp kernel info
 	local mptcp = {}
 	local fullmesh = ut.trim(sys.exec("cat /proc/net/mptcp_fullmesh"))
@@ -91,6 +108,7 @@ function interfaces_status()
                         wansid[wanName] = #mArray.wans + 1
 			-- Add multipath info
 			local ipaddr	= uci:get("network", wanName, "ipaddr")
+			local gateway	= uci:get("network", wanName, "gateway")
 			local multipath = "default";
 			if ipaddr and mptcp[ipaddr] then
 				multipath = uci:get("network", wanName, "multipath") or "on"
@@ -111,7 +129,7 @@ function interfaces_status()
 			if wanName == "tun0" then
 				mArray.overthebox["vtund"] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping =       minping, avgping = avgping, curping = curping }
 			else
-	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
+	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
 			end
                 end
         end
@@ -174,31 +192,6 @@ function dhcp_status()
                         end
                 end
         )
-
-        local oldchecksum = uci:get("mwan3", "netconfchecksum")
-        if oldchecksum then
-                local newchecksum = (sys.exec("uci -q export network | md5sum | cut -f1 -d' '"))
-                newchecksum = string.sub(newchecksum, 1, 32)
-                oldchecksum = string.sub(oldchecksum, 1, 32)
-                result.mwan3["new_netconfchecksum"] = newchecksum
-                result.mwan3["old_netconfchecksum"] = oldchecksum
-
-                if oldchecksum == newchecksum then
-                        result.mwan3["status"] = "uptodate"
-                else
-                        result.mwan3["status"] = "outofdate"
-                end
-        end
-
-        result.user["remote_addr"] = luci.http.getenv("REMOTE_ADDR") or ""
-        result.user["isFromDhcpLease"] = "false"
-
-        local leases=tools.dhcp_leases()
-        for _, value in pairs(leases) do
-                if value["ipaddr"] == result.user["remote_addr"] then
-                        result.user["isFromDhcpLease"] = "true"
-                end
-        end
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)
