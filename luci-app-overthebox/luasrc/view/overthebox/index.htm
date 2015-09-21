@@ -1,13 +1,10 @@
 <%#
- Copyright 2008 Steven Barth <steven@midlink.org>
- Copyright 2008-2011 Jo-Philipp Wich <jow@openwrt.org>
- Licensed to the public under the Apache License 2.0.
+ Copyright 2015 DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
 -%>
-
 <%
-        local uci = require("luci.model.uci").cursor()
+	local uci = require("luci.model.uci").cursor()
 
-        local device_id		= uci:get("overthebox", "me", "device_id")
+	local device_id		= uci:get("overthebox", "me", "device_id")
 	local service_id	= uci:get("overthebox", "me", "service")
 	local has_service_confirmation = false
 	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
@@ -23,8 +20,8 @@
 	var stepbar = {
 		register:	{ status: 'todo', caption: "<%:Register%>" },
 		activate:	{ status: 'todo', caption: "<%:Activate%>" },
-		remoteDhcp:	{ status: 'todo', caption: "<%:Disable active DHCP%>" },
-		dhcp:		{ status: 'todo', caption: "<%:Setup DHCP%>" },
+		dhcp:		{ status: 'todo', caption: "<%:OverTheBox DHCP%>" },
+		remoteDhcp:	{ status: 'todo', caption: "<%:Gateways DHCP%>" },
 		securedNetwork:	{ status: 'todo', caption: "<%:Secured Network%>" },
 	}
 	function refreshStepBar()
@@ -175,6 +172,11 @@ ol.progtrckr li.progtrckr-error:before {
 if not service_id then
 	include("overthebox/register")
 elseif has_service_confirmation then
+	%>
+	<script type="text/javascript">
+		stepbar.activate.status = "warn";
+	</script>
+	<%
 	include("overthebox/activate")
 else
 	%>

@@ -68,7 +68,7 @@ function interfaces_status()
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["remote_addr"]	= luci.http.getenv("REMOTE_ADDR") or ""
-        mArray.overthebox["remote_from_lease"]	= false
+	mArray.overthebox["remote_from_lease"]	= false
         local leases=tools.dhcp_leases()
         for _, value in pairs(leases) do
                 if value["ipaddr"] == mArray.overthebox["remote_addr"] then
@@ -206,33 +206,33 @@ end
 function dhcp_status()
         local uci = luci.model.uci.cursor()
         local result = {}
-
-        result.dhcpservers = {}
-        result.mwan3 = {}
-        result.user = {}
-
+	-- Get alien dhcp list
+        result.detected_dhcp_servers = {}
         uci:foreach("dhcpdiscovery", "lease",
                 function (section)
-                        result.dhcpservers[section[".name"]] = section
+                        result.detected_dhcp_servers[section[".name"]] = section
                 end
         )
-
-        local dhcpd = require('overthebox').list_running_dhcp()
+	-- List our DHCP service
+	result.running_dhcp_service = require('overthebox').list_running_dhcp()
         uci:foreach("dhcp", "dhcp",
                 function (section)
-                        if dhcpd[section[".name"]] then
-                                result.dhcpservers[section[".name"]] = section
-                                result.dhcpservers[section[".name"]].ipaddr = uci:get("network", section[".name"], "ipaddr")
+                        if result.running_dhcp_service[section[".name"]] then
+                                result.running_dhcp_service[section[".name"]] = section
+                                result.running_dhcp_service[section[".name"]].ipaddr = uci:get("network", section[".name"], "ipaddr")
                         end
                 end
         )
-
+	-- Return results
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)
 end
 
 function action_activate(service)
 	local result = require('overthebox').confirm_service(service)
+	if result == true then
+		action_dhcp_start_server()
+	end
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
 end

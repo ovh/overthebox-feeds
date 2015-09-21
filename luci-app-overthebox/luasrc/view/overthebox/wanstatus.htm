@@ -1,3 +1,6 @@
+<%#
+ Copyright 2015 DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
+-%>
 <script type="text/javascript">//<![CDATA[
 	XHR.poll(5, '/cgi-bin/luci/admin/overthebox/interfaces_status', null,
 		function(x, mArray)
@@ -10,6 +13,8 @@
 			{
 				if (mArray.overthebox.remote_from_lease)
 				{
+					if (stepbar)
+						stepbar.securedNetwork.status = "done";
 					temp += '<li>';
 					temp += '<a href="#" style="background-color: lightgreen;">';
 					temp += '<img src="/luci-static/resources/computer.png" />';
@@ -39,6 +44,8 @@
 				{
 					for ( dhcpd in mArray.overthebox.dhcpd )
 					{
+						if (stepbar)
+							stepbar.dhcp.status = "done"
 						var dhcp = mArray.overthebox.dhcpd[dhcpd];
 						temp += String.format('<br /><strong>%s (%s)</strong>', dhcp.interface, dhcp.router)
 						temp += String.format('<br />%s - %s', dhcp.range_start, dhcp.range_end)
@@ -103,15 +110,20 @@
 					var avgping = Math.floor(mArray.wans[i].avgping);
 					var multipath = mArray.wans[i].multipath;
 					// Generate template
-					temp += String.format(
-						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/box.png" width="100" /><br /><strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
-						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath
-					);
+                                        // Generate template
+                                        temp += String.format('<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s">', mArray.wans[i].link, mArray.wans[i].color, cssc);
+                                        temp += String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" width="100" /><br />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
+                                        temp += String.format('<strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s', mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath);
+                                        temp += '</a></li>';
 				}
 
 				// Check
 				if (mArray.overthebox && mArray.overthebox.remote_from_lease == false)
 				{
+					if (stepbar)
+					{
+						stepbar.securedNetwork.status = "doing";
+					}
 					temp += '<li>';
 					temp += '<a href="#" style="background-color: orange">'
                                         temp += '<img src="/luci-static/resources/computer.png"/>';
@@ -134,6 +146,24 @@
 			status.innerHTML = temp;
 		}
 	);
+
+
+        function setColorSVG(embed_id, color)
+        {
+		var embed = document.getElementById(embed_id);
+		try {
+			svg = embed.getSVGDocument ? embed.getSVGDocument() : embed.contentDocument;
+		}
+		catch(e) {
+			svg = document.embeds[embed_id].getSVGDocument();
+                }
+		if(svg)
+		{
+			var back = svg.getElementById('backgound_modem');
+			back.setAttribute('style', 'fill: ' + color + ';fill-opacity:0.4;');
+		}
+        }
+
 //]]></script>
 
 <fieldset id="interface_field" class="cbi-section">
