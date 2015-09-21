@@ -1,6 +1,3 @@
-<%#
- Copyright 2015 DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
--%>
 <%
 	local uci = require("luci.model.uci").cursor()
 
@@ -16,39 +13,14 @@ stepbar.register.status = "warn";
 var stxhr = new XHR();
 function activate_service(service)
 {
-	// display a loading icon
-	var s = document.getElementById('img-loader');
-	if (s)
-	{
-		s.style.display = '';
-	}
-        // call backend
-	var output = document.getElementById('service_output');
 	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate")%>/' + service, null,
 		function(x)
 		{
-			if (x.responseText)
-			{
-				output.innerHTML = x.responseText
-				// on success reload page with location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
-			}
-			else
-			{
-				output.innerHTML = "no return"
-			}
-			// clear out loading icon
 			window.setTimeout(function() {
-				s.style.display = 'none';
+				location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>';
 			}, 1000);
 		}
 	);
-
-	// TODO: Add ajax requests to periodicaly test if activation is done
-	/* XHR.poll(3, '<%=build_url("admin/overthebox/bandwidth_status", curdev)%>', null,
-                                        function(x, dataarray)
-                                        {
-					}
-		) */
 }
 //]]></script>
 

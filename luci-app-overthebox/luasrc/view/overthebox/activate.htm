@@ -1,6 +1,3 @@
-<%#
- Copyright 2015 DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
--%>
 <%
 	local uci = require("luci.model.uci").cursor()
 
@@ -14,39 +11,15 @@ stepbar.activate.status = "warn";
 var stxhr = new XHR();
 function activate_service(service)
 {
-	// display a loading icon
-	var s = document.getElementById('img-loader');
-	if (s)
-	{
-		s.style.display = '';
-	}
-        // call backend
-	var output = document.getElementById('service_output');
 	stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "activate")%>/' + service, null,
 		function(x)
 		{
-			if (x.responseText)
-			{
-				output.innerHTML = x.responseText
-				// on success reload page with location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
-			}
-			else
-			{
-				output.innerHTML = "no return"
-			}
-			// clear out loading icon
+			// Force reload of page
 			window.setTimeout(function() {
-				s.style.display = 'none';
+				location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
 			}, 1000);
 		}
 	);
-
-	// TODO: Add ajax requests to periodicaly test if activation is done
-	/* XHR.poll(3, '<%=build_url("admin/overthebox/bandwidth_status", curdev)%>', null,
-                                        function(x, dataarray)
-                                        {
-					}
-		) */
 }
 //]]></script>
 
@@ -55,7 +28,6 @@ function activate_service(service)
         <table width="100%" cellspacing="10">
 		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
                 <tr><td width="33%"><%:Service name%></td><td><%=service or "?"%></td></tr>
-<!--		<tr><td width="33%"><%:State%></td><td><div id="service_output"><%=service_state or "?"%></div></td></tr> -->
         </table>
 	<div id="activate_action_button" class="cbi-page-actions">
 		<input type="button" onclick="activate_service('<%=service%>')" value="<%:Activate%>" class="cbi-button cbi-button-apply" />
