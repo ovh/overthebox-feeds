@@ -233,6 +233,9 @@ end
 
 function action_activate(service)
 	local result = require('overthebox').confirm_service(service)
+	if result == true then
+		action_dhcp_start_server()
+	end
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
 end
