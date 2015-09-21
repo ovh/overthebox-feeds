@@ -93,3 +93,11 @@ find_or_new_uci_section forwarding src=lan dest=wan > /dev/null
 find_or_new_uci_section forwarding src=lan dest=mptcp > /dev/null
 find_or_new_uci_section forwarding src=mptcp dest=lan > /dev/null
 
+RVPN=$(search_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
+if [ -z "$RVPN" ]
+then
+        echo rule vpn not found
+        RVPN=$(add_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
+fi
+update_uci_section $RVPN target=ACCEPT name=vpn enabled=1
+
