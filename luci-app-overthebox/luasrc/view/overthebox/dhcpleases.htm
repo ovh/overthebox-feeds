@@ -1,9 +1,6 @@
 <%#
- Copyright 2015 DUPONCHEEL SÃbastien <sebastien.duponcheel@ovh.net>
- Based on work of Steven Barth <steven@midlink.org> and Jo-Philipp Wich <jow@openwrt.org>
- Licensed to the public under the Apache License 2.0.
+ Copyright 2015 DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
 -%>
-
 <%
 	local has_dhcp = fs.access("/etc/config/dhcp")
 	local has_wifi = ((fs.stat("/etc/config/wireless", "size") or 0) > 0)
