@@ -22,56 +22,26 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 	{
 		// display a loading icon
 		recheckTimeout = false;
-		var s = document.getElementById('img-loader');
-		if (s)
-		{
-			s.style.display = '';
-		}
 		// call backend
-		var output = document.getElementById('dhcpserver_output');
 		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_recheck")%>', null,
 			function(x)
 			{
-				if (x.responseText)
-				{
-					output.innerHTML = x.responseText
-				}
-				else
-				{
-					output.innerHTML = "no return"
-				}
-                // clear out loading icon
-                window.setTimeout(function() {
-                    s.style.display = 'none';
-                }, 1000);
+	                        // Force reload of page
+	                        window.setTimeout(function() {
+	                                location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
+	                        }, 1000);
 			}
 	 	);
 	}
 
 	function skiptimer()
 	{
-		// display a loading icon
-		var s = document.getElementById('img-loader');
-		if (s)
-		{
-			s.style.display = '';
-		}
-		// call backend
-		var output = document.getElementById('dhcpserver_output');
 		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_skiptimer")%>', null,
 			function(x)
 			{
-				if (x.responseText)
-				{
-					output.innerHTML = x.responseText
-				}
-				else
-		                {
-					output.innerHTML = "no return"
-				}
-				// clear out loading icon
+				// Force reload of page
 				window.setTimeout(function() {
-					s.style.display = 'none';
+					location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
 				}, 1000);
 			}
 		);
@@ -80,30 +50,13 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 	var startingDhcp = false;
 	function start_dhpcserver()
 	{
-        // display a loading icon
-        startingDhcp = true;
-        var s = document.getElementById('img-loader');
-        if (s)
-        {
-            s.style.display = '';
-        }
-        // call backend
-		var output = document.getElementById('dhcpserver_output');
 		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_start_server")%>', null,
 			function(x)
 			{
-                if (x.responseText)
-                {
-                    output.innerHTML = x.responseText
-                }
-                else
-                {
-                    output.innerHTML = "no return"
-                }
-                // clear out loading icon
-                window.setTimeout(function() {
-                    s.style.display = 'none';
-                }, 1000);
+		                // clear out loading icon
+		                window.setTimeout(function() {
+			                location.href='<%=luci.dispatcher.build_url("admin/overthebox/overview")%>'
+		                }, 1000);
 			}
 	 	);
 	}
@@ -111,17 +64,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 	XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_status")%>', null,
         function(x, mArray)
         {
-            var status = document.getElementById('dhcpserver_status_text');
-
-/*
-{"detected_dhcp_servers":
-
-{"if0":{".name":"if0","opt53":"05","lastcheck":"1442506044","mask":"24","ip":"192.168.1.67","subnet":"255.255.255.0","interface":"if0",".type":"lease","dns":"91.121.161.184 188.165.197.144","domain":"lan","INTERFACE":"if0","IFACE6RD_DELEGATE":"0","router":"192.168.1.254",".anonymous":false,"timestamp":"1442506008","lease":"86400",".index":0}},
-
-"running_dhcp_service":
-
-{"lan":{".name":"lan",".anonymous":false,"ipaddr":"192.168.0.20","ignore":"0","dhcp_option":"option:router,192.168.0.20 option:dns-server,192.168.0.20",".index":3,"limit":"200","leasetime":"12h","start":"50","force":"1",".type":"dhcp","interface":"lan"}}}
-*/
+		var status = document.getElementById('dhcpserver_status_text');
 
 		if (mArray.running_dhcp_service)
 		{
@@ -143,18 +86,22 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 				if( lastlease )
 				{
 					var ipAddr = mArray.detected_dhcp_servers[intf].siaddr || mArray.detected_dhcp_servers[intf].serverid || mArray.detected_dhcp_servers[intf].router;
+					var router = mArray.detected_dhcp_servers[intf].router;
+
 					if( lastcheck )
 					{
 						if( lastlease >= lastcheck ) // The DHCP server still running
 						{
 							if (stepbar)
 								stepbar.remoteDhcp.status = "error";
-							var html = '<fieldset id="activate_button_field" class="cbi-section">';
+							var html = '<fieldset id="desactivate_dhcp_field" class="cbi-section">';
 							html += '<legend style="color: red;"><%:DHCP server still active%></legend>';
-							html += '<table width="100%" cellspacing="10">'
-							html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://'+ ipAddr + '" target="_blank">' + ipAddr + '</a></td></tr>';
-							html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
-							html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+							html += '<table width="100%" cellspacing="10">';
+	                                                html += '<tr><td width="33%"><%:IP Address%></td>';
+	                                                html += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
+	                                                html += '<tr><td width="33%"><%:Leased router%></td>';
+	                                                html += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
+							html += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net" target="_blank"><%:How to disable DHCP%></a></td></tr>';
 							html += '</table>';
 							html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
 							html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
@@ -162,7 +109,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 							html += '</fieldset>';
 							dhcp_wizard.innerHTML = html;
 						}
-					else
+						else
 						{
 							if( timestamp - lastcheck > timeout ) // The DHCP server is timedout (30 sec)
 							{
@@ -170,16 +117,18 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 								{
 									if (stepbar)
 										stepbar.remoteDhcp.status = "done";
-			                                                var html = '<fieldset id="activate_button_field" class="cbi-section">';
-			                                                html += '<legend><%:Remote DHCP is disabled%></legend>';
-			                                                html += '<table width="100%" cellspacing="10">';
-									html += '<tr><td width="33%"><%:What to do%></td><td><%:Click on the button to takeover%></td></tr>';
-			                                                html += '</table>';
-		        	                                        html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-		                	                                html += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
-		                        	                        html += '</div>';
-		                                	                html += '</fieldset>';
-									dhcp_wizard.innerHTML = html;
+									if ( mArray.running_dhcp_service.keys().length() == 0 ) {
+				                                                var html = '<fieldset id="activate_button_field" class="cbi-section">';
+				                                                html += '<legend><%:Remote DHCP is disabled%></legend>';
+				                                                html += '<table width="100%" cellspacing="10">';
+										html += '<tr><td width="33%"><%:What to do%></td><td><%:Click on the button to takeover%></td></tr>';
+				                                                html += '</table>';
+			        	                                        html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+			                	                                html += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
+			                        	                        html += '</div>';
+			                                	                html += '</fieldset>';
+										dhcp_wizard.innerHTML = html;
+									}
 								}
 							}
 							else // DHCP has not answered yet
@@ -207,9 +156,11 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 						var html = '<fieldset id="activate_button_field" class="cbi-section">';
 						html += '<legend style="color: red;"><%:Active DHCP found on your network%></legend>';
 		                                html += '<table width="100%" cellspacing="10">';
-						html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://"'+ ipAddr +'" target="_blank>' + ipAddr + '</a></td></tr>';
-						html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
-						html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+						html += '<tr><td width="33%"><%:IP Address%></td>';
+						html += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
+						html += '<tr><td width="33%"><%:Leased router%></td>';
+						html += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
+						html += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net/dosearchsite.action?queryString=overthebox+disable+dhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
 		                                html += '</table>';
 		                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
 						html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
