@@ -12,19 +12,19 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 <script type="text/javascript">//<![CDATA[
         var stxhr = new XHR();
 
-    var recheckTimeout = false;
-    function recheck_dhpcserver()
+	var recheckTimeout = false;
+	function recheck_dhpcserver()
 	{
-        // display a loading icon
-        recheckTimeout = false;
-        var s = document.getElementById('img-loader');
-        if (s)
-        {
-            s.style.display = '';
-        }
-        // call backend
-        var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_recheck")%>', null,
+		// display a loading icon
+		recheckTimeout = false;
+		var s = document.getElementById('img-loader');
+		if (s)
+		{
+			s.style.display = '';
+		}
+		// call backend
+		var output = document.getElementById('dhcpserver_output');
+		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_recheck")%>', null,
 			function(x)
 			{
 				if (x.responseText)
@@ -43,16 +43,16 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 	 	);
 	}
 
-    function skiptimer()
-    {
-        // display a loading icon
-        var s = document.getElementById('img-loader');
-        if (s)
-        {
-            s.style.display = '';
-        }
-        // call backend
-        var output = document.getElementById('dhcpserver_output');
+	function skiptimer()
+	{
+		// display a loading icon
+		var s = document.getElementById('img-loader');
+		if (s)
+		{
+			s.style.display = '';
+		}
+		// call backend
+		var output = document.getElementById('dhcpserver_output');
         stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_skiptimer")%>', null,
             function(x)
             {

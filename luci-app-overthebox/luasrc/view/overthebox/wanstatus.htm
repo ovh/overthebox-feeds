@@ -108,7 +108,7 @@
 					var multipath = mArray.wans[i].multipath;
 					// Generate template
 					temp += String.format(
-						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/box.png" width="100" /><br /><strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
+						'<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s"><img src="/luci-static/resources/modem.svg" width="100" /><br /><strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s</a></li>',
 						mArray.wans[i].link, mArray.wans[i].color, cssc, mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath
 					);
 				}
