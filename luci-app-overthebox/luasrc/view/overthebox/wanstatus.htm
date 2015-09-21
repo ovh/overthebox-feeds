@@ -41,6 +41,8 @@
 				{
 					for ( dhcpd in mArray.overthebox.dhcpd )
 					{
+						if (stepbar)
+							stepbar.dhcp.status = "done"
 						var dhcp = mArray.overthebox.dhcpd[dhcpd];
 						temp += String.format('<br /><strong>%s (%s)</strong>', dhcp.interface, dhcp.router)
 						temp += String.format('<br />%s - %s', dhcp.range_start, dhcp.range_end)
