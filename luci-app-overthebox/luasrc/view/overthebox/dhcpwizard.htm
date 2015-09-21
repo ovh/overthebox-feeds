@@ -7,10 +7,12 @@ local uci = require "luci.model.uci".cursor()
 local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 %>
 
+<!-- begin of DHCP Wizard section -->
 <% if has_dhcpdiscovery then %>
 <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+
 <script type="text/javascript">//<![CDATA[
-        var stxhr = new XHR();
+	var stxhr = new XHR();
 
 	var recheckTimeout = false;
 	function recheck_dhpcserver()
@@ -53,27 +55,27 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 		}
 		// call backend
 		var output = document.getElementById('dhcpserver_output');
-        stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_skiptimer")%>', null,
-            function(x)
-            {
-                if (x.responseText)
-                {
-                    output.innerHTML = x.responseText
-                }
-                else
-                {
-                    output.innerHTML = "no return"
-                }
-                // clear out loading icon
-                window.setTimeout(function() {
-                    s.style.display = 'none';
-                }, 1000);
-            }
-        );
-    }
+		stxhr.get('<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_skiptimer")%>', null,
+			function(x)
+			{
+				if (x.responseText)
+				{
+					output.innerHTML = x.responseText
+				}
+				else
+		                {
+					output.innerHTML = "no return"
+				}
+				// clear out loading icon
+				window.setTimeout(function() {
+					s.style.display = 'none';
+				}, 1000);
+			}
+		);
+	}
 
-    var startingDhcp = false;
-    function start_dhpcserver()
+	var startingDhcp = false;
+	function start_dhpcserver()
 	{
         // display a loading icon
         startingDhcp = true;
@@ -108,294 +110,123 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         {
             var status = document.getElementById('dhcpserver_status_text');
 
-            var template = '<span class="%s"><strong>%s</strong><br />%s<br />%s<br />%s<br />%s<img id="img-loader" style="display:none" src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" height="20" /></span>';
+/*
+{"detected_dhcp_servers":
 
-            // 1: wanon/wanoff, Main text, Info1, info2, info3, action button
-       		var temp = '';
-            // Use to manage step and infos bubble
-            var hasManagedDhcp  = false;
-            var hasUnmanagedDhcp = "warn";
-            var mwanIsUptodate  = false;
-            var securedNetwork  = false;
-            var remoteAddr      = false;
+{"if0":{".name":"if0","opt53":"05","lastcheck":"1442506044","mask":"24","ip":"192.168.1.67","subnet":"255.255.255.0","interface":"if0",".type":"lease","dns":"91.121.161.184 188.165.197.144","domain":"lan","INTERFACE":"if0","IFACE6RD_DELEGATE":"0","router":"192.168.1.254",".anonymous":false,"timestamp":"1442506008","lease":"86400",".index":0}},
 
-            if(mArray.mwan3)
-            {
-                if(mArray.mwan3["status"] == 'uptodate')
-                    mwanIsUptodate = true;
-            }
+"running_dhcp_service":
 
-            if(mArray.user)
-            {
-                if(mArray.user["isFromDhcpLease"] == "true")
-                {
-                        securedNetwork = true
-                }
-                if(mArray.user["remote_addr"])
-                {
-                        remoteAddr = mArray.user["remote_addr"];
-                }
-            }
+{"lan":{".name":"lan",".anonymous":false,"ipaddr":"192.168.0.20","ignore":"0","dhcp_option":"option:router,192.168.0.20 option:dns-server,192.168.0.20",".index":3,"limit":"200","leasetime":"12h","start":"50","force":"1",".type":"dhcp","interface":"lan"}}}
+*/
 
-            if (mArray.dhcpservers)
-            {
-		var dhcp_wizard = document.getElementById('dhcp_desactivate_wizard');
-		dhcp_wizard.innerHTML = '';
-                // Check if we already manage a dhcp service on network
-                for (var intf in mArray.dhcpservers)
-                {
-                    if(mArray.dhcpservers[intf].ipaddr && (mArray.dhcpservers[intf].ignore != "1" || mArray.dhcpservers[intf].force == "1"))
-                    {
-                        hasManagedDhcp = true;
-                        hasUnmanagedDhcp = "done";
-                        break;
-                    }
-                }
-                // DHCP Wizard
-                for (var intf in mArray.dhcpservers)
-                {
-                    var isManaged = (mArray.dhcpservers[intf].ipaddr && (mArray.dhcpservers[intf].ignore != "1" || mArray.dhcpservers[intf].force == "1"));
-                    var lastlease = mArray.dhcpservers[intf].timestamp;
-                    var lastcheck = mArray.dhcpservers[intf].lastcheck;
-                    var timestamp = Date.now() / 1000;
-                    var timeout   = 30;
-    
-                    if( isManaged ) // We run a DHCP server
-                    {
-                        var ipAddr = mArray.dhcpservers[intf].ipaddr;
+		if (mArray.running_dhcp_service)
+		{
+						
+		}
 
-                        var text1  = "<%:We run a DHCP Server%>";
-                        var text4  = "<%:Your address%> : " + remoteAddr;
-                        var style  = "wanon";
+		if (mArray.detected_dhcp_servers)
+		{
+			var dhcp_wizard = document.getElementById('dhcp_wizard');
+			dhcp_wizard.innerHTML = '';
 
-                        if(securedNetwork == false) {
-                            text1  = "<%:Please renew your IP%>";
-                            text4  = "<%:Your address%> : " + remoteAddr;
-                            style  = "wanwarn";
-                        } 
-                        temp += String.format( template, style, text1, "<%:Interface%> : " + intf.toUpperCase() + "", "<%:Address%> : " + ipAddr, text4, '<input type="button" onclick="location.href=\'<%=luci.dispatcher.build_url("admin/network/dhcp")%>\'" value="<%:Settings%>" class="cbi-button cbi-button-apply" />')
-                    }
-                    else
-                    {
-                        if( lastlease ) // A DHCP server has already been found once
-                        {
+			for (var intf in mArray.detected_dhcp_servers)
+			{
+				var lastlease = mArray.detected_dhcp_servers[intf].timestamp;
+				var lastcheck = mArray.detected_dhcp_servers[intf].lastcheck;
+				var timestamp = Date.now() / 1000;
+				var timeout   = 30;
 
-				var ipAddr = mArray.dhcpservers[intf].siaddr || mArray.dhcpservers[intf].serverid || mArray.dhcpservers[intf].router;
-				var router = mArray.dhcpservers[intf].router;
-
-				if( lastcheck ) // We press the Recheck button once
+				if( lastlease )
 				{
-					if( lastlease >= lastcheck ) // The DHCP server still running
+					var ipAddr = mArray.detected_dhcp_servers[intf].siaddr || mArray.detected_dhcp_servers[intf].serverid || mArray.detected_dhcp_servers[intf].router;
+					if( lastcheck )
 					{
-						hasUnmanagedDhcp = "error";
-
-						var html = '<fieldset id="activate_button_field" class="cbi-section">';
-						html += '<legend style="color: red;"><%:DHCP server still active%></legend>';
-						html += '<table width="100%" cellspacing="10">'
-						html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://'+ ipAddr + '" target="_blank">' + ipAddr + '</a></td></tr>';
-						html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
-						html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
-						html += '</table>';
-						html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-						html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
-						html += '</div>';
-						html += '</fieldset>';
-						dhcp_wizard.innerHTML = html;
-						// Run 
-						if(recheckTimeout == false && (lastlease - lastcheck > 15))
+						if( lastlease >= lastcheck ) // The DHCP server still running
 						{
-							window.setTimeout(function() {
-								if(recheckTimeout == true)
-									recheck_dhpcserver();
-								recheckTimeout = false;
-							}, 15000);
-							recheckTimeout = true;
+							if (stepbar)
+								stepbar.remoteDhcp.status = "error";
+							var html = '<fieldset id="activate_button_field" class="cbi-section">';
+							html += '<legend style="color: red;"><%:DHCP server still active%></legend>';
+							html += '<table width="100%" cellspacing="10">'
+							html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://'+ ipAddr + '" target="_blank">' + ipAddr + '</a></td></tr>';
+							html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
+							html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+							html += '</table>';
+							html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+							html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
+							html += '</div>';
+							html += '</fieldset>';
+							dhcp_wizard.innerHTML = html;
 						}
-					}
-					else // DHCP has not answered yet
-					{
-						if( timestamp - lastcheck > timeout ) // The DHCP server is timedout (30 sec)
+					else
 						{
-							if(hasManagedDhcp == false)
+							if( timestamp - lastcheck > timeout ) // The DHCP server is timedout (30 sec)
 							{
-								hasUnmanagedDhcp = "done";
 								if( intf != 'if0') // if we detect a dhcp server on if0 is that we already know this router
 								{
+									if (stepbar)
+										stepbar.remoteDhcp.status = "done";
 			                                                var html = '<fieldset id="activate_button_field" class="cbi-section">';
 			                                                html += '<legend><%:Remote DHCP is disabled%></legend>';
 			                                                html += '<table width="100%" cellspacing="10">';
 									html += '<tr><td width="33%"><%:What to do%></td><td><%:Click on the button to takeover%></td></tr>';
 			                                                html += '</table>';
-			                                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-			                                                html += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
-			                                                html += '</div>';
-			                                                html += '</fieldset>';
+		        	                                        html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+		                	                                html += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
+		                        	                        html += '</div>';
+		                                	                html += '</fieldset>';
 									dhcp_wizard.innerHTML = html;
-
-			                                                if(timestamp - lastcheck > (2 * timeout))
-			                                                {
-			                                                    // autostart dhcpserver if we reach 2 times the timeout
-			                                                    if(startingDhcp == false)
-			                                                        start_dhpcserver();
-			                                                }
 								}
 							}
+							else // DHCP has not answered yet
+							{
+								if (stepbar)
+									stepbar.remoteDhcp.status = "doing";
+								var html = '<fieldset id="activate_button_field" class="cbi-section">';
+								html += '<legend><%:Checking for active DHCP...%></legend>';
+								html += '<table width="100%" cellspacing="10">';
+								html += '<tr><td><%:Please wait%> ' + Math.round(timeout - (timestamp - lastcheck)) + ' <%:seconds%></td></tr>';
+		                                                html += '</table>';
+		                                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+		                                                html += '<input type="button" onclick="skiptimer()" value="<%:Skip%>" class="cbi-button cbi-button-apply" />';
+		                                                html += '</div>';
+		                                                html += '</fieldset>';
+								dhcp_wizard.innerHTML = html;
+							}
 						}
-						else // DHCP has not answered yet
-						{
-							hasUnmanagedDhcp = "doing";
 
-	                                                var html = '<fieldset id="activate_button_field" class="cbi-section">';
-	                                                html += '<legend><%:Checking for active DHCP...%></legend>';
-	                                                html += '<table width="100%" cellspacing="10">';
-							html += '<tr><td><%:Please wait%> ' + Math.round(timeout - (timestamp - lastcheck)) + ' <%:seconds%></td></tr>';
-	                                                html += '</table>';
-	                                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-	                                                html += '<input type="button" onclick="skiptimer()" value="<%:Skip%>" class="cbi-button cbi-button-apply" />';
-	                                                html += '</div>';
-	                                                html += '</fieldset>';
-							dhcp_wizard.innerHTML = html;
-						}
+					}
+					else // A DHCP has been found, and we do not press the buton yet
+					{
+						if (stepbar)
+							 stepbar.remoteDhcp.status = "warn";
+						var html = '<fieldset id="activate_button_field" class="cbi-section">';
+						html += '<legend style="color: red;"><%:Active DHCP found on your network%></legend>';
+		                                html += '<table width="100%" cellspacing="10">';
+						html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://"'+ ipAddr +'" target="_blank>' + ipAddr + '</a></td></tr>';
+						html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
+						html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+		                                html += '</table>';
+		                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+						html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
+		                                html += '</div>';
+		                                html += '</fieldset>';
+						dhcp_wizard.innerHTML = html;
 					}
 				}
-				else // A DHCP has been found, and we do not press the buton yet
-				{
-					if( hasManagedDhcp )
-					{
-						hasUnmanagedDhcp = "error";
-					}
-					else
-					{
-						hasUnmanagedDhcp = "warn";
-					}
-					var html = '<fieldset id="activate_button_field" class="cbi-section">';
-					html += '<legend style="color: red;"><%:Active DHCP found on your network%></legend>';
-	                                html += '<table width="100%" cellspacing="10">';
-					html += '<tr><td width="33%"><%:IP Address%></td><td><a href="http://"'+ ipAddr +'" target="_blank>' + ipAddr + '</a></td></tr>';
-					html += '<tr><td width="33%"><%:Leased router%></td><td>' + router + '</td></tr>';
-					html += '<tr><td width="33%"><%:Help%></td><td><a href="http://guides.ovh.net/overthebox/DesactivateDhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
-	                                html += '</table>';
-	                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-					html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
-	                                html += '</div>';
-	                                html += '</fieldset>';
-					dhcp_wizard.innerHTML = html;
-				}
                         }
-                        else // No DHCP Server has been found yet
-                        {
-                            if( lastcheck && hasManagedDhcp == false ) // @Bug : we press the Recheck buton once but we do not have the last check timestamp
-                            {
-                                hasUnmanagedDhcp = "done";
-                                temp += String.format( template, "wanon", "<%:Remote DHCP is disabled%>", "", "<%:Click on the button to takeover%>", "", '<input type="button" onclick="start_dhpcserver()"       value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />' );
-                            }
-                            else
-                            {
-                                if(hasManagedDhcp == false) 
-                                {
-                                    hasUnmanagedDhcp = "warn";
-                                    temp += String.format( template, "wanon", "<%:Create a new DHCP server%>", "", "", "", '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />' );
-                                }
-                            }
-                        }
-                    }
-                }
-                if(temp == '' && (hasManagedDhcp == false))
-                {
-                    hasUnmanagedDhcp = "warn";
-                    temp += String.format( template, "wanon", "<%:No DHCP server found%>", "", "You can create a new dhcp", "", '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />' );
-                }
-            }
-            // Default behaviour is to propose to create a DHCP Server
-            if(temp == '' && (hasManagedDhcp == false))
-            {
-                hasUnmanagedDhcp = "warn";
-                temp += String.format( template, "wanon", "<%:Create a new DHCP server%>", "", "You can create a new dhcp", "", '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />' );
-            }
-            status.innerHTML = temp;
-            updateStepBar(hasUnmanagedDhcp, hasManagedDhcp, mwanIsUptodate, securedNetwork);
+			if (stepbar && stepbar.remoteDhcp.status == 'todo') // No Alien DHCP Server found
+				stepbar.remoteDhcp.status = "done"
+		}
         }
-    );
+	);
 
-	function updateStepBar(disableRemoteDhcp, startDhcp, mwanConfig, securedNet)
-	{
-		if(securedNet)
-		{
-			if(startDhcp)
-			{
-				stepbar.securedNetwork.status = "done";
-			}
-			else
-			{
-				stepbar.securedNetwork.status = "error";
-			}
-		}
-		else
-		{
-			if(startDhcp)
-			{
-				stepbar.securedNetwork.status = "doing";
-			}
-			else
-			{
-				stepbar.securedNetwork.status = "todo";
-			}
-		}
-		stepbar.activate.status = "done"
-		stepbar.remoteDhcp.status = disableRemoteDhcp
-		stepbar.dhcp.status = startDhcp ? "done" : "todo"
-		// Show mwan button if config is not set correctly
-		var mwanButtonField = document.getElementById('mwan_button_field');
-		if(mwanButtonField)
-		{
-			if(mwanConfig)
-			{
-				mwanButtonField.style.display = 'none';
-			}
-			else
-			{
-				mwanButtonField.style.display = '';
-			}
-		}
-	}
 //]]></script>
-
-<style type="text/css">
-.wanon {
-    background-color: rgb(144, 240, 144);
-}
-.wanoff {
-    background-color: rgb(240, 144, 144);
-}
-.wanwarn {
-    background-color: orange;
-}
-.wanon, .wanoff, .wanwarn {
-    border-radius: 60px;
-    box-shadow: 0px 2px 5px -3px;
-    float: left;
-    margin: 8px 3px 0px 3px;
-    min-height: 30px;
-    min-width: 235px;
-    padding: 5px 10px 8px 10px;
-    text-align: center;
-}
-
-</style>
 
 <fieldset class="cbi-section">
 <!--        <legend><%:Scanning for DHCP servers on your network%></legend> -->
-	<div id="dhcp_desactivate_wizard"></div>
-        <div id="dhcpserver_status_text">Scanning...</div>
-	
-	<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck DHCP Server%>" class="cbi-button cbi-button-apply" style="display:none" />
-	<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP servers on Interfaces%>" class="cbi-button cbi-button-apply" style="display:none" />
-	<input type="button" onclick="confmwan_dhpcserver()" value="<%:Generate Config for Mwan3%>" class="cbi-button cbi-button-apply" style="display:none" />
+	<div id="dhcp_wizard"></div>
 </fieldset>
-
-        <fieldset class="cbi-section" style="display:none">
-                <legend><%:Results%></legend>
-                <div id="dhcpserver_output"></div>
-        </fieldset>
-
+<!-- end of DHCP Wizard section -->
 <% end %>
