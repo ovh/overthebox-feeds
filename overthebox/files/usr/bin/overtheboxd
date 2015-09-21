@@ -96,6 +96,7 @@ while run do
 			if actionreturn then
 				if msg and msg.service then
 					overthebox.ask_service_confirmation(msg.service)
+					msg = "ok"
 				else
 					actionreturn = false
 					msg = "can not retreive service"
