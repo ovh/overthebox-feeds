@@ -91,6 +91,7 @@ while run do
 			overthebox.backup_last_action(ret.id)
 			overthebox.reboot()
 			run = false
+			msg = "ok"
 		elseif ret.action == "askServiceConfirmation" then
 			actionreturn, msg = overthebox.get_service()
 			if actionreturn then
@@ -104,6 +105,7 @@ while run do
 			end
                 elseif ret.action == "" then
                         delay = ret.arguments.delay or 10
+			msg = ""
 		end
 		if actionreturn ~= nil then
 			if actionreturn == true then
