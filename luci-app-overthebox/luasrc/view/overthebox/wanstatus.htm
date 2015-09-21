@@ -10,6 +10,8 @@
 			{
 				if (mArray.overthebox.remote_from_lease)
 				{
+					if (stepbar)
+						stepbar.securedNetwork.status = "done";
 					temp += '<li>';
 					temp += '<a href="#" style="background-color: lightgreen;">';
 					temp += '<img src="/luci-static/resources/computer.png" />';
@@ -112,6 +114,8 @@
 				// Check
 				if (mArray.overthebox && mArray.overthebox.remote_from_lease == false)
 				{
+					if (stepbar)
+						stepbar.securedNetwork.status = "doing";
 					temp += '<li>';
 					temp += '<a href="#" style="background-color: orange">'
                                         temp += '<img src="/luci-static/resources/computer.png"/>';
