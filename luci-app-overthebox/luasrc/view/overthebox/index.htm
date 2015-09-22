@@ -32,10 +32,38 @@
 			var nstep  = Object.keys(stepbar).length;
 			var html = '<ol class="progtrckr" data-progtrckr-steps="'+ nstep +'">'
 			for (stepname in stepbar) {
-				html += String.format('<li class="progtrckr-%s">%s</li>', stepbar[stepname].status, stepbar[stepname].caption)
+				html += String.format('' +
+						'<li class="progtrckr-%s">' +
+						'<div class="progtrckr-link-left"></div>' +
+						'<div class="progtrckr-link-right"></div>' +
+						'<a href="#" data-toggle="popover">' +
+						'<div class="progtrckr-status-node %s"></div>' +
+						'<div class="status" style="display: none">%s</div>' +
+						'<div class="caption" style="display: none">%s</div>' +
+						'</a>' +
+						'</li></a>',
+						stepbar[stepname].status, stepbar[stepname].status,
+						stepbar[stepname].status, stepbar[stepname].caption
+				)
 			}
 			html += '</ol>';
 			status.innerHTML = html;
+
+			/* Recreate popup over node and open them */
+			$('[data-toggle="popover"]').popover({
+				placement : 'top',
+				html: true,
+				trigger: 'manual',
+				content: function() {
+					var status = $(this).find("div.status").html();
+					var caption = $(this).find("div.caption").html();
+					var content = $('#overthebox_popover_content_' + status);
+					var popoverContentText = content.find('span.popover_text').html(caption);
+					return content.html();
+				}
+			}).click(function() {
+				$(this).popover('toggle');
+			}).click();
 		}
 	}
 	window.setInterval("refreshStepBar()", 1000);
@@ -48,15 +76,16 @@
 		if(str == "ovh2")
 			return "LightGreen";
 	        if(str == "if1")
-	            return "PaleGreen";
+			//return "PaleGreen";
+			return "#ADDEFF";
 	        if(str == "if2")
-	            return "PowderBlue";
-	        if(str == "if3")
-	            return "Salmon";
-	        if(str == "if4")
-	            return "SeaGreen";
-	        if(str == "if5")
-	            return "PaleTurquoise";
+			return "PowderBlue";
+		if(str == "if3")
+			return "Salmon";
+		if(str == "if4")
+			return "SeaGreen";
+		if(str == "if5")
+			return "PaleTurquoise";
 	        // Generate a color folowing the name
 	        Math.seedrandom(str);
 	        var rand = Math.random() * Math.pow(255,3);
@@ -65,109 +94,36 @@
 	        return colour;
 	}
 //]]></script>
-<style type="text/css">
-// Progess bar CSS
-ol.progtrckr {
-    margin: 0;
-    padding: 0;
-    list-style-type none;
-}
 
-ol.progtrckr li {
-    display: inline-block;
-    text-align: center;
-    line-height: 3em;
-}
-
-ol.progtrckr[data-progtrckr-steps="2"] li { width: 49%; }
-ol.progtrckr[data-progtrckr-steps="3"] li { width: 33%; }
-ol.progtrckr[data-progtrckr-steps="4"] li { width: 24%; }
-ol.progtrckr[data-progtrckr-steps="5"] li { width: 19%; }
-ol.progtrckr[data-progtrckr-steps="6"] li { width: 16%; }
-ol.progtrckr[data-progtrckr-steps="7"] li { width: 14%; }
-ol.progtrckr[data-progtrckr-steps="8"] li { width: 12%; }
-ol.progtrckr[data-progtrckr-steps="9"] li { width: 11%; }
-
-ol.progtrckr li.progtrckr-error {
-    color: black;
-    border-bottom: 4px solid red;
-}
-ol.progtrckr li.progtrckr-done {
-    color: black;
-    border-bottom: 4px solid yellowgreen;
-}
-ol.progtrckr li.progtrckr-doing {
-    color: black;
-    border-bottom: 4px solid orange;
-}
-ol.progtrckr li.progtrckr-warn {
-    color: black;
-    border-bottom: 4px solid orangered;
-}
-ol.progtrckr li.progtrckr-todo {
-    color: silver;
-    border-bottom: 4px solid silver;
-}
-
-ol.progtrckr li:after {
-    content: "\00a0\00a0";
-}
-ol.progtrckr li:before {
-    position: relative;
-    bottom: -2.5em;
-    float: left;
-    left: 50%;
-    line-height: 1em;
-}
-ol.progtrckr li.progtrckr-done:before {
-    content: "\2713";
-    color: white;
-    background-color: yellowgreen;
-    height: 1.2em;
-    width: 1.2em;
-    line-height: 1.2em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-doing:before {
-    content: "\27F2";
-    color: orange;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-warn:before {
-    content: "\26A0";
-    color: orangered;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-ol.progtrckr li.progtrckr-todo:before {
-    content: "\039F";
-    color: silver;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-}
-ol.progtrckr li.progtrckr-error:before {
-    content: "\2716";
-    color: red;
-    background-color: white;
-    font-size: 1.5em;
-    bottom: -1.6em;
-    border: none;
-    border-radius: 1.2em;
-}
-</style>
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/overthebox_index.css">
 
 <!-- Display the general status bar -->
-<h2><a id="content" name="content"><%:OverTheBox overview%></a></h2>
+<h1><%:OverTheBox overview%></h1>
+<h2><%:Activation status%></h2>
 <div id="overthebox_status_bar"></div>
+
+<div id="overthebox_popover_content_error" class="overthebox_popover_content" style="display: none">
+        <img src="<%=resource%>/ovh/images/statusError.png" alt="error">
+        <span class="popover_text"></span>
+</div>
+<div id="overthebox_popover_content_done" class="overthebox_popover_content" style="display: none">
+        <img src="<%=resource%>/ovh/images/statusOK.png" alt="done">
+        <span class="popover_text"></span>
+</div>
+<div id="overthebox_popover_content_warn" class="overthebox_popover_content" style="display: none">
+        <img src="<%=resource%>/ovh/images/statusWarning.png" alt="warning">
+        <span class="popover_text"></span>
+</div>
+<div id="overthebox_popover_content_doing" class="overthebox_popover_content" style="display: none">
+        <img src="<%=resource%>/ovh/images/doingBlue.png" alt="doing">
+        <span class="popover_text"></span>
+</div>
+<div id="overthebox_popover_content_todo" class="overthebox_popover_content" style="display: none">
+        <img src="<%=resource%>/ovh/images/doingBlack.png" alt="todo">
+        <span class="popover_text"></span>
+</div>
+
 <%
 if not service_id then
 	include("overthebox/register")

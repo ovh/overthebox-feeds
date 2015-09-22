@@ -94,19 +94,26 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 						{
 							if (stepbar)
 								stepbar.remoteDhcp.status = "error";
+
 							var html = '<fieldset id="desactivate_dhcp_field" class="cbi-section">';
-							html += '<legend style="color: red;"><%:DHCP server still active%></legend>';
-							html += '<table width="100%" cellspacing="10">';
-	                                                html += '<tr><td width="33%"><%:IP Address%></td>';
-	                                                html += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
-	                                                html += '<tr><td width="33%"><%:Leased router%></td>';
-	                                                html += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
-							html += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net" target="_blank"><%:How to disable DHCP%></a></td></tr>';
-							html += '</table>';
-							html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-							html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
-							html += '</div>';
+
+							content = "";
+							//content += '<legend style="color: red;"><%:DHCP server still active%></legend>';
+							content += '<table width="100%" cellspacing="10">';
+	                                                content += '<tr><td width="33%"><%:IP Address%></td>';
+	                                                content += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
+	                                                content += '<tr><td width="33%"><%:Leased router%></td>';
+	                                                content += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
+							content += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+							content += '</table>';
+							content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+							content += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
+							content += '</div>';
+
+							var section = getDhcpSection(DHCPSectionENUM.STILL_ACTIVE);
+							html += getDHCPSectionTemplate(section.icon, section.title, content);
 							html += '</fieldset>';
+
 							dhcp_wizard.innerHTML = html;
 						}
 						else
@@ -117,16 +124,24 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 								{
 									if (stepbar)
 										stepbar.remoteDhcp.status = "done";
+
 									if ( mArray.running_dhcp_service.keys().length() == 0 ) {
-				                                                var html = '<fieldset id="activate_button_field" class="cbi-section">';
-				                                                html += '<legend><%:Remote DHCP is disabled%></legend>';
-				                                                html += '<table width="100%" cellspacing="10">';
-										html += '<tr><td width="33%"><%:What to do%></td><td><%:Click on the button to takeover%></td></tr>';
-				                                                html += '</table>';
-			        	                                        html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-			                	                                html += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
-			                        	                        html += '</div>';
-			                                	                html += '</fieldset>';
+
+										var html = '<fieldset id="activate_button_field" class="cbi-section">';
+
+										content = "";
+				                                                //content += '<legend><%:Remote DHCP is disabled%></legend>';
+				                                                content += '<table width="100%" cellspacing="10">';
+										content += '<tr><td width="33%"><%:What to do%></td><td><%:Click on the button to takeover%></td></tr>';
+				                                                content += '</table>';
+			        	                                        content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+			                	                                content += '<input type="button" onclick="start_dhpcserver()" value="<%:Start DHCP server%>" class="cbi-button cbi-button-apply" />';
+										content += '</div>';
+
+										var section = getDhcpSection(DHCPSectionENUM.IS_DISABLED);
+										html += getDHCPSectionTemplate(section.icon, section.title, content);
+										html += '</fieldset>';
+
 										dhcp_wizard.innerHTML = html;
 									}
 								}
@@ -135,15 +150,22 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 							{
 								if (stepbar)
 									stepbar.remoteDhcp.status = "doing";
+
 								var html = '<fieldset id="activate_button_field" class="cbi-section">';
-								html += '<legend><%:Checking for active DHCP...%></legend>';
-								html += '<table width="100%" cellspacing="10">';
-								html += '<tr><td><%:Please wait%> ' + Math.round(timeout - (timestamp - lastcheck)) + ' <%:seconds%></td></tr>';
-		                                                html += '</table>';
-		                                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-		                                                html += '<input type="button" onclick="skiptimer()" value="<%:Skip%>" class="cbi-button cbi-button-apply" />';
-		                                                html += '</div>';
-		                                                html += '</fieldset>';
+
+								var content = "";
+								//content += '<legend><%:Checking for active DHCP...%></legend>';
+								content += '<table width="100%" cellspacing="10">';
+								content += '<tr><td><%:Please wait%> ' + Math.round(timeout - (timestamp - lastcheck)) + ' <%:seconds%></td></tr>';
+		                                                content += '</table>';
+		                                                content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+		                                                content += '<input type="button" onclick="skiptimer()" value="<%:Skip%>" class="cbi-button cbi-button-apply" />';
+								content += '</div>';
+
+								var section = getDhcpSection(DHCPSectionENUM.CHECKING);
+								html += getDHCPSectionTemplate(section.icon, section.title, content);
+								html += '</fieldset>';
+
 								dhcp_wizard.innerHTML = html;
 							}
 						}
@@ -152,20 +174,27 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 					else // A DHCP has been found, and we do not press the buton yet
 					{
 						if (stepbar)
-							 stepbar.remoteDhcp.status = "warn";
+							stepbar.remoteDhcp.status = "warn";
+
 						var html = '<fieldset id="activate_button_field" class="cbi-section">';
-						html += '<legend style="color: red;"><%:Active DHCP found on your network%></legend>';
-		                                html += '<table width="100%" cellspacing="10">';
-						html += '<tr><td width="33%"><%:IP Address%></td>';
-						html += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
-						html += '<tr><td width="33%"><%:Leased router%></td>';
-						html += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
-						html += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net/dosearchsite.action?queryString=overthebox+disable+dhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
-		                                html += '</table>';
-		                                html += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
-						html += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
-		                                html += '</div>';
-		                                html += '</fieldset>';
+
+						content = "";
+						content += '<legend style="color: red;"><%:Active DHCP found on your network%></legend>';
+		                                content += '<table width="100%" cellspacing="10">';
+						content += '<tr><td width="33%"><%:IP Address%></td>';
+						content += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
+						content += '<tr><td width="33%"><%:Leased router%></td>';
+						content += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
+						content += '<tr><td width="33%"><%:Help%></td><td><a href="http://docs.ovh.net/dosearchsite.action?queryString=overthebox+disable+dhcp" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+		                                content += '</table>';
+		                                content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
+						content += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
+						content += '</div>';
+
+						var section = getDhcpSection(DHCPSectionENUM.FOUND);
+						html += getDHCPSectionTemplate(section.icon, section.title, content);
+						html += '</fieldset>';
+
 						dhcp_wizard.innerHTML = html;
 					}
 				}
