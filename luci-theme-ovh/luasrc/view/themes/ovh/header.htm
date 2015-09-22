@@ -101,7 +101,22 @@
   <link rel="stylesheet" href="<%=media%>/cascade.css">
   <link rel="stylesheet" media="only screen and (max-device-width: 854px)" href="<%=media%>/mobile.css" type="text/css" />
   <link rel="shortcut icon" href="<%=media%>/favicon.ico">
-  <% if node and node.css then %><link rel="stylesheet" href="<%=resource%>/<%=node.css%>">
+  <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+  <script type="text/javascript">
+	  $(document).ready(function(){
+		  $('[data-toggle="popover"]').popover();
+	  });
+
+/* 	 $(document).ready(function(){
+ 		 $('[data-toggle="popover"]').popover({
+ 			 placement : 'top'
+ 		 });
+ 	 });*/
+  </script>
+
+	 <% if node and node.css then %><link rel="stylesheet" href="<%=resource%>/<%=node.css%>">
   <% end -%>
   <% if css then %><style title="text/css">
   <%-= css %>
@@ -114,7 +129,7 @@
   <header>
    <div class="fill">
     <div class="container">
-     <a class="brand" href="#"><%=boardinfo.hostname or "?"%></a>
+     <a class="brand" href="http://www.ovh.com" alt="OVH"><img src="<%=resource%>/ovh/images/ovh-logo.png" alt="OVH" /></a>
      <ul class="nav">
 	 <%-
 		local function submenu(prefix, node)
