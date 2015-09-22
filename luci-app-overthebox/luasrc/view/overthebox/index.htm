@@ -15,6 +15,13 @@
 <%+header%>
 
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
+<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('[data-toggle="popover"]').popover();
+	});
+</script>
+
 <script type="text/javascript">//<![CDATA[
 	/* Over_The_Box Step bar */
 	var stepbar = {
