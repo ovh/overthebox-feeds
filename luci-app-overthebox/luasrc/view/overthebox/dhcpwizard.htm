@@ -13,6 +13,7 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 <!-- begin of DHCP Wizard section -->
 <% if has_dhcpdiscovery then %>
 <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/dhcpwizard.css">
 
 <script type="text/javascript">//<![CDATA[
 	var stxhr = new XHR();
