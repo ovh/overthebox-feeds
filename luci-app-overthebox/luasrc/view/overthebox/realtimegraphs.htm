@@ -108,7 +108,7 @@
 						linedn.setAttribute('y1', 0);
 						linedn.setAttribute('x2', i);
 						linedn.setAttribute('y2', '100%');
-						linedn.setAttribute('style', 'stroke:black;stroke-width:0.1');
+						linedn.setAttribute('style', 'stroke:black;stroke-width:0.3');
 
 					var textdn = Gdn.createElementNS('http://www.w3.org/2000/svg', 'text');
 						textdn.setAttribute('x', i + 5);
@@ -124,7 +124,7 @@
                                                 lineup.setAttribute('y1', 0);
                                                 lineup.setAttribute('x2', i);
                                                 lineup.setAttribute('y2', '100%');
-                                                lineup.setAttribute('style', 'stroke:black;stroke-width:0.1');
+                                                lineup.setAttribute('style', 'stroke:black;stroke-width:0.3');
 
                                         var textup = Gup.createElementNS('http://www.w3.org/2000/svg', 'text');
                                                 textup.setAttribute('x', i + 5);
@@ -167,7 +167,7 @@
 								// Create a new polygon to draw the bandwith
 								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
-								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.4;stroke:black;stroke-width:0.1');
+								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:1;stroke:#33ACFF;stroke-width:1');
 								Gdn.getElementById('rx').parentNode.appendChild(dnline);
 
 								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
@@ -182,7 +182,7 @@
 							{
                                                                 var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
                                                                 upline.setAttributeNS(null, 'id', 'tx_' + itf);
-								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.4;stroke:black;stroke-width:0.1');
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:1;stroke:#33ACFF;stroke-width:1');
 								Gup.getElementById('tx').parentNode.appendChild(upline);
 
                                                                 upPolygons[itf] = Gup.getElementById('tx_' + itf);
@@ -195,9 +195,8 @@
 							}
 						}
 
-
 						/* Applying smoothing algorythm */
-						function simple_moving_averager(period) {
+						function simple_moving_averager_up(period) {
 						    var nums = [];
 						    return function(num) {
 						        nums.push(num);
@@ -213,8 +212,24 @@
 							    }
 						}
 
-						var upsma = simple_moving_averager(5);
-						var dnsma = simple_moving_averager(5);
+						function simple_moving_averager_dn(period) {
+						    var nums = [];
+						    return function(num) {
+						        nums.push(num);
+						        if (nums.length > period)
+						            nums.splice(0,1);  // remove the first element of the array
+						        var sum = 0;
+						        for (var i in nums)
+						            sum += nums[i];
+						        var n = period;
+						        if (nums.length < period)
+								n = nums.length;
+						        return(sum/n);
+							    }
+						}
+
+						var upsma = simple_moving_averager_up(5);
+						var dnsma = simple_moving_averager_dn(5);
 						for (var itf in data)
 						{
 							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
@@ -388,11 +403,11 @@
 			</tr>
 			<tr>
 				<td style="border-style: none;">
-					<embed id="dnsvg" style="width:500px; height:300px; border:1px solid #000000; background-color:#FFFFFF" src="<%=resource%>/bandwidth.svg" />
+					<embed id="dnsvg" class="svg-graph" style="width:500px; height:300px;" src="<%=resource%>/bandwidth.svg" />
 					<div style="text-align:right"><small id="dnscale">-</small></div>
 				</td>
 				<td style="border-style: none;">
-					<embed id="upsvg" style="width:500px; height:300px; border:1px solid #000000; background-color:#FFFFFF" src="<%=resource%>/bandwidth.svg" />
+					<embed id="upsvg" class="svg-graph" style="width:500px; height:300px;" src="<%=resource%>/bandwidth.svg" />
 					<div style="text-align:right"><small id="upscale">-</small></div>
 				</td>
 			<tr>
