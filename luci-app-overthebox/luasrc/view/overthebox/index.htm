@@ -77,23 +77,31 @@
 	window.setInterval("refreshStepBar()", 1000);
 
 	function stringToColour(str) {
+
 		if(str == "free1")
-			return "FireBrick";
+			return "BlueViolet";
 		if(str == "ovh1")
 			return "DeepSkyBlue";
 		if(str == "ovh2")
 			return "LightGreen";
+
 	        if(str == "if1")
-			//return "PaleGreen";
-			return "#ADDEFF";
-	        if(str == "if2")
 			return "PowderBlue";
+	        if(str == "if2")
+			return "PaleGreen";
 		if(str == "if3")
-			return "Salmon";
+			return "BlueViolet";
 		if(str == "if4")
 			return "SeaGreen";
 		if(str == "if5")
+			return "SteelBlue";
+		if(str == "if6")
+			return "SlateBlue";
+		if(str == "if7")
 			return "PaleTurquoise";
+		if(str == "if8")
+			return "YellowGreen";
+
 	        // Generate a color folowing the name
 	        Math.seedrandom(str);
 	        var rand = Math.random() * Math.pow(255,3);
