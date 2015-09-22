@@ -101,3 +101,5 @@ then
 fi
 update_uci_section $RVPN target=ACCEPT name=vpn enabled=1
 
+uci commit firewall
+
