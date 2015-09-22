@@ -138,20 +138,20 @@ function interfaces_status()
 			else
 				multipath = "off"
 			end
-			-- Add ping info
-			data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
-			local minping = "NaN"
-			local avgping = "NaN"
-			local curping = "NaN"
-			if data and data[wanName] then
-				minping = data[wanName].minping
-				avgping = data[wanName].avgping
-				curping = data[wanName].curping
-			end
 			-- Return info
 			if wanName == "tun0" then
-				mArray.overthebox["vtund"] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState, minping =       minping, avgping = avgping, curping = curping }
+				mArray.overthebox["vtund"] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
 			else
+				-- Add ping info
+				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
+				local minping = "NaN"
+				local avgping = "NaN"
+				local curping = "NaN"
+				if data and data[wanName] then
+					minping = data[wanName].minping
+					avgping = data[wanName].avgping
+					curping = data[wanName].curping
+				end
 	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
 			end
                 end
