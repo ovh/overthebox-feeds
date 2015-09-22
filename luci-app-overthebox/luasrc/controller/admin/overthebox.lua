@@ -246,7 +246,7 @@ function action_dhcp_recheck()
 	local uci = luci.model.uci.cursor()
 	local timestamp = uci:get("dhcpdiscovery", "if0", "timestamp")
 	local lastcheck = uci:get("dhcpdiscovery", "if0", "lastcheck")
-	if tonumber(timestamp) > tonumber(lastcheck) then
+	if timestamp and lastcheck and (tonumber(timestamp) > tonumber(lastcheck)) then
 		sys.exec("uci set dhcpdiscovery.if0.timestamp=" .. lastcheck)
 	end
 
