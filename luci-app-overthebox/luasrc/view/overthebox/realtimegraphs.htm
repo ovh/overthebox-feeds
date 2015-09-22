@@ -167,7 +167,7 @@
 								// Create a new polygon to draw the bandwith
 								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
-								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:1;stroke:#33ACFF;stroke-width:1');
+								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.6;');
 								Gdn.getElementById('rx').parentNode.appendChild(dnline);
 
 								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
@@ -182,7 +182,7 @@
 							{
                                                                 var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
                                                                 upline.setAttributeNS(null, 'id', 'tx_' + itf);
-								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:1;stroke:#33ACFF;stroke-width:1');
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.6;');
 								Gup.getElementById('tx').parentNode.appendChild(upline);
 
                                                                 upPolygons[itf] = Gup.getElementById('tx_' + itf);
