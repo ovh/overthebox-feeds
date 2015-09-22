@@ -111,7 +111,7 @@
 					var multipath = mArray.wans[i].multipath;
 					// Generate template
                                         // Generate template
-                                        temp += String.format('<li><a href="%q" style="border-style: solid; border-color: %s; background-color: %s">', mArray.wans[i].link, mArray.wans[i].color, cssc);
+                                        temp += String.format('<li><a href="%q" style="background-color: %s">', cssc);
                                         temp += String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" width="100" /><br />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
                                         temp += String.format('<strong>%s (%s)</strong><br />%s<br />ping: %s ms<br />Multipath: %s', mArray.wans[i].name, mArray.wans[i].gateway, stat, curping, multipath);
                                         temp += '</a></li>';
