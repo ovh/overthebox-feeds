@@ -1815,7 +1815,9 @@ form.inline {
   display: inline;
 }
 header .pull-right {
+  position: absolute;
   padding-top: 8px;
+  right: 210px;
 }
 #modemenu li:last-child span.divider {
   display: none;
