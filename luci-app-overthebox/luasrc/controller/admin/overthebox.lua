@@ -163,21 +163,17 @@ function interfaces_status()
 				local minping = "NaN"
 				local avgping = "NaN"
 				local curping = "NaN"
+				local wanip   = "0.0.0.0"
 				if data and data[wanName] then
 					minping = data[wanName].minping
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
+					wanip   = data[wanName].wanaddr or "0.0.0.0"
 				end
-	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
+	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip }
 			end
                 end
         end
-
-        -- overview status log
---        local mwanLog = ut.trim(sys.exec("logread | grep track | tail -n 50 | sed 'x;1!H;$!d;x'"))
---        if mwanLog ~= "" then
---                mArray.mwanlog = { mwanLog }
---        end
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(mArray)
