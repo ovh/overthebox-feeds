@@ -58,6 +58,8 @@
 	var label_scale;
 
 	var def;
+	var dntopline;
+	var uptopline;
 	var dnPolygons 	= {};
 	var dndata	= {};
         var upPolygons 	= {};
@@ -384,6 +386,49 @@
                                                         labelup_25.firstChild.data = bandwidth_label(1.1 * 0.25 * data_max_upl);
                                                         labelup_50.firstChild.data = bandwidth_label(1.1 * 0.50 * data_max_upl);
                                                         labelup_75.firstChild.data = bandwidth_label(1.1 * 0.75 * data_max_upl);
+						}
+						/* now draw top line */
+						var keys = Object.keys(uplineDnl);
+						if (keys.length)
+						{
+							var itf = keys[keys.length - 1];
+							if (typeof dntopline != "object")
+							{
+                                                                dntopline = Gdn.getElementById('rx');
+								dntopline.setAttributeNS(null, 'style', 'stroke:#33ACFF;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+							}
+							if (typeof uptopline != "object")
+                                                        {
+                                                                uptopline = Gup.getElementById('tx');
+								uptopline.setAttributeNS(null, 'style', 'stroke:#33ACFF;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+                                                        }
+                                                        var y_rx = 0;
+                                                        var y_tx = 0;
+
+                                                        /* plot data */
+                                                        var pt_rx = '0,' + height;
+                                                        var pt_tx = '0,' + height;
+
+                                                        // draw polygon
+                                                        for (var i = 0; i < uplineDnl[itf].length; i++)
+                                                        {
+                                                                var x = i * step;
+
+                                                                y_rx = height - Math.floor((uplineDnl[itf][i]) * data_scale_dnl);
+                                                                y_tx = height - Math.floor((uplineUpl[itf][i]) * data_scale_upl);
+
+                                                                pt_rx += ' ' + x + ',' + y_rx;
+                                                                pt_tx += ' ' + x + ',' + y_tx;
+                                                        }
+                                                        // draw last tangant point in upline graph
+                                                        pt_rx += ' ' + width + ',' + y_rx;
+                                                        pt_rx += ' ' + width + ',' + height;
+
+                                                        pt_tx += ' ' + width + ',' + y_tx;
+                                                        pt_tx += ' ' + width + ',' + height;
+							
+							dntopline.setAttribute('points', pt_rx);
+                                                        uptopline.setAttribute('points', pt_tx);
 						}
 					}
 				);
