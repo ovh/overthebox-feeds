@@ -31,6 +31,24 @@
 		);
 	}
 
+	/* Smoother */
+	function simple_moving_averager(name, period) {
+		var nums = {}
+		nums.name = [];
+		return function(num) {
+			nums.name.push(num);
+			if (nums.name.length > period)
+				nums.name.splice(0,1);  // remove the first element of the array
+		        var sum = 0;
+		        for (var i in nums.name)
+				sum += nums.name[i];
+			var n = period;
+			if (nums.name.length < period)
+				n = nums.name.length;
+			return(sum/n);
+		}
+	}
+
 	var bwxhr = new XHR();
 
 	var Gdn;
@@ -197,41 +215,8 @@
 							}
 						}
 
-						/* Applying smoothing algorythm */
-						function simple_moving_averager_up(period) {
-						    var nums = [];
-						    return function(num) {
-						        nums.push(num);
-						        if (nums.length > period)
-						            nums.splice(0,1);  // remove the first element of the array
-						        var sum = 0;
-						        for (var i in nums)
-						            sum += nums[i];
-						        var n = period;
-						        if (nums.length < period)
-								n = nums.length;
-						        return(sum/n);
-							    }
-						}
-
-						function simple_moving_averager_dn(period) {
-						    var nums = [];
-						    return function(num) {
-						        nums.push(num);
-						        if (nums.length > period)
-						            nums.splice(0,1);  // remove the first element of the array
-						        var sum = 0;
-						        for (var i in nums)
-						            sum += nums[i];
-						        var n = period;
-						        if (nums.length < period)
-								n = nums.length;
-						        return(sum/n);
-							    }
-						}
-
-						var upsma = simple_moving_averager_up(5);
-						var dnsma = simple_moving_averager_dn(5);
+						var dnsma = simple_moving_averager('down', 3);
+						var upsma = simple_moving_averager('up', 3);
 						for (var itf in data)
 						{
 							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
