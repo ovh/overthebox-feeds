@@ -395,12 +395,20 @@
 							if (typeof dntopline != "object")
 							{
                                                                 dntopline = Gdn.getElementById('rx');
-								dntopline.setAttributeNS(null, 'style', 'stroke:#33ACFF;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+								dntopline.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+								/* Move line on top */
+								var father = dntopline.parentNode;
+								father.removeChild(dntopline);
+								father.appendChild(dntopline);
 							}
 							if (typeof uptopline != "object")
                                                         {
                                                                 uptopline = Gup.getElementById('tx');
-								uptopline.setAttributeNS(null, 'style', 'stroke:#33ACFF;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+								uptopline.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+								/* Move line on top */
+								var father = uptopline.parentNode;
+								father.removeChild(uptopline);
+								father.appendChild(uptopline);
                                                         }
                                                         var y_rx = 0;
                                                         var y_tx = 0;
