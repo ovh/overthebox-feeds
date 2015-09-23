@@ -117,8 +117,6 @@ function dns_request( host, interface, timeout, domain)
 	end
 end
 
-
-
 function socks_request( host, interface, timeout, port )
 	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 	if not fd then return fd, err end
@@ -154,7 +152,38 @@ function socks_request( host, interface, timeout, port )
 end
 
 
-
+function get_public_ip(interface)
+	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+	if not fd then return fd, err end
+	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
+        -- timeout on socket
+        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
+        if not ok then return ok, err end
+        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
+        if not ok then return ok, err end
+        -- bind to specific device
+        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+        if not ok then return ok, err end
+	-- Get host address
+	local r, err = p.getaddrinfo('ifconfig.ovh', '80', { family = p.AF_INET, socktype = p.SOCK_STREAM })
+	if not r then return false, err end
+	-- Connect to host
+	local ok, err, e = p.connect (fd, r[1] )
+	if fd then
+		p.send(fd, "GET / HTTP/1.0\r\nHost: ifconfig.ovh\r\n\r\n")
+		local data = {}
+		while true do
+			local b = p.recv (fd, 1024)
+			if not b or #b == 0 then
+				break
+			end
+			table.insert (data, b)
+		end
+		p.close(fd)
+		data = table.concat(data)
+		return data:match("(%d+%.%d+%.%d+%.%d+)")
+	end
+end
 
 function diff_nsec(t1, t2)
 	local ret = ( t2.tv_sec * 1000000000 + t2.tv_nsec) - (t1.tv_sec * 1000000000 + t1.tv_nsec)
@@ -329,6 +358,7 @@ local pingstats 	= {}
 pingstats.numvalue 	= 60
 pingstats.entries	= 0
 pingstats.pos		= 0
+pingstats.wanaddr	= get_public_ip(opts["i"])
 
 function pingstats:push(value)
 	pingstats[pingstats.pos] = value
@@ -400,6 +430,7 @@ function pingstats:write()
 	result[interface].minping = pingstats:min()
 	result[interface].curping = pingstats:getn(0)
 	result[interface].avgping = pingstats:avg()
+	result[interface].wanaddr = pingstats.wanaddr
 	-- write file
 	local file = io.open( string.format("/tmp/tracker/if/%s", interface), "w" )
 	file:write(json.encode(result))
