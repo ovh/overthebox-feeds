@@ -1,5 +1,6 @@
 -- Copyright 2008 Steven Barth <steven@midlink.org>
 -- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 module("luci.controller.admin.status", package.seeall)

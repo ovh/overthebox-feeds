@@ -1,4 +1,5 @@
 -- Copyright 2009-2010 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 local nw  = require "luci.model.network".init()
