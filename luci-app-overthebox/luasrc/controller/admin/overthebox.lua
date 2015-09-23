@@ -128,6 +128,7 @@ function interfaces_status()
                         local wanDeviceLink = ntm:get_interface(wanInterfaceName)
                                 wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
                                 wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
+			local wanLabel = uci:get("network", wanName, "label") or wanInterfaceName
                         wansid[wanName] = #mArray.wans + 1
 			-- Add multipath info
 			local ipaddr	= uci:get("network", wanName, "ipaddr")
@@ -140,7 +141,7 @@ function interfaces_status()
 			end
 			-- Return info
 			if wanName == "tun0" then
-				mArray.overthebox["vtund"] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
+				mArray.overthebox["vtund"] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
 			else
 				-- Add ping info
 				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
@@ -152,7 +153,7 @@ function interfaces_status()
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
 				end
-	                        mArray.wans[wansid[wanName]] = { name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
+	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping }
 			end
                 end
         end

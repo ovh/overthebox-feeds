@@ -180,6 +180,9 @@ end
 m.on_init = set_status
 m.on_after_save = set_status
 
+l = s:taboption("general", Value, "label", translate("Label"))
+l.rmempty = true
+l:depends("multipath", "on")
 
 p = s:taboption("general", ListValue, "proto", translate("Protocol"))
 p.default = net:proto()
@@ -305,7 +308,6 @@ if not net:is_floating() then
 		end
 	end
 end
-
 
 if not net:is_virtual() then
 	ifname_multi = s:taboption("physical", Value, "ifname_multi", translate("Interface"))
