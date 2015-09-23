@@ -4,18 +4,24 @@ h3,
 h4,
 h5,
 h6 {
-  font-weight: normal;
+  color: #333333;
 }
 h1 {
-  font-size: 27px;
+  font-size: 36px;
+  font-weight: 400;
 }
 h2,
 .cbi-section legend {
   border-bottom: 2px solid #33acff;
-  padding-bottom: 5px;
+  padding-bottom: 8px;
   margin-top: 0px;
-  font-size: 18 px;
-  font-weight: lighter;
+  font-size: 24px;
+  font-weight: 300;
+}
+table tr td:first-child {
+  font-size: 14px;
+  font-weight: 400;
+  color: #333333;
 }
 .btn,
 .cbi-button {

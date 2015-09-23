@@ -375,10 +375,10 @@ body {
   background-color: #ffffff;
   margin: 0;
   font-family: 'Open Sans';
-  font-size: 13px;
-  font-weight: normal;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 18px;
-  color: #404040;
+  color: #757575;
   padding-top: 50px;
 }
 .container {
@@ -419,7 +419,6 @@ a:hover {
 p,
 .cbi-map-descr,
 .cbi-section-descr {
-  font-size: 13px;
   font-weight: normal;
   line-height: 18px;
   margin-bottom: 9px;
@@ -447,7 +446,7 @@ h6 small {
 }
 h1 {
   margin-bottom: 18px;
-  font-size: 30px;
+  font-size: 36px;
   line-height: 36px;
 }
 h1 small {
@@ -587,7 +586,7 @@ fieldset {
 }
 fieldset legend {
   display: block;
-  font-size: 19.5px;
+  font-size: 24px;
   line-height: 1;
   color: #404040;
   padding-top: 20px;
@@ -622,7 +621,7 @@ input,
 select,
 textarea {
   font-family: 'Open Sans';
-  font-size: 13px;
+  font-size: 12px;
   font-weight: normal;
   line-height: normal;
 }
@@ -632,7 +631,7 @@ form .cbi-value-field {
 }
 form .cbi-value label.cbi-value-title {
   padding-top: 6px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   float: left;
   width: 180px;
@@ -870,7 +869,7 @@ table {
   width: 100%;
   margin-bottom: 18px;
   padding: 0;
-  font-size: 13px;
+  font-size: 12px;
   border-collapse: collapse;
 }
 table th,
@@ -1431,7 +1430,7 @@ footer a {
   padding: 5px 14px 6px;
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
   color: #333;
-  font-size: 13px;
+  font-size: 12px;
   line-height: normal;
   border: 1px solid #ccc;
   border-bottom-color: #bbb;
@@ -1804,7 +1803,7 @@ a.label:hover {
   border-radius: 3px 3px 3px 3px;
   color: #808080;
   display: inline-block;
-  font-size: 13px;
+  font-size: 12px;
   height: 22 dpx;
   line-height: 18px;
 }
@@ -1817,7 +1816,7 @@ form.inline {
 header .pull-right {
   position: absolute;
   padding-top: 8px;
-  right: 210px;
+  right: 60px;
 }
 #modemenu li:last-child span.divider {
   display: none;
