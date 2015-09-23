@@ -1,7 +1,7 @@
 -- Copyright 2015 OVH
 -- Author: Simon Lelievre <sim@ovh.net>
 -- Author: DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
--- Licensed to the public under the ?
+-- Licensed to the public under the GNU General Public License version 3
 
 local require 	= require
 local json	= require "luci.json"

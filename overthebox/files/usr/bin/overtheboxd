@@ -2,7 +2,7 @@
 
 -- Copyright 2015 OVH
 -- Author: Simon Lelievre <sim@ovh.net>
--- Licensed to the public under the ?
+-- Licensed to the public under the GNU General Public License version 3
 
 local p   = require 'posix'
 local sig = require "posix.signal"
