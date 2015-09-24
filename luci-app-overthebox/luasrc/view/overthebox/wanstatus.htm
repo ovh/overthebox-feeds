@@ -34,6 +34,7 @@
 					if (stepbar)
 						stepbar.securedNetwork.status = "done";
 					temp += '<li>';
+					temp += '<li class="remote-from-lease">';
 					temp += '<a href="#">';
 
 					var equipmentIcon = '<img src="<%=resource%>/computer.png" />';
@@ -67,7 +68,7 @@
 				}
 				*/
 
-				temp += '<li><a href="#">';
+				temp += '<li id="networkRootNode"><table><tr><td><a href="#">';
 				
 				var equipmentIcon = '<img src="<%=resource%>/overthebox.png" style:"top: 0px;" />';
 				var title = String.format("OverTheBox (%s)", mArray.overthebox.local_addr);
@@ -108,11 +109,11 @@
 				}
 
 				temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
-				temp += '</a>'
+				temp += '</a></td>'
 			}
 			if (mArray.wans)
 			{
-				temp += '<ul>';
+				temp += '<td><ul>';
 				for( var i = 0; i < mArray.wans.length; i++ )
 				{
 					// Get link color
@@ -168,11 +169,16 @@
 					var wanip   = mArray.wans[i].wanip;
 					var multipath = mArray.wans[i].multipath;
                                         // Generate template
-					temp += String.format('<li><a href="%q">', mArray.wans[i].link);
+					if(mArray.overthebox.remote_from_lease == true && mArray.wans.length == 1)
+					{
+						temp += String.format('<li class="subnode-only-child"><a href="%q">', mArray.wans[i].link);
+					}else{
+						temp += String.format('<li><a href="%q">', mArray.wans[i].link);
+					}
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
-					var title = mArray.wans[i].name + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, curping, multipath);
+					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />ping: %s ms<br />Multipath: %s', stat, wanip, curping, multipath);
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
                                         temp += '</a></li>';
@@ -201,7 +207,7 @@
 					temp += '</a></li>';
 				}
 
-				temp += '</ul>';
+				temp += '</ul></td></tr></table>';
 
 			}
 			temp += '</li>';

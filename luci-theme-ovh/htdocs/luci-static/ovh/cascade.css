@@ -650,7 +650,7 @@ select,
   width: 210px;
   height: 30px;
   padding: 4px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   color: #808080;
   border: 1px solid #ccc;
@@ -846,7 +846,7 @@ textarea[readonly] {
 }
 .help-inline,
 .help-block {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   color: #bfbfbf;
 }
@@ -869,7 +869,6 @@ table {
   width: 100%;
   margin-bottom: 18px;
   padding: 0;
-  font-size: 12px;
   border-collapse: collapse;
 }
 table th,
@@ -882,10 +881,6 @@ table th {
   padding-top: 9px;
   font-weight: bold;
   vertical-align: middle;
-}
-table td {
-  vertical-align: top;
-  border-top: 1px solid #ddd;
 }
 table tbody th {
   border-top: 1px solid #ddd;
@@ -903,7 +898,7 @@ header {
   z-index: 10000;
   overflow: visible;
   color: white;
-  font-size: 8px;
+  font-size: 12px;
 }
 header a {
   color: white;
@@ -1785,7 +1780,7 @@ a.label:hover {
   background-color: #f89406;
 }
 .label.success {
-  background-color: #46a546;
+  background-color: #33acff;
 }
 .label.notice {
   background-color: #62cffc;
@@ -1816,7 +1811,7 @@ form.inline {
 header .pull-right {
   position: absolute;
   padding-top: 8px;
-  right: 60px;
+  right: 75px;
 }
 #modemenu li:last-child span.divider {
   display: none;
