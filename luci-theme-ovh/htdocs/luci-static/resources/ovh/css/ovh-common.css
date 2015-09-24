@@ -23,6 +23,9 @@ table tr td:first-child {
   font-weight: 400;
   color: #333333;
 }
+.clear {
+  clear: both;
+}
 .btn,
 .cbi-button {
   cursor: pointer;
