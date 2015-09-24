@@ -168,7 +168,12 @@ function interfaces_status()
 					minping = data[wanName].minping
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
-					wanip   = data[wanName].wanaddr or "0.0.0.0"
+
+					if isLogged() then
+						wanip   = data[wanName].wanaddr or "0.0.0.0"
+					else
+						wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
+					end
 				end
 	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip }
 			end
@@ -177,6 +182,15 @@ function interfaces_status()
 
         luci.http.prepare_content("application/json")
         luci.http.write_json(mArray)
+end
+
+function isLogged()
+	local sid = luci.http.getcookie('sysauth');
+	if sid and (require('luci.util').ubus("session", "get", { ubus_rpc_session = sid }) or { }).values then
+		return true
+	else
+		return false
+	end
 end
 
 function lease_overview()
