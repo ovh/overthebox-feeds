@@ -2,11 +2,14 @@ ol.progtrckr {
   margin: 0;
   padding: 0;
   list-style-type: none;
+  position: relative;
+  height: 24px;
 }
 ol.progtrckr li {
   display: inline-block;
   text-align: center;
   line-height: 3em;
+  position: relative;
 }
 ol.progtrckr[data-progtrckr-steps="2"] li {
   width: 49%;
@@ -48,38 +51,38 @@ ol.progtrckr li.progtrckr-todo {
   color: silver;
 }
 div#overthebox_status_bar {
-  margin-top: 40px;
+  margin-top: 70px;
   margin-bottom: 20px;
 }
 div.progtrckr-link-left {
-  position: relative;
+  position: absolute;
   top: 0;
+  left: 0;
   float: left;
   width: 50%;
+  height: 50%;
   border-bottom: 2px solid #333333;
-  height: 100%;
-  min-height: 45px;
+  z-index: -10;
 }
 div.progtrckr-link-right {
-  position: relative;
+  position: absolute;
   top: 0;
+  left: 50%;
   float: right;
   width: 50%;
+  height: 50%;
   border-bottom: 2px solid #333333;
-  height: 100%;
-  min-height: 45px;
+  z-index: -10;
 }
 div.progtrckr-status-node {
   position: relative;
-  bottom: -32px;
-  line-height: 1em;
   height: 24px;
   width: 24px;
   line-height: 1.2em;
   border: none;
   border-radius: 1.2em;
   margin: 0 auto;
-  min-witdh: 1px;
+  min-witdh: 24px;
 }
 div.progtrckr-status-node.error {
   color: black;
