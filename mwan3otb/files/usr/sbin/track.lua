@@ -1,6 +1,6 @@
 #! /usr/bin/env lua
 -- Copyright 2015 OVH <OverTheBox@ovh.net>
--- LELIEVRE Simon <lelievre.simon@ovh.net>
+-- Simon Lelievre <simon.lelievre@corp.ovh.com>
 -- DUPONCHEEL Sebastien <sebastien.duponcheel@ovh.net>
 --
 -- This file is part of OverTheBox for OpenWrt.
