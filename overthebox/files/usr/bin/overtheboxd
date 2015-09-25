@@ -67,8 +67,6 @@ while run do
 			actionreturn, msg = overthebox.opkg_update()
 		elseif ret.action == "upgradable" then
 			actionreturn, msg = overthebox.opkg_upgradable()
-		elseif ret.action == "install" then
-			actionreturn, msg = overthebox.opkg_install(ret.param)
 		elseif ret.action == "upgrade" then
 			actionreturn, msg = overthebox.opkg_update()
 			if actionreturn then
