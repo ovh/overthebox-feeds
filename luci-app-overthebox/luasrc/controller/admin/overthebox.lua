@@ -76,7 +76,8 @@ function interfaces_status()
 	local uci 	= require "luci.model.uci".cursor()
 	local json      = require("luci.json")
 
-        local mArray = {}
+	local logged	= isLogged()
+	local mArray = {}
 
 	-- Overthebox info
 	mArray.overthebox = {}
@@ -169,7 +170,7 @@ function interfaces_status()
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
 
-					if isLogged() then
+					if logged then
 						wanip   = data[wanName].wanaddr or "0.0.0.0"
 					else
 						wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
