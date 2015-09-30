@@ -653,7 +653,7 @@ select,
   font-size: 12px;
   line-height: 18px;
   color: #808080;
-  border: 1px solid #ccc;
+  border: 2px solid black;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
