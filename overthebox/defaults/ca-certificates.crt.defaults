@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
+	cat /etc/ssl/certs/*.crt > /etc/ssl/certs/ca-certificates.crt
+fi
+
+exit 0
