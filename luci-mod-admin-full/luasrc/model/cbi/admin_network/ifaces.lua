@@ -1,5 +1,6 @@
 -- Copyright 2008 Steven Barth <steven@midlink.org>
 -- Copyright 2008-2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 local fs = require "nixio.fs"
@@ -155,6 +156,7 @@ s.addremove = false
 s:tab("general",  translate("General Setup"))
 s:tab("advanced", translate("Advanced Settings"))
 s:tab("physical", translate("Physical Settings"))
+s:tab("autoshape", translate("Adaptive Shaping"))
 
 if has_firewall then
 	s:tab("firewall", translate("Firewall Settings"))
@@ -179,6 +181,9 @@ end
 m.on_init = set_status
 m.on_after_save = set_status
 
+l = s:taboption("general", Value, "label", translate("Label"))
+l.rmempty = true
+l:depends("multipath", "on")
 
 p = s:taboption("general", ListValue, "proto", translate("Protocol"))
 p.default = net:proto()
@@ -217,24 +222,43 @@ end
 auto = s:taboption("advanced", Flag, "auto", translate("Bring up on boot"))
 auto.default = (net:proto() == "none") and auto.disabled or auto.enabled
 
+-- Add MPTCP
+if fs.access("/proc/sys/net/mptcp") then
+    mptcp = s:taboption("advanced", ListValue, "multipath", translate("Multipath TCP"))
+    mptcp:value("on", translate("enabled"))
+    mptcp:value("off", translate("disabled"))
+    mptcp:value("master", translate("master"))
+    mptcp:value("backup", translate("backup"))
+    mptcp:value("handover", translate("handover"))
+    mptcp.default = "off"
+end
+
 delegate = s:taboption("advanced", Flag, "delegate", translate("Use builtin IPv6-management"))
 delegate.default = delegate.enabled
 
 
 if not net:is_virtual() then
-	br = s:taboption("physical", Flag, "type", translate("Bridge interfaces"), translate("creates a bridge over specified interface(s)"))
-	br.enabled = "bridge"
-	br.rmempty = true
-	br:depends("proto", "static")
-	br:depends("proto", "dhcp")
-	br:depends("proto", "none")
+    iftype = s:taboption("physical", ListValue, "type", translate("Type of the interface"))
+    iftype:value("", translate("Default"))
+    iftype:value("macvlan", translate("Create a macvlan sub interface"))
+    iftype:value("bridge", translate("Create a bridge over multiple interfaces"))
+    iftype:depends("proto", "static")
+    iftype:depends("proto", "dhcp")
+    iftype:depends("proto", "none")
 
 	stp = s:taboption("physical", Flag, "stp", translate("Enable <abbr title=\"Spanning Tree Protocol\">STP</abbr>"),
 		translate("Enables the Spanning Tree Protocol on this bridge"))
 	stp:depends("type", "bridge")
 	stp.rmempty = true
+
+--    macsource = s:taboption("physical", DynamicList, "vlanmacs", translate("Add MACs address to enable source mode"))
+--    macsource:depends("type", "macvlan")
+--    macsource.rmempty = true
 end
 
+macvlanmaster = s:taboption("physical", Value, "interface", translate("Master interface"))
+macvlanmaster.default = "eth0"
+macvlanmaster:depends("type", "macvlan")
 
 if not net:is_floating() then
 	ifname_single = s:taboption("physical", Value, "ifname_single", translate("Interface"))
@@ -286,7 +310,6 @@ if not net:is_floating() then
 	end
 end
 
-
 if not net:is_virtual() then
 	ifname_multi = s:taboption("physical", Value, "ifname_multi", translate("Interface"))
 	ifname_multi.template = "cbi/network_ifacelist"
@@ -299,6 +322,51 @@ if not net:is_virtual() then
 	ifname_multi.write = ifname_single.write
 end
 
+aushape = s:taboption("autoshape", ListValue, "autoshape", translate("Adaptive Shaping"))
+aushape:value("off", translate("Disabled"))
+aushape:value("static", translate("Static"))
+aushape:value("auto", translate("Adaptive (experimental)"))
+aushape.default = "off"
+aushape:depends("multipath", "on")
+
+download = s:taboption("autoshape", Value, "download", translate("Download bandwidth in kbit/s"))
+download.rmempty = true
+download:depends("autoshape", "static")
+
+upload = s:taboption("autoshape", Value, "upload", translate("Upload bandwidth in kbit/s"))
+upload.rmempty = true
+upload:depends("autoshape", "static")
+upload:depends("autoshape", "auto")
+
+pingdeleta = s:taboption("autoshape", Value, "pingdelta", translate("Max ping increase in ms before consdering link as congested"))
+pingdeleta.default = "100"
+pingdeleta.rmempty = true
+pingdeleta:depends("autoshape", "auto")
+
+mindownload = s:taboption("autoshape", Value, "mindownload", translate("Minimal download speed in kbit/s"))
+mindownload.default = "512"
+mindownload.rmempty = true
+mindownload:depends("autoshape", "auto")
+
+minupload = s:taboption("autoshape", Value, "minupload", translate("Minimal upload speed in kbit/s"))
+minupload.default = "128"
+minupload.rmempty = true
+minupload:depends("autoshape", "auto")
+
+-- bandwidthdelta = s:taboption("autoshape", Value, "bandwidthdelta", translate("Minimum rate delta in kbit/s between mesures before reloading QoS"))
+-- bandwidthdelta.default = "100"
+-- bandwidthdelta.rmempty = true
+-- bandwidthdelta:depends("autoshape", "auto")
+
+qostimeout = s:taboption("autoshape", Value, "qostimeout", translate("Time in min to keep detected rate"))
+qostimeout.default = "30"
+qostimeout.rmempty = true
+qostimeout:depends("autoshape", "auto")
+
+ratefactor = s:taboption("autoshape", Value, "ratefactor", translate("Factor to apply on mesured rate"))
+ratefactor.default = "1"
+ratefactor.rmempty = true
+ratefactor:depends("autoshape", "auto")
 
 if has_firewall then
 	fwzone = s:taboption("firewall", Value, "_fwzone",

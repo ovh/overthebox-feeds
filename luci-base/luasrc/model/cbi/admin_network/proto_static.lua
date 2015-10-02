@@ -1,4 +1,5 @@
 -- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 local map, section, net = ...
@@ -77,5 +78,13 @@ mtu.datatype    = "max(9200)"
 metric = section:taboption("advanced", Value, "metric",
 	translate("Use gateway metric"))
 
-metric.placeholder = "0"
-metric.datatype    = "uinteger"
+metric.default  = "1"
+metric.datatype = "uinteger"
+
+local nw  = require "luci.model.network".init()
+for _, network in ipairs(nw:get_networks()) do
+    if network:proto() == "static" and network:type() == "macvlan" and tonumber(network:metric()) >= tonumber(metric.default) then
+        metric.default = network:metric() + 1
+    end
+end
+

@@ -1,4 +1,5 @@
 -- Copyright 2009-2010 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 local nw  = require "luci.model.network".init()
@@ -21,8 +22,10 @@ newnet.datatype = "uciname"
 
 newproto = m:field(ListValue, "_netproto", translate("Protocol of the new interface"))
 
-netbridge = m:field(Flag, "_bridge", translate("Create a bridge over multiple interfaces"))
-
+newtype = m:field(ListValue, "_type", translate("Type of the new interface"))
+newtype:value("", translate("Default"))
+newtype:value("macvlan", translate("Create a macvlan sub interface"))
+newtype:value("bridge", translate("Create a bridge over multiple interfaces"))
 
 sifname = m:field(Value, "_ifname", translate("Cover the following interface"))
 
@@ -30,22 +33,24 @@ sifname.widget = "radio"
 sifname.template  = "cbi/network_ifacelist"
 sifname.nobridges = true
 
-
 mifname = m:field(Value, "_ifnames", translate("Cover the following interfaces"))
 
 mifname.widget = "checkbox"
 mifname.template  = "cbi/network_ifacelist"
 mifname.nobridges = true
 
+vifname = m:field(Value, "_vifname", translate("Cover the following interface"))
+vifname.default = "eth0"
 
 local _, p
 for _, p in ipairs(nw:get_protocols()) do
 	if p:is_installed() then
 		newproto:value(p:proto(), p:get_i18n())
-		if not p:is_virtual()  then netbridge:depends("_netproto", p:proto()) end
+		if not p:is_virtual()  then newtype:depends("_netproto", p:proto()) end
 		if not p:is_floating() then
-			sifname:depends({ _bridge = "",  _netproto = p:proto()})
-			mifname:depends({ _bridge = "1", _netproto = p:proto()})
+            sifname:depends({ _type = "", _netproto = p:proto() })
+            mifname:depends({ _type = "bridge", _netproto = p:proto() })
+            vifname:depends({ _type = "macvlan", _netproto = p:proto() })
 		end
 	end
 end
@@ -60,8 +65,7 @@ function newproto.validate(self, value, section)
 
 	local proto = nw:get_protocol(value)
 	if proto and not proto:is_floating() then
-		local br = (netbridge:formvalue(section) == "1")
-		local ifn = br and mifname:formvalue(section) or sifname:formvalue(section)
+        local ifn = ( (newtype:formvalue(section) == "macvlan" and name) or (newtype:formvalue(section) == "bridge" and mifname:formvalue(section)) or sifname:formvalue(section) )
 		for ifn in utl.imatch(ifn) do
 			return value
 		end
@@ -72,13 +76,14 @@ end
 
 function newproto.write(self, section, value)
 	local name = newnet:formvalue(section)
-	if name and #name > 0 then
-		local br = (netbridge:formvalue(section) == "1") and "bridge" or nil
-		local net = nw:add_network(name, { proto = value, type = br })
+    if name and #name > 0 then
+        local isBridge  = (newtype:formvalue(section) == "bridge") or nil
+        local isMacvlan = (newtype:formvalue(section) == "macvlan") or nil
+        local net = nw:add_network(name, { proto = value, type = newtype:formvalue(section), interface = isMacvlan and vifname:formvalue(section) or nil })
 		if net then
 			local ifn
 			for ifn in utl.imatch(
-				br and mifname:formvalue(section) or sifname:formvalue(section)
+                (isMacvlan and name) or (isBridge and mifname:formvalue(section)) or (sifname:formvalue(section))
 			) do
 				net:add_interface(ifn)
 			end

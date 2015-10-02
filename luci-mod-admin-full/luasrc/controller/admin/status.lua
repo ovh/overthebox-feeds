@@ -1,5 +1,6 @@
 -- Copyright 2008 Steven Barth <steven@midlink.org>
 -- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 module("luci.controller.admin.status", package.seeall)
@@ -21,10 +22,13 @@ function index()
 	entry({"admin", "status", "realtime", "bandwidth"}, template("admin_status/bandwidth"), _("Traffic"), 2).leaf = true
 	entry({"admin", "status", "realtime", "bandwidth_status"}, call("action_bandwidth")).leaf = true
 
-	entry({"admin", "status", "realtime", "wireless"}, template("admin_status/wireless"), _("Wireless"), 3).leaf = true
+        entry({"admin", "status", "realtime", "multipath"}, template("admin_status/multipath"), _("Multipath"), 3).leaf = true
+        entry({"admin", "status", "realtime", "multipath_status"}, call("action_multipath")).leaf = true
+
+	entry({"admin", "status", "realtime", "wireless"}, template("admin_status/wireless"), _("Wireless"), 4).leaf = true
 	entry({"admin", "status", "realtime", "wireless_status"}, call("action_wireless")).leaf = true
 
-	entry({"admin", "status", "realtime", "connections"}, template("admin_status/connections"), _("Connections"), 4).leaf = true
+	entry({"admin", "status", "realtime", "connections"}, template("admin_status/connections"), _("Connections"), 5).leaf = true
 	entry({"admin", "status", "realtime", "connections_status"}, call("action_connections")).leaf = true
 
 	entry({"admin", "status", "nameinfo"}, call("action_nameinfo")).leaf = true
@@ -76,6 +80,22 @@ function action_bandwidth(iface)
 		luci.http.write("]")
 		bwc:close()
 	end
+end
+
+function action_multipath()
+	local result = { };
+	local uci = luci.model.uci.cursor()
+
+        for _, dev in luci.util.vspairs(luci.sys.net.devices()) do
+                if dev ~= "lo" then
+                        if uci:get("network", dev, "multipath") == "on" then
+				result[dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+                        end
+                end
+        end
+
+        luci.http.prepare_content("application/json")
+	luci.http.write_json(result)
 end
 
 function action_wireless(iface)

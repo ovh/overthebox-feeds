@@ -1,5 +1,6 @@
 -- Copyright 2008 Steven Barth <steven@midlink.org>
 -- Copyright 2008 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
 -- Licensed to the public under the Apache License 2.0.
 
 local fs = require "nixio.fs"
@@ -59,13 +60,34 @@ if fs.access("/usr/sbin/br2684ctl") then
 end
 
 local network = require "luci.model.network"
-if network:has_ipv6() then
-	local s = m:section(NamedSection, "globals", "globals", translate("Global network options"))
-	local o = s:option(Value, "ula_prefix", translate("IPv6 ULA-Prefix"))
-	o.datatype = "ip6addr"
-	o.rmempty = true
-	m.pageaction = true
-end
+if network:has_ipv6() or fs.access("/proc/sys/net/mptcp") then
+    local s = m:section(NamedSection, "globals", "globals", translate("Global network options"))
 
+    if fs.access("/proc/sys/net/mptcp") then
+        local mtcp = s:option(ListValue, "multipath", translate("Multipath TCP"))
+        mtcp:value("enable", translate("enable"))
+        mtcp:value("disable", translate("disable"))
+
+        if fs.access("/proc/sys/net/ipv4/tcp_available_congestion_control") then
+            local avaible = fs.readfile("/proc/sys/net/ipv4/tcp_available_congestion_control")
+            local current = fs.readfile("/proc/sys/net/ipv4/tcp_congestion_control")
+
+            local tcpcong = s:option(ListValue, "tcp_congestion_control", translate("TCP Congestion Control"))
+            for i in string.gmatch(avaible, "%S+") do
+                tcpcong:value(i, translate(i))
+            end
+            tcpcong.default = current
+        end
+
+    end
+
+    if network:has_ipv6() then
+    	local o = s:option(Value, "ula_prefix", translate("IPv6 ULA-Prefix"))
+    	o.datatype = "ip6addr"
+    	o.rmempty = true
+    end
+
+    m.pageaction = true
+end
 
 return m
