@@ -1,0 +1,88 @@
+#!/bin/sh
+#
+# Avoid Dnsmasq to answer DHCP request on multipath interfaces with direct modems gateways
+# Create the Dnsmasq options to choose Gateway in DHCP config
+#
+
+#[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+checktag() {
+	[ "$1" == "$INTERFACE" ] && {
+		TAGFOUND="$INTERFACE"
+	}
+}
+
+checkdhcpignore() {
+	local itf
+	local ignore
+
+	config_get itf $1 interface
+	[ "$itf" == "$INTERFACE" ] && {
+		config_get_bool ignore $1 ignore
+		[ "$ignore" == "1" ] && {
+			IGNOREFOUND="$ignore"
+		}
+	}
+}
+
+# Clean
+config_load dhcp
+config_foreach checktag tag
+config_foreach checkdhcpignore dhcp
+
+# Check that no dhcp is configured in this interface
+config_get checkdhcp $INTERFACE interface
+[ "$INTERFACE" == "$checkdhcp" ] && exit 0;
+
+config_load network
+config_get mode $INTERFACE multipath
+
+case "$mode" in
+  "off")
+        exit 0;;
+  "master")
+        mode="on";;
+  "on");;
+  "backup");;
+  "handover");;
+  *)
+	exit 1;;
+esac
+
+if [ -z $IGNOREFOUND ]; then
+	# Tell dnsmasq to ignore this interface
+	uci add dhcp dhcp
+	uci set dhcp.@dhcp[-1].interface="$INTERFACE"
+	uci set dhcp.@dhcp[-1].ignore='1'
+fi
+
+if [ -z $TAGFOUND ]; then
+	# Option Updates:
+	local ipaddr
+	local gateway
+	local network
+	local netmask
+	local dnservers
+
+	network_get_ipaddr  ipaddr  $INTERFACE
+	network_get_gateway gateway $INTERFACE
+	network_get_subnet  network $INTERFACE
+	network_get_dnsserver dnsservers $INTERFACE
+
+	# Create dnsmasq tagged option for this interface
+	uci set dhcp.$INTERFACE=tag
+	OPTIONS="option:router,$gateway"
+	for dnsserver in $dnsservers
+	do
+		DNS="$DNS,$dnsserver"
+	done
+	if [ -n "$DNS" ]; then
+		OPTIONS="$OPTIONS option:dns-server$DNS"
+	fi
+	uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
+	uci commit dhcp
+fi
+
