@@ -22,7 +22,7 @@ HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/LuaSrcDiet-0.12.1
 
 include $(INCLUDE_DIR)/host-build.mk
 
-include ../../luci.mk
+include ../../luci/luci.mk
 
 define Host/Configure
 endef
