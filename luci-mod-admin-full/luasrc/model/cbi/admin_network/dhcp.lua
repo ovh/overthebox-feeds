@@ -241,7 +241,7 @@ ipc.neighbors({ family = 4 }, function(n)
 	end
 end)
 
-tag = s:option(Value, "tag", translate("Gateway"))
+tag = s:option(ListValue, "tag", translate("Gateway"))
 tag:value("", "Default")
 tag.rmempty  = true
 
