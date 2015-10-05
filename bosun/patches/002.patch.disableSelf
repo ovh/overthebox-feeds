@@ -1,0 +1,17 @@
+diff --git a/collect/collect.go b/collect/collect.go
+index e57135b..6f89f82 100644
+--- a/collect/collect.go
++++ b/collect/collect.go
+@@ -450,8 +450,10 @@ func collect() {
+ 			}
+ 			tchan <- dp
+ 		}
+-		for _, am := range aggs {
+-			am.Process(now)
++		if !DisableDefaultCollectors {
++			for _, am := range aggs {
++				am.Process(now)
++			}
+ 		}
+ 		puts = make(map[string]*putMetric)
+ 		aggs = make(map[string]*agMetric)

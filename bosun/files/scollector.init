@@ -10,6 +10,12 @@ SERVICE_DAEMONIZE=1
 CONF=/etc/scollector.cfg
 
 start() {
+
+	# Check ssl certificates files
+	if [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
+		cat /etc/ssl/certs/*.crt > /etc/ssl/certs/ca-certificates.crt
+	fi
+
 	/bin/touch $CONF
 	HOST=$(uci -q get scollector.opentsdb.host )
 	FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
