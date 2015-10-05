@@ -11,10 +11,8 @@ CONF=/etc/scollector.cfg
 
 start() {
 
-	# Check ssl certificates files
-	if [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
-		cat /etc/ssl/certs/*.crt > /etc/ssl/certs/ca-certificates.crt
-	fi
+	# Create ssl certificates files for golib ssl
+	cat /etc/ssl/certs/*.crt > /etc/ssl/certs/ca-certificates.crt
 
 	/bin/touch $CONF
 	HOST=$(uci -q get scollector.opentsdb.host )
