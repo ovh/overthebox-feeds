@@ -241,6 +241,20 @@ ipc.neighbors({ family = 4 }, function(n)
 	end
 end)
 
+tag = s:option(Value, "tag", translate("Gateway"))
+tag:value("", "Default")
+tag.rmempty  = true
+
+m.uci:foreach("dhcp", "tag",
+	function(section)
+		local name = section[".name"]
+		local label = m.uci:get("network", section[".name"], "label")
+		if label then
+			name = label .. ' (' .. name .. ')'
+		end
+		tag:value(section[".name"], name)
+end)
+
 function ip.validate(self, value, section)
 	local m = mac:formvalue(section) or ""
 	local n = name:formvalue(section) or ""
