@@ -57,6 +57,7 @@ if [ -z $IGNOREFOUND ]; then
 	uci add dhcp dhcp
 	uci set dhcp.@dhcp[-1].interface="$INTERFACE"
 	uci set dhcp.@dhcp[-1].ignore='1'
+	uci commit dhcp
 fi
 
 if [ -z $TAGFOUND ]; then
