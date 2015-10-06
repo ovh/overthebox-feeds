@@ -1,10 +1,10 @@
 #!/bin/sh
 
-MD5ONLINE=`curl --silent http://downloads.overthebox.ovh/trunk/x86/64/md5sums | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}'`
+MD5ONLINE=`curl --silent http://downloads.overthebox.ovh/stable/x86/64/md5sums | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}'`
 
 download() {
     logger "RECOVERY: Downloading the latest stable rom"
-        wget http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /recovery/openwrt-x86-64-combined-ext4.img.gz --limit-rate=125k > /dev/null 2>&1
+        wget http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /recovery/openwrt-x86-64-combined-ext4.img.gz --limit-rate=125k > /dev/null 2>&1
     logger "RECOVERY: Finshed Downloading the lastest rom"
 }
 
@@ -13,10 +13,11 @@ checksum() {
 		MD5LOCAL=$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')
 		if [ "$MD5LOCAL" == "$MD5ONLINE"  ] ; then
 			logger "RECOVERY: Download verified successfuly"
-			exit 1
+			exit 0
 		else
 			sleep 20
 			logger "RECOVERY: Problem getting the file, tried $i time(s)"
+			download
 		fi
 	done
 }

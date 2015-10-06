@@ -585,7 +585,7 @@ function create_dhcp_server()
 							uci:set("dhcp", section[".name"], "start", "50")
 							uci:set("dhcp", section[".name"], "limit", "200")
 							uci:set("dhcp", section[".name"], "leasetime", "12h")
-							uci:set("dhcp", section[".name"], "dhcp_option", "option:router," .. uci:get("interface", section[".name"], 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("interface", section[".name"], 'ipaddr'))
+--							uci:set("dhcp", section[".name"], "dhcp_option", "option:router," .. uci:get("interface", section[".name"], 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("interface", section[".name"], 'ipaddr'))
 							sys.exec("echo 'host-record=overthebox.ovh,".. section["ipaddr"]  .."'  >> /etc/dnsmasq.conf")
 							dhcpd_configured = dhcpd_configured + 1
 							return;
@@ -601,7 +601,7 @@ function create_dhcp_server()
 			uci:set("dhcp", minMetricInterface, "start", "50")
 			uci:set("dhcp", minMetricInterface, "limit", "200")
 			uci:set("dhcp", minMetricInterface, "leasetime", "12h")
-			uci:set("dhcp", minMetricInterface, "dhcp_option", "option:router," .. uci:get("network", minMetricInterface, 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("network", minMetricInterface, 'ipaddr'))
+--			uci:set("dhcp", minMetricInterface, "dhcp_option", "option:router," .. uci:get("network", minMetricInterface, 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("network", minMetricInterface, 'ipaddr'))
 			sys.exec("echo 'host-record=overthebox.ovh,".. uci:get("network", minMetricInterface, 'ipaddr') .."'  >> /etc/dnsmasq.conf")
 			dhcpd_configured = dhcpd_configured + 1
 		end

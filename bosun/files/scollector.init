@@ -27,6 +27,8 @@ start() {
 Host = "$HOST"
 Freq = $FREQ
 DisableSelf = true
+MetricFilters = ["linux.net.(bytes|bits)", "os.mem.(used|total)", "os.cpu"]
+Filter = ["ifstat", "iostat", "procstat"]
 
 BOF
 
