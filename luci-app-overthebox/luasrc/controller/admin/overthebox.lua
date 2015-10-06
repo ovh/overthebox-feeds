@@ -111,6 +111,8 @@ function interfaces_status()
 		mArray.overthebox.dhcpd[itf].range_end = range_end
 		mArray.overthebox.dhcpd[itf].netmask = mask
 		mArray.overthebox.dhcpd[itf].leasetime = leasetime
+		mArray.overthebox.dhcpd[itf].router = mArray.overthebox["local_addr"]
+		mArray.overthebox.dhcpd[itf].dns = mArray.overthebox["local_addr"]
 	end
 	for itf, option, value in dnsmasq:gmatch("option=(%w+),([%w:-]+),(%d+\.%d+\.%d+\.%d+)") do
 		if option == "option:router" or option == "6" then
