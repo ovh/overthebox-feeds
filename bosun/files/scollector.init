@@ -11,8 +11,11 @@ CONF=/etc/scollector.cfg
 
 start() {
 
-	# Create ssl certificates files for golib ssl
-	cat /etc/ssl/certs/*.crt > /etc/ssl/certs/ca-certificates.crt
+	# Build ssl certificates package files for golib ssl
+	if [ ! -s /tmp/ca-certificates.crt ]; then
+		ln -s /tmp/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt &>/dev/null
+		echo -n "" > /tmp/ca-certificates.crt && find /etc/ssl/certs/ -type f -name "*.crt" -exec sh -c "cat {} >> /tmp/ca-certificates.crt" \; ;
+	fi
 
 	/bin/touch $CONF
 	HOST=$(uci -q get scollector.opentsdb.host )
@@ -23,10 +26,11 @@ start() {
 
 Host = "$HOST"
 Freq = $FREQ
+DisableSelf = true
 
 BOF
 
-		service_start /usr/bin/$APP -conf $CONF
+		service_start /usr/bin/$APP -conf $CONF -m
 	fi
 }
 
