@@ -1,10 +1,8 @@
 #!/bin/sh
 
-cat <<'EOF' > /etc/crontabs/root 
-00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null
-EOF
+
+echo '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null' >> /etc/crontabs/root
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
-
 
 exit 0
