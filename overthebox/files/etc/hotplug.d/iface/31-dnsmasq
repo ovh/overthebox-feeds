@@ -9,34 +9,6 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
-checktag() {
-	[ "$1" == "$INTERFACE" ] && {
-		TAGFOUND="$INTERFACE"
-	}
-}
-
-checkdhcpignore() {
-	local itf
-	local ignore
-
-	config_get itf $1 interface
-	[ "$itf" == "$INTERFACE" ] && {
-		config_get_bool ignore $1 ignore
-		[ "$ignore" == "1" ] && {
-			IGNOREFOUND="$ignore"
-		}
-	}
-}
-
-# Clean
-config_load dhcp
-config_foreach checktag tag
-config_foreach checkdhcpignore dhcp
-
-# Check that no dhcp is configured in this interface
-config_get checkdhcp $INTERFACE interface
-[ "$INTERFACE" == "$checkdhcp" ] && exit 0;
-
 config_load network
 config_get mode $INTERFACE multipath
 
@@ -52,31 +24,73 @@ case "$mode" in
 	exit 1;;
 esac
 
-if [ -z $IGNOREFOUND ]; then
-	# Tell dnsmasq to ignore this interface
-	uci add dhcp dhcp
-	uci set dhcp.@dhcp[-1].interface="$INTERFACE"
-	uci set dhcp.@dhcp[-1].ignore='1'
-	uci commit dhcp
+# Get lan subnet
+local lansubnet
+network_get_subnet lansubnet lan
+
+eval "$(ipcalc.sh $lansubnet)"
+local lannet=$NETWORK
+
+# Create option
+local if_ipaddr
+local if_gateway
+local if_network
+local if_netmask
+local if_dnservers
+
+network_get_ipaddr  if_ipaddr  $INTERFACE
+network_get_gateway if_gateway $INTERFACE
+network_get_subnet  if_network $INTERFACE
+network_get_dnsserver if_dnsservers $INTERFACE
+
+checktag() {
+        [ "$1" == "$INTERFACE" ] && {
+                TAGFOUND="$INTERFACE"
+        }
+}
+checkdhcpignore() {
+        local itf
+        local ignore
+
+        config_get itf $1 interface
+        [ "$itf" == "$INTERFACE" ] && {
+                config_get_bool ignore $1 ignore
+                [ "$ignore" == "1" ] && {
+                        IGNOREFOUND="$ignore"
+                }
+        }
+}
+eval "$(ipcalc.sh $if_network)"
+if [ "$NETWORK" == "$lannet" ]; then
+	config_load dhcp
+	config_foreach checktag tag
+	config_foreach checkdhcpignore dhcp
+
+	if [ -z $IGNOREFOUND ]; then
+	        # Tell dnsmasq to ignore this interface
+	        uci add dhcp dhcp
+	        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
+	        uci set dhcp.@dhcp[-1].ignore='1'
+	        uci commit dhcp
+	fi
+
+	[ ! -z $TAGFOUND ] && exit 0
+	if [ -n "$if_gateway" ]; then
+		uci set dhcp.$INTERFACE=tag
+	fi
+else
+	# Create static dhcp range
+	uci set dhcp.$INTERFACE=dhcp
+	uci set dhcp.$INTERFACE.dynamicdhcp=0
+	uci set dhcp.$INTERFACE.interface=$INTERFACE
+	uci set dhcp.$INTERFACE.start=0
 fi
 
-if [ -z $TAGFOUND ]; then
-	# Option Updates:
-	local ipaddr
-	local gateway
-	local network
-	local netmask
-	local dnservers
-
-	network_get_ipaddr  ipaddr  $INTERFACE
-	network_get_gateway gateway $INTERFACE
-	network_get_subnet  network $INTERFACE
-	network_get_dnsserver dnsservers $INTERFACE
-
-	# Create dnsmasq tagged option for this interface
-	uci set dhcp.$INTERFACE=tag
-	OPTIONS="option:router,$gateway"
-	for dnsserver in $dnsservers
+config_load network
+# Create dnsmasq tagged option for this interface
+if [ -n "$if_gateway" ]; then
+	OPTIONS="option:router,$if_gateway"
+	for dnsserver in $if_dnsservers
 	do
 		DNS="$DNS,$dnsserver"
 	done
@@ -84,6 +98,6 @@ if [ -z $TAGFOUND ]; then
 		OPTIONS="$OPTIONS option:dns-server$DNS"
 	fi
 	uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
-	uci commit dhcp
 fi
 
+uci commit

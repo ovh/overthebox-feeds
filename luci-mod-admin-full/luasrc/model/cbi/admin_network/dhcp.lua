@@ -255,6 +255,18 @@ m.uci:foreach("dhcp", "tag",
 		tag:value(section[".name"], name)
 end)
 
+m.uci:foreach("dhcp", "dhcp",
+        function(section)
+		if section["dynamicdhcp"] == "0" then
+	               local name = section[".name"]
+	               local label = m.uci:get("network", section[".name"], "label")
+	               if label then
+	                       name = label .. ' (' .. name .. ')'
+	               end
+	               tag:value(section[".name"], name)
+		end
+end)
+
 function ip.validate(self, value, section)
 	local m = mac:formvalue(section) or ""
 	local n = name:formvalue(section) or ""
