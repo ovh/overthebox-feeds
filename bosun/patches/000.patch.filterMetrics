@@ -1,0 +1,129 @@
+diff --git a/cmd/scollector/collectors/collectors.go b/cmd/scollector/collectors/collectors.go
+index b50f000..c576c59 100644
+--- a/cmd/scollector/collectors/collectors.go
++++ b/cmd/scollector/collectors/collectors.go
+@@ -5,6 +5,7 @@ import (
+ 	"fmt"
+ 	"net"
+ 	"os"
++	"regexp"
+ 	"strings"
+ 	"sync"
+ 	"time"
+@@ -93,6 +94,8 @@ var (
+ 	tlock     sync.Mutex
+ 	AddTags   opentsdb.TagSet
+ 
++	metricFilters = make([]*regexp.Regexp, 0)
++
+ 	AddProcessDotNetConfig = func(params conf.ProcessDotNet) error {
+ 		return fmt.Errorf("process_dotnet watching not implemented on this platform")
+ 	}
+@@ -171,6 +174,9 @@ type MetricMeta struct {
+ 
+ // AddTS is the same as Add but lets you specify the timestamp
+ func AddTS(md *opentsdb.MultiDataPoint, name string, ts int64, value interface{}, t opentsdb.TagSet, rate metadata.RateType, unit metadata.Unit, desc string) {
++	if metricFiltersSkip(name) {
++		return
++	}
+ 	if b, ok := value.(bool); ok {
+ 		if b {
+ 			value = 1
+@@ -286,3 +292,27 @@ func metaIfaces(f func(iface net.Interface, tags opentsdb.TagSet)) {
+ 		}
+ 	}
+ }
++
++// AddMetricFilters adds metric filters provided by the conf
++func AddMetricFilters(s string) error {
++	re, err := regexp.Compile(s)
++	if err != nil {
++		return err
++	}
++	metricFilters = append(metricFilters, re)
++	return nil
++}
++
++// metricFiltersSkip will return true if we need to skip this metric
++func metricFiltersSkip(index string) bool {
++	// If no filters provided, we skip nothing
++	if len(metricFilters) == 0 {
++		return false
++	}
++	for _, re := range metricFilters {
++		if re.MatchString(index) {
++			return false
++		}
++	}
++	return true
++}
+diff --git a/cmd/scollector/conf/conf.go b/cmd/scollector/conf/conf.go
+index 69bac03..2abe9b5 100644
+--- a/cmd/scollector/conf/conf.go
++++ b/cmd/scollector/conf/conf.go
+@@ -28,6 +28,9 @@ type Conf struct {
+ 	// PProf is an IP:Port binding to be used for debugging with pprof package.
+ 	// Examples: localhost:6060 for loopback or :6060 for all IP addresses.
+ 	PProf string
++	// MetricFilters takes regular expressions and includes only indicies that
++	// match those filters from being monitored
++	MetricFilters []string
+ 
+ 	// KeepalivedCommunity, if not empty, enables the Keepalived collector with
+ 	// the specified community.
+diff --git a/cmd/scollector/doc.go b/cmd/scollector/doc.go
+index e3f0fee..60f688c 100644
+--- a/cmd/scollector/doc.go
++++ b/cmd/scollector/doc.go
+@@ -24,6 +24,9 @@ The flags are:
+ 	-f=""
+ 		Filters collectors matching these terms, separated by
+ 		comma. Overrides Filter in conf file.
++	-F=""
++		Filters metrics matching these regular expressions, separated by
++		comma. Overrides MetricFilters in conf file.
+ 	-b=0
+ 		OpenTSDB batch size. Default is 500.
+ 	-conf=""
+@@ -101,6 +104,9 @@ Default is 500.
+ 
+ Filter (array of string): filters collectors matching these terms.
+ 
++MetricFilters (array of string): filters metrics matching these regular
++expressions.
++
+ PProf (string): optional IP:Port binding to be used for debugging with pprof.
+ Examples: localhost:6060 for loopback or :6060 for all IP addresses.
+ 
+diff --git a/cmd/scollector/main.go b/cmd/scollector/main.go
+index 8518106..bfefdc6 100644
+--- a/cmd/scollector/main.go
++++ b/cmd/scollector/main.go
+@@ -40,6 +40,7 @@ var (
+ 	flagVersion         = flag.Bool("version", false, "Prints the version and exits.")
+ 	flagConf            = flag.String("conf", "", "Location of configuration file. Defaults to scollector.toml in directory of the scollector executable.")
+ 	flagToToml          = flag.String("totoml", "", "Location of destination toml file to convert. Reads from value of -conf.")
++	flagMetricFilter    = flag.String("F", "", "Filters metrics matching these regular expressions, separated by comma. Overrides MetricFilters in conf file.")
+ 
+ 	mains []func()
+ )
+@@ -68,6 +69,9 @@ func main() {
+ 	if *flagFilter != "" {
+ 		conf.Filter = strings.Split(*flagFilter, ",")
+ 	}
++	if *flagMetricFilter != "" {
++		conf.MetricFilters = strings.Split(*flagMetricFilter, ",")
++	}
+ 	if !conf.Tags.Valid() {
+ 		slog.Fatalf("invalid tags: %v", conf.Tags)
+ 	} else if conf.Tags["host"] != "" {
+@@ -98,6 +102,9 @@ func main() {
+ 		}
+ 	}
+ 	collectors.Init(conf)
++	for _, r := range conf.MetricFilters {
++		check(collectors.AddMetricFilters(r))
++	}
+ 	for _, rmq := range conf.RabbitMQ {
+ 		check(collectors.RabbitMQ(rmq.URL))
+ 	}

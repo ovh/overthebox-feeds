@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Build ssl certificates package files for golib ssl
+if [ ! -s /tmp/ca-certificates.crt ]; then
+	ln -s /tmp/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt &>/dev/null
+	echo -n "" > /tmp/ca-certificates.crt && find /etc/ssl/certs/ -type f -name "*.crt" -exec sh -c "cat {} >> /tmp/ca-certificates.crt" \; ;
+fi
+
+exit 0

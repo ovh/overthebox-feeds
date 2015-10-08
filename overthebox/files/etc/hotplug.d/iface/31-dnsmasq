@@ -1,0 +1,85 @@
+#!/bin/sh
+#
+# Avoid Dnsmasq to answer DHCP request on multipath interfaces with direct modems gateways
+# Create the Dnsmasq options to choose Gateway in DHCP config
+#
+
+#[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+config_load network
+config_get mode $INTERFACE multipath
+
+case "$mode" in
+  "off")
+        exit 0;;
+  "master")
+        mode="on";;
+  "on");;
+  "backup");;
+  "handover");;
+  *)
+	exit 1;;
+esac
+
+# Create option
+local if_ipaddr
+local if_gateway
+local if_network
+local if_netmask
+local if_dnservers
+
+network_get_ipaddr  if_ipaddr  $INTERFACE
+network_get_gateway if_gateway $INTERFACE
+network_get_subnet  if_network $INTERFACE
+network_get_dnsserver if_dnsservers $INTERFACE
+
+checktag() {
+        [ "$1" == "$INTERFACE" ] && {
+                TAGFOUND="$INTERFACE"
+        }
+}
+
+checkdhcpignore() {
+        local itf
+        local ignore
+
+        config_get itf $1 interface
+        [ "$itf" == "$INTERFACE" ] && {
+                config_get_bool ignore $1 ignore
+                [ "$ignore" == "1" ] && {
+                        IGNOREFOUND="$ignore"
+                }
+        }
+}
+
+config_load dhcp
+config_foreach checktag tag
+config_foreach checkdhcpignore dhcp
+
+if [ -z $IGNOREFOUND ]; then
+        # Tell dnsmasq to ignore this interface
+        uci add dhcp dhcp
+        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
+        uci set dhcp.@dhcp[-1].ignore='1'
+        uci commit dhcp
+fi
+
+if [ -z $TAGFOUND ]; then
+	if [ -n "$if_gateway" ]; then
+		uci set dhcp.$INTERFACE=tag
+		OPTIONS="option:router,$if_gateway"
+		for dnsserver in $if_dnsservers
+		do
+			DNS="$DNS,$dnsserver"
+		done
+		if [ -n "$DNS" ]; then
+			OPTIONS="$OPTIONS option:dns-server$DNS"
+		fi
+		uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
+		uci commit
+	fi
+fi
+

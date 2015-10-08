@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bosun
-PKG_VERSION:=0.2.0
-PKG_RELEASE:=0.7
+PKG_VERSION:=0.4.0
+PKG_RELEASE:=0.8
 
 PKG_SOURCE:=$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/bosun-monitor/bosun/archive/
-PKG_MD5SUM:=b9fc38d3c1518f5c86dc4dddf3a5b893
+PKG_MD5SUM:=782945b470d5408d37fa818d6bb04696
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/bosun-$(PKG_VERSION)
 
@@ -26,7 +26,7 @@ define Package/bosun
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=add bosum metric monitor
-	DEPENDS:= +libc +libpthread
+	DEPENDS:= +libc +libpthread +gccgo +libgo
 endef
 
 define Package/bosun/description
@@ -44,7 +44,7 @@ endef
 
 define Build/Compile
 	cd $(PKG_BUILD_DIR)/cmd/scollector; \
-	GOPATH=$(PKG_BUILD_DIR) go build
+		GOPATH=$(PKG_BUILD_DIR) go build
 endef
 
 define Package/bosun/install

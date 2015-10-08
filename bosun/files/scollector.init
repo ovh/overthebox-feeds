@@ -10,6 +10,13 @@ SERVICE_DAEMONIZE=1
 CONF=/etc/scollector.cfg
 
 start() {
+
+	# Build ssl certificates package files for golib ssl
+	if [ ! -s /tmp/ca-certificates.crt ]; then
+		ln -s /tmp/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt &>/dev/null
+		echo -n "" > /tmp/ca-certificates.crt && find /etc/ssl/certs/ -type f -name "*.crt" -exec sh -c "cat {} >> /tmp/ca-certificates.crt" \; ;
+	fi
+
 	/bin/touch $CONF
 	HOST=$(uci -q get scollector.opentsdb.host )
 	FREQ=$(uci -q get scollector.opentsdb.freq || echo 300 )
@@ -19,10 +26,13 @@ start() {
 
 Host = "$HOST"
 Freq = $FREQ
+DisableSelf = true
+MetricFilters = ["linux.net.(bytes|bits)", "os.mem.(used|total)", "os.cpu"]
+Filter = ["ifstat", "iostat", "procstat"]
 
 BOF
 
-		service_start /usr/bin/$APP -conf $CONF
+		service_start /usr/bin/$APP -conf $CONF -m
 	fi
 }
 
