@@ -17,7 +17,7 @@ PKG_MD5SUM:=782945b470d5408d37fa818d6bb04696
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/bosun-$(PKG_VERSION)
 
-PKG_MAINTAINER:=DUPONCHEEL Sébastien <sebastien.duponcheel@ovh.net>
+PKG_MAINTAINER:=Sébastien Duponcheel <sebastien.duponcheel@ovh.net>
 
 include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
