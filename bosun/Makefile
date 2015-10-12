@@ -26,7 +26,7 @@ define Package/bosun
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=add bosum metric monitor
-	DEPENDS:= +libc +libpthread +gccgo +libgo
+	DEPENDS:= +libc +libpthread
 endef
 
 define Package/bosun/description
