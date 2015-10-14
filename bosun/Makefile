@@ -17,7 +17,7 @@ PKG_MD5SUM:=782945b470d5408d37fa818d6bb04696
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/bosun-$(PKG_VERSION)
 
-PKG_MAINTAINER:=DUPONCHEEL Sébastien <sebastien.duponcheel@ovh.net>
+PKG_MAINTAINER:=Sébastien Duponcheel <sebastien.duponcheel@ovh.net>
 
 include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
@@ -26,7 +26,7 @@ define Package/bosun
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=add bosum metric monitor
-	DEPENDS:= +libc +libpthread +gccgo +libgo
+	DEPENDS:= +libc +libpthread
 endef
 
 define Package/bosun/description
