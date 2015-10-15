@@ -83,7 +83,15 @@ function interfaces_status()
 	mArray.overthebox = {}
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
-	mArray.overthebox["wan_addr"]		= uci:get("overthebox", "me", "wanip")
+	mArray.overthebox["wan_addr"]           = "0.0.0.0"
+	local wanaddr = uci:get("overthebox", "me", "wanip")
+	if wanaddr then
+		if logged then
+			mArray.overthebox["wan_addr"] = wanaddr
+		else
+			mArray.overthebox["wan_addr"] = wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
+		end
+	end
 	mArray.overthebox["remote_addr"]        = luci.http.getenv("REMOTE_ADDR") or ""
 	mArray.overthebox["remote_from_lease"]	= false
         local leases=tools.dhcp_leases()
