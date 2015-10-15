@@ -853,7 +853,7 @@ while true do
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
 			-- When interface is back check that public ip has not changed
 			local wanaddr = get_public_ip(opts["i"])
-			if wanaddr and pingstats.wanaddr != wanaddr then
+			if wanaddr and pingstats.wanaddr ~= wanaddr then
 				pingstats.wanaddr = wanaddr
 				if pingstats.wanaddr then
 					pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
