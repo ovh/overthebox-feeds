@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Update wanip on interfaces state change
+#
+WANIP=$(curl --connect-timeout 1 ifconfig.ovh 2>/dev/null)
+if [ -n "$WANIP" ]; then
+	uci set overthebox.me.wanip=$WANIP
+fi
