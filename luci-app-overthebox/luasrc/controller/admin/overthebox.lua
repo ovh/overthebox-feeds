@@ -83,6 +83,7 @@ function interfaces_status()
 	mArray.overthebox = {}
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
+	mArray.overthebox["wan_addr"]		= uci:get("overthebox", "me", "wanip")
 	mArray.overthebox["remote_addr"]        = luci.http.getenv("REMOTE_ADDR") or ""
 	mArray.overthebox["remote_from_lease"]	= false
         local leases=tools.dhcp_leases()
@@ -167,18 +168,19 @@ function interfaces_status()
 				local avgping = "NaN"
 				local curping = "NaN"
 				local wanip   = "0.0.0.0"
+				local whois   = "Unknown provider"
 				if data and data[wanName] then
 					minping = data[wanName].minping
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
-
+					whois	= data[wanName].whois
 					if logged then
 						wanip   = data[wanName].wanaddr or "0.0.0.0"
 					else
 						wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
 					end
 				end
-	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip }
+	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }
 			end
                 end
         end
