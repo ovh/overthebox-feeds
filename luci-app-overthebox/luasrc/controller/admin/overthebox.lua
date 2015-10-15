@@ -174,10 +174,13 @@ function interfaces_status()
 					avgping = data[wanName].avgping
 					curping = data[wanName].curping
 					whois	= data[wanName].whois
-					if logged then
-						wanip   = data[wanName].wanaddr or "0.0.0.0"
-					else
-						wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
+					wanip	= "0.0.0.0"
+					if data[wanName].wanaddr then
+						if logged then
+							wanip   = data[wanName].wanaddr
+						else
+							wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
+						end
 					end
 				end
 	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }

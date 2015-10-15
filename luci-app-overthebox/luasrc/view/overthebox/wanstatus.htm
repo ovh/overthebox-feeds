@@ -178,7 +178,7 @@
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, curping, multipath);
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
                                         temp += '</a></li>';
