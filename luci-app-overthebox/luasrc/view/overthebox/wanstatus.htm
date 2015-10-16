@@ -70,7 +70,7 @@
 				temp += '<li id="networkRootNode"><table><tr><td><a href="#">';
 				
 				var equipmentIcon = '<img src="<%=resource%>/overthebox.png" style:"top: 0px;" />';
-				var title = String.format("OverTheBox (%s)", mArray.overthebox.local_addr);
+				var title = String.format("OverTheBox (%s)", mArray.overthebox.wan_addr || mArray.overthebox.local_addr);
 				var statusMessageClass = "";
 				var statusIcon = "<%=resource%>/ovh/images/statusOK.png";
 				var statusMessage = "";
@@ -166,6 +166,7 @@
 					var minping = Math.floor(mArray.wans[i].minping);
 					var avgping = Math.floor(mArray.wans[i].avgping);
 					var wanip   = mArray.wans[i].wanip;
+					var whois   = mArray.wans[i].whois;
 					var multipath = mArray.wans[i].multipath;
                                         // Generate template
 					if(mArray.overthebox.remote_from_lease == true && mArray.wans.length == 1)
@@ -177,7 +178,7 @@
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: <strong>%s</strong><br />ping: %s ms<br />Multipath: %s', stat, wanip, curping, multipath);
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
                                         temp += '</a></li>';

@@ -421,8 +421,13 @@ local pingstats 	= {}
 pingstats.numvalue 	= 60
 pingstats.entries	= 0
 pingstats.pos		= 0
+
 pingstats.wanaddr	= get_public_ip(opts["i"])
-pingstats.whois		= whois(opts["i"], pingstats.wanaddr)
+if pingstats.wanaddr then
+	pingstats.whois		= whois(opts["i"], pingstats.wanaddr)
+else
+	pingstats.whois	= false
+end
 
 function pingstats:push(value)
 	pingstats[pingstats.pos] = value
@@ -846,6 +851,17 @@ while true do
 			log(string.format("Interface %s (%s) is online", opts["i"],    opts["d"]))
 			-- exec hotplug iface	
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
+			-- When interface is back check that public ip has not changed
+			local wanaddr = get_public_ip(opts["i"])
+			if wanaddr and pingstats.wanaddr ~= wanaddr then
+				pingstats.wanaddr = wanaddr
+				if pingstats.wanaddr then
+					pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
+				else
+					pingstats.whois = false
+				end
+			end
+			-- Re-enable QoS when interface is back
 			shaper:enableQos()
 		end
 	end
