@@ -76,6 +76,10 @@
 				var statusMessage = "";
 				var content = "";
 
+				if (mArray.overthebox.version)
+				{
+					content += "Version " + mArray.overthebox.version + "<br />";
+				}
 				if (mArray.overthebox.dhcpd)
 				{
 					for ( dhcpd in mArray.overthebox.dhcpd )
@@ -83,8 +87,8 @@
 						if (stepbar)
 							stepbar.dhcp.status = "done"
 						var dhcp = mArray.overthebox.dhcpd[dhcpd];
-						content += String.format('<br /><strong>%s (%s):</strong>', dhcp.interface, dhcp.router)
-						content += String.format('%s-%s', dhcp.range_start, dhcp.range_end)
+						content += String.format('<span style="text-transform:capitalize;">%s</span> address: %s<br />', dhcp.interface, dhcp.router)
+						content += String.format('<span style="text-transform:capitalize;">%s</span> range: %s - %s<br />', dhcp.interface, dhcp.range_start, dhcp.range_end)
 					}
 				}
 				else

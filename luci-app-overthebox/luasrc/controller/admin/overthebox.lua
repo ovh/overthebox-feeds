@@ -81,6 +81,7 @@ function interfaces_status()
 
 	-- Overthebox info
 	mArray.overthebox = {}
+	mArray.overthebox["version"] = require('overthebox')._VERSION
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["wan_addr"]           = "0.0.0.0"
