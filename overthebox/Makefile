@@ -69,6 +69,9 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
 	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
 
+	# force clear luci cache
+	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
+
         exit 0
 fi
 endef
