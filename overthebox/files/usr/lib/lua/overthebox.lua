@@ -37,7 +37,7 @@ local uci = require("luci.model.uci").cursor()
 debug = false
 local VERSION = "<VERSION>"
 module "overthebox"
-
+_VERSION = VERSION
 api_url = 'https://provisionning.overthebox.net:4443/'
 
 -- Subscribe Sticky to OVH Network as soon as possible a request an unic identifier
