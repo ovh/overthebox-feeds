@@ -37,7 +37,7 @@ case $1 in
         echo
         exit 0 ;;
    "-c")
-        cat /proc/net/mptcp
+        cat /proc/net/mptcp_net/mptcp
         exit 0;;
    "-f")
         cat /proc/net/mptcp_fullmesh
