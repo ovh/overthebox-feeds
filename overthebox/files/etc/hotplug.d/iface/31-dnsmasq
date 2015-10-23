@@ -24,6 +24,13 @@ case "$mode" in
 	exit 1;;
 esac
 
+# Get lan subnet
+local lansubnet
+network_get_subnet lansubnet lan
+
+eval "$(ipcalc.sh $lansubnet)"
+local lannet=$NETWORK
+
 # Create option
 local if_ipaddr
 local if_gateway
@@ -41,7 +48,6 @@ checktag() {
                 TAGFOUND="$INTERFACE"
         }
 }
-
 checkdhcpignore() {
         local itf
         local ignore
@@ -54,32 +60,44 @@ checkdhcpignore() {
                 }
         }
 }
+eval "$(ipcalc.sh $if_network)"
+if [ "$NETWORK" == "$lannet" ]; then
+	config_load dhcp
+	config_foreach checktag tag
+	config_foreach checkdhcpignore dhcp
 
-config_load dhcp
-config_foreach checktag tag
-config_foreach checkdhcpignore dhcp
+	if [ -z $IGNOREFOUND ]; then
+	        # Tell dnsmasq to ignore this interface
+	        uci add dhcp dhcp
+	        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
+	        uci set dhcp.@dhcp[-1].ignore='1'
+	        uci commit dhcp
+	fi
 
-if [ -z $IGNOREFOUND ]; then
-        # Tell dnsmasq to ignore this interface
-        uci add dhcp dhcp
-        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
-        uci set dhcp.@dhcp[-1].ignore='1'
-        uci commit dhcp
-fi
-
-if [ -z $TAGFOUND ]; then
+	[ ! -z $TAGFOUND ] && exit 0
 	if [ -n "$if_gateway" ]; then
 		uci set dhcp.$INTERFACE=tag
-		OPTIONS="option:router,$if_gateway"
-		for dnsserver in $if_dnsservers
-		do
-			DNS="$DNS,$dnsserver"
-		done
-		if [ -n "$DNS" ]; then
-			OPTIONS="$OPTIONS option:dns-server$DNS"
-		fi
-		uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
-		uci commit
 	fi
+else
+	# Create static dhcp range
+	uci set dhcp.$INTERFACE=dhcp
+	uci set dhcp.$INTERFACE.dynamicdhcp=0
+	uci set dhcp.$INTERFACE.interface=$INTERFACE
+	uci set dhcp.$INTERFACE.start=0
 fi
 
+config_load network
+# Create dnsmasq tagged option for this interface
+if [ -n "$if_gateway" ]; then
+	OPTIONS="option:router,$if_gateway"
+	for dnsserver in $if_dnsservers
+	do
+		DNS="$DNS,$dnsserver"
+	done
+	if [ -n "$DNS" ]; then
+		OPTIONS="$OPTIONS option:dns-server$DNS"
+	fi
+	uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
+fi
+
+uci commit
