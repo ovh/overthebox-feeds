@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=48
+PKG_RELEASE:=49
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -72,7 +72,16 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
 
-        exit 0
+	MD5="e8ed1b70b4b1972ffca620b255a1373b"
+	if [ "$$(md5sum /lib/upgrade/platform.sh | cut -f1 -d" ")" != "$$MD5" ]
+	then
+	    wget -q http://downloads.overthebox.ovh/trunk/x86/64/platform.sh -O /tmp/platform.sh
+	    if [ "$$(md5sum /tmp/platform.sh | cut -f1 -d" ")" == "$$MD5" ] 
+	    then
+		mv /tmp/platform.sh /lib/upgrade/platform.sh
+	    fi
+	fi
+	exit 0
 fi
 endef
 
