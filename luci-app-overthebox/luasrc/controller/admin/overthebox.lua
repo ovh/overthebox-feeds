@@ -125,11 +125,13 @@ function interfaces_status()
 		mArray.overthebox.dhcpd[itf].dns = mArray.overthebox["local_addr"]
 	end
 	for itf, option, value in dnsmasq:gmatch("option=(%w+),([%w:-]+),(%d+\.%d+\.%d+\.%d+)") do
-		if option == "option:router" or option == "6" then
-			mArray.overthebox.dhcpd[itf].router = value
-		end
-		if option == "option:dns-server" or option == "" then
-			mArray.overthebox.dhcpd[itf].dns = value
+		if mArray.overthebox.dhcpd[itf] then
+			if option == "option:router" or option == "6" then
+				mArray.overthebox.dhcpd[itf].router = value
+			end
+			if option == "option:dns-server" or option == "" then
+				mArray.overthebox.dhcpd[itf].dns = value
+			end
 		end
 	end
 	-- Parse mptcp kernel info
