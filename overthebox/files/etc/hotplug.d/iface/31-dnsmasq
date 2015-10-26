@@ -48,6 +48,7 @@ checktag() {
                 TAGFOUND="$INTERFACE"
         }
 }
+
 checkdhcpignore() {
         local itf
         local ignore
@@ -56,15 +57,16 @@ checkdhcpignore() {
         [ "$itf" == "$INTERFACE" ] && {
                 config_get_bool ignore $1 ignore
                 [ "$ignore" == "1" ] && {
-                        IGNOREFOUND="$ignore"
+                        IGNOREFOUND="$1"
                 }
         }
 }
+
+config_load dhcp
+config_foreach checktag tag
+config_foreach checkdhcpignore dhcp
 eval "$(ipcalc.sh $if_network)"
 if [ "$NETWORK" == "$lannet" ]; then
-	config_load dhcp
-	config_foreach checktag tag
-	config_foreach checkdhcpignore dhcp
 
 	if [ -z $IGNOREFOUND ]; then
 	        # Tell dnsmasq to ignore this interface
@@ -79,6 +81,9 @@ if [ "$NETWORK" == "$lannet" ]; then
 		uci set dhcp.$INTERFACE=tag
 	fi
 else
+	if [ -n "$IGNOREFOUND" ]; then
+		uci del dhcp.$IGNOREFOUND
+	fi
 	# Create static dhcp range
 	uci set dhcp.$INTERFACE=dhcp
 	uci set dhcp.$INTERFACE.dynamicdhcp=0
