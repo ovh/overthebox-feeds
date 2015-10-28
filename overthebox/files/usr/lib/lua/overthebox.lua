@@ -116,7 +116,7 @@ function config()
 	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
 		uci:set('scollector','opentsdb', 'client')
 		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.freq or 300) )
+		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
 		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
 		uci:save('scollector')
 		uci:commit('scollector')
