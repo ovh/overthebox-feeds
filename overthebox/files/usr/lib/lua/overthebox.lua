@@ -81,19 +81,6 @@ function config()
         local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
 	local ret = {}
 
-	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-		uci:set('shadowsocks','proxy','client')
-		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
-		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
-		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
-		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
-		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
-		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
-		uci:save('shadowsocks')
-		uci:commit('shadowsocks')
-		table.insert(ret, "shadowsocks")
-	end
-
 	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk') then
 		uci:set('vtund', 'tunnel', 'client')
 		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
@@ -111,6 +98,19 @@ function config()
 		uci:delete('mwan3', 'socks', 'dest_port')
 		uci:save('mwan3')
 		uci:commit('mwan3')
+	end
+
+	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
+		uci:set('shadowsocks','proxy','client')
+		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+		uci:save('shadowsocks')
+		uci:commit('shadowsocks')
+		table.insert(ret, "shadowsocks")
 	end
 
 	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
