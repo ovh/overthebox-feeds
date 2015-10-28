@@ -4,5 +4,5 @@
 #
 WANIP=$(curl --connect-timeout 1 ifconfig.ovh 2>/dev/null)
 if [ -n "$WANIP" ]; then
-	uci set overthebox.me.wanip=$WANIP
+	echo -n "$WANIP" > /tmp/wanip
 fi

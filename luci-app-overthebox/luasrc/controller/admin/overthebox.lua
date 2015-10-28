@@ -85,8 +85,8 @@ function interfaces_status()
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["wan_addr"]           = "0.0.0.0"
-	local wanaddr = uci:get("overthebox", "me", "wanip")
-	if wanaddr then
+	local wanaddr = ut.trim(sys.exec("cat /tmp/wanip"))
+	if string.match(wanaddr, "^%d+\.%d+\.%d+\.%d+$") then
 		if logged then
 			mArray.overthebox["wan_addr"] = wanaddr
 		else
