@@ -25,6 +25,5 @@ else
 	uci add dhcp hostrecord
 	uci set dhcp.@hostrecord[-1].name="$INTERFACE"
 	uci set dhcp.@hostrecord[-1].ip="$if_ipaddr"
-	uci commit dhcp
 fi
 uci commit dhcp
