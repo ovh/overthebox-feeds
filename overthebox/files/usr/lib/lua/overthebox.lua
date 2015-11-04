@@ -126,7 +126,52 @@ function config()
 	return true, ret 
 end
 
+function send_properties( props )
+        body = {}
+        if props.interfaces then
+                body.interfaces = {}
+                uci:foreach("network", "interface",
+                        function (e)
+                                entry = {
+                                        ip=e.ipaddr,
+                                        netmask=e.netmask,
+                                        gateway=e.gateway,
+                                        name=e.ifname,
+                                        multipath_status=e.multipath
+                                }
+                                if e.dns then
+                                        entry.dns_servers = string.gmatch( e.dns , "%S+")
+                                end
+                                if e.gateway then
+                                        entry.public_ip = get_ip_public(e.ifname)
+                                end
 
+                                tprint(e)
+                                print(" ")
+                                table.insert( body.interfaces, entry)
+                        end
+                )
+        end
+
+        if props.packages then
+                body.packages = {}
+                for i, pkg in pairs(props.packages) do
+                        local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
+                        ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
+                        table.insert( body.packages, {name=pkg, version=ret})
+                end
+        end
+--      tprint(body)
+
+        local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
+        tprint(res)
+        print(rcode)
+        return (rcode == 200), res
+end
+
+function get_ip_public(interface)
+        return chomp(run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ))
+end
 
 -- exec command local
 function restart(service)
@@ -298,6 +343,14 @@ function API(uri, method, data)
 	end
 
 	return code, json.decode(table.concat(respbody))
+end
+
+-- Remove any final \n from a string.
+--   s: string to process
+-- returns
+--   s: processed string
+function chomp(s)
+  return string.gsub(s, "\n$", "")
 end
 
 -- Mwan conf generator
