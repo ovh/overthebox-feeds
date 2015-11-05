@@ -78,11 +78,14 @@ case "$ACTION" in
 #	fi
 
 	# static route for mptcp
-        if [ "$(uci get network.$DEVICE.interface)" == "eth0" ]
-        then
-                G=$(uci -q get network.$DEVICE.gateway )
-                S=$(uci -q get shadowsocks.proxy.server)
-                [ -n $S -a -n $G ] && route add $S gw $G $DEVICE
+	MPTCP=$(uci -q get network.$DEVICE.multipath)
+        if [ "$MPTCP" == "on" ]; then
+                DST=$(uci -q get shadowsocks.proxy.server)
+                GW=$(uci -q get network.$DEVICE.gateway)
+                if [ -n "$DST" ] && [ -n "$GW" ]; then
+			echo "route add $DST gw $GW dev $DEVICE" >> /tmp/route.log
+			route add $DST gw $GW dev $DEVICE
+		fi
         fi
     ;;
     ifdown)
@@ -92,11 +95,13 @@ case "$ACTION" in
 #       logger /usr/bin/multipath $DEVICE off
 
         # static route for mptcp
-        if [ "$(uci get network.$DEVICE.interface)" == "eth0" ]
-        then
-                G=$(uci -q get network.$DEVICE.gateway )
-                S=$(uci -q get shadowsocks.proxy.server)
-                [ -n $S -a -n $G ] && route delete $S gw $G $DEVICE
+	MPTCP=$(uci -q get network.$DEVICE.multipath)
+        if [ "$MPTCP" == "on" ]; then
+                DST=$(uci -q get shadowsocks.proxy.server)
+                GW=$(uci -q get network.$DEVICE.gateway)
+                if [ -n "$DST" ] && [ -n "$GW" ]; then
+			route delete $DST gw $GW dev $DEVICE
+		fi
         fi
 
 #	if [ "$DEVICE" == "tun0" ]
