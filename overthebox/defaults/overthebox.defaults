@@ -10,4 +10,11 @@ if [ $? -ne 0 ]; then
 EOF
 fi
 
+if uci get overthebox.me.wanip 2>/dev/null 1>/dev/null; then
+  uci -q batch <<-EOF >/dev/null
+	delete overthebox.me.wanip
+	commit overthebox
+EOF
+fi
+
 exit 0

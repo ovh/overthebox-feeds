@@ -101,7 +101,9 @@ while run do
 					msg = "can not retreive service"
 				end
 			end
-                elseif ret.action == "" then
+                elseif ret.action == "refreshProperties" then
+                        actionreturn, msg = overthebox.send_properties(ret.arguments)
+                elseif ret.action == "wait" then
                         delay = ret.arguments.delay or 10
 			msg = ""
 		end
