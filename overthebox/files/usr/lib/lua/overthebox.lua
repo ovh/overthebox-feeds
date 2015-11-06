@@ -179,7 +179,7 @@ function restart(service)
         return true, ret
 end
 function restartmwan3()
-        local ret = os.execute("nohup /usr/sbin/mwan3 restart &")
+        local ret = os.execute("/usr/sbin/mwan3 restart")
         return true, ret
 end
 
