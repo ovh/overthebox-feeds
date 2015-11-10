@@ -185,7 +185,7 @@ end
 
 
 function opkg_update()
-	local ret = run("opkg update")
+	local ret = run("opkg update 2>&1")
 	return true, ret
 end
 
@@ -194,7 +194,7 @@ function opkg_upgradable()
 	return true, ret
 end
 function opkg_install(package)
-	local ret = run("opkg install "..package.. " --force-overwrite" ) -- to fix
+	local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
 	return true, ret
 end
 function upgrade()
