@@ -146,8 +146,6 @@ function send_properties( props )
                                         entry.public_ip = get_ip_public(e.ifname)
                                 end
 
-                                tprint(e)
-                                print(" ")
                                 table.insert( body.interfaces, entry)
                         end
                 )
@@ -161,6 +159,15 @@ function send_properties( props )
                         table.insert( body.packages, {name=pkg, version=ret})
                 end
         end
+
+        if props.mounts then
+                body.mounts = {}
+                for line in io.lines("/proc/mounts") do
+                        t = split(line)
+                        table.insert(body.mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
+                end
+        end
+
 --      tprint(body)
 
         local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
@@ -185,7 +192,7 @@ end
 
 
 function opkg_update()
-	local ret = run("opkg update")
+	local ret = run("opkg update 2>&1")
 	return true, ret
 end
 
@@ -194,7 +201,7 @@ function opkg_upgradable()
 	return true, ret
 end
 function opkg_install(package)
-	local ret = run("opkg install "..package.. " --force-overwrite" ) -- to fix
+	local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
 	return true, ret
 end
 function upgrade()
@@ -352,6 +359,15 @@ end
 function chomp(s)
   return string.gsub(s, "\n$", "")
 end
+
+function split(t)
+        local r = {}
+        for v in string.gmatch(t, "%S+") do
+                table.insert(r, v)
+        end
+        return r
+end
+
 
 -- Mwan conf generator
 function update_confmwan()

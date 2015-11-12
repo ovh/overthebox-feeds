@@ -1,7 +1,29 @@
 #!/bin/sh
 
+FILE="/etc/crontabs/root"
 
-echo '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null' >> /etc/crontabs/root
+CMD="/usr/bin/overthebox_download_recovery"
+if [ "$(grep "$CMD" $FILE -c )" != "1" ]
+then
+	TMP=$(mktemp)
+	# cleanup
+	grep -v "$CMD" $FILE > $TMP
+	# fix
+	echo '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null' >>$TMP
+	mv $TMP $FILE
+fi
+
+CMD="/usr/bin/overtheboxd"
+if [ "$(grep "$CMD" $FILE -c )" != "1" ]
+then
+        TMP=$(mktemp)
+        # cleanup
+        grep -v "$CMD" $FILE > $TMP
+        # fix
+        echo '00 */2 * * * { pgrep -f "lua /usr/bin/overtheboxd" 2>&1 1>/dev/null || /etc/init.d/overtheboxd restart; } &>/dev/null' >>$TMP
+        mv $TMP $FILE
+fi
+
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
 
