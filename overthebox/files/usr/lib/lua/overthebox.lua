@@ -123,6 +123,20 @@ function config()
 		table.insert(ret, 'scollector')
 	end
 
+        if res.log_conf and exists( res.log_conf, 'host', 'port') then
+
+                uci:foreach("system", "system",
+                        function (e)
+                                uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+                                uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+                        end
+                )
+
+                uci:save('system')
+                uci:commit('system')
+                table.insert(ret, 'log')
+        end
+
 	return true, ret 
 end
 
