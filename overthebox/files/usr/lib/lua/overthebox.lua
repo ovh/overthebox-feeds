@@ -265,7 +265,15 @@ function confirm_action(action, status, msg )
 	if action == nil then
 		return
 	end
+	if msg == nil then
+		msg = ""
+	end
+	if status == nil then
+		status = "error"
+	end
+
 	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
+	return (rcode == 200), res
 end
 
 -- notification events
