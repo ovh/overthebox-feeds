@@ -27,6 +27,8 @@ then
 	fi
 fi
 
-wget http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /tmp/openwrt-x86-64-combined-ext4.img.gz ${q}
+URL=$(uci get -q overthebox.me.image_url || echo "http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.img.gz")
+
+wget $URL -O /tmp/openwrt-x86-64-combined-ext4.img.gz ${q}
 
 sysupgrade /tmp/openwrt-x86-64-combined-ext4.img.gz
