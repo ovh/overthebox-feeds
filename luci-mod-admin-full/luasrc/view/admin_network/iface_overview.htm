@@ -50,7 +50,7 @@
 			s.innerHTML = '<%:Waiting for changes to be applied...%>';
 		}
 
-		XHR.get('<%=url('admin/network')%>/iface_' + (reconnect ? 'reconnect' : 'shutdown') + '/' + id, null,
+		(new XHR()).post('<%=url('admin/network')%>/iface_' + (reconnect ? 'reconnect' : 'shutdown') + '/' + id, { token: '<%=token%>' },
 			function(x)
 			{
 				if (s)
@@ -67,6 +67,16 @@
 		);
 	}
 
+	function iface_delete(id) {
+		if (!confirm('<%:Really delete this interface? The deletion cannot be undone!\nYou might lose access to this device if you are connected via this interface.%>'))
+			return;
+
+		(new XHR()).post('<%=url('admin/network/iface_delete')%>/' + id, { token: '<%=token%>' },
+			function(x) {
+				location.href = '<%=url('admin/network/network')%>';
+			}
+		);
+	}
 
 	var iwxhr = new XHR();
 	var wifidevs = <%=luci.http.write_json(netdevs)%>;
@@ -126,7 +136,7 @@
 							html += String.format('<strong><%:Uptime%>:</strong> %t<br />', ifc.uptime);
 						}
 
-						if (ifc.type != 'tunnel')
+						if (ifc.macaddr)
 						{
 							html += String.format('<strong><%:MAC-Address%>:</strong> %s<br />', ifc.macaddr);
 						}
@@ -144,10 +154,9 @@
 
 							for (var i = 0; i < ifc.ipaddrs.length; i++)
 								html += String.format(
-									'%s%s/%d',
+									'%s%s',
 									i ? ', ' : '',
-									ifc.ipaddrs[i].addr,
-									ifc.ipaddrs[i].prefix
+									ifc.ipaddrs[i]
 								);
 
 							html += '<br />';
@@ -159,10 +168,9 @@
 
 							for (var i = 0; i < ifc.ip6addrs.length; i++)
 								html += String.format(
-									'%s%s/%d',
+									'%s%s',
 									i ? ', ' : '',
-									ifc.ip6addrs[i].addr.toUpperCase(),
-									ifc.ip6addrs[i].prefix
+									ifc.ip6addrs[i].toUpperCase()
 								);
 
 							html += '<br />';
@@ -241,7 +249,7 @@
 						<input type="button" class="cbi-button cbi-button-reload" style="width:100px" onclick="iface_shutdown('<%=net[1]%>', true)" title="<%:Reconnect this interface%>" value="<%:Connect%>" />
 						<input type="button" class="cbi-button cbi-button-reset" style="width:100px" onclick="iface_shutdown('<%=net[1]%>', false)" title="<%:Shutdown this interface%>" value="<%:Stop%>" />
 						<input type="button" class="cbi-button cbi-button-edit" style="width:100px" onclick="location.href='<%=url("admin/network/network", net[1])%>'" title="<%:Edit this interface%>" value="<%:Edit%>" id="<%=net[1]%>-ifc-edit" />
-						<input type="button" class="cbi-button cbi-button-remove" style="width:100px" onclick="if (confirm('<%:Really delete this interface? The deletion cannot be undone!\nYou might lose access to this device if you are connected via this interface.%>')) location.href='<%=url("admin/network/iface_delete", net[1])%>'" title="<%:Delete this interface%>" value="<%:Delete%>" />
+						<input type="button" class="cbi-button cbi-button-remove" style="width:100px" onclick="iface_delete('<%=net[1]%>')" value="<%:Delete%>" />
 					</td>
 				</tr>
 			<% end %>
