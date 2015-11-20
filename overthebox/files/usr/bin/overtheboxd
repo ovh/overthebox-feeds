@@ -68,11 +68,18 @@ while run do
 		elseif ret.action == "upgradable" then
 			actionreturn, msg = overthebox.opkg_upgradable()
 		elseif ret.action == "upgrade" then
+			if ret.arguments and ret.arguments.release_channel then
+				if not overthebox.check_release_channel( ret.arguments.release_channel ) then
+					overthebox.update_release_channel()
+				end
+			end
 			actionreturn, msg = overthebox.opkg_update()
 			if actionreturn then
 	                        actionreturn, tmsg = overthebox.upgrade()
 				msg = msg .. "\n" .. tmsg
 			end
+		elseif ret.action == "updateReleaseChannel" then
+			actionreturn, msg = overthebox.update_release_channel()
 		elseif ret.action == "sysupgrade" then
 			overthebox.backup_last_action(ret.id)
                         overthebox.sysupgrade()
