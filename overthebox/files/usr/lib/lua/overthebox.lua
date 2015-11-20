@@ -180,6 +180,47 @@ function get_ip_public(interface)
         return chomp(run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ))
 end
 
+function check_release_channel(rc)
+        local myrc = uci:get("overthebox", "me", "release_channel", {}) or ""
+        return myrc == rc
+end
+
+function update_release_channel()
+        local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/release_channel")
+        if rcode == 200 then
+                if res.feeds then
+                        set_feeds(res.feeds)
+                end
+                if res.name and res.image_url then
+                        uci:set("overthebox", "me", "release_channel", res.name)
+                        uci:set("overthebox", "me", "image_url", res.image_url)
+                        uci:save('overthebox')
+                        uci:commit('overthebox')
+                end
+                return true, "ok"
+        end
+        return false, "error"
+end
+
+-- write feeds in distfeeds.conf file
+function set_feeds(feeds)
+        local txt = ""
+        for i, f in pairs(feeds) do
+                txt = txt .. f.type .. " " .. f.name .. " " ..f.url .."\n"
+        end
+
+	if txt ~= "" then
+		fd = io.open("/etc/opkg/distfeeds.conf", "w")
+		if fd then
+			fd:write("# generated file, do not edit\n")
+			fd:write(txt)
+			fd:close()
+		end
+	end
+end
+
+
+
 -- exec command local
 function restart(service)
         local ret = run("/etc/init.d/"..service.." restart")
