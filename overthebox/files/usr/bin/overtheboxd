@@ -114,7 +114,11 @@ while run do
 		elseif ret.action == "wait" then
 			delay = ret.arguments.delay or 10
 			msg = ""
+		else
+			actionreturn = false
+			msg = {error = "Unknown action: "..ret.action}
 		end
+
 		if actionreturn ~= nil then
 			if actionreturn == true then
 				actionreturn = "done"
