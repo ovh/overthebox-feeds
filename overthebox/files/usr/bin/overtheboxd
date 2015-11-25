@@ -111,6 +111,17 @@ while run do
 			end
 		elseif ret.action == "refreshProperties" then
 			actionreturn, msg = overthebox.send_properties(ret.arguments)
+
+		elseif ret.action == "createKey" then
+			remoteId=""
+			if ret and ret.arguments and ret.arguments.remote_access_id then
+				remoteId=ret.arguments.remote_access_id
+			end
+			actionreturn, msg = overthebox.createKey(remoteId)
+		elseif ret.action == "remoteAccessConnect" then
+			actionreturn, msg = overthebox.remoteAccessConnect(ret.arguments)
+		elseif ret.action == "remoteAccessDisconnect" then
+			actionreturn, msg = overthebox.remoteAccessDisconnect(ret.arguments)
 		elseif ret.action == "wait" then
 			delay = ret.arguments.delay or 10
 			msg = ""

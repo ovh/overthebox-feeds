@@ -1,0 +1,32 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=90
+
+USE_PROCD=1
+
+
+start_service() {
+    sectioncfg="overthebox.remote"
+    sshkey="/root/.ssh/otb_remote"
+
+    # do not start ssh tunnel if customer does not want it.
+    [ "$(uci get -q $sectioncfg.forbid)" = "1" ] && return
+
+    [ "$(uci get -q $sectioncfg.disable)" = "1" ] && return
+
+    [ ! -e "$sshkey" ] && return
+
+    ip=$(uci get -q $sectioncfg.ip) || return
+    port=$(uci get -q $sectioncfg.port) || return
+    forwarded_port=$(uci get -q $sectioncfg.forwarded_port) || return
+    internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
+
+    echo run tunnel ssh to $ip:$port
+
+    procd_open_instance
+    procd_set_param env HOME=/root
+    procd_set_param command /usr/bin/ssh -l limited-user $ip -p $port -N -R 6666:$internal_lan_ip:$forwarded_port -i $sshkey -K 30
+    procd_set_param respawn
+    procd_close_instance
+}
