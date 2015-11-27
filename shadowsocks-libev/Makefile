@@ -51,11 +51,11 @@ Package/shadowsocks-libev-polarssl/description = $(Package/shadowsocks-libev/des
 Package/shadowsocks-libev-spec-polarssl/description = $(Package/shadowsocks-libev/description)
 
 define Package/shadowsocks-libev/conffiles
+/etc/config/shadowsocks
 /etc/shadowsocks.json
 endef
 
 define Package/shadowsocks-libev-spec/conffiles
-/etc/config/shadowsocks
 /etc/shadowsocks/config.json
 /etc/shadowsocks/ignore.list
 endef
