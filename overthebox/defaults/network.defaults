@@ -22,7 +22,7 @@ if [ $? -ne 0 ]; then
 EOF
 fi
 
-uci get network.if0.multipath >/dev/null 2>&1
+uci get network.if0 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   uci -q batch <<-EOF >/dev/null
 	set network.if0=interface

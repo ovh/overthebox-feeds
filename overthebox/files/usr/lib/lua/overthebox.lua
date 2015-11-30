@@ -123,6 +123,20 @@ function config()
 		table.insert(ret, 'scollector')
 	end
 
+        if res.log_conf and exists( res.log_conf, 'host', 'port') then
+
+                uci:foreach("system", "system",
+                        function (e)
+                                uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+                                uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+                        end
+                )
+
+                uci:save('system')
+                uci:commit('system')
+                table.insert(ret, 'log')
+        end
+
 	return true, ret 
 end
 
@@ -179,6 +193,47 @@ end
 function get_ip_public(interface)
         return chomp(run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ))
 end
+
+function check_release_channel(rc)
+        local myrc = uci:get("overthebox", "me", "release_channel", {}) or ""
+        return myrc == rc
+end
+
+function update_release_channel()
+        local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/release_channel")
+        if rcode == 200 then
+                if res.feeds then
+                        set_feeds(res.feeds)
+                end
+                if res.name and res.image_url then
+                        uci:set("overthebox", "me", "release_channel", res.name)
+                        uci:set("overthebox", "me", "image_url", res.image_url)
+                        uci:save('overthebox')
+                        uci:commit('overthebox')
+                end
+                return true, "ok"
+        end
+        return false, "error"
+end
+
+-- write feeds in distfeeds.conf file
+function set_feeds(feeds)
+        local txt = ""
+        for i, f in pairs(feeds) do
+                txt = txt .. f.type .. " " .. f.name .. " " ..f.url .."\n"
+        end
+
+	if txt ~= "" then
+		fd = io.open("/etc/opkg/distfeeds.conf", "w")
+		if fd then
+			fd:write("# generated file, do not edit\n")
+			fd:write(txt)
+			fd:close()
+		end
+	end
+end
+
+
 
 -- exec command local
 function restart(service)
@@ -251,7 +306,15 @@ function confirm_action(action, status, msg )
 	if action == nil then
 		return
 	end
+	if msg == nil then
+		msg = ""
+	end
+	if status == nil then
+		status = "error"
+	end
+
 	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
+	return (rcode == 200), res
 end
 
 -- notification events
