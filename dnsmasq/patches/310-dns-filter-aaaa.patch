@@ -1,0 +1,106 @@
+From 98694642e85ae2dffba25ab4a94415e02d01db44 Mon Sep 17 00:00:00 2001
+From: Simon Lelievre <simon@lelievre.me>
+Date: Fri, 18 Sep 2015 15:07:31 +0200
+Subject: [PATCH 1/2] filter aaaa
+
+---
+ src/dnsmasq.h |  3 ++-
+ src/option.c  |  6 +++++-
+ src/rfc1035.c | 11 ++++++++++-
+ 3 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/src/dnsmasq.h b/src/dnsmasq.h
+index cf1a782..8f92a02 100644
+--- a/src/dnsmasq.h
++++ b/src/dnsmasq.h
+@@ -242,7 +242,8 @@ struct event_desc {
+ #define OPT_LOOP_DETECT    50
+ #define OPT_EXTRALOG       51
+ #define OPT_TFTP_NO_FAIL   52
+-#define OPT_LAST           53
++#define OPT_FILTER_AAAA    53
++#define OPT_LAST           54
+ 
+ /* extra flags for my_syslog, we use a couple of facilities since they are known 
+    not to occupy the same bits as priorities, no matter how syslog.h is set up. */
+diff --git a/src/option.c b/src/option.c
+index ecc2619..a575fa4 100644
+--- a/src/option.c
++++ b/src/option.c
+@@ -154,6 +154,8 @@ struct myoption {
+ #define LOPT_HOST_INOTIFY  342
+ #define LOPT_DNSSEC_STAMP  343
+ #define LOPT_TFTP_NO_FAIL  344
++#define LOPT_FILTER_AAAA   345
++
+ 
+ #ifdef HAVE_GETOPT_LONG
+ static const struct option opts[] =  
+@@ -313,6 +315,7 @@ static const struct myoption opts[] =
+     { "quiet-dhcp6", 0, 0, LOPT_QUIET_DHCP6 },
+     { "quiet-ra", 0, 0, LOPT_QUIET_RA },
+     { "dns-loop-detect", 0, 0, LOPT_LOOP_DETECT },
++    { "filter-aaaa", 0, 0, LOPT_FILTER_AAAA },
+     { NULL, 0, 0, 0 }
+   };
+ 
+@@ -478,7 +481,8 @@ static struct {
+   { LOPT_QUIET_RA, OPT_QUIET_RA, NULL, gettext_noop("Do not log RA."), NULL },
+   { LOPT_LOCAL_SERVICE, OPT_LOCAL_SERVICE, NULL, gettext_noop("Accept queries only from directly-connected networks"), NULL },
+   { LOPT_LOOP_DETECT, OPT_LOOP_DETECT, NULL, gettext_noop("Detect and remove DNS forwarding loops"), NULL },
+-  { LOPT_IGNORE_ADDR, ARG_DUP, "<ipaddr>", gettext_noop("Ignore DNS responses containing ipaddr."), NULL }, 
++  { LOPT_IGNORE_ADDR, ARG_DUP, "<ipaddr>", gettext_noop("Ignore DNS responses containing ipaddr."), NULL },
++  { LOPT_FILTER_AAAA, OPT_FILTER_AAAA, NULL, gettext_noop("Filter all AAAA requests."), NULL }, 
+   { 0, 0, NULL, NULL, NULL }
+ }; 
+ 
+diff --git a/src/rfc1035.c b/src/rfc1035.c
+index 56647b0..7463fd2 100644
+--- a/src/rfc1035.c
++++ b/src/rfc1035.c
+@@ -1895,7 +1895,16 @@ size_t answer_request(struct dns_header *header, char *limit, size_t qlen,
+ #else
+ 	        break;
+ #endif
+-	      
++
++		//patch to filter aaaa forwards
++		if (qtype == T_AAAA && option_bool(OPT_FILTER_AAAA) ){
++			//return a null reply
++			ans = 1;
++			if (!dryrun) log_query(F_CONFIG | F_IPV6 | F_NEG, name, &addr, NULL);
++			break;
++		}
++		//end of patch
++
+ 	      if (qtype != type && qtype != T_ANY)
+ 		continue;
+ 	      
+-- 
+2.1.4
+
+
+From 3626e6a0e2bf9cdd085f58bb82b7567041a7de78 Mon Sep 17 00:00:00 2001
+From: Simon Lelievre <simon@lelievre.me>
+Date: Fri, 18 Sep 2015 15:35:48 +0200
+Subject: [PATCH 2/2] add source
+
+---
+ src/rfc1035.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/rfc1035.c b/src/rfc1035.c
+index 7463fd2..fa7b211 100644
+--- a/src/rfc1035.c
++++ b/src/rfc1035.c
+@@ -1897,6 +1897,7 @@ size_t answer_request(struct dns_header *header, char *limit, size_t qlen,
+ #endif
+ 
+ 		//patch to filter aaaa forwards
++		//found : https://gist.github.com/bearice/7d3dc0e63e003d752622 
+ 		if (qtype == T_AAAA && option_bool(OPT_FILTER_AAAA) ){
+ 			//return a null reply
+ 			ans = 1;
+-- 
+2.1.4
+
