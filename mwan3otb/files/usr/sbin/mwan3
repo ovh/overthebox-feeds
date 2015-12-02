@@ -4,6 +4,7 @@
 IP="/usr/sbin/ip -4"
 IPS="/usr/sbin/ipset"
 IPT="/usr/sbin/iptables -t mangle -w"
+IPTN="/usr/sbin/iptables -t nat -w"
 
 help()
 {
@@ -205,6 +206,10 @@ stop()
 	for ipset in $(ipset -n list | grep mwan3); do
 		$IPS destroy $ipset
 	done
+
+	# Clear SOCKS mwan3 rules
+	iptables-save | grep "SOCKS" | grep "mwan3_" | sed "s/-A /iptables -t nat -w -D /g" | sh
+
 }
 
 restart() {

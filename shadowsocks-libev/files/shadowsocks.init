@@ -42,36 +42,32 @@ BOF
         service_start /usr/bin/ss-redir -c $CONFIG -b 0.0.0.0
 
 	iptables -t nat -N SOCKS 2>/dev/null
-	iptables -t nat -F SOCKS
+
+	iptables -t nat -D SOCKS -d 0.0.0.0/8 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 0.0.0.0/8 -j RETURN
+
+	iptables -t nat -D SOCKS -d 10.0.0.0/8 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 10.0.0.0/8 -j RETURN
+
+	iptables -t nat -D SOCKS -d 127.0.0.0/8 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 127.0.0.0/8 -j RETURN
+
+	iptables -t nat -D SOCKS -d 169.254.0.0/16 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 169.254.0.0/16 -j RETURN
+
+	iptables -t nat -D SOCKS -d 172.16.0.0/12 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 172.16.0.0/12 -j RETURN
+
+	iptables -t nat -D SOCKS -d 192.168.0.0/16 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 192.168.0.0/16 -j RETURN
+
+	iptables -t nat -D SOCKS -d 224.0.0.0/4 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 224.0.0.0/4 -j RETURN
+
+	iptables -t nat -D SOCKS -d 240.0.0.0/4 -j RETURN 2>/dev/null
 	iptables -t nat -A SOCKS -d 240.0.0.0/4 -j RETURN
 
-        for I in $( uci show -q mwan3 |grep "=rule$" |sed -e "s/=rule$//")
-        do
-                if [ "$(uci get -q $I.proto)" = "tcp" -o "$(uci get -q $I.proto)" = "all" ]
-                then
-                        RULE=""
-
-                        DEST_IP=$(  uci get -q $I.dest_ip)   && RULE="-d $DEST_IP"
-                        DEST_PORT=$(uci get -q $I.dest_port) && RULE="$RULE --dport $DEST_PORT"
-                        SRC_IP=$(   uci get -q $I.src_ip)    && RULE="$RULE -s $SRC_IP"
-                        SRC_PORT=$( uci get -q $I.src_port)  && RULE="$RULE --sport $SRC_PORT"
-
-                        if [ -n "$RULE" ]
-                        then
-                                RULE="iptables -t nat -A SOCKS -p tcp -m tcp $RULE -j RETURN"
-                                echo "apply : $RULE"
-                                $RULE
-                        fi
-                fi
-        done
-
+	iptables -t nat -D SOCKS -p tcp -j REDIRECT --to-ports $LPORT 2>/dev/null
 	iptables -t nat -A SOCKS -p tcp -j REDIRECT --to-ports $LPORT
 
 	for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
@@ -79,14 +75,6 @@ BOF
 		iptables -t nat -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
 		iptables -t nat -A PREROUTING  -i $i -p tcp -j SOCKS
 	done
-
-#	for g in `uci show network |grep '\.gateway=' |grep -v '@route'`
-#	do
-#		DEV=$(echo $g | cut -f2 -d".")
-#		GW=$(echo $g | cut -f2 -d"'")
-#		route add $SERVER gw $GW $DEV
-#	done
-
 }
 
 stop() {
