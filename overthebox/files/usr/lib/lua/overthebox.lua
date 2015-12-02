@@ -242,7 +242,7 @@ function createKey(remoteId)
 
     ret, key = create_ssh_key()
     if ret and key then
-        local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/remote_accesses/ "..remoteId.."/keys",   {public_key=key})
+        local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
         return (rcode == 200), "ok"
     end
 
