@@ -675,6 +675,20 @@ function update_confmwan()
 	uci:delete_all("mwan3","policy")
 	uci:delete_all("mwan3","member")
 	uci:delete_all("mwan3","interface")
+	uci:foreach("mwan3", "rule",
+		function (section)
+			if string.match(section[".name"], "^dns_") then
+				uci:delete("mwan3", section[".name"])
+			end
+		end
+	)
+	uci:foreach("mwan3", "policy",
+		function (section)
+			if string.match(section[".name"], "^dns_") then
+				uci:delete("mwan3", section[".name"])
+			end
+		end
+	)
 	-- Get trackers IPs
 	local interfaces= {}
 	local size_interfaces = 0 -- table.getn( does not work....
@@ -688,6 +702,8 @@ function update_confmwan()
 --	)
 	table.insert( tracking_servers, "51.254.49.132" )
 	table.insert( tracking_servers, "51.254.49.133" )
+	-- Table indexed with dns ips to list reacheable interface for this DNS ip
+	local dns_policies = {}
 	-- Create a tracker for each mptcp interface
 	uci:foreach("network", "interface",
 		function (section)
@@ -708,6 +724,14 @@ function update_confmwan()
 						uci:set("mwan3", section[".name"], "interval", "5")
 						uci:set("mwan3", section[".name"], "down", "3")
 						uci:set("mwan3", section[".name"], "up", "3")
+						if section["dns"] then
+							for dns in string.gmatch(section["dns"], "%S+") do
+								if dns_policies[dns] == nil then
+									dns_policies[dns] = {}
+								end
+								table.insert(dns_policies[dns], section[".name"])
+							end
+						end
 					end
 				end
 			elseif section[".name"] == "tun0" then
@@ -869,6 +893,30 @@ function update_confmwan()
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
 	end
+	-- Generate DNS policy
+	local count = 0
+	for dns, interfaces in pairs(dns_policies) do
+		count = count + 1;
+		local members = {};
+		for i=1,#interfaces do
+			table.insert(members, interfaces[i].."_m1_w1")
+		end
+		table.insert(members, "tun0_m2_w1")
+
+		uci:set("mwan3", "dns_p_" .. count, "policy")
+		uci:set_list("mwan3", "dns_p_" .. count, "use_member", members)
+		uci:set("mwan3", "dns_p_" .. count, "last_resort", "default")
+
+		uci:set("mwan3", "dns_" .. count, "rule")
+		uci:set("mwan3", "dns_" .. count, "proto", "udp")
+		uci:set("mwan3", "dns_" .. count, "sticky", "0")
+		uci:set("mwan3", "dns_" .. count, "use_policy", "dns_p_" .. count)
+		uci:set("mwan3", "dns_" .. count, "dest_ip", dns)
+		uci:set("mwan3", "dns_" .. count, "dest_port", 53)
+		uci:reorder("mwan3", "dns_" .. count, count - 1)
+
+	end
+
 	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
 	uci:commit("mwan3")
