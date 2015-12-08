@@ -191,7 +191,7 @@ function send_properties( props )
 end
 
 function get_ip_public(interface)
-        return chomp(run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ))
+        return run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ):match("(%d+%.%d+%.%d+%.%d+)")
 end
 
 function check_release_channel(rc)
