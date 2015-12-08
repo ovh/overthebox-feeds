@@ -3,25 +3,27 @@
 # Update wanip on interfaces state change
 #
 WANIP=$(curl --connect-timeout 1 ifconfig.ovh 2>/dev/null)
-if [ -n "$WANIP" ]; then
-	echo -n "$WANIP" > /tmp/wanip
-	# Update dns wanip record
-	. /lib/functions.sh
-	config_load dhcp
-	getrecord() {
-	        config_get names $1 name
-	        [ "$names" == "wanip" ] && {
-                        RECORD="$1"
-	        }
-	}
-	config_foreach getrecord hostrecord
-	if [ -n "$RECORD" ]; then
-		uci set dhcp.$RECORD.name="wanip"
-		uci set dhcp.$RECORD.ip="$WANIP"
-	else
-		uci add dhcp hostrecord
-		uci set dhcp.@hostrecord[-1].name="wanip"
-		uci set dhcp.@hostrecord[-1].ip="$WANIP"
+if [ $? -eq  0 ]; then
+	if /usr/bin/owipcalc "$WANIP" quiet 2>/dev/null; then
+		echo -n "$WANIP" > /tmp/wanip
+		# Update dns wanip record
+#		. /lib/functions.sh
+#		config_load dhcp
+#		getrecord() {
+#		        config_get names $1 name
+#		        [ "$names" == "wanip" ] && {
+#	                        RECORD="$1"
+#		        }
+#		}
+#		config_foreach getrecord hostrecord
+#		if [ -n "$RECORD" ]; then
+#			uci set dhcp.$RECORD.name="wanip"
+#			uci set dhcp.$RECORD.ip="$WANIP"
+#		else
+#			uci add dhcp hostrecord
+#			uci set dhcp.@hostrecord[-1].name="wanip"
+#			uci set dhcp.@hostrecord[-1].ip="$WANIP"
+#		fi
+		uci commit dhcp
 	fi
-	uci commit dhcp
 fi

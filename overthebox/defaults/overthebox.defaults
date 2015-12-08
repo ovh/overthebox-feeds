@@ -28,4 +28,17 @@ if grep "\s*LogFile on" /etc/conntrackd/conntrackd.conf; then
 	rm -rf /tmp/luci-*
 fi
 
+for dns in $(uci show network | grep "\.dns=" | cut -f2 -d'=' | sed s/\'//g)
+do
+	if uci show network | grep "@route" | grep "$dns" &>/dev/null; then
+		S_ROUTE=$(uci show network | grep "@route" | grep "$dns" | cut -f1-2 -d'.')
+		uci delete $S_ROUTE
+	fi
+done
+
+if uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'"; then
+	RECORD=$(uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'" | cut -f1-2 -d'.')
+	uci delete $RECORD
+fi
+
 exit 0
