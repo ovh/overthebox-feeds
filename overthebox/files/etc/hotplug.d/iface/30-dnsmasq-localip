@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Create a dhcp host records for al local interface
+#
+
+[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+config_load network
+network_get_ipaddr if_ipaddr $INTERFACE
+config_load dhcp
+getrecord() {
+	config_get names $1 name
+	[ "$names" == "$INTERFACE" ] && {
+		RECORD="$1"
+	}
+}
+config_foreach getrecord hostrecord
+if [ -n "$RECORD" ]; then
+	uci set dhcp.$RECORD.name="$INTERFACE"
+	uci set dhcp.$RECORD.ip="$if_ipaddr"
+else
+	uci add dhcp hostrecord
+	uci set dhcp.@hostrecord[-1].name="$INTERFACE"
+	uci set dhcp.@hostrecord[-1].ip="$if_ipaddr"
+fi
+uci commit dhcp

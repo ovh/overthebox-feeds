@@ -4,7 +4,7 @@
 # Create the Dnsmasq options to choose Gateway in DHCP config
 #
 
-#[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
+[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
 
 . /lib/functions.sh
 . /lib/functions/network.sh

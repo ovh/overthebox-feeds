@@ -1,0 +1,12 @@
+diff --git a/configure.ac b/configure.ac
+index 6792084..0a7b829 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -6,6 +6,7 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+ 
+ LT_INIT
+ 
++AC_CONFIG_HEADERS([config.h])
+ AC_CONFIG_MACRO_DIR([m4])
+ AC_PROG_CXX
+ AC_PROG_LIBTOOL

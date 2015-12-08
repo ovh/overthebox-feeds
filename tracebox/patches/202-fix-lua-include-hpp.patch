@@ -1,0 +1,18 @@
+diff --git a/src/tracebox/lua.cc b/src/tracebox/lua.cc
+index 030e843..f98091e 100644
+--- a/src/tracebox/lua.cc
++++ b/src/tracebox/lua.cc
+@@ -25,7 +25,12 @@
+ #include <climits>
+ 
+ #define LUA_COMPAT_ALL
+-#include <lua.hpp>
++extern "C" {
++#include "lua.h"
++#include "lualib.h"
++#include "lauxlib.h"
++}
++
+ 
+ using namespace Crafter;
+ 

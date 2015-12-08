@@ -356,10 +356,19 @@ mwan3_set_user_rules_iptables()
 		fi
 
 		case $proto in
-			tcp|udp)
+		tcp)
+			$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+			$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+
+			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+
 			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			;;
-			*)
+		udp)
+			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			;;
+		*)
 			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			;;
 		esac
@@ -436,6 +445,7 @@ local IP IPS IPT LOG
 IP="/usr/sbin/ip -4"
 IPS="/usr/sbin/ipset"
 IPT="/usr/sbin/iptables -t mangle -w"
+IPTN="/usr/sbin/iptables -t nat -w"
 LOG="/usr/bin/logger -t mwan3 -p"
 
 case "$ACTION" in

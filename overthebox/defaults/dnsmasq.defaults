@@ -7,5 +7,19 @@ uci set dhcp.@dnsmasq[0].cachesize='8192'
 uci set dhcp.@dnsmasq[0].authoritative='0'
 uci commit dhcp
 
+if grep overthebox.ovh /etc/dnsmasq.conf 1>/dev/null 2>/dev/null; then
+	sed -i.bak '/overthebox.ovh/d' /etc/dnsmasq.conf
+fi
+
+if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
+	uci add dhcp cname
+	uci set dhcp.@cname[-1].cname='overthebox'
+	uci set dhcp.@cname[-1].target='lan'
+	uci add dhcp cname
+	uci set dhcp.@cname[-1].cname='overthebox.ovh'
+	uci set dhcp.@cname[-1].target='lan'
+	uci commit dhcp
+fi
+
 exit 0
 

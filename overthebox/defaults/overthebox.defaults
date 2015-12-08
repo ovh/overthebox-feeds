@@ -17,4 +17,15 @@ if uci get overthebox.me.wanip 2>/dev/null 1>/dev/null; then
 EOF
 fi
 
+if grep "\s*#\s*PollSecs [0-9]*" /etc/conntrackd/conntrackd.conf; then
+	sed -i.bak '/[[:space:]]*#[[:space:]]*PollSecs [0-9]*/c\        PollSecs 5' /etc/conntrackd/conntrackd.conf
+fi
+
+if grep "\s*LogFile on" /etc/conntrackd/conntrackd.conf; then
+	sed -i.bak '/[[:space:]]*LogFile on/c\        LogFile off' /etc/conntrackd/conntrackd.conf
+	/etc/init.d/conntrackd restart
+	rm -f /tmp/log/conntrackd-stats.log
+	rm -rf /tmp/luci-*
+fi
+
 exit 0

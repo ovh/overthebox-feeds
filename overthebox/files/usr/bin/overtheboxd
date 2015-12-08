@@ -13,13 +13,13 @@ local json      = require("luci.json")
 local uci       = require("luci.model.uci").cursor()
 
 function error(str)
-        p.syslog( p.LOG_ERR, str)
+	p.syslog( p.LOG_ERR, str)
 end
 function log(str)
-        p.syslog( p.LOG_NOTICE, str)
+	p.syslog( p.LOG_NOTICE, str)
 end
 function debug(str)
-        p.syslog( p.LOG_DEBUG, str)
+	p.syslog( p.LOG_DEBUG, str)
 end
 
 run = true
@@ -42,9 +42,9 @@ overthebox.notify_boot()
 -- flush last action beforce start, next a reboot or a sysupgrade
 local last_action_id = overthebox.get_last_action()
 if last_action_id ~= nil then
-        print("flush last action")
-        overthebox.confirm_action(last_action_id, "done", "done")
-        overthebox.flush_action(last_action_id)
+	print("flush last action")
+	overthebox.confirm_action(last_action_id, "done", "done")
+	overthebox.flush_action(last_action_id)
 end
 
 
@@ -63,7 +63,7 @@ while run do
 		local msg
 		debug("I do : "..ret.action)
 
-		if     ret.action == "update" then
+		if ret.action == "update" then
 			actionreturn, msg = overthebox.opkg_update()
 		elseif ret.action == "upgradable" then
 			actionreturn, msg = overthebox.opkg_upgradable()
@@ -75,24 +75,24 @@ while run do
 			end
 			actionreturn, msg = overthebox.opkg_update()
 			if actionreturn then
-	                        actionreturn, tmsg = overthebox.upgrade()
+				actionreturn, tmsg = overthebox.upgrade()
 				msg = msg .. "\n" .. tmsg
 			end
 		elseif ret.action == "updateReleaseChannel" then
 			actionreturn, msg = overthebox.update_release_channel()
 		elseif ret.action == "sysupgrade" then
 			overthebox.backup_last_action(ret.id)
-                        overthebox.sysupgrade()
+			overthebox.sysupgrade()
 			run = false
 		elseif ret.action == "configure" then
-                        actionreturn, services = overthebox.config()
+			actionreturn, services = overthebox.config()
 			if #services > 1 then
-                                overthebox.restartmwan3()
-                        end
-                        for i = 1, #services do
-                                overthebox.restart(services[i])
-                        end
-                        msg = table.concat(services, ", ")
+				overthebox.restartmwan3()
+			end
+			for i = 1, #services do
+							overthebox.restart(services[i])
+			end
+			msg = table.concat(services, ", ")
 		elseif ret.action == "reboot" then
 			overthebox.backup_last_action(ret.id)
 			overthebox.reboot()
@@ -111,10 +111,25 @@ while run do
 			end
 		elseif ret.action == "refreshProperties" then
 			actionreturn, msg = overthebox.send_properties(ret.arguments)
+
+		elseif ret.action == "createKey" then
+			remoteId=""
+			if ret and ret.arguments and ret.arguments.remote_access_id then
+				remoteId=ret.arguments.remote_access_id
+			end
+			actionreturn, msg = overthebox.createKey(remoteId)
+		elseif ret.action == "remoteAccessConnect" then
+			actionreturn, msg = overthebox.remoteAccessConnect(ret.arguments)
+		elseif ret.action == "remoteAccessDisconnect" then
+			actionreturn, msg = overthebox.remoteAccessDisconnect(ret.arguments)
 		elseif ret.action == "wait" then
 			delay = ret.arguments.delay or 10
 			msg = ""
+		else
+			actionreturn = false
+			msg = {error = "Unknown action: "..ret.action}
 		end
+
 		if actionreturn ~= nil then
 			if actionreturn == true then
 				actionreturn = "done"
@@ -138,9 +153,9 @@ while run do
 
 	end
 
-        if run then
-                p.sleep(delay)
-        end
+	if run then
+		p.sleep(delay)
+	end
 end
 
 overthebox.notify_shutdown()
