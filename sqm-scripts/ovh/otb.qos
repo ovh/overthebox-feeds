@@ -9,34 +9,6 @@
 
 . ${SQM_LIB_DIR}/defaults.sh
 
-ipt_setup() {
-    ipt -t mangle -F QOS_MARK_${IFACE}
-    ipt -t mangle -X QOS_MARK_${IFACE}
-    ipt -t mangle -N QOS_MARK_${IFACE}
-
-    ipt -t mangle -F QOS_RULES_${IFACE}
-    ipt -t mangle -X QOS_RULES_${IFACE}
-    ipt -t mangle -N QOS_RULES_${IFACE}
-
-    ipt -t mangle -A POSTROUTING -o ${IFACE} -g QOS_MARK_${IFACE}
-
-    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK \
-    --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
-    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} \
-    -j QOS_RULES_${IFACE}
-
-    #Classify known interactive services in the NORMAL queue.
-    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport \
-    --dports 20,21,22,25,80,110,443,465,993,995 -j MARK --set-mark 0x02${IPT_MASK_STRING}
-    #Assign DNS and NTP to PRIORITY.
-    ipt -t mangle -A QOS_RULES_${IFACE} -p udp -m multiport \
-    --dports 53,123 -j MARK --set-mark 0x01${IPT_MASK_STRING}
-    #Everything else is marked for BULK.
-    ipt -t mangle -A QOS_RULES_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} \
-    -j MARK --set-mark 0x03${IPT_MASK_STRING}
-    ipt -t mangle -A QOS_RULES_${IFACE} -j CONNMARK \
-    --save-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
-}
 
 egress() {
     #PRIORITY traffic is guaranteed 30% of the bandwidth and capped to max 30%.
@@ -78,12 +50,10 @@ egress() {
     $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5005 0xffff  flowid 1:12
     $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 1090 0xffff  flowid 1:13
 
-#    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match mark 0x01 ${IPT_MASK} flowid 1:11
-#    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x02 ${IPT_MASK} flowid 1:12
-#    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:13
 }
 
 ingress() {
+
     $TC qdisc del dev ${IFACE} handle ffff: ingress 2> /dev/null
     $TC qdisc add dev ${IFACE} handle ffff: ingress
 
@@ -91,33 +61,31 @@ ingress() {
     $TC qdisc add dev ${DEV} root handle 1: `get_stab_string` hfsc default 1
 
     #Use a single queue for ingress.
-    $TC class add dev ${DEV} parent 1: classid 1:1 hfsc sc rate ${DOWNLINK}kbit \
-    ul rate ${DOWNLINK}kbit
+    $TC class add dev ${DEV} parent 1: classid 1:1 hfsc sc rate ${DOWNLINK}kbit ul rate ${DOWNLINK}kbit
 
-    $TC qdisc add dev ${DEV} parent 1:1 handle 11: ${QDISC} `get_limit ${ILIMIT}` \
-    `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` \
-    `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
+    $TC qdisc add dev ${DEV} parent 1:1 handle 11: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
 
-    $TC filter add dev ${DEV} parent 11: handle 11 protocol all \
-    flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst \
-    divisor `get_flows_count ${DOWNLINK}`
+    $TC filter add dev ${DEV} parent 11: handle 11 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
 
 
     $IP link set dev ${DEV} up
 
-    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 \
-    match u32 0 0 action mirred egress redirect dev ${DEV}
+    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action mirred egress redirect dev ${DEV}
+
+
+
 }
 
 sqm_start() {
     [ -n "${IFACE}" ] || return 1
+    [ -z "$DEV" ] && DEV=$( get_ifb_for_if ${IFACE} )
     do_modules
     verify_qdisc "hfsc" || return 1
     verify_qdisc ${QDISC} || return 1
     sqm_logger "Starting ${SCRIPT}"
 
     eth_setup
-    ipt_setup
+    #ipt_setup
 
     if [ "${UPLINK}" -ne 0 ];
     then
@@ -147,11 +115,6 @@ sqm_stop() {
     [ -n "$CUR_IFB" ] && $TC qdisc del dev ${CUR_IFB} root 2> /dev/null
     [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} shaper deleted"
 
-    ipt -t mangle -D POSTROUTING -o ${IFACE} -g QOS_MARK_${IFACE}
-    ipt -t mangle -F QOS_MARK_${IFACE}
-    ipt -t mangle -X QOS_MARK_${IFACE}
-    ipt -t mangle -F QOS_RULES_${IFACE}
-    ipt -t mangle -X QOS_RULES_${IFACE}
 
     [ -n "$CUR_IFB" ] && $IP link set dev ${CUR_IFB} down
     [ -n "$CUR_IFB" ] && $IP link delete ${CUR_IFB} type ifb
