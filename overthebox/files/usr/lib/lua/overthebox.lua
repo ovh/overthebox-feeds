@@ -78,66 +78,114 @@ function exists(obj, ...)
 end
 
 function config()
-        local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
-	local ret = {}
+    local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
+    local ret = {}
 
-	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk') then
-		uci:set('vtund', 'tunnel', 'client')
-		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
-		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
-		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
-		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
-		uci:set('vtund', 'tunnel', 'localip', '10.166.177.2')
-		uci:set('vtund', 'tunnel', 'remoteip', '10.166.177.1')
-		uci:save('vtund')
-		uci:commit('vtund')
-		table.insert(ret, "vtund")
+    if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local' ) then
+        uci:set('vtund', 'tunnel', 'client')
 
+        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+        uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
+        uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
+        uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
+        uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
+        uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
 
-		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server )
-		uci:delete('mwan3', 'socks', 'dest_port')
-		uci:save('mwan3')
-		uci:commit('mwan3')
-	end
+        uci:save('vtund')
+        uci:commit('vtund')
+        table.insert(ret, "vtund")
 
-	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-		uci:set('shadowsocks','proxy','client')
-		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
-		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
-		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
-		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
-		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
-		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
-		uci:save('shadowsocks')
-		uci:commit('shadowsocks')
-		table.insert(ret, "shadowsocks")
-	end
+    end
 
-	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-		uci:set('scollector','opentsdb', 'client')
-		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
-		uci:save('scollector')
-		uci:commit('scollector')
-		table.insert(ret, 'scollector')
-	end
+    if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu') then
+        uci:set('glorytun', 'otb', 'tunnel')
+        uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
+        uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
+        uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+        uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
+        uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
+        uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
+        uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
 
-        if res.log_conf and exists( res.log_conf, 'host', 'port') then
-
-                uci:foreach("system", "system",
-                        function (e)
-                                uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
-                                uci:set('system', e[".name"], 'log_port', res.log_conf.port )
-                        end
-                )
-
-                uci:save('system')
-                uci:commit('system')
-                table.insert(ret, 'log')
+        if res.tun_conf.app == 'glorytun' then
+            uci:set('glorytun', 'otb', 'enable', '1')
+        else
+            uci:set('glorytun', 'otb', 'enable', '0')
         end
 
-	return true, ret 
+        uci:set('glorytun', 'otb', 'table',   '99' )
+        uci:set('glorytun', 'otb', 'pref',    '10099' )
+
+        uci:save('glorytun')
+        uci:commit('glorytun')
+        table.insert(ret, 'glorytun')
+    end
+
+    if not res.tun_app then
+        res.tun_app = "none"
+    end
+
+    if res.tun_app == 'glorytun' then
+        uci:set('glorytun', 'otb', 'enable', '1')
+        uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+    else
+        uci:set('glorytun', 'otb', 'enable', '0')
+    end
+    uci:save('glorytun')
+    uci:commit('glorytun')
+
+
+    if res.tun_app == 'vtun' then
+        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+        uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
+    else
+        uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
+    end
+    uci:save('vtund')
+    uci:commit('vtund')
+
+    uci:delete('mwan3', 'socks', 'dest_port')
+    uci:save('mwan3')
+    uci:commit('mwan3')
+
+    if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
+        uci:set('shadowsocks','proxy','client')
+        uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+        uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+        uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+        uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+        uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+        uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+        uci:save('shadowsocks')
+        uci:commit('shadowsocks')
+        table.insert(ret, "shadowsocks")
+    end
+
+    if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
+        uci:set('scollector','opentsdb', 'client')
+        uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+        uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
+        uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+        uci:save('scollector')
+        uci:commit('scollector')
+        table.insert(ret, 'scollector')
+    end
+
+    if res.log_conf and exists( res.log_conf, 'host', 'port') then
+
+        uci:foreach("system", "system",
+        function (e)
+            uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+            uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+        end
+        )
+
+        uci:save('system')
+        uci:commit('system')
+        table.insert(ret, 'log')
+    end
+
+    return true, ret 
 end
 
 function send_properties( props )
