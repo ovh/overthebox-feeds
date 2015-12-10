@@ -727,7 +727,7 @@ function update_confmwan()
 	uci:foreach("network", "interface",
 		function (section)
 			if section["type"] == "macvlan" then
-				if section["multipath"] == "on" then
+				if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
 					if section["gateway"] then
 						size_interfaces = size_interfaces + 1
 						interfaces[ section[".name"] ] = section
