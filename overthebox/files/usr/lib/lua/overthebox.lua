@@ -479,10 +479,16 @@ function opkg_install(package)
 	local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
 	return true, ret
 end
+function opkg_remove(package)
+	local ret = run("opkg remove "..package )
+	return true, ret
+end
+
 function upgrade()
-	local packages = {'overthebox', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full'}
+	local packages = {'overthebox', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm'}
+    local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
 	local retcode = true
-	local ret = ""
+	local ret = "install:\n"
 	for i = 1, #packages do
 		-- install package
 		local p = packages[i]
@@ -492,8 +498,21 @@ function upgrade()
 		end
 		ret = ret ..  p .. ": \n" .. r .."\n"
 	end
+
+    ret = ret .. "\nuninstall:\n"
+    for i = 1, #unwantedPackages do
+        -- install package
+        local p = unwantedPackages[i]
+        local c, r = opkg_remove(p)
+        if c == false then
+            retcode = false
+        end
+        ret = ret ..  p .. ": \n" .. r .."\n"
+    end
+
 	return retcode, ret
 end
+
 function sysupgrade()
 	local ret = run("overthebox_last_upgrade -f")
         return true, ret
