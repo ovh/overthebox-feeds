@@ -34,7 +34,9 @@ case "$ACTION" in
 
 			logger /usr/bin/multipath $DEVICE $MPTCP
 		fi
-
+		# Re-activate DNS of this interface
+		sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf
+		sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf.auto
 		;;
 	ifdown)
 
@@ -55,7 +57,9 @@ case "$ACTION" in
 				logger route delete $DST gw $GW dev $DEVICE
 			fi
 		fi
-
+		# Desactivate DNS of this interface
+		sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf
+		sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf.auto
 		;;
 esac
 
