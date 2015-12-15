@@ -543,7 +543,7 @@ end
 
 function confirm_action(action, status, msg )
 	if action == nil then
-		return
+		return false, {error = "Can't confirm a nil action"}
 	end
 	if msg == nil then
 		msg = ""
@@ -553,6 +553,7 @@ function confirm_action(action, status, msg )
 	end
 
 	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
+
 	return (rcode == 200), res
 end
 

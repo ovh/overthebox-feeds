@@ -146,7 +146,11 @@ while run do
 			end
 			checkConfirm, errTab = overthebox.confirm_action(ret.id, actionreturn, msg)
 			if checkConfirm == false then
-				errMsg = errTab.error
+				if errTab == nil or errTab.error == nil then
+					errMsg = "OTB Unknown error while updating action"
+				else
+					errMsg = errTab.error
+				end
 				debug("Error while updating action: ".. errMsg)
 			end
 		end
