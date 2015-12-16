@@ -63,7 +63,10 @@ start_instance() {
 	[ "$delay" -eq 1 ]      && procd_append_param command delay
 	[ "$noquickack" -eq 1 ] && procd_append_param command noquickack
 
-	procd_set_param respawn
+	# if process dies sooner than respawn_threshold, it is considered crashed and
+	# after respawn_retry retries the service is stopped
+	# procd_set_param respawn ${respawn_threshold:-3600} ${respawn_timeout:-5} ${respawn_retry:-5}
+	procd_set_param respawn 15 30 0
 	procd_close_instance
 
 }
