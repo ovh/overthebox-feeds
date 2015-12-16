@@ -715,6 +715,11 @@ function shaper:update()
 end
 
 function shaper:enableQos()
+	-- Bypass QoS management because of SQM
+	if true then
+		return nil
+	end
+
 	local download = shaper.download
 	local upload = shaper.upload
 	-- Check download speed
@@ -756,6 +761,11 @@ function shaper:enableQos()
 end
 
 function shaper:disableQos()
+	-- Bypass QoS management because of SQM
+	if true then
+		return nil
+	end
+
 	log(string.format("Disabling QoS on interface %s", shaper.interface))
 	-- updating uci
 	uci:delete("qos", shaper.interface, "download")

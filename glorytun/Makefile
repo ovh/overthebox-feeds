@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.8
-PKG_RELEASE=1
+PKG_VERSION:=0.0.14
+PKG_RELEASE=2
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/angt/glorytun.git
-PKG_SOURCE_VERSION:=8989138051c17460db8fa442a20243ebc650d3b4
+PKG_SOURCE_VERSION:=113f1ae58d3c2c23520ad7a370d15b6cad5a431a
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
@@ -39,6 +39,7 @@ define Package/glorytun/conffiles
 endef
 
 define Package/glorytun/install
+	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/
 endef

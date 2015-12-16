@@ -170,17 +170,6 @@ setup_uci() {
                 uci set network.$IF.metric="$IND"
                 uci set network.$IF.macaddr="$MACADDR"
 
-    	        # Create statics route for each dns
-    	        for sdns in $dns;
-	            do
-                    if [ "$sdns" != "$router" ]; then
-	                    uci add network route
-                        uci set network.@route[-1].interface="$IF"
-                        uci set network.@route[-1].target="$sdns"
-                        uci set network.@route[-1].gateway="$router"
-                    fi
-    	        done
-
     	        # Setup firewall
     	    	LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
     	        if [ -z $LANZONE ]; then
@@ -250,8 +239,6 @@ setup_uci() {
                     uci set dhcp.$IF.start="50"
                     uci set dhcp.$IF.limit="200"
                     uci set dhcp.$IF.leasetime="12h"
-                    uci set dhcp.$IF.dhcp_option="option:router,192.168.99.1 option:dns-server,192.168.99.1"
-                    echo 'host-record=sticky.ovh,192.168.99.1' >> /etc/dnsmasq.conf
                 fi
 
         		# Get mac address of the router
@@ -292,17 +279,6 @@ setup_uci() {
 	                        uci set network.$IF.dns="$dns"
 		    	    	uci set network.$IF.metric="$IND"
        				uci set network.$IF.macaddr="$MACADDR"
-
-		                # Create statics route for each dns
-		                for sdns in $dns;
-		                do
-		                    if [ "$sdns" != "$router" ]; then
-		                        uci add network route
-		                        uci set network.@route[-1].interface="$IF"
-		                        uci set network.@route[-1].target="$sdns"
-		                        uci set network.@route[-1].gateway="$router"
-		                    fi
-		                done
 
 	                        # Setup firewall
 	                        LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")

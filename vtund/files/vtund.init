@@ -70,12 +70,14 @@ Sticky
 		ip "rule add from $LOCALIP table 100 pref 10100";
 		ip "route add default via $REMOTEIP table 100";
 		ip "route add default via $REMOTEIP metric 1000";
+		program "/etc/init.d/shadowsocks start";
 	};
 	down
 	{
 		ifconfig "%% down ";
 		ip "rule del from $LOCALIP table 100";
 		ip "route del default via $REMOTEIP table 100";
+		program "/etc/init.d/shadowsocks stop";
 	};
 }
 
