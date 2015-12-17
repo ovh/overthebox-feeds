@@ -21,7 +21,6 @@ validate_section() {
 		'ippeer:string'        \
 		'mtu:uinteger'         \
 		'pref:uinteger'        \
-		'metric:uinteger'      \
 		'table:uinteger'       \
 		'multiqueue:bool:0'    \
 		'buffer_size:uinteger' \
@@ -47,6 +46,8 @@ start_instance() {
 
 	echo -n "$key" > /tmp/glorytun/$s.key
 	key=""
+
+	metric=$(uci -q get network.$dev.metric)
 
 	procd_open_instance
 	procd_set_param command "$PROG" host $server port $port keyfile /tmp/glorytun/$s.key
