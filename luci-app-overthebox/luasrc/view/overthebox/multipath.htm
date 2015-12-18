@@ -692,6 +692,14 @@
 		}, 1000
 <% end %>
 	);
+
+// Set 1h reload page timer because of suspected SVG graph memmory leak
+window.setTimeout(function()
+{ 
+        if (activating == false)
+                location.reload(true) 
+}, 3600000)
+
 //]]></script>
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
