@@ -604,6 +604,7 @@ end
 
 -- notification events
 function notify_boot()
+    send_properties( {interfaces="all"} )
 	return notify("BOOT")
 end
 function notify_shutdown()
