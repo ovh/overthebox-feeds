@@ -107,12 +107,6 @@ function config()
         uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
         uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
 
-        if res.tun_conf.app == 'glorytun' then
-            uci:set('glorytun', 'otb', 'enable', '1')
-        else
-            uci:set('glorytun', 'otb', 'enable', '0')
-        end
-
         uci:set('glorytun', 'otb', 'table',   '99' )
         uci:set('glorytun', 'otb', 'pref',    '10099' )
 
@@ -121,11 +115,14 @@ function config()
         table.insert(ret, 'glorytun')
     end
 
-    if not res.tun_app then
-        res.tun_app = "none"
+    if not res.tun_conf then
+        res.tun_conf = {}
+    end
+    if not res.tun_conf.app then
+        res.tun_conf.app = "none"
     end
 
-    if res.tun_app == 'glorytun' then
+    if res.tun_conf.app == 'glorytun' then
         uci:set('glorytun', 'otb', 'enable', '1')
         uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
     else
@@ -135,7 +132,7 @@ function config()
     uci:commit('glorytun')
 
 
-    if res.tun_app == 'vtun' then
+    if res.tun_conf.app == 'vtun' then
         uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
         uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
     else
