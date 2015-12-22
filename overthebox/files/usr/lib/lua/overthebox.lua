@@ -280,11 +280,6 @@ end
 
 
 function createKey(remoteId)
-    uci:set("overthebox", "remote", "config")
-    uci:set("overthebox", "remote", "remote_access_id", remoteId)
-    uci:save('overthebox')
-    uci:commit('overthebox')
-
     ret, key = create_ssh_key()
     if ret and key then
         local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
@@ -322,43 +317,22 @@ function create_ssh_key()
 end
 
 function remoteAccessConnect(args)
-    if not args then
-        return false, "no arguments"
+    if not args or not exists( args, 'forwarded_port', 'ip', 'port', 'server_public_key', 'remote_public_key')    then
+        return false, "no arguments or missing"
     end
 
-    local remoteAccessId = uci:get("overthebox", "remote", "remote_access_id")
-
-    if remoteAccessId ~= args.remote_access_id then
-        return false, "remote_access_id does not match"
-    end
+    local name="remote"..args.port
 
     -- set arguments to config
-    uci:set("overthebox", "remote", "config")
-    if args.forwarded_port then
-        uci:set("overthebox", "remote", "forwarded_port", args.forwarded_port )
-    end
-    if args.ip then
-        uci:set("overthebox", "remote", "ip", args.ip )
-    end
-    if args.port then
-        uci:set("overthebox", "remote", "port", args.port )
-    end
+    uci:set("overthebox", name, "remote")
+    uci:set("overthebox", name, "forwarded_port", args.forwarded_port )
+    uci:set("overthebox", name, "ip", args.ip )
+    uci:set("overthebox", name, "port", args.port )
+    uci:set("overthebox", name, "server_public_key", args.server_public_key)
+    uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
 
     uci:save("overthebox")
     uci:commit("overthebox")
-
-    local ssh_dir = "/root/.ssh"
-
-    if not file_exists( ssh_dir ) then
-        local ret = run("mkdir -p "..ssh_dir.." && chmod 700 "..ssh_dir)
-    end
-    if args.ip and args.server_public_key then
-        add_known_hosts(args.ip, args.server_public_key)
-    end
-
-    if args.remote_public_key then
-        add_authorized_key(args.remote_access_id, args.remote_public_key)
-    end
 
     local ret = run("/etc/init.d/otb-remote restart")
 
@@ -370,125 +344,15 @@ function remoteAccessDisconnect(args)
         return false, "no arguments"
     end
 
-    local remoteAccessId = uci:get("overthebox", "remote", "remote_access_id")
+    local name="remote"..args.port
 
-    if not args.remote_access_id or remoteAccessId ~= args.remote_access_id then
-        return false, "remote_access_id does not match"
-    end
-
-    del_known_hosts( uci:get("overthebox", "remote", "ip"))
-    del_authorized_key( remoteAccessId )
-
-    uci:delete("overthebox", "remote", "remote_access_id")
-    uci:delete("overthebox", "remote", "ip")
-    uci:delete("overthebox", "remote", "port")
+    uci:delete("overthebox", name)
     uci:commit("overthebox")
     uci:save("overthebox")
 
     local ret = run("/etc/init.d/otb-remote stop")
 
     return true, "ok"
-end
-
-
--- add key in known host
-function add_known_hosts(host, key)
-    key = chomp(key)
-    filename = "/root/.ssh/known_hosts"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            if t[1] ~= host then
-                table.insert(lines, line)
-            end
-        end
-    end
-    local t = split(key)
-    table.insert(lines, host .. " " .. t[1] .. " " .. t[2].."\n")
-
-    file = io.open(filename, "w")
-    file:write(table.concat(lines, "\n"))
-    file:close()
-end
-
--- remove host's key in known host
-function del_known_hosts(host)
-    filename = "/root/.ssh/known_hosts"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            if t[1] ~= host then
-                table.insert(lines, line)
-            end
-        end
-
-        file = io.open(filename, "w")
-        file:write(table.concat(lines, "\n").."\n")
-        file:close()
-    end
-end
-
--- add key in authorized key file
-function add_authorized_key(id, key)
-    key = chomp(key)
-    filename = "/etc/dropbear/authorized_keys"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            local ind = 1
-            local len = table.getn(t)
-            while ind < len and not string_starts(t[ind], "ssh-") do
-                ind = ind + 1
-            end
-
-            if ind + 2 <= len and t[ind + 2] == id then
-                --
-            else
-                table.insert(lines, line)
-            end
-        end
-    end
-    local t = split(key)
-    table.remove(t) -- remove the last field
-    table.insert(t, id)
-    table.insert(lines, table.concat(t, " ").."\n")
-
-    file = io.open(filename, "w")
-    file:write(table.concat(lines, "\n"))
-    file:close()
-end
-
--- remove id's key in authorized key file
-function del_authorized_key(id)
-    filename = "/etc/dropbear/authorized_keys"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            local ind = 1
-            local len = table.getn(t)
-            while ind < len and not string_starts(t[ind], "ssh-") do
-                ind = ind + 1
-            end
-
-            if ind + 2 <= len and t[ind + 2] == id then
-                --
-            else
-                table.insert(lines, line)
-            end
-        end
-
-        file = io.open(filename, "w")
-        file:write(table.concat(lines, "\n").."\n")
-        file:close()
-    end
 end
 
 function string_starts(String,Start)
