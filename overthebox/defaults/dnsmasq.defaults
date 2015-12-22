@@ -21,5 +21,10 @@ if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci commit dhcp
 fi
 
+if ! uci -q get dhcp.lan.ra_preference 1>/dev/null 2>/dev/null; then
+	uci set dhcp.lan.ra_preference='high'
+	uci commit dhcp
+fi
+
 exit 0
 
