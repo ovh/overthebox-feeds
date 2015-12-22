@@ -5,28 +5,92 @@ STOP=90
 
 USE_PROCD=1
 
+sshkey="/root/.ssh/otb_remote"
+knownhosts="/root/.ssh/known_hosts"
+authkeys="/etc/dropbear/authorized_keys"
 
-start_service() {
-    sectioncfg="overthebox.remote"
-    sshkey="/root/.ssh/otb_remote"
 
-    # do not start ssh tunnel if customer does not want it.
-    [ "$(uci get -q $sectioncfg.forbid)" = "1" ] && return
+mount_ram() {
+	local DST="$1"
+	local TMP="$2"
 
-    [ "$(uci get -q $sectioncfg.disable)" = "1" ] && return
+	[ ! -d "$DST" ] && echo error: $DST not found && return 1
+	[ ! -d "$TMP" ] && mkdir $TMP
 
+	grep -q -s "$DST" /proc/mounts && echo error: $DST already mount && return 1;
+
+	chown root $TMP
+	chmod 700 $TMP
+
+	rm $TMP/* -fr
+	cp -a $DST/* $TMP/
+
+	mount -o bind $TMP $DST
+}
+
+umount_ram() {
+	local DST="$1"
+	local TMP="$2"
+
+	grep -q -s "$DST" /proc/mounts || return 1;
+	umount "$DST"
+	rm $TMP -fr
+}
+
+validate_section() {
+        uci_validate_section overthebox remote "${1}" \
+		'enable:bool:1'            \
+		'ip:string'                \
+		'port:uinteger'            \
+		'forwarded_port:uinteger'  \
+		'remote_public_key:string' \
+		'server_public_key:string'
+}
+
+start_instance() {
+    local s="${1}"
+    validate_section "${1}" || {
+    	echo "validation failed"
+    	return 1
+    }
+
+    [ "$enable" = "0" ] && return
     [ ! -e "$sshkey" ] && return
 
-    ip=$(uci get -q $sectioncfg.ip) || return
-    port=$(uci get -q $sectioncfg.port) || return
-    forwarded_port=$(uci get -q $sectioncfg.forwarded_port) || return
+    [ -n "$ip" ]   || return 1
+    [ -n "$port" ] || return 1
+    [ -n "$forwarded_port" ] || return 1
+    [ -n "$remote_public_key" ] || return 1
+    [ -n "$server_public_key" ] || return 1
+
     internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
 
-    echo run tunnel ssh to $ip:$port
+    grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+
+    hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
+    grep -q "$hostkey" $knownhosts || echo "$hostkey" >> $knownhosts
+
+    echo run tunnel ssh to $ip:$port $s
 
     procd_open_instance
     procd_set_param env HOME=/root
     procd_set_param command /usr/bin/ssh -l limited-user $ip -p $port -N -R 6666:$internal_lan_ip:$forwarded_port -i $sshkey -K 30
     procd_set_param respawn
     procd_close_instance
+}
+
+start_service() {
+    # do not start ssh tunnel if customer does not want it.
+    [ "$(uci get -q overthebox.me.forbidremote)" = "1" ] && return
+
+    mount_ram /etc/dropbear /tmp/dropbear
+    mount_ram /root/.ssh /tmp/root_ssh
+
+    config_load 'overthebox'
+    config_foreach start_instance 'remote'
+}
+
+stop_service() {
+     umount_ram /etc/dropbear /tmp/dropbear
+     umount_ram /root/.ssh /tmp/root_ssh
 }
