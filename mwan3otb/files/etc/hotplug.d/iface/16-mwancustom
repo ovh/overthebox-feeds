@@ -16,6 +16,9 @@ case "$ACTION" in
 		esac
 
 		if [ -n "$MPTCP" ]; then
+			# Re-activate DNS of this interface
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf.auto
 			# static route for mptcp
 			DST=$(uci -q get shadowsocks.proxy.server)
 			GW=$(uci -q get network.$DEVICE.gateway)
@@ -34,9 +37,6 @@ case "$ACTION" in
 
 			logger /usr/bin/multipath $DEVICE $MPTCP
 		fi
-		# Re-activate DNS of this interface
-		sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf
-		sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf.auto
 		;;
 	ifdown)
 
@@ -50,6 +50,10 @@ case "$ACTION" in
 				MPTCP="";;
 		esac
 		if [ -n "$MPTCP" ]; then
+			# Desactivate DNS of this interface
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf.auto
+			# static route for mptcp
 			DST=$(uci -q get shadowsocks.proxy.server)
 			GW=$(uci -q get network.$DEVICE.gateway)
 			if [ -n "$DST" ] && [ -n "$GW" ]; then
@@ -57,9 +61,6 @@ case "$ACTION" in
 				logger route delete $DST gw $GW dev $DEVICE
 			fi
 		fi
-		# Desactivate DNS of this interface
-		sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf
-		sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf.auto
 		;;
 esac
 
