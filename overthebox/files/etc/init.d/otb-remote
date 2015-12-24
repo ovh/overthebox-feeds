@@ -83,6 +83,8 @@ start_service() {
     # do not start ssh tunnel if customer does not want it.
     [ "$(uci get -q overthebox.me.forbidremote)" = "1" ] && return
 
+
+    mkdir /tmp/dropbear /tmp/root_ssh
     mount_ram /etc/dropbear /tmp/dropbear
     mount_ram /root/.ssh /tmp/root_ssh
 
