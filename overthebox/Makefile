@@ -81,6 +81,9 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 		mv /tmp/platform.sh /lib/upgrade/platform.sh
 	    fi
 	fi
+	if [ ! -f /root/.ssh/otb_remote.pub ] ; then
+		dropbearkey -t rsa -s 4096 -f /root/.ssh/otb_remote |grep ^ssh- > /root/.ssh/otb_remote.pub
+	fi
 	exit 0
 fi
 endef
