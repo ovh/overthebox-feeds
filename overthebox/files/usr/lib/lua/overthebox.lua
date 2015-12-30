@@ -474,9 +474,16 @@ end
 function notify_shutdown()
         return notify("SHUTDOWN")
 end
-
-function notify(event)
-	return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time()})
+function notify_ifdown(iface)
+        mprobe = uci:get("mwan3", iface, "track_method") or ""
+        return notify("IFDOWN", {interface=iface, probe=mprobe})
+end
+function notify_ifup(iface)
+        mprobe = uci:get("mwan3", iface, "track_method") or ""
+        return notify("IFUP", {interface=iface, probe=mprobe})
+end
+function notify(event, details)
+        return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time(), details = details})
 end
 
 

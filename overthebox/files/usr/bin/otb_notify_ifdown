@@ -1,0 +1,4 @@
+#!/usr/bin/env lua
+local overthebox = require 'overthebox'
+-- overthebox.debug = true
+overthebox.notify_ifdown(arg[1])
