@@ -49,6 +49,13 @@ if [ $? -ne 0 ]; then
 EOF
 fi
 
+# be sure, ipv6 interface is here
+uci -q batch <<-EOF >/dev/null
+    set network.if6rd=interface
+    set network.if6rd.proto='none'
+    set network.if6rd.ifname=‘6rd’
+    set network.if6rd.multipath='off'
+EOF
 
 CHANGES=$(uci changes network)
 if [ -n "$CHANGES" ]
