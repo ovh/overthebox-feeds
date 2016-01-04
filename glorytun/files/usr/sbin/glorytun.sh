@@ -14,7 +14,7 @@ echo glorytun dev ${dev} statefile $STATE retry count -1 $*  | logger -t glorytu
 glorytun dev ${dev} statefile $STATE retry count -1 $* &
 GTPID=$!
 
-up() {
+initialized() {
     logger -t glorytun SETUP ${dev}
 
     ip addr add ${iplocal} peer ${ippeer} dev ${dev}
@@ -22,6 +22,9 @@ up() {
     ip link set ${dev} up
 
     multipath ${dev} off
+}
+started() {
+    logger -t glorytun UP
     [ -z "${pref}" ] && pref=0
 
     if [ -n "${table}" ]; then
@@ -44,12 +47,13 @@ while true; do
     kill -0 ${GTPID} || break
     read line || break
     case $line in
+	INITIALIZED)
+	    initialized
+	    ;;
 	STARTED)
-	    logger -t glorytun UP
-	    up
+	    started
 	    ;;
 	STOPPED)
-	    logger -t glorytun DOWN
 	    down
 	    ;;
 	*)
