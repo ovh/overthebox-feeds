@@ -27,7 +27,7 @@ case "$ACTION" in
 				logger route add $DST gw $GW dev $DEVICE
 			fi
 			# Notify OverTheBox API
-			/usr/bin/otb_notify_ifup $DEVICE &;
+			/usr/bin/otb_notify_ifup $DEVICE &
 			# On interface tracking back to life we re-initialize multipath on this interface
 			/usr/bin/multipath $DEVICE off
 			sleep 1
@@ -63,7 +63,7 @@ case "$ACTION" in
 				logger route delete $DST gw $GW dev $DEVICE
 			fi
 			# Notify OverTheBox API
-			/usr/bin/otb_notify_ifdown $DEVICE &;
+			/usr/bin/otb_notify_ifdown $DEVICE &
 		fi
 		;;
 esac
