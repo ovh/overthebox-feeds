@@ -8,16 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.16
-PKG_RELEASE=3
-
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/angt/glorytun.git
-PKG_SOURCE_VERSION:=ffa549e4449a39944bbf7a53a78b1f5a2e652de8
+PKG_VERSION:=0.0.21
+PKG_RELEASE=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_FIXUP:=autoreconf
+PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
+PKG_MD5SUM:=156867206a5e4d6327cf9ad05397c580
 
 include $(INCLUDE_DIR)/package.mk
 
