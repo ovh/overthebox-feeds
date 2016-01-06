@@ -915,10 +915,6 @@ function ipv6_discover(interface)
 				value = value:gsub("%s+$", '')
 			end
 
-			if param:match('DnsServer') then
-				entry[param] = {}
-			end
-
 			if entry[param] == nil then
 				entry[param] = value
 			elseif type(entry[param]) == "table" then
