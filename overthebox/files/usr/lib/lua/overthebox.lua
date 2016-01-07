@@ -191,6 +191,9 @@ function send_properties( props )
                 body.interfaces = {}
                 uci:foreach("network", "interface",
                         function (e)
+                                if not e.ifname then
+                                    return
+                                end
                                 entry = {
                                         ip=e.ipaddr,
                                         netmask=e.netmask,
