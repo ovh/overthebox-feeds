@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.1
-PKG_RELEASE:=62
+PKG_RELEASE:=63
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -21,7 +21,7 @@ define Package/overthebox
         SECTION:=utils
         CATEGORY:=OVH
         TITLE:=overthebox tool
-        DEPENDS:= +bosun +mwan3otb +shadowsocks-libev +vtund +mptcp
+        DEPENDS:= +bosun +mwan3otb +shadowsocks-libev +vtund +mptcp +rdisc6
 endef
 
 define Package/overthebox/description

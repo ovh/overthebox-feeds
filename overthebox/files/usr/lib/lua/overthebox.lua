@@ -878,6 +878,63 @@ function list_running_dhcp()
 	return result
 end
 
+function ipv6_discover(interface)
+	local interface = interface or 'eth0'
+	local result = {}
+
+	local ra6_list = (sys.exec("rdisc6 -nm " .. interface))
+	-- dissect results
+	local lines = {}
+	local index = {}
+	ra6_list:gsub('[^\r\n]+', function(c)
+		table.insert(lines, c)
+		if c:match("Hop limit") then
+			table.insert(index, #lines)
+		end
+	end)
+	local ra6_result = {}
+	for k,v in ipairs(index) do
+		local istart = v
+		local iend = index[k+1] or #lines
+
+		local entry = {}
+		for i=istart,iend - 1 do
+			local level = lines[i]:find('%w')
+			local line = lines[i]:sub(level)
+
+			local param, value
+			if line:match('^from') then
+				param, value = line:match('(from)%s+(.*)$')
+			else
+				param, value = line:match('([^:]+):(.*)$')
+				-- Capitalize param name and remove spaces
+				param = param:gsub("(%a)([%w_']*)", function(first, rest) return first:upper()..rest:lower() end):gsub("[%s-]",'')
+				param = param:gsub("%.$", '')
+				-- Remove text between brackets, seconds and spaces
+				value = value:lower()
+				value = value:gsub("%(.*%)", '')
+				value = value:gsub("%s-seconds%s-", '')
+				value = value:gsub("^%s+", '')
+				value = value:gsub("%s+$", '')
+			end
+
+			if entry[param] == nil then
+				entry[param] = value
+			elseif type(entry[param]) == "table" then
+				table.insert(entry[param], value)
+			else
+				old = entry[param]
+				entry[param] = {}
+				table.insert(entry[param], old)
+				table.insert(entry[param], value)
+			end
+		end
+		table.insert(ra6_result, entry)
+	end
+--	tprint(ra6_result)
+	return ra6_result
+end
+
 function create_dhcp_server()
 	local result = {}
 	local uci = require('luci.model.uci').cursor()
