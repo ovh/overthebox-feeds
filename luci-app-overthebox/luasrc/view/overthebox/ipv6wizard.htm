@@ -83,7 +83,10 @@ end)
 			{
 				displayedMac = {};
 				document.getElementById('ipv6_wizard').innerHTML = "";
-				mArray.forEach(displayIPv6)
+				if(typeof(mArray) === 'object' && Object.keys(mArray).length > 0)
+				{
+					mArray.forEach(displayIPv6)
+				}
 			}
 		);
 	}
