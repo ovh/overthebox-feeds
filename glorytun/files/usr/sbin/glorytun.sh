@@ -11,7 +11,7 @@ mkfifo $STATE
 
 trap "pkill -TERM -P $$" TERM
 echo glorytun dev ${dev} statefile $STATE retry count -1 $*  | logger -t glorytun
-glorytun dev ${dev} statefile $STATE retry count -1 $* &
+glorytun dev ${dev} statefile $STATE retry count -1 timeout 5000 $* &
 GTPID=$!
 
 initialized() {
