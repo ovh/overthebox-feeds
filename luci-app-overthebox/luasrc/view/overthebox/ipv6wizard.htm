@@ -83,7 +83,10 @@ end)
 			{
 				displayedMac = {};
 				document.getElementById('ipv6_wizard').innerHTML = "";
-				mArray.forEach(displayIPv6)
+				if(typeof(mArray) === 'object' && Object.keys(mArray).length > 0)
+				{
+					mArray.forEach(displayIPv6)
+				}
 			}
 		);
 	}
@@ -120,7 +123,7 @@ end)
 		// build template
 		var content = '';
 		content += '<table width="100%" cellspacing="10">';
-		content += String.format('<tr><td colspan="2"><strong style="color: red;">%s</strong></td></tr>', "<%:This can cause network problems with some android systems or aggregation, please             desactivate%>")
+		content += String.format('<tr><td colspan="2"><strong style="color: orange;">%s</strong></td></tr>', "<%:This can cause network problems with some android systems, desactivate if you encounter issues with android%>")
 		content += '<tr><td width="33%"><%:Mac Address%></td>';
 		content += String.format('<td>%s</td></tr>', mac);
 		content += '<tr><td width="33%"><%:IPv4 Address%></td>';
