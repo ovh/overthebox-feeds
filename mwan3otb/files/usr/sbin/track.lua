@@ -24,10 +24,12 @@ local sig = require "posix.signal"
 local json	= require("luci.json")
 local uci	= require("luci.model.uci").cursor()
 local sys	= require("luci.sys")
-
+local dns	= require("org.conman.dns")
 -- sig.signal (sig.SIGQUIT, handle_exit)
 -- sig.signal (sig.SIGTERM, handle_exit)
 -- sig.signal (sig.SIGINT,  handle_exit)
+
+local method -- ping function bindings
 
 local function handle_exit()
 	p.closelog()
@@ -92,10 +94,17 @@ function dns_request( host, interface, timeout, domain)
 	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	if not ok then return ok, err end
 
-	math.randomseed( os.time() )
-
-	domain = string.gsub(domain, '%.', string.char(0x03))
-	local data = string.char( math.random(255), math.random(255), 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03) .. domain .. string.char(0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00,   0x00, 0x00, 0x00, 0x00, 0x00)
+	local data = dns.encode {
+		id       = math.randomseed( os.time() ),
+		query    = true,
+		rd       = true,	-- recursion desired
+		opcode   = 'query',
+		question = {
+			name  = domain,	-- FQDN required
+			type  = "A",	-- LOC rr
+			class = "IN"
+		}
+	}
 
 	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
         -- Send message
@@ -106,15 +115,50 @@ function dns_request( host, interface, timeout, domain)
 	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
 	if fd then p.close(fd) end
 	if data then
-		local r = string.byte(data, 3, 4) -- byte of the first char
-		if     r > 127 then return true, (diff_nsec(t1, t2)/1000000)
+		local t = (diff_nsec(t1, t2)/1000000)
+		if t > 1 then
+			local reply = dns.decode(data)
+			if reply and type(reply.answers) == "table" then
+				if #reply.answers > 0 and reply.answers[1].address == "127.0.0.1" then
+					return true, t
+				else
+					log("lying dns proxy server detected, falling back to ICMP ping method")
+					tlog(reply.answers)
+					method = function(s) return ping(s , opts["i"], opts["t"]) end
+					return false, "dns lying proxy detected"
+				end
+			else
+				local r = string.byte(data, 3, 4) -- byte of the first char
+				if r > 127 then 
+					return true, (diff_nsec(t1, t2)/1000000)
+				else
+					return false, "other error : "..r
+				end
+			end
 		else
-			-- hex_dump(data)
-			return false, "other error : "..r
+			log("dns proxy/cache detected, falling back to ICMP ping method")
+			method = function(s) return ping(s , opts["i"], opts["t"]) end
+			return false, "dns proxy/cache detected"
 		end
 	else
 		return false, sa
 	end
+end
+
+function tlog (tbl, indent)
+  if not indent then indent = 0 end
+  if not tbl then return end
+  for k, v in pairs(tbl) do
+    formatting = string.rep("  ", indent) .. k .. ": "
+    if type(v) == "table" then
+      log(formatting)
+      tlog(v, indent+1)
+    elseif type(v) == 'boolean' then
+      log(formatting .. tostring(v))
+    else
+      log(formatting .. v)
+    end
+  end
 end
 
 function socks_request( host, interface, timeout, port )
@@ -269,12 +313,12 @@ end
 function hex_dump(buf)
       for byte=1, #buf, 16 do
          local chunk = buf:sub(byte, byte+15)
-         io.write(string.format('%08X  ',byte-1))
-         chunk:gsub('.', function (c) io.write(string.format('%02X ',string.byte(c))) end)
-         io.write(string.rep(' ',3*(16-#chunk)))
-         io.write(' ',chunk:gsub('%c','.'),"\n") 
+         log(string.format('%08X  ',byte-1))
+         chunk:gsub('.', function (c) log(string.format('%02X ',string.byte(c))) end)
+         log(string.rep(' ',3*(16-#chunk)))
+         log(' ',chunk:gsub('%c','.'),"\n")
       end
-   end
+end
 
 
 local arguments = {
@@ -372,10 +416,9 @@ end
 
 
 
-local method
 if opts["m"] == "dns" then
 	debug("test dns method")
-	method = function(s) return dns_request( s, opts["i"], opts["t"], "www.ovh.com") end
+	method = function(s) return dns_request( s, opts["i"], opts["t"], "localhost.") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	method = function(s) return socks_request(s, opts["i"], opts["t"], "1090") end

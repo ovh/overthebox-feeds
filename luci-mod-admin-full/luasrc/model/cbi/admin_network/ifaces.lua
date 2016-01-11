@@ -328,6 +328,10 @@ aushape:value("static", translate("Static"))
 aushape:value("auto", translate("Adaptive (experimental)"))
 aushape.default = "off"
 aushape:depends("multipath", "on")
+aushape:depends("multipath", "master")
+aushape:depends("multipath", "backup")
+aushape:depends("multipath", "handover")
+
 aushape:depends("qos", "basic")
 
 download = s:taboption("autoshape", Value, "download", translate("Download bandwidth in kbit/s"))

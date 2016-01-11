@@ -78,66 +78,111 @@ function exists(obj, ...)
 end
 
 function config()
-        local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
-	local ret = {}
+    local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
+    local ret = {}
 
-	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk') then
-		uci:set('vtund', 'tunnel', 'client')
-		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
-		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
-		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
-		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
-		uci:set('vtund', 'tunnel', 'localip', '10.166.177.2')
-		uci:set('vtund', 'tunnel', 'remoteip', '10.166.177.1')
-		uci:save('vtund')
-		uci:commit('vtund')
-		table.insert(ret, "vtund")
+    if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local' ) then
+        uci:set('vtund', 'tunnel', 'client')
+
+        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+        uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
+        uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
+        uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
+        uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
+        uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
+
+        uci:save('vtund')
+        uci:commit('vtund')
+        table.insert(ret, "vtund")
+
+    end
+
+    if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu') then
+        uci:set('glorytun', 'otb', 'tunnel')
+        uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
+        uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
+        uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+        uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
+        uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
+        uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
+        uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
+
+        uci:set('glorytun', 'otb', 'table',   '99' )
+        uci:set('glorytun', 'otb', 'pref',    '10099' )
+
+        uci:save('glorytun')
+        uci:commit('glorytun')
+        table.insert(ret, 'glorytun')
+    end
+
+    if not res.tun_conf then
+        res.tun_conf = {}
+    end
+    if not res.tun_conf.app then
+        res.tun_conf.app = "none"
+    end
+
+    if res.tun_conf.app == 'glorytun' then
+        uci:set('glorytun', 'otb', 'enable', '1')
+        uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+    else
+        uci:set('glorytun', 'otb', 'enable', '0')
+    end
+    uci:save('glorytun')
+    uci:commit('glorytun')
 
 
-		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server )
-		uci:delete('mwan3', 'socks', 'dest_port')
-		uci:save('mwan3')
-		uci:commit('mwan3')
-	end
+    if res.tun_conf.app == 'vtun' then
+        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+        uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
+    else
+        uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
+    end
+    uci:save('vtund')
+    uci:commit('vtund')
 
-	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-		uci:set('shadowsocks','proxy','client')
-		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
-		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
-		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
-		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
-		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
-		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
-		uci:save('shadowsocks')
-		uci:commit('shadowsocks')
-		table.insert(ret, "shadowsocks")
-	end
+    uci:delete('mwan3', 'socks', 'dest_port')
+    uci:save('mwan3')
+    uci:commit('mwan3')
 
-	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-		uci:set('scollector','opentsdb', 'client')
-		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
-		uci:save('scollector')
-		uci:commit('scollector')
-		table.insert(ret, 'scollector')
-	end
+    if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
+        uci:set('shadowsocks','proxy','client')
+        uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+        uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+        uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+        uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+        uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+        uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+        uci:save('shadowsocks')
+        uci:commit('shadowsocks')
+        table.insert(ret, "shadowsocks")
+    end
 
-        if res.log_conf and exists( res.log_conf, 'host', 'port') then
+    if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
+        uci:set('scollector','opentsdb', 'client')
+        uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+        uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
+        uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+        uci:save('scollector')
+        uci:commit('scollector')
+        table.insert(ret, 'scollector')
+    end
 
-                uci:foreach("system", "system",
-                        function (e)
-                                uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
-                                uci:set('system', e[".name"], 'log_port', res.log_conf.port )
-                        end
-                )
+    if res.log_conf and exists( res.log_conf, 'host', 'port') then
 
-                uci:save('system')
-                uci:commit('system')
-                table.insert(ret, 'log')
+        uci:foreach("system", "system",
+        function (e)
+            uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+            uci:set('system', e[".name"], 'log_port', res.log_conf.port )
         end
+        )
 
-	return true, ret 
+        uci:save('system')
+        uci:commit('system')
+        table.insert(ret, 'log')
+    end
+
+    return true, ret 
 end
 
 function send_properties( props )
@@ -235,11 +280,6 @@ end
 
 
 function createKey(remoteId)
-    uci:set("overthebox", "remote", "config")
-    uci:set("overthebox", "remote", "remote_access_id", remoteId)
-    uci:save('overthebox')
-    uci:commit('overthebox')
-
     ret, key = create_ssh_key()
     if ret and key then
         local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
@@ -277,43 +317,22 @@ function create_ssh_key()
 end
 
 function remoteAccessConnect(args)
-    if not args then
-        return false, "no arguments"
+    if not args or not exists( args, 'forwarded_port', 'ip', 'port', 'server_public_key', 'remote_public_key')    then
+        return false, "no arguments or missing"
     end
 
-    local remoteAccessId = uci:get("overthebox", "remote", "remote_access_id")
-
-    if remoteAccessId ~= args.remote_access_id then
-        return false, "remote_access_id does not match"
-    end
+    local name="remote"..args.port
 
     -- set arguments to config
-    uci:set("overthebox", "remote", "config")
-    if args.forwarded_port then
-        uci:set("overthebox", "remote", "forwarded_port", args.forwarded_port )
-    end
-    if args.ip then
-        uci:set("overthebox", "remote", "ip", args.ip )
-    end
-    if args.port then
-        uci:set("overthebox", "remote", "port", args.port )
-    end
+    uci:set("overthebox", name, "remote")
+    uci:set("overthebox", name, "forwarded_port", args.forwarded_port )
+    uci:set("overthebox", name, "ip", args.ip )
+    uci:set("overthebox", name, "port", args.port )
+    uci:set("overthebox", name, "server_public_key", args.server_public_key)
+    uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
 
     uci:save("overthebox")
     uci:commit("overthebox")
-
-    local ssh_dir = "/root/.ssh"
-
-    if not file_exists( ssh_dir ) then
-        local ret = run("mkdir -p "..ssh_dir.." && chmod 700 "..ssh_dir)
-    end
-    if args.ip and args.server_public_key then
-        add_known_hosts(args.ip, args.server_public_key)
-    end
-
-    if args.remote_public_key then
-        add_authorized_key(args.remote_access_id, args.remote_public_key)
-    end
 
     local ret = run("/etc/init.d/otb-remote restart")
 
@@ -325,125 +344,15 @@ function remoteAccessDisconnect(args)
         return false, "no arguments"
     end
 
-    local remoteAccessId = uci:get("overthebox", "remote", "remote_access_id")
+    local name="remote"..args.port
 
-    if not args.remote_access_id or remoteAccessId ~= args.remote_access_id then
-        return false, "remote_access_id does not match"
-    end
-
-    del_known_hosts( uci:get("overthebox", "remote", "ip"))
-    del_authorized_key( remoteAccessId )
-
-    uci:delete("overthebox", "remote", "remote_access_id")
-    uci:delete("overthebox", "remote", "ip")
-    uci:delete("overthebox", "remote", "port")
+    uci:delete("overthebox", name)
     uci:commit("overthebox")
     uci:save("overthebox")
 
     local ret = run("/etc/init.d/otb-remote stop")
 
     return true, "ok"
-end
-
-
--- add key in known host
-function add_known_hosts(host, key)
-    key = chomp(key)
-    filename = "/root/.ssh/known_hosts"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            if t[1] ~= host then
-                table.insert(lines, line)
-            end
-        end
-    end
-    local t = split(key)
-    table.insert(lines, host .. " " .. t[1] .. " " .. t[2].."\n")
-
-    file = io.open(filename, "w")
-    file:write(table.concat(lines, "\n"))
-    file:close()
-end
-
--- remove host's key in known host
-function del_known_hosts(host)
-    filename = "/root/.ssh/known_hosts"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            if t[1] ~= host then
-                table.insert(lines, line)
-            end
-        end
-
-        file = io.open(filename, "w")
-        file:write(table.concat(lines, "\n").."\n")
-        file:close()
-    end
-end
-
--- add key in authorized key file
-function add_authorized_key(id, key)
-    key = chomp(key)
-    filename = "/etc/dropbear/authorized_keys"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            local ind = 1
-            local len = table.getn(t)
-            while ind < len and not string_starts(t[ind], "ssh-") do
-                ind = ind + 1
-            end
-
-            if ind + 2 <= len and t[ind + 2] == id then
-                --
-            else
-                table.insert(lines, line)
-            end
-        end
-    end
-    local t = split(key)
-    table.remove(t) -- remove the last field
-    table.insert(t, id)
-    table.insert(lines, table.concat(t, " ").."\n")
-
-    file = io.open(filename, "w")
-    file:write(table.concat(lines, "\n"))
-    file:close()
-end
-
--- remove id's key in authorized key file
-function del_authorized_key(id)
-    filename = "/etc/dropbear/authorized_keys"
-
-    local lines = {}
-    if file_exists(filename) then
-        for line in io.lines(filename) do
-            local t = split(line)
-            local ind = 1
-            local len = table.getn(t)
-            while ind < len and not string_starts(t[ind], "ssh-") do
-                ind = ind + 1
-            end
-
-            if ind + 2 <= len and t[ind + 2] == id then
-                --
-            else
-                table.insert(lines, line)
-            end
-        end
-
-        file = io.open(filename, "w")
-        file:write(table.concat(lines, "\n").."\n")
-        file:close()
-    end
 end
 
 function string_starts(String,Start)
@@ -485,7 +394,7 @@ function opkg_remove(package)
 end
 
 function upgrade()
-	local packages = {'overthebox', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm'}
+	local packages = {'overthebox', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun'}
     local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
 	local retcode = true
 	local ret = "install:\n"
@@ -543,7 +452,7 @@ end
 
 function confirm_action(action, status, msg )
 	if action == nil then
-		return
+		return false, {error = "Can't confirm a nil action"}
 	end
 	if msg == nil then
 		msg = ""
@@ -553,19 +462,28 @@ function confirm_action(action, status, msg )
 	end
 
 	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
+
 	return (rcode == 200), res
 end
 
 -- notification events
 function notify_boot()
+    send_properties( {interfaces="all"} )
 	return notify("BOOT")
 end
 function notify_shutdown()
         return notify("SHUTDOWN")
 end
-
-function notify(event)
-	return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time()})
+function notify_ifdown(iface)
+        mprobe = uci:get("mwan3", iface, "track_method") or ""
+        return notify("IFDOWN", {interface=iface, probe=mprobe})
+end
+function notify_ifup(iface)
+        mprobe = uci:get("mwan3", iface, "track_method") or ""
+        return notify("IFUP", {interface=iface, probe=mprobe})
+end
+function notify(event, details)
+        return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time(), details = details})
 end
 
 
@@ -727,7 +645,7 @@ function update_confmwan()
 	uci:foreach("network", "interface",
 		function (section)
 			if section["type"] == "macvlan" then
-				if section["multipath"] == "on" then
+				if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
 					if section["gateway"] then
 						size_interfaces = size_interfaces + 1
 						interfaces[ section[".name"] ] = section

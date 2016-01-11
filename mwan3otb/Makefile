@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mwan3otb
 PKG_VERSION:=1.7
-PKG_RELEASE:=7
+PKG_RELEASE:=10
 PKG_MAINTAINER:=Jeroen Louwes <jeroen.louwes@gmail.com>
 PKG_LICENSE:=GPLv2
 
@@ -19,7 +19,7 @@ define Package/mwan3otb
    SECTION:=net
    CATEGORY:=Network
    SUBMENU:=Routing and Redirection
-   DEPENDS:=+ip +ipset +iptables +iptables-mod-conntrack-extra +iptables-mod-ipopt
+   DEPENDS:=+ip +ipset +iptables +iptables-mod-conntrack-extra +iptables-mod-ipopt +lua-spcdns
    CONFLICTS:=mwan3
    TITLE:=Multiwan hotplug script with connection tracking support - overthebox version
    MAINTAINER:=Jeroen Louwes <jeroen.louwes@gmail.com>

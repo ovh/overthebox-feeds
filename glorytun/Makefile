@@ -8,16 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.14
-PKG_RELEASE=2
-
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/angt/glorytun.git
-PKG_SOURCE_VERSION:=113f1ae58d3c2c23520ad7a370d15b6cad5a431a
+PKG_VERSION:=0.0.21
+PKG_RELEASE=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_FIXUP:=autoreconf
+PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
+PKG_MD5SUM:=156867206a5e4d6327cf9ad05397c580
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -42,6 +38,13 @@ define Package/glorytun/install
 	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/
+endef
+
+define Package/glorytun/postinst
+#!/bin/sh
+if [ -z $${IPKG_INSTROOT} ] ; then
+	touch /etc/config/glorytun
+fi
 endef
 
 

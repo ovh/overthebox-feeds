@@ -26,7 +26,8 @@
 	local devices = { "all" }
 	for _, dev in luci.util.vspairs(luci.sys.net.devices()) do
 		if dev ~= "lo" and not ntm:ignore_interface(dev) then
-			if uci:get("network", dev, "multipath") == "on" then
+			local multipath = uci:get("network", dev, "multipath")
+			if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
 				devices[#devices+1] = dev
 			end
 		end
@@ -119,6 +120,24 @@
 	var dndata	= {};
         var upPolygons 	= {};
 	var updata  	= {};
+
+        /* Smoother */
+        function simple_moving_averager(name, period) {
+                var nums = {}
+                nums[name] = [];
+                return function(num) {
+                        nums[name].push(num);
+                        if (nums[name].length > period)
+                                nums[name].splice(0,1);  // remove the first element of the array
+                        var sum = 0;
+                        for (var i in nums[name])
+                                sum += nums[name][i];
+                        var n = period;
+                        if (nums[name].length < period)
+                                n = nums[name].length;
+                        return(sum/n);
+                }
+        }
 
 	/* wait for SVG */
 	window.setTimeout(
@@ -265,47 +284,37 @@
 							}
 						}
 
-						/* Applying smoothing algorythm */
-						function simple_moving_averager(period) {
-							var nums = [];
-							return function(num) {
-								nums.push(num);
-								if (nums.length > period)
-									nums.splice(0,1);  // remove the first element of the array
-								var sum = 0;
-								for (var i in nums)
-									sum += nums[i];
-								var n = period;
-								if (nums.length < period)
-										n = nums.length;
-								return(sum/n);
-									}
-						}
-
-						var upsma = simple_moving_averager(5);
-						var dnsma = simple_moving_averager(5);
+						var dnsma = {};
+						var upsma = {};
 						for (var itf in data)
 						{
-								for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
+							if(!dnsma[itf])
+							{
+								dnsma[itf] = simple_moving_averager('down_'+itf, 15);
+							}
+							if(!upsma[itf])
+							{
+								upsma[itf] = simple_moving_averager('up_'+itf, 15);
+							}
+							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
+							{
+								/* skip overlapping entries */
+								if (data[itf][i][TIME] <= data_stamp)
+									continue;
+									/* normalize difference against time interval */
+								if (i > 0)
 								{
-										/* skip overlapping entries */
-										if (data[itf][i][TIME] <= data_stamp)
-												continue;
-
-										/* normalize difference against time interval */
-										if (i > 0)
-										{
-												var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
-												if (time_delta)
-												{
-														dndata[itf].push(dnsma((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
-														updata[itf].push(upsma((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
-												}
-										}
+									var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
+									if (time_delta)
+									{
+										dndata[itf].push(dnsma[itf]((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
+										updata[itf].push(upsma[itf]((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
+									}
 								}
-								/* cut off outdated entries */
-								dndata[itf] = dndata[itf].slice(dndata[itf].length - data_wanted, dndata[itf].length);
-								updata[itf] = updata[itf].slice(updata[itf].length - data_wanted, updata[itf].length);
+							}
+							/* cut off outdated entries */
+							dndata[itf] = dndata[itf].slice(dndata[itf].length - data_wanted, dndata[itf].length);
+							updata[itf] = updata[itf].slice(updata[itf].length - data_wanted, updata[itf].length);
 						}
 
 						/* remember current timestamp, calculate horizontal scale */
@@ -683,6 +692,14 @@
 		}, 1000
 <% end %>
 	);
+
+// Set 1h reload page timer because of suspected SVG graph memmory leak
+window.setTimeout(function()
+{ 
+        if (activating == false)
+                location.reload(true) 
+}, 3600000)
+
 //]]></script>
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">

@@ -1,129 +1,71 @@
 #!/bin/sh
 
-# to enable this script uncomment the case loop at the bottom
-# to report mwan status on interface hotplug ifup/ifdown events modify the lines in the send_alert function
-
-send_alert()
-{
-    # variable "$1" stores the MWAN status information
-    # insert your code here to send the contents of "$1"
-    echo "$1"
-}
-
-gather_event_info()
-{
-    # create event information message
-    local EVENT_INFO="Interface [ "$INTERFACE" ($DEVICE) ] on router [ "$(uci get -p /var/state system.@system[0].hostname)" ] has triggered a hotplug [ "$ACTION" ] event on "$(date +"%a %b %d %Y %T %Z")""
-
-    # get current interface, policy and rule status
-    local CURRENT_STATUS="$(/usr/sbin/mwan3 status)"
-
-    # get last 50 MWAN systemlog messages
-    local MWAN_LOG="$(echo -e "Last 50 MWAN systemlog entries. Newest entries sorted at the top:\n$(logread | grep mwan3 | tail -n 50 | sed 'x;1!H;$!d;x')")"
-
-    # pass event info to send_alert function
-    send_alert "$(echo -e "$EVENT_INFO\n\n$CURRENT_STATUS\n\n$MWAN_LOG")"
-}
-
 case "$ACTION" in
-    ifup)
-#        gather_event_info
-        logger mwan3 ifup $DEVICE
-#        TS=$(uci get mwan3.$DEVICE.bandwidth_timestamp)
-#        TS=$((TS + 300))
-#        if [ "$(date +%s)" -gt "$TS" ]
-#        then
-#                # no arg needed, variable already set
-#                /sbin/sticky_test_bandwidth &
-#        else
+	ifup)
+		logger mwan3 ifup $DEVICE
 
-                
-        if [ "$DEVICE" != "tun0" ] || [ "$DEVICE" != "if0" ]
-        then
-            # On interface tracking back to life we re-initialize multipath on this interface
-            /usr/bin/multipath $DEVICE off
-            sleep 1
-            /usr/bin/multipath $DEVICE on
-            sleep 5 # Workaround for full bandwidth issue
-            /usr/bin/multipath $DEVICE off
-            sleep 1
-            /usr/bin/multipath $DEVICE on
+		MPTCP=$(uci -q get network.$DEVICE.multipath)
+		case "$MPTCP" in
+			"on");;
+			"master")
+				MPTCP="on";;
+			"backup");;
+			"handover");;
+			*)
+				MPTCP="";;
+		esac
 
-            logger /usr/bin/multipath $DEVICE on
+		if [ -n "$MPTCP" ]; then
+			# Re-activate DNS of this interface
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf.auto
+			# static route for mptcp
+			DST=$(uci -q get shadowsocks.proxy.server)
+			GW=$(uci -q get network.$DEVICE.gateway)
+			if [ -n "$DST" ] && [ -n "$GW" ]; then
+				route add $DST gw $GW dev $DEVICE
+				logger route add $DST gw $GW dev $DEVICE
+			fi
+			# Notify OverTheBox API
+			/usr/bin/otb_notify_ifup $DEVICE &
+			# On interface tracking back to life we re-initialize multipath on this interface
+			/usr/bin/multipath $DEVICE off
+			sleep 1
+			/usr/bin/multipath $DEVICE $MPTCP
+			sleep 5 # Workaround for full bandwidth issue
+			/usr/bin/multipath $DEVICE off
+			sleep 1
+			/usr/bin/multipath $DEVICE $MPTCP
 
-        fi
-
-#	if [ "$DEVICE" == "tun0" ]
-#	then
-#		iptables-save | grep 0x1111 |  sed 's/^-A/iptables -t mangle -D /' | sh
-#		iptables -t mangle -I mwan3_hook -p icmp -j MARK --set-xmark 0x1111/0xffffffff
-#		iptables -t mangle -I mwan3_hook -p udp -j MARK --set-xmark 0x1111/0xffffffff
-#		iptables -t mangle -A mwan3_track -p icmp -j MARK --set-mark 0x1111
-#		iptables -t mangle -A mwan3_track -p udp -j MARK --set-mark 0x1111
-#		iptables -t mangle -I PREROUTING  -p icmp -j MARK --set-xmark 0x1111/0xffffffff
-#		iptables -t mangle -I PREROUTING -p udp -j MARK --set-xmark 0x1111/0xffffffff
-#
-#		# add only if not present
-#		RULE="from all fwmark 0x1111 lookup 100"
-#		ip rule show | grep -q "$RULE" || ip rule add $RULE
-#
-#		/usr/bin/multipath $DEVICE off
-#	else
-#		GW=$(uci get network.$INTERFACE.gateway)
-#		MET=$(uci get network.$INTERFACE.metric)
-#		if [ -n $GW -a -n $MET ]
-#		then
-#			ip route add default via $GW dev $INTERFACE proto static metric $MET
-#		fi
-#	fi
-
-	# static route for mptcp
-	MPTCP=$(uci -q get network.$DEVICE.multipath)
-        if [ "$MPTCP" == "on" ]; then
-                DST=$(uci -q get shadowsocks.proxy.server)
-                GW=$(uci -q get network.$DEVICE.gateway)
-                if [ -n "$DST" ] && [ -n "$GW" ]; then
-			echo "route add $DST gw $GW dev $DEVICE" >> /tmp/route.log
-			route add $DST gw $GW dev $DEVICE
+			logger /usr/bin/multipath $DEVICE $MPTCP
 		fi
-        fi
-    ;;
-    ifdown)
-#        gather_event_info
+		;;
+	ifdown)
 
-#       /usr/bin/multipath $DEVICE off
-#       logger /usr/bin/multipath $DEVICE off
-
-        # static route for mptcp
-	MPTCP=$(uci -q get network.$DEVICE.multipath)
-        if [ "$MPTCP" == "on" ]; then
-                DST=$(uci -q get shadowsocks.proxy.server)
-                GW=$(uci -q get network.$DEVICE.gateway)
-                if [ -n "$DST" ] && [ -n "$GW" ]; then
-			route delete $DST gw $GW dev $DEVICE
+		MPTCP=$(uci -q get network.$DEVICE.multipath)
+		case "$MPTCP" in
+			"on");;
+			"master");;
+			"backup");;
+			"handover");;
+			*)
+				MPTCP="";;
+		esac
+		if [ -n "$MPTCP" ]; then
+			# Desactivate DNS of this interface
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf
+			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf.auto
+			# static route for mptcp
+			DST=$(uci -q get shadowsocks.proxy.server)
+			GW=$(uci -q get network.$DEVICE.gateway)
+			if [ -n "$DST" ] && [ -n "$GW" ]; then
+				route delete $DST gw $GW dev $DEVICE
+				logger route delete $DST gw $GW dev $DEVICE
+			fi
+			# Notify OverTheBox API
+			/usr/bin/otb_notify_ifdown $DEVICE &
 		fi
-        fi
-
-#	if [ "$DEVICE" == "tun0" ]
-#	then
-#		iptables-save | grep 0x1111 |  sed 's/^-A/iptables -t mangle -D /' | sh
-#		ip rule | grep "fwmark 0x1111 lookup"  | sed 's/0:/ip rule del /' | sh
-#
-#                ip link show dev $DEVICE 1>/dev/null 2>/dev/null
-#                if [ $? -eq 0 ]; then
-#                        logger interface tun0 halted, restarting vtund
-#                        /etc/init.d/vtund restart
-#                        sleep 3
-#                fi
-#	else
-#                GW=$(uci get network.$INTERFACE.gateway)
-#                MET=$(uci get network.$INTERFACE.metric)
-#                if [ -n $GW -a -n $MET ]
-#                then
-#                        ip route del default via $GW dev $INTERFACE proto static metric $MET
-#                fi
-#	fi
-	;;
+		;;
 esac
 
 exit 0

@@ -51,17 +51,17 @@
 	/* Smoother */
 	function simple_moving_averager(name, period) {
 		var nums = {}
-		nums.name = [];
+		nums[name] = [];
 		return function(num) {
-			nums.name.push(num);
-			if (nums.name.length > period)
-				nums.name.splice(0,1);  // remove the first element of the array
+			nums[name].push(num);
+			if (nums[name].length > period)
+				nums[name].splice(0,1);  // remove the first element of the array
 		        var sum = 0;
-		        for (var i in nums.name)
-				sum += nums.name[i];
+		        for (var i in nums[name])
+				sum += nums[name][i];
 			var n = period;
-			if (nums.name.length < period)
-				n = nums.name.length;
+			if (nums[name].length < period)
+				n = nums[name].length;
 			return(sum/n);
 		}
 	}
@@ -232,10 +232,18 @@
 							}
 						}
 
-						var dnsma = simple_moving_averager('down', 3);
-						var upsma = simple_moving_averager('up', 3);
+						var dnsma = {};
+						var upsma = {};
 						for (var itf in data)
 						{
+							if(!dnsma[itf])
+							{
+								dnsma[itf] = simple_moving_averager('down_'+itf, 15);
+							}
+							if(!upsma[itf])
+							{
+								upsma[itf] = simple_moving_averager('up_'+itf, 15);
+							}
 							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
 							{
 								/* skip overlapping entries */
@@ -248,8 +256,8 @@
 									var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
 									if (time_delta)
 									{
-										dndata[itf].push(dnsma((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
-										updata[itf].push(upsma((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
+										dndata[itf].push(dnsma[itf]((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
+										updata[itf].push(upsma[itf]((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
 									}
 								}
 							}
@@ -445,6 +453,14 @@
 		            }
 	                }, 1000
 		);
+		
+// Set 1h reload page timer because of suspected SVG graph memmory leak
+window.setTimeout(function()
+{ 
+	if (activating == false)
+		location.reload(true) 
+}, 3600000)
+
 //]]></script>
 
 <fieldset class="cbi-section">

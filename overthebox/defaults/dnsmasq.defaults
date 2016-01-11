@@ -21,5 +21,14 @@ if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci commit dhcp
 fi
 
+if ! uci -q get dhcp.lan.ra_management 1>/dev/null 2>/dev/null; then
+	uci set dhcp.lan.ra_default='1800'
+	uci set dhcp.lan.dhcpv6='server'
+	uci set dhcp.lan.ra='server'
+	uci set dhcp.lan.ra_preference='high'
+	uci set dhcp.lan.ra_management='0'
+	uci commit dhcp
+fi
+
 exit 0
 
