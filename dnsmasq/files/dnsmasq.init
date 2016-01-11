@@ -329,7 +329,7 @@ dhcp_host_add() {
 		name=""
 	fi
 
-	config_get tag "$cfg" tag
+	config_get tag "$cfg" tag "lan"
 
 	config_get_bool broadcast "$cfg" broadcast 0
 	[ "$broadcast" = "0" ] && broadcast=
