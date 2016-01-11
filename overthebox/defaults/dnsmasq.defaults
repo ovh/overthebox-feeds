@@ -1,7 +1,7 @@
 #!/bin/sh
 
 uci delete dhcp.@dnsmasq[0].nonegcache
-uci set dhcp.@dnsmasq[0].filter_aaaa='1'
+uci set dhcp.@dnsmasq[0].filter_aaaa='0'
 uci set dhcp.@dnsmasq[0].all_servers='1'
 uci set dhcp.@dnsmasq[0].cachesize='8192'
 uci set dhcp.@dnsmasq[0].authoritative='0'
