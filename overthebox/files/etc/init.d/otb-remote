@@ -60,12 +60,13 @@ start_instance() {
     [ -n "$ip" ]   || return 1
     [ -n "$port" ] || return 1
     [ -n "$forwarded_port" ] || return 1
-    [ -n "$remote_public_key" ] || return 1
     [ -n "$server_public_key" ] || return 1
 
     internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
 
-    grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+    if [ -n "$remote_public_key" ]; then
+        grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+    fi
 
     hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
     grep -q "$hostkey" $knownhosts || echo "$hostkey" >> $knownhosts
