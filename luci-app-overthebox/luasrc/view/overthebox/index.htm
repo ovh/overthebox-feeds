@@ -173,9 +173,9 @@ else
 		<fieldset class="cbi-section">
 		<!--	<legend><%:OverTheBox overview%></legend> -->
 			<table width="100%" cellspacing="10">
-				<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
+				<tr><td width="33%"><%:Device ID%></td><td><%=device_id or translate("Registering device...")%></td></tr>
 				<% if service_id then %>
-				<tr><td width="33%"><%:Service name%></td><td><%=service_id or "?"%></td></tr>
+				<tr><td width="33%"><%:Service name%></td><td><%=service_id%></td></tr>
 				<% end %>
 			</table>
 		</fieldset>

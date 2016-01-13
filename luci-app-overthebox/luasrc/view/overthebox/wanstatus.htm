@@ -78,7 +78,12 @@
 
 				if (mArray.overthebox.version)
 				{
-					content += "Version " + mArray.overthebox.version + "<br />";
+					content += "Version " + mArray.overthebox.version;
+					if(mArray.overthebox.downloading === true)
+						content += ' <strong style="color: red">downloading updates...</strong>';
+					if(mArray.overthebox.install_updates === true)
+						content += ' <strong style="color: red">installing updates...</strong>';
+					content += "<br />";
 				}
 				if (mArray.overthebox.dhcpd)
 				{
