@@ -225,8 +225,8 @@
 
 				}
 
-				labeldn_scale.innerHTML = String.format('<%:(%d minute window, %d second interval)%>', data_wanted / 60, 3);
-                                labelup_scale.innerHTML = String.format('<%:(%d minute window, %d second interval)%>', data_wanted / 60, 3);
+				labeldn_scale.innerHTML = String.format('<%:(%d minutes window, %d seconds interval)%>', 3, data_wanted / 60);
+                                labelup_scale.innerHTML = String.format('<%:(%d minutes window, %d seconds interval)%>', 3, data_wanted / 60);
 
 					/* render datasets, start update interval */
 					XHR.poll(3, '<%=build_url("admin/status/realtime/multipath_status", all)%>', null,

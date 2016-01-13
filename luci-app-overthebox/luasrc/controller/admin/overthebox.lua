@@ -43,6 +43,10 @@ function index()
         e.leaf = true
         e.sysauth = false
 
+	local e = entry({"admin", "overthebox", "ipv6_discover"},  call("ipv6_discover"))
+	e.leaf = true
+	e.sysauth = false
+
         local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
 	e.leaf = true
         e.sysauth = false
@@ -249,6 +253,15 @@ function multipath_bandwidth()
 end
 
 -- DHCP overview functions
+function ipv6_discover()
+	local result = { };
+
+	result = require('overthebox').ipv6_discover()
+
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(result)
+end
+
 function dhcp_status()
         local uci = luci.model.uci.cursor()
         local result = {}

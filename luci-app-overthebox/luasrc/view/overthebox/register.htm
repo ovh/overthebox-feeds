@@ -98,11 +98,15 @@ window.setTimeout(function(){ location.reload(true) }, 20000)
         <table width="100%" cellspacing="10">
 		<tr><td colspan="2"><strong><%:Welcome, to start using your OverTheBox you must log into your OVH Manager and create a OverTheBox service. Then register your device with the ID given below.%></strong></td></tr>
 		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
-		<tr><td width="33%"><%:Register URL%></td><td><a href="https://www.ovh.com/manager/sunrise/login/" target="_blank" onclick="copyTextToClipboard('<%=device_id%>')">https://www.ovh.com/manager/sunrise/login/</a></td></tr>
+		<tr><td width="33%"><%:Register URL%></td><td>
+			<a href="https://www.ovhtelecom.fr/manager/login/#/order/overTheBox" target="_blank" onclick="copyTextToClipboard('<%=device_id%>')">
+				https://www.ovhtelecom.fr/manager/login/#/order/overTheBox
+			</a>
+		</td></tr>
         </table>
 
 	<div id="activate_action_button" class="cbi-page-actions">
-		<input type="button" onclick="copyTextToClipboard('<%=device_id%>'); window.open('https://www.ovh.com/manager/sunrise/login/')" value="<%:Register%>" class="cbi-button cbi-button-apply" />
+		<input type="button" onclick="copyTextToClipboard('<%=device_id%>'); window.open('https://www.ovhtelecom.fr/manager/login/#/order/overTheBox')" value="<%:Register%>" class="cbi-button cbi-button-apply" />
 		<img id="img-loader" style="display:none" src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" height="20" />
 	</div>
 </fieldset>

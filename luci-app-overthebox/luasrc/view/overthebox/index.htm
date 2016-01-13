@@ -102,9 +102,9 @@
 		if(str == "ovh2")
 			return "LightGreen";
 
-	        if(str == "if1")
+		if(str == "if1")
 			return "PowderBlue";
-	        if(str == "if2")
+		if(str == "if2")
 			return "PaleGreen";
 		if(str == "if3")
 			return "YellowGreen";
@@ -119,12 +119,12 @@
 		if(str == "if8")
 			return "BlueViolet";
 
-	        // Generate a color folowing the name
-	        Math.seedrandom(str);
-	        var rand = Math.random() * Math.pow(255,3);
-	        Math.seedrandom(); // don't leave a non-random seed in the generator
-	        for (var i = 0, colour = "#"; i < 3; colour += ("00" + ((rand >> i++ * 8) & 0xFF).toString(16)).slice(-2));
-	        return colour;
+		// Generate a color folowing the name
+		Math.seedrandom(str);
+		var rand = Math.random() * Math.pow(255,3);
+		Math.seedrandom(); // don't leave a non-random seed in the generator
+		for (var i = 0, colour = "#"; i < 3; colour += ("00" + ((rand >> i++ * 8) & 0xFF).toString(16)).slice(-2));
+		return colour;
 	}
 //]]></script>
 
@@ -137,24 +137,24 @@
 <div id="overthebox_status_bar"></div>
 
 <div id="overthebox_popover_content_error" class="overthebox_popover_content" style="display: none">
-        <img src="<%=resource%>/ovh/images/statusError.png" alt="error">
-        <span class="popover_text"></span>
+	<img src="<%=resource%>/ovh/images/statusError.png" alt="error">
+	<span class="popover_text"></span>
 </div>
 <div id="overthebox_popover_content_done" class="overthebox_popover_content" style="display: none">
-        <img src="<%=resource%>/ovh/images/statusOK.png" alt="done">
-        <span class="popover_text"></span>
+	<img src="<%=resource%>/ovh/images/statusOK.png" alt="done">
+	<span class="popover_text"></span>
 </div>
 <div id="overthebox_popover_content_warn" class="overthebox_popover_content" style="display: none">
-        <img src="<%=resource%>/ovh/images/statusWarning.png" alt="warning">
-        <span class="popover_text"></span>
+	<img src="<%=resource%>/ovh/images/statusWarning.png" alt="warning">
+	<span class="popover_text"></span>
 </div>
 <div id="overthebox_popover_content_doing" class="overthebox_popover_content" style="display: none">
-        <img src="<%=resource%>/ovh/images/doingBlue.png" alt="doing">
-        <span class="popover_text"></span>
+	<img src="<%=resource%>/ovh/images/doingBlue.png" alt="doing">
+	<span class="popover_text"></span>
 </div>
 <div id="overthebox_popover_content_todo" class="overthebox_popover_content" style="display: none">
-        <img src="<%=resource%>/ovh/images/doingBlack.png" alt="todo">
-        <span class="popover_text"></span>
+	<img src="<%=resource%>/ovh/images/doingBlack.png" alt="todo">
+	<span class="popover_text"></span>
 </div>
 
 <%
@@ -189,15 +189,16 @@ else
 	<%
 		include("overthebox/dhcpwizard")
 		include("overthebox/wanstatus")
+		include("overthebox/ipv6wizard")
 		include("overthebox/realtimegraphs")
 		include("overthebox/dhcpleases")
 	else
-        %>
-                <script type="text/javascript">
+	%>
+		 <script type="text/javascript">
 			stepbar.activate.caption = "<%:Register%>";
 			stepbar.activate.status = "error";
 		</script>
-        <%
+	<%
 	end
 end
 %>
