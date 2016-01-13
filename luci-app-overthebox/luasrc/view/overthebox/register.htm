@@ -97,7 +97,7 @@ window.setTimeout(function(){ location.reload(true) }, 20000)
 <!--	<legend><%:Register your device%></legend>-->
         <table width="100%" cellspacing="10">
 		<tr><td colspan="2"><strong><%:Welcome, to start using your OverTheBox you must log into your OVH Manager and create a OverTheBox service. Then register your device with the ID given below.%></strong></td></tr>
-		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or "?"%></td></tr>
+		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or translate("Registering your device, please wait...")%></td></tr>
 		<tr><td width="33%"><%:Register URL%></td><td>
 			<a href="https://www.ovhtelecom.fr/manager/login/#/order/overTheBox" target="_blank" onclick="copyTextToClipboard('<%=device_id%>')">
 				https://www.ovhtelecom.fr/manager/login/#/order/overTheBox
