@@ -86,6 +86,14 @@ start_service() {
 
 
     mkdir /tmp/dropbear /tmp/root_ssh
+    if [ ! -d /root/.ssh ]; then
+        mkdir /root/.ssh
+	chmod 700 /root/.ssh
+    fi
+    if [ ! -f "$knownhosts" ]; then
+	touch "$knownhosts"
+    fi
+
     mount_ram /etc/dropbear /tmp/dropbear
     mount_ram /root/.ssh /tmp/root_ssh
 
