@@ -258,6 +258,16 @@ function ipv6_discover()
 
 	result = require('overthebox').ipv6_discover()
 
+	if type(result) == "table" and #result > 1 then
+		if not isLogged() then
+			for k,v in ipairs(result) do
+				if v.Prefix then
+					result[k].Prefix = v.Prefix:gsub(":[%a%d]+:[%a%d]+([:]+/%d+)", ":****:****%1")
+				end
+			end
+		end
+	end
+
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
 end
