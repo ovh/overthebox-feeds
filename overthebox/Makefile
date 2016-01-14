@@ -67,7 +67,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
 
 	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
-	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
 
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
@@ -84,6 +83,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	if [ ! -f /root/.ssh_otb_remote.pub ] ; then
 		dropbearkey -t rsa -s 4096 -f /root/.ssh_otb_remote |grep ^ssh- > /root/.ssh_otb_remote.pub
 	fi
+	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
 	exit 0
 fi
 endef
