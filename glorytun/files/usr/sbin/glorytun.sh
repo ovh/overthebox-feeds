@@ -7,6 +7,7 @@ if [ -z "${dev}" -o -z "${iplocal}" -o -z "${ippeer}" ]; then
 fi
 
 statefile=/tmp/glorytun.fifo
+[ -e "${statefile}" ] && rm -f "${statefile}"
 mkfifo ${statefile}
 
 trap "pkill -TERM -P $$" TERM
