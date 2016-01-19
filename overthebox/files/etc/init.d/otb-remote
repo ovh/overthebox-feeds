@@ -5,6 +5,7 @@ STOP=90
 
 USE_PROCD=1
 
+sshkeypriv="/root/.ssh_otb_remote"
 sshkey="/root/.ssh/otb_remote"
 knownhosts="/root/.ssh/known_hosts"
 authkeys="/etc/dropbear/authorized_keys"
@@ -60,12 +61,13 @@ start_instance() {
     [ -n "$ip" ]   || return 1
     [ -n "$port" ] || return 1
     [ -n "$forwarded_port" ] || return 1
-    [ -n "$remote_public_key" ] || return 1
     [ -n "$server_public_key" ] || return 1
 
     internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
 
-    grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+    if [ -n "$remote_public_key" ]; then
+        grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+    fi
 
     hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
     grep -q "$hostkey" $knownhosts || echo "$hostkey" >> $knownhosts
@@ -83,10 +85,19 @@ start_service() {
     # do not start ssh tunnel if customer does not want it.
     [ "$(uci get -q overthebox.me.forbidremote)" = "1" ] && return
 
-
     mkdir /tmp/dropbear /tmp/root_ssh
+    if [ ! -d /root/.ssh ]; then
+        mkdir /root/.ssh
+        chmod 700 /root/.ssh
+    fi
+    if [ ! -f "$knownhosts" ]; then
+        touch "$knownhosts"
+    fi
+
     mount_ram /etc/dropbear /tmp/dropbear
     mount_ram /root/.ssh /tmp/root_ssh
+
+    cp $sshkeypriv $sshkey
 
     config_load 'overthebox'
     config_foreach start_instance 'remote'

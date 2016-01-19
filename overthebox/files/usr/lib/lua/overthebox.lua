@@ -293,13 +293,9 @@ function createKey(remoteId)
 end
 
 function create_ssh_key()
-    local ssh_dir = "/root/.ssh"
-    local private_key = ssh_dir.."/otb_remote"
+    local private_key = "/root/.ssh_otb_remote"
     local public_key = private_key..".pub"
 
-    if not file_exists( ssh_dir ) then
-        local ret = run("mkdir -p "..ssh_dir.." && chmod 700 "..ssh_dir)
-    end
     if not file_exists( private_key ) then
         local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
     end

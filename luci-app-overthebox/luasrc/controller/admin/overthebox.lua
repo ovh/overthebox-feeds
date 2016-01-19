@@ -76,7 +76,7 @@ function interfaces_status()
 
 	local mwan3 	= require("luci.controller.mwan3")
 	local ut 	= require "luci.util"
-        local ntm 	= require "luci.model.network".init()
+	local ntm 	= require "luci.model.network".init()
 	local uci 	= require "luci.model.uci".cursor()
 	local json      = require("luci.json")
 
@@ -99,21 +99,31 @@ function interfaces_status()
 	end
 	mArray.overthebox["remote_addr"]        = luci.http.getenv("REMOTE_ADDR") or ""
 	mArray.overthebox["remote_from_lease"]	= false
-        local leases=tools.dhcp_leases()
-        for _, value in pairs(leases) do
-                if value["ipaddr"] == mArray.overthebox["remote_addr"] then
+	 local leases=tools.dhcp_leases()
+	for _, value in pairs(leases) do
+		if value["ipaddr"] == mArray.overthebox["remote_addr"] then
 			mArray.overthebox["remote_from_lease"] = true
 			mArray.overthebox["remote_hostname"] = value["hostname"]
-                end
-        end
+		end
+	end
 	-- Check overthebox service are running
 	mArray.overthebox["vtun_service"] = false
 	if string.find(sys.exec("/usr/bin/pgrep vtund"), "%d+") then
-                mArray.overthebox["vtun_service"] = true
-        end
+		mArray.overthebox["vtun_service"] = true
+	end
 	mArray.overthebox["socks_service"] = false
 	if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
 		mArray.overthebox["socks_service"] = true
+	end
+	-- Check if OTB is downloading recovery image or test download
+	mArray.overthebox["downloading"] = false
+	if string.find(sys.exec("/usr/bin/pgrep wget"), "%d+") then
+		mArray.overthebox["downloading"] = true
+	end
+	-- Check if OTB is installing updates
+	mArray.overthebox["install_updates"] = false
+	if string.find(sys.exec("/usr/bin/pgrep opkg"), "%d+") then
+		mArray.overthebox["install_updates"] = true
 	end
 	-- Add DHCP infos by parsing dnsmask config file
 	mArray.overthebox.dhcpd = {}
@@ -148,22 +158,22 @@ function interfaces_status()
 		mptcp[ipaddr].backup= backup
 		mptcp[ipaddr].ipaddr= ipaddr
 	end
-        -- overview status
-        local statusString = mwan3.getInterfaceName()
-        if statusString ~= "" then
-                mArray.wans = {}
-                wansid = {}
+	-- overview status
+	local statusString = mwan3.getInterfaceName()
+	if statusString ~= "" then
+		mArray.wans = {}
+		wansid = {}
 
-                for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
-                        local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
-       	                        if wanInterfaceName == "" then
-                                        wanInterfaceName = "X"
-                                end
-                        local wanDeviceLink = ntm:get_interface(wanInterfaceName)
-                                wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
-                                wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
+		for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
+		local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
+		if wanInterfaceName == "" then
+			wanInterfaceName = "X"
+		end
+		local wanDeviceLink = ntm:get_interface(wanInterfaceName)
+			wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
+			wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
 			local wanLabel = uci:get("network", wanName, "label") or wanInterfaceName
-                        wansid[wanName] = #mArray.wans + 1
+			wansid[wanName] = #mArray.wans + 1
 			-- Add multipath info
 			local ipaddr	= uci:get("network", wanName, "ipaddr")
 			local gateway	= uci:get("network", wanName, "gateway")
@@ -198,13 +208,13 @@ function interfaces_status()
 						end
 					end
 				end
-	                        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }
+				mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }
 			end
-                end
-        end
+		end
+	end
 
-        luci.http.prepare_content("application/json")
-        luci.http.write_json(mArray)
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(mArray)
 end
 
 function isLogged()
@@ -257,6 +267,16 @@ function ipv6_discover()
 	local result = { };
 
 	result = require('overthebox').ipv6_discover()
+
+	if type(result) == "table" and #result > 1 then
+		if not isLogged() then
+			for k,v in ipairs(result) do
+				if v.Prefix then
+					result[k].Prefix = v.Prefix:gsub(":[%a%d]+:[%a%d]+([:]+/%d+)", ":****:****%1")
+				end
+			end
+		end
+	end
 
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
