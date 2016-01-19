@@ -22,7 +22,8 @@ start() {
 	fi
 
 
-        for x in `pgrep vtund`; do kill -KILL $x ; done
+	for x in `pgrep vtund`; do kill -KILL $x ; done
+	for dev in `ip link | grep tun[0-9] | cut -f 2 -d:`; do ip link delete $dev; done
 
 	/bin/touch /etc/config/vtund
 	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
