@@ -8,27 +8,25 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.22
+PKG_VERSION:=0.0.25
 PKG_RELEASE=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
-PKG_MD5SUM:=e42fd313fad365eec70dc37e1a240344
+PKG_MD5SUM:=9b163d98081b21ca9846370acd54b62c
 
 include $(INCLUDE_DIR)/package.mk
 
-
 define Package/glorytun
-        SECTION:=net
-        CATEGORY:=Network
+	SECTION:=net
+	CATEGORY:=Network
 	DEPENDS:=+kmod-tun +libsodium
 	TITLE:=Glorytun
 	URL:=https://github.com/angt/glorytun
 	SUBMENU:=VPN
 endef
 
-TARGET_CFLAGS += -std=c99
-TARGET_CFLAGS += -D_GNU_SOURCE
+TARGET_CFLAGS += -std=c99 -D_GNU_SOURCE
 
 define Package/glorytun/conffiles
 /etc/config/glorytun
@@ -46,6 +44,5 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	touch /etc/config/glorytun
 fi
 endef
-
 
 $(eval $(call BuildPackage,glorytun))
