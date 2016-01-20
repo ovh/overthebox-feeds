@@ -184,10 +184,12 @@ m.on_after_save = set_status
 l = s:taboption("general", Value, "label", translate("Label"))
 l.rmempty = true
 l:depends("multipath", "on")
+l:depends("multipath", "master")
+l:depends("multipath", "backup")
+l:depends("multipath", "handover")
 
 p = s:taboption("general", ListValue, "proto", translate("Protocol"))
 p.default = net:proto()
-
 
 if not net:is_installed() then
 	p_install = s:taboption("general", Button, "_install")
