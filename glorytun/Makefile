@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
 PKG_VERSION:=0.0.25
-PKG_RELEASE=1
+PKG_RELEASE=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
@@ -36,12 +36,14 @@ define Package/glorytun/install
 	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/
+	$(INSTALL_BIN) ./defaults/glorytun.defaults $(1)/etc/uci-defaults/glorytun.defaults
 endef
 
 define Package/glorytun/postinst
 #!/bin/sh
 if [ -z $${IPKG_INSTROOT} ] ; then
-	touch /etc/config/glorytun
+	( . /etc/uci-defaults/glorytun.defaults ) && rm -f /etc/uci-defaults/glorytun.defaults
+	[ -x /etc/init.d/glorytun ] && /etc/init.d/glorytun restart;
 fi
 endef
 
