@@ -31,9 +31,11 @@ started() {
     fi
     [ -n "${metric}" ] && ip route add default via ${ippeer} metric ${metric}
     ubus call network.interface.${dev} up
+    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start ;
 }
 
 stopped() {
+    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop ;
     if [ -n "${table}" ]; then
         ip rule del from ${iplocal} table ${table}
         ip route del default via ${ippeer} table ${table}
