@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -65,6 +65,8 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-power.defaults ) 
         ( . /etc/uci-defaults/otb-recovery.defaults ) 
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
+
+	sysctl -p /etc/sysctl.d/default.conf
 
 	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
 
