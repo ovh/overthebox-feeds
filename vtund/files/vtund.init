@@ -72,9 +72,11 @@ Sticky
 		ip "route add default via $REMOTEIP table 100";
 		ip "route add default via $REMOTEIP metric 1000";
 		program "/etc/init.d/shadowsocks start";
+		program "ubus call network.interface.%% up";
 	};
 	down
 	{
+		program "ubus call network.interface.%% down";
 		ifconfig "%% down ";
 		ip "rule del from $LOCALIP table 100";
 		ip "route del default via $REMOTEIP table 100";
