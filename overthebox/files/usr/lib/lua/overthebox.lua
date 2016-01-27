@@ -22,7 +22,7 @@ local require 	= require
 local json	= require "luci.json"
 local sys 	= require "luci.sys"
 
---local http	= require("socket.http")
+local http	= require("socket.http")
 local https     = require("ssl.https")
 local ltn12	= require("ltn12")
 local io 	= require("io")
@@ -540,6 +540,7 @@ function API(uri, method, data)
 	local reqbody 	= json.encode(data)
 	local respbody 	= {}
 	-- Building Request
+    http.TIMEOUT=5
 	local body, code, headers, status = https.request{
 		method = method,
 		url = url,
