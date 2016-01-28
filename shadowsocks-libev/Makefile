@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=2.4.1
-PKG_RELEASE:=3
+PKG_VERSION:=2.4.4
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/shadowsocks/openwrt-shadowsocks/releases/download/v$(PKG_VERSION)
-PKG_MD5SUM:=c3e03ebdad4b5678579503fbba8b0a8e
+PKG_MD5SUM:=6fc091491d26b353ddd1e7faba8d032f
 
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
@@ -37,10 +37,10 @@ define Package/shadowsocks-libev/Default
 	DEPENDS:=$(3)
 endef
 
-Package/shadowsocks-libev = $(call Package/shadowsocks-libev/Default,openssl,(OpenSSL),+libopenssl)
-Package/shadowsocks-libev-spec = $(call Package/shadowsocks-libev/Default,openssl,(OpenSSL),+libopenssl +resolveip +ipset +ip +iptables-mod-tproxy)
-Package/shadowsocks-libev-polarssl = $(call Package/shadowsocks-libev/Default,polarssl,(PolarSSL),+libpolarssl)
-Package/shadowsocks-libev-spec-polarssl = $(call Package/shadowsocks-libev/Default,polarssl,(PolarSSL),+libpolarssl +resolveip +ipset +ip +iptables-mod-tproxy)
+Package/shadowsocks-libev = $(call Package/shadowsocks-libev/Default,openssl,(OpenSSL),+libopenssl +libpthread)
+Package/shadowsocks-libev-spec = $(call Package/shadowsocks-libev/Default,openssl,(OpenSSL),+libopenssl +libpthread +  ipset +ip +iptables-mod-tproxy)
+Package/shadowsocks-libev-polarssl = $(call Package/shadowsocks-libev/Default,polarssl,(PolarSSL),+libpolarssl +       libpthread)
+Package/shadowsocks-libev-spec-polarssl = $(call Package/shadowsocks-libev/Default,polarssl,(PolarSSL),+libpolarssl +  libpthread +ipset +ip +iptables-mod-tproxy)
 
 define Package/shadowsocks-libev/description
 Shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and low end boxes.
