@@ -1,5 +1,5 @@
 diff --git a/luci/sqm-cbi.lua b/luci/sqm-cbi.lua
-index 9b8af51..a676b6e 100644
+index 9b8af51..fd5dd53 100644
 --- a/luci/sqm-cbi.lua
 +++ b/luci/sqm-cbi.lua
 @@ -13,6 +13,7 @@ You may obtain a copy of the License at
@@ -23,7 +23,7 @@ index 9b8af51..a676b6e 100644
  for _, iface in ipairs(ifaces) do
  	if not (iface == "lo" or iface:match("^ifb.*")) then
 -		n:value(iface)
-+                local multipath = uci:get("network", iface, "multipath")
++		local multipath = uci:get("network", iface, "multipath")
 +		if multipath == "on" or multipath == "backup" or multipath == "master" or multipath == "handover" then
 +			n:value(iface, uci:get("network", iface, "label") .. " (" .. iface .. ")" )
 +		else
@@ -62,8 +62,12 @@ index 9b8af51..a676b6e 100644
  
  dl = s:taboption("tab_basic", Value, "download", translate("Download speed (kbit/s) (ingress) set to 0 to selectively disable ingress shaping:"))
  dl.datatype = "and(uinteger,min(0))"
-@@ -89,20 +121,23 @@ end
- c.default = "fq_codel"
+@@ -86,23 +118,26 @@ if fs.stat(run_path) then
+ 		c:value( file )
+ 	end
+ end
+-c.default = "fq_codel"
++c.default = "sfq"
  c.rmempty = false
  
 -
@@ -89,6 +93,20 @@ index 9b8af51..a676b6e 100644
  sc.rmempty = false
  sc.description = qos_desc
  
+@@ -182,11 +217,11 @@ ll = s:taboption("tab_linklayer", ListValue, "linklayer", translate("Which link
+ ll:value("none", "none ("..translate("default")..")")
+ ll:value("ethernet", "Ethernet with overhead: select for e.g. VDSL2.")
+ ll:value("atm", "ATM: select for e.g. ADSL1, ADSL2, ADSL2+.")
+-ll.default = "none"
++ll.default = "atm"
+ 
+ po = s:taboption("tab_linklayer", Value, "overhead", translate("Per Packet Overhead (byte):"))
+ po.datatype = "and(integer,min(-1500))"
+-po.default = 0
++po.default = 44
+ po.isnumber = true
+ po.rmempty = true
+ po:depends("linklayer", "ethernet")
 diff --git a/src/otb.qos b/src/otb.qos
 new file mode 100644
 index 0000000..7784caa
