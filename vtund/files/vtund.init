@@ -5,12 +5,16 @@
 
 START=80
 APP="vtund"
-HOST=Sticky
 SERVICE_WRITE_PID=1
 SERVICE_DAEMONIZE=1
+
+HOST=Sticky
 CONF=/etc/vtund.conf
+DEV=tun0
 
-
+HOSTVOIP=Sticky2
+CONFVOIP=/etc/vtund.voip.conf
+DEVVOIP=voip0
 
 start() {
 
@@ -21,18 +25,21 @@ start() {
 		exit 1
 	fi
 
-
 	for x in `pgrep vtund`; do kill -KILL $x ; done
-	for dev in `ip link | grep tun[0-9] | cut -f 2 -d:`; do ip link delete $dev; done
+	for dev in `ip link | egrep "(tun|voip)[0-9]" | cut -f 2 -d:`; do ip link delete $dev; done
 
 	/bin/touch /etc/config/vtund
 	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
-	PORT=$(uci -q get vtund.tunnel.port || echo 5005)
 	CIPHER=$(uci -q get vtund.tunnel.cipher || echo aes256cbc)
-	LOCALIP=$(uci -q get vtund.tunnel.localip || echo 10.166.177.2)
-	REMOTEIP=$(uci -q get vtund.tunnel.remoteip || echo 10.166.177.1)
 	PSK=$(uci -q get vtund.tunnel.psk || echo foobar )
 
+	PORT=$(uci -q get vtund.tunnel.port || echo 5005)
+	LOCALIP=$(uci -q get vtund.tunnel.localip || echo 10.166.177.2)
+	REMOTEIP=$(uci -q get vtund.tunnel.remoteip || echo 10.166.177.1)
+
+	PORTVOIP=$(uci -q get vtund.tunnel.portvoip || echo 5008)
+	LOCALIPVOIP=$(uci -q get vtund.tunnel.localipvoip || echo 10.166.155.2)
+	REMOTEIPVOIP=$(uci -q get vtund.tunnel.remoteipvoip || echo 10.166.155.1)	
 
 	cat <<EOF >$CONF
 
@@ -48,15 +55,14 @@ options {
 # Default session options
 default {
 	compress no;          # Compression is off by default
-		speed 0;              # By default maximum speed, NO shaping
+	speed 0;              # By default maximum speed, NO shaping
 }
 
-
-
-Sticky
+$HOST
 {
 	passwd $PSK;
 	type tun;
+	device $DEV;
 	proto tcp;
 	persist yes;
 	keepalive yes;
@@ -86,6 +92,53 @@ Sticky
 
 EOF
 
+	cat <<EOF >$CONFVOIP
+
+options {
+	ip /usr/sbin/ip;
+	ifconfig /sbin/ifconfig;
+	firewall /usr/sbin/iptables;
+
+	timeout 15;
+	port $PORTVOIP;
+}
+
+# Default session options
+default {
+	compress no;          # Compression is off by default
+	speed 0;              # By default maximum speed, NO shaping
+}
+
+$HOSTVOIP
+{
+	passwd $PSK;
+	type tun;
+	device $DEVVOIP;
+	proto tcp;
+	persist yes;
+	keepalive yes;
+	timeout 15;
+#compress zlib:9;
+	encrypt $CIPHER ;
+	multi killold;
+	up
+	{
+		ifconfig "%% $LOCALIPVOIP pointopoint $REMOTEIPVOIP up";
+		program "/usr/bin/multipath %% off";
+		ip "route add default via $REMOTEIPVOIP table 100";
+		ip "route add default via $REMOTEIPVOIP metric 1000";
+	};
+	down
+	{
+		ifconfig "%% down ";
+		ip "rule del from $LOCALIPVOIP table 100";
+		ip "route del default via $REMOTEIPVOIP table 100";
+		program "/etc/init.d/shadowsocks stop";
+	};
+}
+
+EOF
+
 # exit if conf is missing!
 if [ "$SERVER" == "127.0.0.1" ] 
 	then
@@ -93,12 +146,13 @@ if [ "$SERVER" == "127.0.0.1" ]
 	exit 1
 fi
 
-
-	service_start /usr/sbin/$APP -f /etc/vtund.conf $HOST $SERVER
+	service_start /usr/sbin/$APP -f $CONF $HOST $SERVER
+	service_start /usr/sbin/$APP -f $CONFVOIP $HOSTVOIP $SERVER
 }
 
 stop() {
         for x in `pgrep vtund`; do kill -KILL $x ; done
-
+	ip link delete dev $DEV > /dev/null 2>&1
+	ip link delete dev $DEVVOIP > /dev/null 2>&1
 #	service_stop /usr/sbin/$APP  -f /etc/vtund.conf $HOST $SERVER
 }
