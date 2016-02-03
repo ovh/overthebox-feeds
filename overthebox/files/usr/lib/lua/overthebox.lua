@@ -91,6 +91,24 @@ function config()
         uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
         uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
 
+	if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
+		for conf in res.vtun_conf.additional_interfaces do
+			if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
+
+				uci:set('vtund', conf.dev, 'interface')
+				uci:set('vtund', conf.dev, 'ip_peer', conf.ip_peer)
+				uci:set('vtund', conf.dev, 'ip_local', conf.ip_local)
+				uci:set('vtund', conf.dev, 'port', conf.port)
+				uci:set('vtund', conf.dev, 'mtu', conf.mtu)
+
+				uci:set('vtund', conf.dev, 'table', conf.table)
+				uci:set('vtund', conf.dev, 'pref', conf.table)
+				uci:set('vtund', conf.dev, 'metric', conf.metric)
+
+			end
+		end
+	end
+
         uci:save('vtund')
         uci:commit('vtund')
         table.insert(ret, "vtund")
