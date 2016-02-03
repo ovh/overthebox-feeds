@@ -52,7 +52,7 @@
 				if (mArray.overthebox.socks_service) 
 				{
 					color = "rgb(144, 240, 144)";
-					if (mArray.overthebox.vtun_service)
+					if (mArray.overthebox.tun_service)
 					{
 						color = "rgb(144, 240, 144)";
 					}
@@ -85,6 +85,22 @@
 						content += ' <strong style="color: red">installing updates...</strong>';
 					content += "<br />";
 				}
+				if (mArray.overthebox.loadavg)
+				{
+					content += "Load : " + mArray.overthebox.loadavg;
+					content += "<br />";
+				}
+				if (mArray.overthebox.core_temp)
+				{
+					content += "Core temp : " + (mArray.overthebox.core_temp / 1000).toFixed(1) + " &#176;";
+					content += "<br />";
+				}
+				if (mArray.overthebox.uptime)
+				{
+					var date = new Date(null);
+					content += "Uptime : " + String.format('%t', mArray.overthebox.uptime);
+					content += "<br />";
+				}
 				if (mArray.overthebox.dhcpd)
 				{
 					for ( dhcpd in mArray.overthebox.dhcpd )
@@ -105,9 +121,9 @@
 				{
 					temp += String.format('Socks service is not running');
 				}
-				if (mArray.overthebox.vtun_service == false)
+				if (mArray.overthebox.tun_service == false)
                                 {
-                                        temp += String.format('VTUN service is not running');
+                                        temp += String.format('TUN service is not running');
                                 }
 
 				if(statusMessage !== "")
