@@ -27,7 +27,7 @@ egress() {
     ul rate ${UPLINK}kbit
 
     $TC class add dev ${IFACE} parent 1:1 classid 1:11 hfsc sc rate ${PRIO}kbit \
-    ul rate ${PRIO}kbit
+    ul rate ${NORMAL}kbit
     $TC class add dev ${IFACE} parent 1:1 classid 1:12 hfsc ls rate ${NORMAL}kbit
     $TC class add dev ${IFACE} parent 1:1 classid 1:13 hfsc ls rate ${BULK}kbit
 
@@ -47,7 +47,8 @@ egress() {
     $TC filter add dev ${IFACE} parent 130: handle 130 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${BULK}`
 
 
-    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5005 0xffff  flowid 1:12
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5008 0xffff  flowid 1:11
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5006 0xffff  flowid 1:12
     $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 1090 0xffff  flowid 1:13
 
 }

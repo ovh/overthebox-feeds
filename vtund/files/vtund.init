@@ -5,36 +5,38 @@
 
 START=80
 APP="vtund"
-HOST=Sticky
 SERVICE_WRITE_PID=1
 SERVICE_DAEMONIZE=1
-CONF=/etc/vtund.conf
 
+. /lib/functions.sh
 
+generateConfig() {
+	local dev
+	local port
+	local localip
+	local remoteip
+	local mtu
+	local table
+	local pref
+	local metric
 
-start() {
+	config_get dev $1 dev "tun0"
+	config_get host $1 host "Sticky"
+	config_get conf $1 conf "/etc/vtund.conf"
+	config_get server $1 server "127.0.0.1"
+	config_get port $1 port "5005"
+	config_get cipher $1 cipher "aes256cbc"
+	config_get psk $1 psk "foobar"
 
-	if [ "$1" = "delayed" ] ; then
-		[ "$(pgrep -fn $0)" -ne "$(pgrep -fo $0)" ] && echo "time already been set" && exit 1
-		sleep 10
-		/etc/init.d/vtund restart
-		exit 1
-	fi
+	config_get localip $1 ip_local "10.166.177.2"
+	config_get remoteip $1 ip_peer "10.166.177.1"
 
+	config_get mtu $1 mtu "1450"
+	config_get table $1 table "100"
+	config_get pref $1 pref "10100"
+	config_get metric $1 metric "1000"
 
-	for x in `pgrep vtund`; do kill -KILL $x ; done
-	for dev in `ip link | grep tun[0-9] | cut -f 2 -d:`; do ip link delete $dev; done
-
-	/bin/touch /etc/config/vtund
-	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
-	PORT=$(uci -q get vtund.tunnel.port || echo 5005)
-	CIPHER=$(uci -q get vtund.tunnel.cipher || echo aes256cbc)
-	LOCALIP=$(uci -q get vtund.tunnel.localip || echo 10.166.177.2)
-	REMOTEIP=$(uci -q get vtund.tunnel.remoteip || echo 10.166.177.1)
-	PSK=$(uci -q get vtund.tunnel.psk || echo foobar )
-
-
-	cat <<EOF >$CONF
+	cat <<EOF >$conf
 
 options {
 	ip /usr/sbin/ip;
@@ -42,35 +44,34 @@ options {
 	firewall /usr/sbin/iptables;
 
 	timeout 15;
-	port $PORT;
+	port $port;
 }
 
 # Default session options
 default {
 	compress no;          # Compression is off by default
-		speed 0;              # By default maximum speed, NO shaping
+	speed 0;              # By default maximum speed, NO shaping
 }
 
-
-
-Sticky
+$host
 {
-	passwd $PSK;
+	passwd $psk;
 	type tun;
+	device $dev;
 	proto tcp;
 	persist yes;
 	keepalive yes;
 	timeout 15;
 #compress zlib:9;
-	encrypt $CIPHER ;
+	encrypt $cipher;
 	multi killold;
 	up
 	{
-		ifconfig "%% $LOCALIP pointopoint $REMOTEIP up";
+		ifconfig "%% $localip pointopoint $remoteip up";
 		program "/usr/bin/multipath %% off";
-		ip "rule add from $LOCALIP table 100 pref 10100";
-		ip "route add default via $REMOTEIP table 100";
-		ip "route add default via $REMOTEIP metric 1000";
+		ip "rule add from $localip table $table pref $pref";
+		ip "route add default via $remoteip table $table";
+		ip "route add default via $remoteip metric $metric";
 		program "/etc/init.d/shadowsocks start";
 		program "ubus call network.interface.%% up";
 	};
@@ -78,27 +79,125 @@ Sticky
 	{
 		program "ubus call network.interface.%% down";
 		ifconfig "%% down ";
-		ip "rule del from $LOCALIP table 100";
-		ip "route del default via $REMOTEIP table 100";
+		ip "rule del from $localip table $table";
+		ip "route del default via $remoteip table $table";
 		program "/etc/init.d/shadowsocks stop";
 	};
 }
 
 EOF
+	# exit if conf is missing!
+	if [ "$server" != "127.0.0.1" ]; then
+		service_start /usr/sbin/$APP -f $conf $host $server
+	fi
+}
 
-# exit if conf is missing!
-if [ "$SERVER" == "127.0.0.1" ] 
-	then
-	logger no vtund server conf exists
-	exit 1
-fi
+addInterface() {
+	local dev="$1"
+	local port
+	local localip
+	local remoteip
+	local mtu
+	local table
+	local pref
+	local metric
 
+	config_get host $1 host "Sticky.${dev}"
+	config_get conf $1 conf "/etc/vtund.${dev}.conf"
 
-	service_start /usr/sbin/$APP -f /etc/vtund.conf $HOST $SERVER
+	config_get port $1 port "5008"
+	config_get localip $1 ip_local "10.166.155.2"
+	config_get remoteip $1 ip_peer "10.166.155.1"
+
+	config_get mtu $1 mtu "1450"
+	config_get pref $1 pref "10100"
+	config_get table $1 table "100"
+	config_get metric $1 metric "1100"
+
+	cat <<EOF >$conf
+
+options {
+	ip /usr/sbin/ip;
+	ifconfig /sbin/ifconfig;
+	firewall /usr/sbin/iptables;
+
+	timeout 15;
+	port $port;
+}
+
+# Default session options
+default {
+	compress no;          # Compression is off by default
+	speed 0;              # By default maximum speed, NO shaping
+}
+
+$host
+{
+	passwd $psk;
+	type tun;
+	device $dev;
+	proto tcp;
+	persist yes;
+	keepalive yes;
+	timeout 15;
+#compress zlib:9;
+	encrypt $cipher;
+	multi killold;
+	up
+	{
+		ifconfig "%% $localip pointopoint $remoteip up";
+		program "/usr/bin/multipath %% off";
+		ip "rule add from $localip table $table pref $pref";
+		ip "route add default via $remoteip table $table";
+		ip "route add default via $remoteip metric $metric";
+	};
+	down
+	{
+		ifconfig "%% down ";
+		ip "rule del from $localip table $table";
+		ip "route del default via $remoteip table $table";
+	};
+}
+
+EOF
+	if [ "$server" != "127.0.0.1" ]; then
+		service_start /usr/sbin/$APP -f $conf $host $server
+	fi
+}
+
+deleteClient() {
+	local dev
+	config_get dev $1 dev "tun0"
+	ip link delete dev $dev &>/dev/null
+}
+
+deleteInterface() {
+	local dev="$1"
+	ip link delete dev $dev &>/dev/null
+}
+
+start() {
+	if [ "$1" = "delayed" ] ; then
+		[ "$(pgrep -fn $0)" -ne "$(pgrep -fo $0)" ] && echo "time already been set" && exit 1
+		sleep 10
+		/etc/init.d/vtund restart
+		exit 1
+	fi
+	/bin/touch /etc/config/vtund
+	config_load vtund
+
+	for x in `pgrep vtund`; do kill -KILL $x ; done
+	rm -f /etc/vtund*.conf 2>/dev/null
+	config_foreach deleteClient client
+	config_foreach deleteInterface interface
+
+	config_foreach generateConfig client
+	config_foreach addInterface interface
 }
 
 stop() {
-        for x in `pgrep vtund`; do kill -KILL $x ; done
-
-#	service_stop /usr/sbin/$APP  -f /etc/vtund.conf $HOST $SERVER
+	for x in `pgrep vtund`; do kill -KILL $x ; done
+	config_load vtund
+	config_foreach deleteClient client
+	config_foreach deleteInterface interface
 }
