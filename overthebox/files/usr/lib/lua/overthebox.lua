@@ -96,8 +96,8 @@ function config()
 			if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
 
 				uci:set('vtund', conf.dev, 'interface')
-				uci:set('vtund', conf.dev, 'ip_peer', conf.ip_peer)
-				uci:set('vtund', conf.dev, 'ip_local', conf.ip_local)
+				uci:set('vtund', conf.dev, 'remoteip', conf.ip_peer)
+				uci:set('vtund', conf.dev, 'localip', conf.ip_local)
 				uci:set('vtund', conf.dev, 'port', conf.port)
 				uci:set('vtund', conf.dev, 'mtu', conf.mtu)
 
