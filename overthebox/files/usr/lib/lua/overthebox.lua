@@ -238,7 +238,7 @@ function send_properties( props )
 	end
 
 	if props.packages then
-		dy.packages = {}
+		body.packages = {}
 		for i, pkg in pairs(props.packages) do
 			local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
 			ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
