@@ -94,7 +94,7 @@ function config()
 		uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
 
 		if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
-			for conf in res.vtun_conf.additional_interfaces do
+			for _, conf in pairs(res.vtun_conf.additional_interfaces) do
 				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
 
 					uci:set('vtund', conf.dev, 'interface')
