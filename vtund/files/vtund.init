@@ -4,11 +4,31 @@
 # options you can use, and when you might want them.
 
 START=80
-APP="vtund"
-SERVICE_WRITE_PID=1
-SERVICE_DAEMONIZE=1
+STOP=10
+
+USE_PROCD=1
+PROG=/usr/sbin/vtund
 
 . /lib/functions.sh
+
+service_triggers()
+{
+	procd_add_reload_trigger "vtund"
+}
+
+vtun_add_instance() {
+	local conf="$1"
+	local host="$2"
+	local server="$3"
+
+	procd_open_instance
+	procd_set_param command "$PROG" -n -f $conf $host $server
+	procd_set_param file "$conf"
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
 
 generateConfig() {
 	local dev
@@ -28,8 +48,8 @@ generateConfig() {
 	config_get cipher $1 cipher "aes256cbc"
 	config_get psk $1 psk "foobar"
 
-	config_get localip $1 ip_local "10.166.177.2"
-	config_get remoteip $1 ip_peer "10.166.177.1"
+	config_get localip $1 localip "10.166.177.2"
+	config_get remoteip $1 remoteip "10.166.177.1"
 
 	config_get mtu $1 mtu "1450"
 	config_get table $1 table "100"
@@ -88,7 +108,7 @@ $host
 EOF
 	# exit if conf is missing!
 	if [ "$server" != "127.0.0.1" ]; then
-		service_start /usr/sbin/$APP -f $conf $host $server
+		vtun_add_instance $conf $host $server
 	fi
 }
 
@@ -102,12 +122,12 @@ addInterface() {
 	local pref
 	local metric
 
-	config_get host $1 host "Sticky.${dev}"
+	config_get host $1 host "$dev"
 	config_get conf $1 conf "/etc/vtund.${dev}.conf"
 
 	config_get port $1 port "5008"
-	config_get localip $1 ip_local "10.166.155.2"
-	config_get remoteip $1 ip_peer "10.166.155.1"
+	config_get localip $1 localip "10.166.155.2"
+	config_get remoteip $1 remoteip "10.166.155.1"
 
 	config_get mtu $1 mtu "1450"
 	config_get pref $1 pref "10100"
@@ -161,7 +181,7 @@ $host
 
 EOF
 	if [ "$server" != "127.0.0.1" ]; then
-		service_start /usr/sbin/$APP -f $conf $host $server
+		vtun_add_instance $conf $host $server
 	fi
 }
 
@@ -176,17 +196,16 @@ deleteInterface() {
 	ip link delete dev $dev &>/dev/null
 }
 
-start() {
+start_service() {
 	if [ "$1" = "delayed" ] ; then
 		[ "$(pgrep -fn $0)" -ne "$(pgrep -fo $0)" ] && echo "time already been set" && exit 1
 		sleep 10
 		/etc/init.d/vtund restart
 		exit 1
 	fi
+
 	/bin/touch /etc/config/vtund
 	config_load vtund
-
-	for x in `pgrep vtund`; do kill -KILL $x ; done
 	rm -f /etc/vtund*.conf 2>/dev/null
 	config_foreach deleteClient client
 	config_foreach deleteInterface interface
@@ -195,9 +214,3 @@ start() {
 	config_foreach addInterface interface
 }
 
-stop() {
-	for x in `pgrep vtund`; do kill -KILL $x ; done
-	config_load vtund
-	config_foreach deleteClient client
-	config_foreach deleteInterface interface
-}
