@@ -109,10 +109,10 @@ index 9b8af51..fd5dd53 100644
  po:depends("linklayer", "ethernet")
 diff --git a/src/otb.qos b/src/otb.qos
 new file mode 100644
-index 0000000..7784caa
+index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,123 @@
 +#!/bin/sh
 +
 +# This script implements a 3 queue traffic classification system on egress and
@@ -142,7 +142,7 @@ index 0000000..7784caa
 +    ul rate ${UPLINK}kbit
 +
 +    $TC class add dev ${IFACE} parent 1:1 classid 1:11 hfsc sc rate ${PRIO}kbit \
-+    ul rate ${PRIO}kbit
++    ul rate ${NORMAL}kbit
 +    $TC class add dev ${IFACE} parent 1:1 classid 1:12 hfsc ls rate ${NORMAL}kbit
 +    $TC class add dev ${IFACE} parent 1:1 classid 1:13 hfsc ls rate ${BULK}kbit
 +
@@ -162,7 +162,8 @@ index 0000000..7784caa
 +    $TC filter add dev ${IFACE} parent 130: handle 130 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${BULK}`
 +
 +
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5005 0xffff  flowid 1:12
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5008 0xffff  flowid 1:11
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5006 0xffff  flowid 1:12
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 1090 0xffff  flowid 1:13
 +
 +}
@@ -235,3 +236,33 @@ index 0000000..7784caa
 +    [ -n "$CUR_IFB" ] && $IP link delete ${CUR_IFB} type ifb
 +    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} interface deleted"
 +}
+diff --git a/platform/openwrt/sqm-uci b/platform/openwrt/sqm-uci
+index 13a7a0b..82372e5 100644
+--- a/platform/openwrt/sqm-uci
++++ b/platform/openwrt/sqm-uci
+@@ -1,16 +1,11 @@
+ 
+-config queue 'eth1'
+-        option enabled '0'
+-        option interface 'eth1'
+-        option download '85000'
+-        option upload '10000'
+-        option qdisc 'fq_codel'
+-        option script 'simple.qos'
+-        option qdisc_advanced '0'
+-        option ingress_ecn 'ECN'
+-        option egress_ecn 'ECN'
+-        option qdisc_really_really_advanced '0'
+-        option itarget 'auto'
+-        option etarget 'auto'
+-        option linklayer 'none'
++config queue
++	option enabled '0'
++	option qdisc 'sfq'
++	option script 'otb.qos'
++	option linklayer 'atm'
++	option overhead '44'
++	option download '10000'
++	option upload '1000'
++	option qdisc_advanced '0'
+ 
