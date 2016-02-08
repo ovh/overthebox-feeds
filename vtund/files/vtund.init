@@ -48,8 +48,8 @@ generateConfig() {
 	config_get cipher $1 cipher "aes256cbc"
 	config_get psk $1 psk "foobar"
 
-	config_get localip $1 ip_local "10.166.177.2"
-	config_get remoteip $1 ip_peer "10.166.177.1"
+	config_get localip $1 localip "10.166.177.2"
+	config_get remoteip $1 remoteip "10.166.177.1"
 
 	config_get mtu $1 mtu "1450"
 	config_get table $1 table "100"
@@ -87,11 +87,7 @@ $host
 	multi killold;
 	up
 	{
-		ifconfig "%% $localip pointopoint $remoteip up";
-		program "/usr/bin/multipath %% off";
-		ip "rule add from $localip table $table pref $pref";
-		ip "route add default via $remoteip table $table";
-		ip "route add default via $remoteip metric $metric";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
 		program "/etc/init.d/shadowsocks start";
 		program "ubus call network.interface.%% up";
 	};
@@ -126,8 +122,8 @@ addInterface() {
 	config_get conf $1 conf "/etc/vtund.${dev}.conf"
 
 	config_get port $1 port "5008"
-	config_get localip $1 ip_local "10.166.155.2"
-	config_get remoteip $1 ip_peer "10.166.155.1"
+	config_get localip $1 localip "10.166.155.2"
+	config_get remoteip $1 remoteip "10.166.155.1"
 
 	config_get mtu $1 mtu "1450"
 	config_get pref $1 pref "10100"
@@ -165,11 +161,7 @@ $host
 	multi killold;
 	up
 	{
-		ifconfig "%% $localip pointopoint $remoteip up";
-		program "/usr/bin/multipath %% off";
-		ip "rule add from $localip table $table pref $pref";
-		ip "route add default via $remoteip table $table";
-		ip "route add default via $remoteip metric $metric";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
 	};
 	down
 	{

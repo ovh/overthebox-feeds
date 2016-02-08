@@ -75,6 +75,7 @@ define Package/vtund/install
 	$(INSTALL_CONF) ./files/vtund.config $(1)/etc/config/vtund
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/vtund $(1)/usr/sbin/
+	$(INSTALL_BIN) ./files/vtund.ifup.sh $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/vtund.init $(1)/etc/init.d/vtund
 endef

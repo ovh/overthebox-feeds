@@ -78,20 +78,59 @@ function exists(obj, ...)
 	return true
 end
 
+function addInterfaceInZone(name, ifname)
+	local uci = uci.cursor()
+	uci:foreach("firewall", "zone",
+		function (zone)
+			if zone["name"] == name then
+				local list = uci:get_list("firewall", zone[".name"], "network")
+				if list then
+					local found=0
+					for _, itf in pairs(list) do
+						if itf == ifname then
+							return false;
+						end
+					end
+					table.insert(list, ifname)
+					uci:set_list("firewall", zone[".name"], "network", list)
+					uci:save('firewall')
+					return true
+				else
+					uci:set_list("firewall", zone[".name"], "network", { ifname })
+					uci:save('firewall')
+					return true
+				end
+			end
+		end
+	)
+	return false
+end
+
 function config()
 	local uci = uci.cursor()
 	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
 	local ret = {}
 
-	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local' ) then
+	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local', 'metric' ) then
 		uci:set('vtund', 'tunnel', 'client')
-
 		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
 		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
 		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
 		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
 		uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
 		uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
+
+		uci:set('network', res.vtun_conf.dev, 'interface')
+		uci:set('network', res.vtun_conf.dev, 'ifname', res.vtun_conf.dev)
+		uci:set('network', res.vtun_conf.dev, 'proto', 'none')
+		uci:set('network', res.vtun_conf.dev, 'multipath', 'off')
+		uci:set('network', res.vtun_conf.dev, 'delegate', '0')
+		uci:set('network', res.vtun_conf.dev, 'metric', res.vtun_conf.metric)
+		uci:set('network', res.vtun_conf.dev, 'auto', '0')
+
+		if addInterfaceInZone("wan", res.vtun_conf.dev) then
+			uci:commit('firewall')
+		end
 
 		if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
 			for _, conf in pairs(res.vtun_conf.additional_interfaces) do
@@ -107,10 +146,22 @@ function config()
 					uci:set('vtund', conf.dev, 'pref', conf.table)
 					uci:set('vtund', conf.dev, 'metric', conf.metric)
 
+					uci:set('network', conf.dev, 'interface')
+					uci:set('network', conf.dev, 'ifname', conf.dev)
+					uci:set('network', conf.dev, 'proto', 'none')
+					uci:set('network', conf.dev, 'multipath', 'off')
+					uci:set('network', conf.dev, 'delegate', '0')
+					uci:set('network', conf.dev, 'metric', conf.metric)
+					uci:set('network', conf.dev, 'auto', '0')
+
+					if addInterfaceInZone("wan", conf.dev) then
+						uci:commit('firewall')
+					end
 				end
 			end
 		end
-
+		uci:save('network')
+		uci:commit('network')
 		uci:save('vtund')
 		uci:commit('vtund')
 		table.insert(ret, "vtund")
