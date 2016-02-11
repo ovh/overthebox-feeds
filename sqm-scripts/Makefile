@@ -43,7 +43,6 @@ endef
 define Package/sqm-scripts/install
 	make -C $(PKG_BUILD_DIR) DESTDIR=$(1) PLATFORM=openwrt install
 	$(INSTALL_DIR) $(1)/usr/lib/sqm/
-	$(INSTALL_BIN) ./ovh/*.qos $(1)/usr/lib/sqm/
 endef
 
 define Package/luci-app-sqm

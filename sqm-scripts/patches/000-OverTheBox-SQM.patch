@@ -135,6 +135,10 @@ index 0000000..2384ace
 +    NORMAL=$(( ${UPLINK} * 50 / 100 ))
 +    BULK=$(( ${UPLINK} * 20 / 100 ))
 +
++    TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
++    XTUN0_PORT=$(uci -q get vtund.Xtun0.port || echo "5008")
++    SOCKS_PORT=$(uci -q get shadowsocks.proxy.port || echo "1090")
++
 +    $TC qdisc del dev ${IFACE} root 2> /dev/null
 +    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 13
 +
@@ -161,11 +165,9 @@ index 0000000..2384ace
 +    $TC filter add dev ${IFACE} parent 120: handle 120 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${NORMAL}`
 +    $TC filter add dev ${IFACE} parent 130: handle 130 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${BULK}`
 +
-+
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5008 0xffff  flowid 1:11
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 5006 0xffff  flowid 1:12
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport 1090 0xffff  flowid 1:13
-+
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:11
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:12
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${SOCKS_PORT} 0xffff  flowid 1:13
 +}
 +
 +ingress() {
@@ -187,8 +189,6 @@ index 0000000..2384ace
 +    $IP link set dev ${DEV} up
 +
 +    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action mirred egress redirect dev ${DEV}
-+
-+
 +
 +}
 +
