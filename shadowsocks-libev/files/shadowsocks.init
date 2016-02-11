@@ -1,99 +1,156 @@
 #!/bin/sh /etc/rc.common
 
 START=95
+STOP=10
 
-SERVICE_USE_PID=1
-SERVICE_WRITE_PID=1
-SERVICE_DAEMONIZE=1
+USE_PROCD=1
+PROG=/usr/bin/ss-redir
 
-CONFIG=/etc/shadowsocks.json
+IPT="/usr/sbin/iptables -t mangle -w"
+IPTN="/usr/sbin/iptables -t nat -w"
 
+. /lib/functions.sh
 
-start() {
+service_triggers() {
+	procd_add_reload_trigger "shadowsocks"
+	procd_add_reload_trigger "mwan3"
+}
 
-	uci show shadowsocks 1>/dev/null 2>/dev/null
-	if [ $? -ne 0 ]; then
-		echo "Shadowsocks is not configured, exiting..."
-		exit 1
-	fi
+shadowsocks_add_instance() {
+	local conf="$1"
 
-	SERVER=$(uci get shadowsocks.proxy.server)
-	PORT=$(uci get shadowsocks.proxy.port)
-	LPORT=$(uci get shadowsocks.proxy.lport)
-	PASSWORD=$(uci get shadowsocks.proxy.password)
-	TIMEOUT=$(uci get shadowsocks.proxy.timeout)
-	METHOD=$(uci get shadowsocks.proxy.method)
+	procd_open_instance
+	procd_set_param command "$PROG" -c $conf -b 0.0.0.0
+	procd_set_param file "$conf"
+	procd_set_param limits nofile="51200"
+	procd_set_param respawn
+	procd_set_param stderr 1
+	procd_close_instance
+}
 
-cat <<BOF >$CONFIG
-        
+generateConfig() {
+	local conf
+	local server
+	local port
+	local lport
+	local psk
+	local timeout
+	local method
+
+	config_get conf $1 conf "/etc/shadowsocks.json"
+	config_get server $1 server "127.0.0.1"
+	config_get port $1 port ""
+	config_get lport $1 lport ""
+	config_get password $1 password ""
+	config_get timeout $1 timeout ""
+	config_get method $1 method ""
+
+	cat <<BOF >$conf
+       
 {
-        "server": "$SERVER",
-        "server_port": $PORT,
-        "local_port": $LPORT,
-        "password": "$PASSWORD",
-        "timeout": $TIMEOUT,
-        "method": "$METHOD" 
+        "server": "$server",
+        "server_port": $port,
+        "local_port": $lport,
+        "password": "$password",
+        "timeout": $timeout,
+        "method": "$method" 
 }       
 
 BOF
 
-	ulimit -n 51200
+	if [ "$server" != "127.0.0.1" ]; then
+		shadowsocks_add_instance $conf
 
-        service_start /usr/bin/ss-redir -c $CONFIG -b 0.0.0.0
+		iptables -t nat -N SOCKS 2>/dev/null
 
-	iptables -t nat -N SOCKS 2>/dev/null
+		iptables -t nat -D SOCKS -d 0.0.0.0/8 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 0.0.0.0/8 -j RETURN
 
-	iptables -t nat -D SOCKS -d 0.0.0.0/8 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 0.0.0.0/8 -j RETURN
+		iptables -t nat -D SOCKS -d 10.0.0.0/8 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 10.0.0.0/8 -j RETURN
 
-	iptables -t nat -D SOCKS -d 10.0.0.0/8 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 10.0.0.0/8 -j RETURN
+		iptables -t nat -D SOCKS -d 127.0.0.0/8 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 127.0.0.0/8 -j RETURN
 
-	iptables -t nat -D SOCKS -d 127.0.0.0/8 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 127.0.0.0/8 -j RETURN
+		iptables -t nat -D SOCKS -d 169.254.0.0/16 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 169.254.0.0/16 -j RETURN
 
-	iptables -t nat -D SOCKS -d 169.254.0.0/16 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 169.254.0.0/16 -j RETURN
+		iptables -t nat -D SOCKS -d 172.16.0.0/12 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 172.16.0.0/12 -j RETURN
 
-	iptables -t nat -D SOCKS -d 172.16.0.0/12 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 172.16.0.0/12 -j RETURN
+		iptables -t nat -D SOCKS -d 192.168.0.0/16 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 192.168.0.0/16 -j RETURN
 
-	iptables -t nat -D SOCKS -d 192.168.0.0/16 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 192.168.0.0/16 -j RETURN
+		iptables -t nat -D SOCKS -d 224.0.0.0/4 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 224.0.0.0/4 -j RETURN
 
-	iptables -t nat -D SOCKS -d 224.0.0.0/4 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 224.0.0.0/4 -j RETURN
+		iptables -t nat -D SOCKS -d 240.0.0.0/4 -j RETURN 2>/dev/null
+		iptables -t nat -A SOCKS -d 240.0.0.0/4 -j RETURN
 
-	iptables -t nat -D SOCKS -d 240.0.0.0/4 -j RETURN 2>/dev/null
-	iptables -t nat -A SOCKS -d 240.0.0.0/4 -j RETURN
+		iptables -t nat -D SOCKS -p tcp -j REDIRECT --to-ports $lport 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -j REDIRECT --to-ports $lport
 
-	iptables -t nat -D SOCKS -p tcp -j REDIRECT --to-ports $LPORT 2>/dev/null
-	iptables -t nat -A SOCKS -p tcp -j REDIRECT --to-ports $LPORT
-
-	for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
-	do
-		iptables -t nat -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
-		iptables -t nat -A PREROUTING  -i $i -p tcp -j SOCKS
-	done
+		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
+		do
+			iptables -t nat -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
+			iptables -t nat -A PREROUTING  -i $i -p tcp -j SOCKS
+		done
+	fi
 }
 
-stop() {
-	SERVER=$(uci get shadowsocks.proxy.server)
-        service_stop /usr/bin/ss-redir
+genrateRules() {
+        local ipset proto src_ip src_port sticky dest_ip dest_port use_policy rule timeout
 
+        config_get sticky $1 sticky 0
+        config_get timeout $1 timeout 600
+        config_get ipset $1 ipset
+        config_get proto $1 proto all
+        config_get src_ip $1 src_ip 0.0.0.0/0
+        config_get src_port $1 src_port 0:65535
+        config_get dest_ip $1 dest_ip 0.0.0.0/0
+        config_get dest_port $1 dest_port 0:65535
+        config_get use_policy $1 use_policy
+
+        rule="$1"
+
+	if [ -n "$use_policy" ]; then
+                case $proto in
+                tcp)
+                        $IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+                        $IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+
+                        $IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+                        $IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+                        ;;
+                udp)
+                        ;;
+                *)
+                        ;;
+                esac
+	fi
+
+}
+
+start_service() {
+	config_load shadowsocks
+	config_foreach generateConfig client
+
+	config_load mwan3
+	config_foreach genrateRules rule
+}
+
+reload_service() {
+	config_load mwan3
+	config_foreach genrateRules rule
+}
+
+stop_service() {
 	iptables -t nat -F SOCKS
-
 	for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
 	do
 		iptables -t nat -D PREROUTING  -i $i -p tcp -j SOCKS
 	done
-
 	iptables -t nat -X SOCKS
-
-#	for g in `uci show network |grep '\.gateway=' |grep -v '@route' | cut -f2 -d"'"`
-#	do
-#		route del $SERVER gw $g
-#	done
-
 }
+
 
