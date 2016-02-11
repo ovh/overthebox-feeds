@@ -1,3 +1,10 @@
+
+config rule 'voip'
+        option dest_ip '91.121.128.0/23'
+        option proto 'udp'
+        option sticky '0'
+	option use_policy 'failover'
+
 config rule 'openvpn'
         option dest_port '1194:1196'
         option sticky '0'
@@ -10,11 +17,9 @@ config rule 'socks'
         option sticky '0'
         option use_policy 'balanced'
 
-
 config rule 'all'
         option proto 'all'
         option sticky '0'
-
 
 config interface 'tun0'
         option enabled '1'
