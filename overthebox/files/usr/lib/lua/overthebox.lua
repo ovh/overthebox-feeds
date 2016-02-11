@@ -85,14 +85,16 @@ function addInterfaceInZone(name, ifname)
 			if zone["name"] == name then
 				local list = uci:get_list("firewall", zone[".name"], "network")
 				if list then
-					local found=0
-					for _, itf in pairs(list) do
+					local zones = {}
+					list = table.concat(list, " "):gmatch("%S+")
+					for itf in list do
 						if itf == ifname then
 							return false;
 						end
+						table.insert(zones, itf)
 					end
-					table.insert(list, ifname)
-					uci:set_list("firewall", zone[".name"], "network", list)
+					table.insert(zones, ifname)
+					uci:set_list("firewall", zone[".name"], "network", zones)
 					uci:save('firewall')
 					return true
 				else
@@ -127,6 +129,7 @@ function config()
 		uci:set('network', res.vtun_conf.dev, 'delegate', '0')
 		uci:set('network', res.vtun_conf.dev, 'metric', res.vtun_conf.metric)
 		uci:set('network', res.vtun_conf.dev, 'auto', '0')
+		uci:set('network', res.vtun_conf.dev, 'type', 'tunnel')
 
 		if addInterfaceInZone("wan", res.vtun_conf.dev) then
 			uci:commit('firewall')
@@ -143,7 +146,7 @@ function config()
 					uci:set('vtund', conf.dev, 'mtu', conf.mtu)
 
 					uci:set('vtund', conf.dev, 'table', conf.table)
-					uci:set('vtund', conf.dev, 'pref', conf.table)
+					uci:set('vtund', conf.dev, 'pref', conf.pref)
 					uci:set('vtund', conf.dev, 'metric', conf.metric)
 
 					uci:set('network', conf.dev, 'interface')
@@ -153,6 +156,7 @@ function config()
 					uci:set('network', conf.dev, 'delegate', '0')
 					uci:set('network', conf.dev, 'metric', conf.metric)
 					uci:set('network', conf.dev, 'auto', '0')
+					uci:set('network', conf.dev, 'type', 'tunnel')
 
 					if addInterfaceInZone("wan", conf.dev) then
 						uci:commit('firewall')
@@ -704,76 +708,122 @@ function update_confmwan()
 			end
 		end
 	)
-	-- Get trackers IPs
-	local interfaces= {}
-	local size_interfaces = 0 -- table.getn( does not work....
+	-- Setup trackers IPs
 	local tracking_servers = {}
---	uci:foreach("openvpn", "openvpn",
---		function (section)
---			if section["enabled"] == "1" and section["remote"] ~= nil then
---				table.insert( tracking_servers, section["remote"])
---			end
---		end
---	)
 	table.insert( tracking_servers, "51.254.49.132" )
 	table.insert( tracking_servers, "51.254.49.133" )
+	-- 
+	local interfaces={}
+	local size_interfaces = 0 -- table.getn( does not work....
+
 	-- Table indexed with dns ips to list reacheable interface for this DNS ip
 	local dns_policies = {}
+
 	-- Create a tracker for each mptcp interface
 	uci:foreach("network", "interface",
 		function (section)
-			if section["type"] == "macvlan" then
-				if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
-					if section["gateway"] then
-						size_interfaces = size_interfaces + 1
-						interfaces[ section[".name"] ] = section
-						uci:set("mwan3", section[".name"], "interface")
-						uci:set("mwan3", section[".name"], "enabled", "1")
-						if next(tracking_servers) then
-							uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
-						end
-						uci:set("mwan3", section[".name"], "track_method","dns")
-						uci:set("mwan3", section[".name"], "reliability", "1")
-						uci:set("mwan3", section[".name"], "count", "1")
-						uci:set("mwan3", section[".name"], "timeout", "2")
-						uci:set("mwan3", section[".name"], "interval", "5")
-						uci:set("mwan3", section[".name"], "down", "3")
-						uci:set("mwan3", section[".name"], "up", "3")
-						if section["dns"] then
-							for dns in string.gmatch(section["dns"], "%S+") do
-								if dns_policies[dns] == nil then
-									dns_policies[dns] = {}
-								end
-								table.insert(dns_policies[dns], section[".name"])
+			if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
+				if section["gateway"] then
+					size_interfaces = size_interfaces + 1
+					interfaces[ section[".name"] ] = section
+					uci:set("mwan3", section[".name"], "interface")
+					uci:set("mwan3", section[".name"], "enabled", "1")
+					if next(tracking_servers) then
+						uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
+					end
+					uci:set("mwan3", section[".name"], "track_method","dns")
+					uci:set("mwan3", section[".name"], "reliability", "1")
+					uci:set("mwan3", section[".name"], "count", "1")
+					uci:set("mwan3", section[".name"], "timeout", "2")
+					uci:set("mwan3", section[".name"], "interval", "5")
+					uci:set("mwan3", section[".name"], "down", "3")
+					uci:set("mwan3", section[".name"], "up", "3")
+					if section["dns"] then
+						for dns in string.gmatch(section["dns"], "%S+") do
+							if dns_policies[dns] == nil then
+								dns_policies[dns] = {}
 							end
+							table.insert(dns_policies[dns], section[".name"])
 						end
 					end
 				end
+			elseif section["type"] == "tunnel" then
+				size_interfaces = size_interfaces + 1
+				interfaces[section[".name"]] = section
+				-- Create a tracker used to monitor tunnel interface
+				uci:set("mwan3", section[".name"], "interface")
+				uci:set("mwan3", section[".name"], "enabled", "1")
+				uci:delete("mwan3", section[".name"], "track_ip") -- No tracking ip for tunnel interface
+				uci:set("mwan3", section[".name"], "reliability", "1")
+				uci:set("mwan3", section[".name"], "count", "1")
+				uci:set("mwan3", section[".name"], "timeout", "2")
+				uci:set("mwan3", section[".name"], "interval", "5")
+				uci:set("mwan3", section[".name"], "down", "3")
+				uci:set("mwan3", section[".name"], "up", "3")
 			elseif section[".name"] == "tun0" then
 				size_interfaces = size_interfaces + 1
-				interfaces["tun0"] = section
+				interfaces[section[".name"]] = section
+				-- Create a tun0 tracker used for non tcp traffic
+				uci:set("mwan3", "tun0", "interface")
+				uci:set("mwan3", "tun0", "enabled", "1")
+				uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
+				uci:set("mwan3", "tun0", "reliability", "1")
+				uci:set("mwan3", "tun0", "count", "1")
+				uci:set("mwan3", "tun0", "timeout", "2")
+				uci:set("mwan3", "tun0", "interval", "5")
+				uci:set("mwan3", "tun0", "down", "3")
+				uci:set("mwan3", "tun0", "up", "3")
 			end
 		end
 	)
-	-- Create a tun0 tracker used for non tcp traffic
-	uci:set("mwan3", "tun0", "interface")
-	uci:set("mwan3", "tun0", "enabled", "1")
---      uci:set_list("mwan3", "tun0", "track_ip", uci:get("vtund", "tunnel", "remoteip"))
-	uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
-	uci:set("mwan3", "tun0", "reliability", "1")
-	uci:set("mwan3", "tun0", "count", "1")
-	uci:set("mwan3", "tun0", "timeout", "2")
-	uci:set("mwan3", "tun0", "interval", "5")
-	uci:set("mwan3", "tun0", "down", "3")
-	uci:set("mwan3", "tun0", "up", "3")
-	-- Creates mwan3 routing policies
-	local first_tun0_policy
 	-- generate all members
 	local members = {}
-	local members_wan = {}
-	local list_interf = {}
 
-	for name, interf  in pairs(interfaces) do
+	local members_wan = {}
+	local members_tun = {}
+	local members_qos = {}
+
+	local list_interf = {}
+	local list_wan 	  = {}
+	local list_tun	  = {}
+	local list_qos    = {}
+
+	-- sorted iterator to sort interface by metric
+	function __genOrderedIndex( t )
+		local orderedIndex = {}
+		for key in pairs(t) do
+			table.insert( orderedIndex, key )
+		end
+		table.sort( orderedIndex, function (a, b) 
+			return tonumber(interfaces[a].metric or 0) < tonumber(interfaces[b].metric or 0)
+		end )
+		return orderedIndex
+	end
+
+	function orderedNext(t, state)
+		key = nil
+		if state == nil then
+			t.__orderedIndex = __genOrderedIndex( t )
+			key = t.__orderedIndex[1]
+		else
+			for i = 1,table.getn(t.__orderedIndex) do
+				if t.__orderedIndex[i] == state then
+					key = t.__orderedIndex[i+1]
+				end
+			end
+		end
+		if key then
+			return key, t[key]
+		end
+		t.__orderedIndex = nil
+		return
+	end
+
+	function sortByMetric(t)
+		return orderedNext, t, nil
+	end
+	-- create interface members
+	for name, interf in sortByMetric(interfaces) do
 		log("Creating mwan policy for " .. name)
 		for i=1,size_interfaces do
 			local metric = i
@@ -785,31 +835,63 @@ function update_confmwan()
 			if not list_interf[metric] then
 				list_interf[metric] =  {}
 			end
-			if interf[".name"] ~= "tun0" then
+			-- parc type of members
+			if interf[".name"] == "tun0" then
+				if not members_tun[metric] then
+					members_tun[metric] = {}
+				end
+				if not list_tun[metric] then
+					list_tun[metric] = {}
+				end
+				table.insert(members_tun[metric], name)
+				table.insert(list_tun[metric], interf[".name"])
+
+			elseif interf["type"] == "tunnel" then
+				if not members_qos[metric] then
+					members_qos[metric] = {}
+				end
+				if not list_qos[metric] then
+					list_qos[metric] = {}
+				end
+				table.insert(members_qos[metric], name)
+				table.insert(list_qos[metric], interf[".name"])
+			elseif interf["multipath"] == "on" or interf["multipath"] == "master" or interf["multipath"] == "backup" or interf["multipath"] == "handover" then
 				if not members_wan[metric] then
 					members_wan[metric] = {}
 				end
-				table.insert(members_wan[metric], name)
-			else
-				if first_tun0_policy == nil then
-					first_tun0_policy=name
+				if not list_wan[metric] then
+					list_wan[metric] = {}
 				end
+				table.insert(members_wan[metric], name)
+				table.insert(list_wan[metric], interf[".name"])
 			end
 			-- populating ref tables
 			table.insert(members[metric], name)
 			table.insert(list_interf[metric], interf[".name"])
 			--- Creating mwan3 member
 			uci:set("mwan3", name, "member")
-			uci:set("mwan3", name, "interface",interf[".name"])
+			uci:set("mwan3", name, "interface", interf[".name"])
 			uci:set("mwan3", name, "metric", metric)
 			uci:set("mwan3", name, "weight", 1)
 		end
 	end
 	-- generate policies
-	log("Creating mwan balanced policy")
-	uci:set("mwan3", "balanced", "policy")
-	uci:set_list("mwan3", "balanced", "use_member", members_wan[1])
-	
+	if #members_wan and members_wan[1] then
+		log("Creating mwan balanced policy")
+		uci:set("mwan3", "balanced", "policy")
+		uci:set_list("mwan3", "balanced", "use_member", members_wan[1])
+	end
+
+	if #members_tun and members_tun[1] then
+		uci:set("mwan3", "balanced_tuns", "policy")
+		uci:set_list("mwan3", "balanced_tuns", "use_member", members_tun[1])
+	end
+
+	if #members_qos and members_qos[1] then
+		uci:set("mwan3", "balanced_qos", "policy")
+		uci:set_list("mwan3", "balanced_qos", "use_member", members_qos[1])
+	end
+
 	-- all uniq policy
 	log("Creating mwan single policy")
 	for i=1,#list_interf[1] do
@@ -898,16 +980,43 @@ function update_confmwan()
 		if n < 4 then
 			generate_all_routes({}, key_members, 0)
 		end
+
 		-- Generate failover policy
 		uci:set("mwan3", "failover", "policy")
 		local my_members = {}
-		table.insert(my_members, first_tun0_policy)
-		for i=2,size_interfaces do
-			table.insert(my_members, members_wan[i][i - 1])
+		if #members_tun then
+			for i=1,#members_tun[1] do
+				table.insert(my_members, members_tun[i][i])
+			end
+		end
+		if #members_wan then
+			for i=1,#members_wan[1] do
+				if members_wan[i + #members_tun[1]] then
+					table.insert(my_members, members_wan[#my_members + 1][i])
+				end
+			end
 		end
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
+
+		-- Generate qos failover policy
+		if #members_qos and members_qos[1] then
+			for i=1,#members_qos[1] do
+				local name = list_qos[1][i].."_failover"
+				uci:set("mwan3", name, "policy")
+				local my_members = {}
+				table.insert(my_members, members_qos[1][i])
+				for j=i,#list_wan[1] do
+					table.insert(my_members, members_wan[j + 1][j])
+				end
+				uci:set_list("mwan3", name, "use_member", my_members)
+				if list_qos[1][i] == "xtun0" then
+					uci:set("mwan3", "voip", "use_policy", name)
+				end
+			end
+		end
 	end
+
 	-- Generate DNS policy
 	local count = 0
 	for dns, interfaces in pairs(dns_policies) do
