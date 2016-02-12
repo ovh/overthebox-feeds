@@ -96,10 +96,12 @@ function addInterfaceInZone(name, ifname)
 					table.insert(zones, ifname)
 					uci:set_list("firewall", zone[".name"], "network", zones)
 					uci:save('firewall')
+					uci:commit('firewall')
 					return true
 				else
 					uci:set_list("firewall", zone[".name"], "network", { ifname })
 					uci:save('firewall')
+					uci:commit('firewall')
 					return true
 				end
 			end
@@ -131,9 +133,7 @@ function config()
 		uci:set('network', res.vtun_conf.dev, 'auto', '0')
 		uci:set('network', res.vtun_conf.dev, 'type', 'tunnel')
 
-		if addInterfaceInZone("wan", res.vtun_conf.dev) then
-			uci:commit('firewall')
-		end
+		addInterfaceInZone("wan", res.vtun_conf.dev)
 
 		if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
 			for _, conf in pairs(res.vtun_conf.additional_interfaces) do
@@ -158,9 +158,8 @@ function config()
 					uci:set('network', conf.dev, 'auto', '0')
 					uci:set('network', conf.dev, 'type', 'tunnel')
 
-					if addInterfaceInZone("wan", conf.dev) then
-						uci:commit('firewall')
-					end
+					addInterfaceInZone("wan", conf.dev)
+
 				end
 			end
 		end
