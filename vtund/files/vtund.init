@@ -162,9 +162,11 @@ $host
 	up
 	{
 		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
+		program "ubus call network.interface.%% up";
 	};
 	down
 	{
+		program "ubus call network.interface.%% down";
 		ifconfig "%% down ";
 		ip "rule del from $localip table $table";
 		ip "route del default via $remoteip table $table";
