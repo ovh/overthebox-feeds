@@ -262,7 +262,7 @@ index 13a7a0b..82372e5 100644
 +	option script 'otb.qos'
 +	option linklayer 'atm'
 +	option overhead '44'
-+	option download '10000'
++	option download '0'
 +	option upload '1000'
 +	option qdisc_advanced '0'
  
