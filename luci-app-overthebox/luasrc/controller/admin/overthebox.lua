@@ -31,6 +31,10 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
+	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("QoS graphs"), 3)
+        e.leaf = true
+	e.sysauth = false
+
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
 	e.leaf = true
 	e.sysauth = false
@@ -256,11 +260,16 @@ function multipath_bandwidth()
 	local result = { };
 	local uci = luci.model.uci.cursor()
 
+	result["wans"] = {};
+	result["tuns"] = {};
+
 	for _, dev in luci.util.vspairs(luci.sys.net.devices()) do
 		if dev ~= "lo" then
 			local multipath = uci:get("network", dev, "multipath")
 			if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
-				result[dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+				result["wans"][dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+			elseif uci:get("network", dev, "type") == "tunnel" then
+				result["tuns"][dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
 			end
 		end
 	end

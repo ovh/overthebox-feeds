@@ -26,15 +26,14 @@
 	local devices = { "all" }
 	for _, dev in luci.util.vspairs(luci.sys.net.devices()) do
 		if dev ~= "lo" and not ntm:ignore_interface(dev) then
-			local multipath = uci:get("network", dev, "multipath")
-			if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
+			if uci:get("network", dev, "type") == "tunnel" then
 				devices[#devices+1] = dev
 			end
 		end
 	end
 
 	local curdev = luci.dispatcher.context.requestpath
-	curdev = curdev[#curdev] ~= "multipath" and curdev[#curdev] or devices[1]
+	curdev = curdev[#curdev] ~= "tunnels" and curdev[#curdev] or devices[1]
 -%>
 
 <%+header%>
@@ -78,6 +77,11 @@
                         return "PaleTurquoise";
                 if(str == "if8")
                         return "BlueViolet";
+
+		if(str == "tun0")
+			return "DimGrey";
+		if(str == "xtun0")
+			return "FireBrick";
 
                 // Generate a color folowing the name
                 Math.seedrandom(str);
@@ -239,37 +243,45 @@
 						var data_tx_peak = 0;
 
 						var data = {};
+						
+						dataarray["all"] = {};
+						for(var prop in dataarray["wans"])
+						{
+							dataarray["all"][prop] = dataarray["wans"][prop]
+						}
+						for(var prop in dataarray["tuns"])
+						{
+							dataarray["all"][prop] = dataarray["tuns"][prop]
+						}
 
 						for(var itf in dataarray["wans"])
 						{
 							// convert json string to json object
 							data[itf] = JSON.parse(dataarray["wans"][itf]);
 							// Create lines for each interfaces
-							var color = stringToColour(itf);
+							var color = 'LightGrey';
 							if(typeof dnPolygons[itf] != "object")
 							{
 								// Create a new polygon to draw the bandwith
 								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
-								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.4;stroke:black;stroke-width:0.1');
+								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.2;stroke:black;stroke-width:0.5');
 								Gdn.getElementById('rx').parentNode.appendChild(dnline);
 
 								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
-				                /* prefill datasets */
+						                /* prefill datasets */
 								dndata[itf] = [ ];
 								for (var i = 0; i < data_wanted; i++)
 								{
 										dndata[itf][i] = 0;
 								}
-
 								createStatsFooter("download", itf, color);
-
 							}
 							if(typeof upPolygons[itf] != "object")
 							{
 								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 								upline.setAttributeNS(null, 'id', 'tx_' + itf);
-								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:0.4;stroke:black;stroke-width:0.1');
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.2;stroke:black;stroke-width:0.5');
 								Gup.getElementById('tx').parentNode.appendChild(upline);
 
 								upPolygons[itf] = Gup.getElementById('tx_' + itf);
@@ -279,7 +291,46 @@
 								{
 										updata[itf][i] = 0;
 								}
+								createStatsFooter("upload", itf, color);
+							}
+						}
+						for(var itf in dataarray["tuns"])
+						{
+							// convert json string to json object
+							data[itf] = JSON.parse(dataarray["tuns"][itf]);
+							// Create lines for each interfaces
+							var color = stringToColour(itf);
+							if(typeof dnPolygons[itf] != "object")
+							{
+								// Create a new polygon to draw the bandwith
+								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
+								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
+								Gdn.getElementById('rx').parentNode.appendChild(dnline);
 
+								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
+						                /* prefill datasets */
+								dndata[itf] = [ ];
+								for (var i = 0; i < data_wanted; i++)
+								{
+										dndata[itf][i] = 0;
+								}
+								createStatsFooter("download", itf, color);
+							}
+							if(typeof upPolygons[itf] != "object")
+							{
+								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+								upline.setAttributeNS(null, 'id', 'tx_' + itf);
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
+								Gup.getElementById('tx').parentNode.appendChild(upline);
+
+								upPolygons[itf] = Gup.getElementById('tx_' + itf);
+								/* prefill datasets */
+								updata[itf] = [ ];
+								for (var i = 0; i < data_wanted; i++)
+								{
+										updata[itf][i] = 0;
+								}
 								createStatsFooter("upload", itf, color);
 							}
 						}
@@ -333,7 +384,7 @@
                                                 var downlineUpl = { };
 						// fetch upline and downline datas
 						var toadditf = [ ];
-						for (var itf in data)
+						for(var itf in dataarray["wans"])
 						{
 							uplineDnl[itf] 	= [ ];
 							downlineDnl[itf]= [ ];
@@ -363,15 +414,14 @@
 
 								if (i > 0)
 								{
-										data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
-										data_tx_avg = (data_tx_avg + updata[itf][i]) / 2;
+									data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
+									data_tx_avg = (data_tx_avg + updata[itf][i]) / 2;
 								}
 								else
 								{
-										data_rx_avg = dndata[itf][i];
-										data_tx_avg = updata[itf][i];
+									data_rx_avg = dndata[itf][i];
+									data_tx_avg = updata[itf][i];
 								}
-
 								if(toadditf.length)
 								{
 									downlineDnl[itf][i] = uplineDnl[toadditf[toadditf.length-1]][i];
@@ -411,6 +461,81 @@
 						}
 						data_scale_upl = height / (data_max_upl * 1.1);
 						data_scale_dnl = height / (data_max_dnl * 1.1);
+						// fetch upline and downline datas
+						var toadditf = [ ];
+						for(var itf in dataarray["tuns"])
+						{
+							uplineDnl[itf] 	= [ ];
+							downlineDnl[itf]= [ ];
+                                                        uplineUpl[itf]  = [ ];
+                                                        downlineUpl[itf]= [ ];
+							// build point sets
+							var data_tx_avg;
+							var data_rx_avg;
+							var data_rx_peak = 0;
+							var data_tx_peak = 0;
+							for (var i = 0; i < dndata[itf].length; i++)
+							{
+								var rx_bot=0;
+								var tx_bot=0;
+								for(var j=0; j < toadditf.length; j++)
+								{
+									rx_bot += dndata[toadditf[j]][i];
+									tx_bot += updata[toadditf[j]][i];
+								}
+								// set upline of the interface
+								uplineDnl[itf][i] = dndata[itf][i] + rx_bot;
+								data_rx_peak = Math.max(data_rx_peak, dndata[itf][i]);
+								uplineUpl[itf][i] = updata[itf][i] + tx_bot;
+								data_tx_peak = Math.max(data_tx_peak, updata[itf][i]);
+
+								if (i > 0)
+								{
+									data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
+									data_tx_avg = (data_tx_avg + updata[itf][i]) / 2;
+								}
+								else
+								{
+									data_rx_avg = dndata[itf][i];
+									data_tx_avg = updata[itf][i];
+								}
+								if(toadditf.length)
+								{
+									downlineDnl[itf][i] = uplineDnl[toadditf[toadditf.length-1]][i];
+									downlineUpl[itf][i] = uplineUpl[toadditf[toadditf.length-1]][i];
+								}
+							}
+							toadditf.push(itf);
+							// Update stats labels
+							if(document.getElementById(itf + '_download_cur'))
+							{
+								var label = document.getElementById(itf + '_download_cur');
+								label.innerHTML = bandwidth_label(dndata[itf][dndata[itf].length-1]);
+							}
+							if(document.getElementById(itf + '_upload_cur'))
+							{
+								var label = document.getElementById(itf + '_upload_cur');
+								label.innerHTML = bandwidth_label(updata[itf][updata[itf].length-1]);
+							}
+							if(label = document.getElementById(itf + '_download_avg'))
+							{
+								label.innerHTML = bandwidth_label(data_rx_avg);
+							}
+							if(label = document.getElementById(itf + '_upload_avg'))
+							{
+								label.innerHTML = bandwidth_label(data_tx_avg);
+							}
+							if(document.getElementById(itf + '_download_peak'))
+							{
+								var label = document.getElementById(itf + '_download_peak');
+								label.innerHTML = bandwidth_label(data_rx_peak);
+							}
+							if(document.getElementById(itf + '_upload_peak'))
+							{
+								var label = document.getElementById(itf + '_upload_peak');
+								label.innerHTML = bandwidth_label(data_tx_peak);
+							}
+						}
 
 						for (var itf in uplineDnl)
 						{
