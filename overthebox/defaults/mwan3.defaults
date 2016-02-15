@@ -8,6 +8,8 @@ if ! uci -q get mwan3.voip.use_policy &>/dev/null; then
 	set mwan3.voip.sticky='0'
 	set mwan3.voip.use_policy='failover'
 	reorder mwan3.voip=0
+	commit mwan3
+	delete mwan3.netconfchecksum
 EOF
 fi
 

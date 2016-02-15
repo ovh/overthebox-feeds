@@ -66,6 +66,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-power.defaults ) 
         ( . /etc/uci-defaults/otb-recovery.defaults ) 
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
+	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 
 	sysctl -p /etc/sysctl.d/default.conf
 
