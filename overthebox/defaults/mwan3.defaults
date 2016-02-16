@@ -1,12 +1,15 @@
 #!/bin/sh
 
-if ! uci -q get mwan3.voip &>/dev/null; then
+if ! uci -q get mwan3.voip.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
         set mwan3.voip='rule'
 	set mwan3.voip.dest_ip='91.121.128.0/23'
 	set mwan3.voip.proto='udp'
 	set mwan3.voip.sticky='0'
 	set mwan3.voip.use_policy='failover'
+	reorder mwan3.voip=0
+	commit mwan3
+	delete mwan3.netconfchecksum
 EOF
 fi
 

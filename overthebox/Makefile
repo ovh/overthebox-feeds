@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.2
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -53,6 +53,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/power.defaults $(1)/etc/uci-defaults/otb-power.defaults
 	$(INSTALL_BIN) ./defaults/crontab.defaults $(1)/etc/uci-defaults/otb-crontab.defaults
 	$(INSTALL_BIN) ./defaults/download_recovery.defaults $(1)/etc/uci-defaults/otb-recovery.defaults
+	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults/mwan3.defaults
 endef
 
 define Package/overthebox/postinst
@@ -65,6 +66,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-power.defaults ) 
         ( . /etc/uci-defaults/otb-recovery.defaults ) 
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
+	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 
 	sysctl -p /etc/sysctl.d/default.conf
 
