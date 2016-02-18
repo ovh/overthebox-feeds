@@ -193,10 +193,10 @@
 
 						var data = {};
 
-						for(var itf in dataarray)
+						for(var itf in dataarray["wans"])
 						{
 							// convert json string to json object
-							data[itf] = JSON.parse(dataarray[itf]);
+							data[itf] = JSON.parse(dataarray["wans"][itf]);
 							// Create lines for each interfaces
 							var color = stringToColour(itf);
 							if(typeof dnPolygons[itf] != "object")
