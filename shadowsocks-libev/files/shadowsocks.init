@@ -14,6 +14,7 @@ IPTN="/usr/sbin/iptables -t nat -w"
 service_triggers() {
 	procd_add_reload_trigger "shadowsocks"
 	procd_add_reload_trigger "mwan3"
+	procd_add_reload_trigger "network"
 }
 
 shadowsocks_add_instance() {
@@ -99,36 +100,56 @@ BOF
 }
 
 genrateRules() {
-        local ipset proto src_ip src_port sticky dest_ip dest_port use_policy rule timeout
+	local ipset proto src_ip src_port sticky dest_ip dest_port use_policy rule timeout
 
-        config_get sticky $1 sticky 0
-        config_get timeout $1 timeout 600
-        config_get ipset $1 ipset
-        config_get proto $1 proto all
-        config_get src_ip $1 src_ip 0.0.0.0/0
-        config_get src_port $1 src_port 0:65535
-        config_get dest_ip $1 dest_ip 0.0.0.0/0
-        config_get dest_port $1 dest_port 0:65535
-        config_get use_policy $1 use_policy
+	config_get sticky $1 sticky 0
+	config_get timeout $1 timeout 600
+	config_get ipset $1 ipset
+	config_get proto $1 proto all
+	config_get src_ip $1 src_ip 0.0.0.0/0
+	config_get src_port $1 src_port 0:65535
+	config_get dest_ip $1 dest_ip 0.0.0.0/0
+	config_get dest_port $1 dest_port 0:65535
+	config_get use_policy $1 use_policy
 
-        rule="$1"
+	rule="$1"
 
 	if [ -n "$use_policy" ]; then
-                case $proto in
-                tcp)
-                        $IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
-                        $IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+	case $proto in
+		tcp)
+			$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+			$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
 
-                        $IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-                        $IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-                        ;;
-                udp)
-                        ;;
-                *)
-                        ;;
-                esac
+			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			;;
+		udp)
+			;;
+		*)
+			;;
+		esac
 	fi
 
+}
+
+genrateStaticRoutesRules() {
+	local interface target netmask gateway metric mtu
+
+	config_get interface $1 interface 'lan'
+	config_get target $1 target ''
+	config_get netmask $1 netmask ''
+	config_get gateway $1 gateway ''
+	config_get metric $1 metric ''
+	config_get mtu $1 mtu ''
+	
+	if [ -n "$gateway" ] && [ -n "$target" ]; then
+		eval "$(ipcalc.sh $target $netmask)"
+		$IPTN -D SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN 2>/dev/null
+		$IPTN -A SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN
+
+		$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+		$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+	fi
 }
 
 start_service() {
@@ -137,11 +158,17 @@ start_service() {
 
 	config_load mwan3
 	config_foreach genrateRules rule
+
+	config_load network
+	config_foreach genrateStaticRoutesRules route
 }
 
 reload_service() {
 	config_load mwan3
 	config_foreach genrateRules rule
+
+	config_load network
+	config_foreach genrateStaticRoutesRules route
 }
 
 stop_service() {
