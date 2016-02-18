@@ -25,7 +25,7 @@ index 9b8af51..fd5dd53 100644
 -		n:value(iface)
 +		local multipath = uci:get("network", iface, "multipath")
 +		if multipath == "on" or multipath == "backup" or multipath == "master" or multipath == "handover" then
-+			n:value(iface, uci:get("network", iface, "label") .. " (" .. iface .. ")" )
++			n:value(iface, (uci:get("network", iface, "label") or "") .. " (" .. iface .. ")" )
 +		else
 +			n:value(iface)
 +		end
@@ -47,7 +47,7 @@ index 9b8af51..fd5dd53 100644
 +	if not (iface == "lo" or iface:match("^ifb.*")) then
 +		local multipath = uci:get("network", iface, "multipath")
 +		if multipath == "on" or multipath == "backup" or multipath == "master" or multipath == "handover" then
-+			n1:value(iface, uci:get("network", iface, "label") .. " (" .. iface .. ")" )
++			n1:value(iface, (uci:get("network", iface, "label") or "") .. " (" .. iface .. ")" )
 +		end
 +	end
 +end
