@@ -77,13 +77,12 @@ then
         ZWAN=$(add_uci_section zone name=wan)
 fi
 update_uci_section $ZWAN input=REJECT output=ACCEPT forward=REJECT masq=1
-uci del_list $ZWAN.network='tun0 if6rd'
 for zone in "tun0" "xtun0" "if6rd";
 do
-	if ! uci -q get $ZWAN.network | grep "$zone" &>/dev/null; then
-		uci add_list $ZWAN.network=$zone
-	fi
+	uci del_list $ZWAN.network=$zone
+	uci add_list $ZWAN.network=$zone
 done
+uci del_list $ZWAN.network='tun0 if6rd'
 
 ZMPTCP=$(search_uci_section zone name=mptcp)
 if [ -z "$ZMPTCP" ]
