@@ -22,7 +22,8 @@ start() {
 	fi
 
 
-        for x in `pgrep vtund`; do kill -KILL $x ; done
+	for x in `pgrep vtund`; do kill -KILL $x ; done
+	for dev in `ip link | grep tun[0-9] | cut -f 2 -d:`; do ip link delete $dev; done
 
 	/bin/touch /etc/config/vtund
 	SERVER=$(uci -q get vtund.tunnel.server || echo 127.0.0.1 )
@@ -71,9 +72,11 @@ Sticky
 		ip "route add default via $REMOTEIP table 100";
 		ip "route add default via $REMOTEIP metric 1000";
 		program "/etc/init.d/shadowsocks start";
+		program "ubus call network.interface.%% up";
 	};
 	down
 	{
+		program "ubus call network.interface.%% down";
 		ifconfig "%% down ";
 		ip "rule del from $LOCALIP table 100";
 		ip "route del default via $REMOTEIP table 100";

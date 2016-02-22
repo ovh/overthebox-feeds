@@ -49,6 +49,9 @@ if [ $? -ne 0 ]; then
 EOF
 fi
 
+uci set network.tun0.auto='0'
+
+
 # be sure, ipv6 interface is here
 uci -q batch <<-EOF >/dev/null
     set network.if6rd=interface
@@ -61,8 +64,8 @@ CHANGES=$(uci changes network)
 if [ -n "$CHANGES" ]
 then
 	uci commit network
+	reload_config network
 	/etc/init.d/network restart
-	[ -x /etc/init.d/openvpn ] && /etc/init.d/openvpn restart ;
 	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
 fi
 exit 0

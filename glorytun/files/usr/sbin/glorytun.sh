@@ -12,31 +12,36 @@ mkfifo ${statefile}
 
 trap "pkill -TERM -P $$" TERM
 logger -t glorytun RUN dev ${dev} statefile ${statefile} retry count -1 timeout 5000 $*
-glorytun dev ${dev} statefile ${statefile} retry count -1 timeout 5000 $* &
+glorytun dev ${dev} statefile ${statefile} retry count -1 const 5000000 timeout 5000 $* &
 
 GTPID=$!
 
 initialized() {
     ip addr add ${iplocal} peer ${ippeer} dev ${dev}
     [ -n "${mtu}" ] && ip link set ${dev} mtu ${mtu}
-    ip link set ${dev} up
 
     multipath ${dev} off
 }
 
 started() {
+    ip link set ${dev} up
     if [ -n "${table}" ]; then
         ip rule add from ${iplocal} table ${table} pref ${pref:-0}
         ip route add default via ${ippeer} table ${table}
-        [ -n "${metric}" ] && ip route add default via ${ippeer} metric ${metric}
     fi
+    [ -n "${metric}" ] && ip route add default via ${ippeer} metric ${metric}
+    ubus call network.interface.${dev} up
+    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start ;
 }
 
 stopped() {
+    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop ;
     if [ -n "${table}" ]; then
         ip rule del from ${iplocal} table ${table}
         ip route del default via ${ippeer} table ${table}
     fi
+    ubus call network.interface.${dev} down
+    ip link set ${dev} down
 }
 
 while kill -0 ${GTPID}; do
