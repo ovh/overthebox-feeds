@@ -71,8 +71,9 @@ endef
 define Package/vtund/postinst
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
-        /etc/init.d/vtund stop
-        killall vtund
+	/etc/init.d/vtund stop
+	killall vtund
+	/etc/init.d/vtund restart
 fi
 exit 0
 endef
