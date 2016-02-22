@@ -107,12 +107,42 @@ index 9b8af51..fd5dd53 100644
  po.isnumber = true
  po.rmempty = true
  po:depends("linklayer", "ethernet")
+diff --git a/platform/openwrt/sqm-uci b/platform/openwrt/sqm-uci
+index 13a7a0b..82372e5 100644
+--- a/platform/openwrt/sqm-uci
++++ b/platform/openwrt/sqm-uci
+@@ -1,16 +1,11 @@
+ 
+-config queue 'eth1'
+-        option enabled '0'
+-        option interface 'eth1'
+-        option download '85000'
+-        option upload '10000'
+-        option qdisc 'fq_codel'
+-        option script 'simple.qos'
+-        option qdisc_advanced '0'
+-        option ingress_ecn 'ECN'
+-        option egress_ecn 'ECN'
+-        option qdisc_really_really_advanced '0'
+-        option itarget 'auto'
+-        option etarget 'auto'
+-        option linklayer 'none'
++config queue
++	option enabled '0'
++	option qdisc 'sfq'
++	option script 'otb.qos'
++	option linklayer 'atm'
++	option overhead '44'
++	option download '0'
++	option upload '1000'
++	option qdisc_advanced '0'
+
 diff --git a/src/otb.qos b/src/otb.qos
 new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,152 @@
 +#!/bin/sh
 +
 +# This script implements a 3 queue traffic classification system on egress and
@@ -125,7 +155,31 @@ index 0000000..2384ace
 +. ${SQM_LIB_DIR}/defaults.sh
 +
 +
++
 +egress() {
++
++
++    TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
++    XTUN0_PORT=$(uci -q get vtund.Xtun0.port || echo "5008")
++    SOCKS_PORT=$(uci -q get shadowsocks.proxy.port || echo "1090")
++
++    ipt -t mangle -F QOS_MARK_${IFACE}
++    ipt -t mangle -X QOS_MARK_${IFACE}
++    ipt -t mangle -N QOS_MARK_${IFACE}
++
++    ipt -t mangle -F QOS_RULES_${IFACE}
++    ipt -t mangle -X QOS_RULES_${IFACE}
++    ipt -t mangle -N QOS_RULES_${IFACE}
++
++    ipt -t mangle -A OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE}
++    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
++    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
++    
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length :512  -j MARK --set-mark 0x02${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 512:  -j MARK --set-mark 0x03${IPT_MASK_STRING}
++
++
++
 +    #PRIORITY traffic is guaranteed 30% of the bandwidth and capped to max 30%.
 +    PRIO=$(( ${UPLINK} * 30 / 100 ))
 +    #NORMAL is given a link share target of 50% without guarantee resulting in
@@ -135,9 +189,6 @@ index 0000000..2384ace
 +    NORMAL=$(( ${UPLINK} * 50 / 100 ))
 +    BULK=$(( ${UPLINK} * 20 / 100 ))
 +
-+    TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
-+    XTUN0_PORT=$(uci -q get vtund.Xtun0.port || echo "5008")
-+    SOCKS_PORT=$(uci -q get shadowsocks.proxy.port || echo "1090")
 +
 +    $TC qdisc del dev ${IFACE} root 2> /dev/null
 +    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 13
@@ -167,7 +218,10 @@ index 0000000..2384ace
 +
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:11
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:12
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${SOCKS_PORT} 0xffff  flowid 1:13
++#    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${SOCKS_PORT} 0xffff  flowid 1:13
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x02 ${IPT_MASK} flowid 1:12
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:13
++
 +}
 +
 +ingress() {
@@ -232,37 +286,12 @@ index 0000000..2384ace
 +    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} shaper deleted"
 +
 +
-+    [ -n "$CUR_IFB" ] && $IP link set dev ${CUR_IFB} down
++    ipt -t mangle -D POSTROUTING -o ${IFACE} -g QOS_MARK_${IFACE}
++    ipt -t mangle -F QOS_MARK_${IFACE}
++    ipt -t mangle -X QOS_MARK_${IFACE}
++    ipt -t mangle -F QOS_RULES_${IFACE}
++    ipt -t mangle -X QOS_RULES_${IFACE}  [ -n "$CUR_IFB" ] && $IP link set dev ${CUR_IFB} down
++    
 +    [ -n "$CUR_IFB" ] && $IP link delete ${CUR_IFB} type ifb
 +    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} interface deleted"
 +}
-diff --git a/platform/openwrt/sqm-uci b/platform/openwrt/sqm-uci
-index 13a7a0b..82372e5 100644
---- a/platform/openwrt/sqm-uci
-+++ b/platform/openwrt/sqm-uci
-@@ -1,16 +1,11 @@
- 
--config queue 'eth1'
--        option enabled '0'
--        option interface 'eth1'
--        option download '85000'
--        option upload '10000'
--        option qdisc 'fq_codel'
--        option script 'simple.qos'
--        option qdisc_advanced '0'
--        option ingress_ecn 'ECN'
--        option egress_ecn 'ECN'
--        option qdisc_really_really_advanced '0'
--        option itarget 'auto'
--        option etarget 'auto'
--        option linklayer 'none'
-+config queue
-+	option enabled '0'
-+	option qdisc 'sfq'
-+	option script 'otb.qos'
-+	option linklayer 'atm'
-+	option overhead '44'
-+	option download '0'
-+	option upload '1000'
-+	option qdisc_advanced '0'
- 
