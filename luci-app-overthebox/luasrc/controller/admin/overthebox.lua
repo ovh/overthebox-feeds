@@ -107,9 +107,11 @@ function interfaces_status()
 		end
 	end
 	-- Check overthebox service are running
-	mArray.overthebox["vtun_service"] = false
+	mArray.overthebox["tun_service"] = false
 	if string.find(sys.exec("/usr/bin/pgrep vtund"), "%d+") then
-		mArray.overthebox["vtun_service"] = true
+		mArray.overthebox["tun_service"] = true
+	elseif string.find(sys.exec("/usr/bin/pgrep -f ^glorytun"), "%d+") then
+		mArray.overthebox["tun_service"] = true
 	end
 	mArray.overthebox["socks_service"] = false
 	if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
@@ -158,11 +160,16 @@ function interfaces_status()
 		mptcp[ipaddr].backup= backup
 		mptcp[ipaddr].ipaddr= ipaddr
 	end
+	-- retrive core temperature
+	mArray.overthebox["core_temp"] = sys.exec("cat /sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input 2>/dev/null"):match("%d+")
+	mArray.overthebox["loadavg"] = sys.exec("cat /proc/loadavg 2>/dev/null"):match("[%d%.]+ [%d%.]+ [%d%.]+")
+	mArray.overthebox["uptime"] = sys.exec("cat /proc/uptime 2>/dev/null"):match("[%d%.]+")
 	-- overview status
 	local statusString = mwan3.getInterfaceName()
 	if statusString ~= "" then
 		mArray.wans = {}
 		wansid = {}
+		mArray.tunnels = {}
 
 		for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
 		local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
@@ -184,11 +191,11 @@ function interfaces_status()
 				multipath = "off"
 			end
 			-- Return info
-			if wanName == "tun0" then
-				mArray.overthebox["vtund"] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
+			if wanName:match("tun[%d+]") or wanName:match("voip[%d+]") then
+				mArray.tunnels[wanName] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
 			else
 				-- Add ping info
-				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName)))
+				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName .. " 2>/dev/null")))
 				local minping = "NaN"
 				local avgping = "NaN"
 				local curping = "NaN"
@@ -309,10 +316,8 @@ end
 
 function action_activate(service)
 	local result = require('overthebox').confirm_service(service)
-	if result == true then
-		action_dhcp_start_server()
-		action_dhcp_recheck()
-	end
+	action_dhcp_start_server()
+	action_dhcp_recheck()
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
 end

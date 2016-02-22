@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=sqm-scripts
 PKG_SOURCE_VERSION:=90399ffc4ddbe0b25374682d7914afee3d522328
 PKG_VERSION:=1.0.5
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 PKG_LICENSE:=GPLv2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE).tar.xz
@@ -43,7 +43,6 @@ endef
 define Package/sqm-scripts/install
 	make -C $(PKG_BUILD_DIR) DESTDIR=$(1) PLATFORM=openwrt install
 	$(INSTALL_DIR) $(1)/usr/lib/sqm/
-	$(INSTALL_BIN) ./ovh/*.qos $(1)/usr/lib/sqm/
 endef
 
 define Package/luci-app-sqm

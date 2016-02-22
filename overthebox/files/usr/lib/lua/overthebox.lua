@@ -23,7 +23,7 @@ local json	= require "luci.json"
 local sys 	= require "luci.sys"
 
 local http	= require("socket.http")
-local https     = require("ssl.https")
+local https	= require("ssl.https")
 local ltn12	= require("ltn12")
 local io 	= require("io")
 local os 	= require("os")
@@ -33,7 +33,7 @@ local print = print
 local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next, type, tostring, tonumber, error
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
-local uci = require("luci.model.uci").cursor()
+local uci	= require("luci.model.uci")
 debug = false
 local VERSION = "<VERSION>"
 module "overthebox"
@@ -56,6 +56,7 @@ function subscribe()
 
 	-- tprint(res)
 	if rcode == 200 then
+		local uci = uci.cursor()
 		uci:set("overthebox", "me", "token", res.token)
 		uci:set("overthebox", "me", "device_id", res.device_id)
 		uci:save("overthebox")
@@ -65,211 +66,289 @@ function subscribe()
 end
 
 function status()
-        return GET('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null").."/actions")
+	return GET('devices/'.. (uci.cursor():get("overthebox", "me", "device_id", {}) or "null").."/actions")
 end
 
 function exists(obj, ...)
 	for i,v in ipairs(arg) do
 		if obj[v] == nil then
-	       		return false
+			return false
 		end
 	end
 	return true
 end
 
+function addInterfaceInZone(name, ifname)
+	local uci = uci.cursor()
+	uci:foreach("firewall", "zone",
+		function (zone)
+			if zone["name"] == name then
+				local list = uci:get_list("firewall", zone[".name"], "network")
+				if list then
+					local zones = {}
+					list = table.concat(list, " "):gmatch("%S+")
+					for itf in list do
+						if itf == ifname then
+							return false;
+						end
+						table.insert(zones, itf)
+					end
+					table.insert(zones, ifname)
+					uci:set_list("firewall", zone[".name"], "network", zones)
+					uci:save('firewall')
+					uci:commit('firewall')
+					return true
+				else
+					uci:set_list("firewall", zone[".name"], "network", { ifname })
+					uci:save('firewall')
+					uci:commit('firewall')
+					return true
+				end
+			end
+		end
+	)
+	return false
+end
+
 function config()
-    local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
-    local ret = {}
+	local uci = uci.cursor()
+	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
+	local ret = {}
 
-    if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local' ) then
-        uci:set('vtund', 'tunnel', 'client')
+	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local', 'metric' ) then
+		uci:set('vtund', 'tunnel', 'client')
+		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
+		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
+		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
+		uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
+		uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
 
-        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
-        uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
-        uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
-        uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
-        uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
-        uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
+		uci:set('network', res.vtun_conf.dev, 'interface')
+		uci:set('network', res.vtun_conf.dev, 'ifname', res.vtun_conf.dev)
+		uci:set('network', res.vtun_conf.dev, 'proto', 'none')
+		uci:set('network', res.vtun_conf.dev, 'multipath', 'off')
+		uci:set('network', res.vtun_conf.dev, 'delegate', '0')
+		uci:set('network', res.vtun_conf.dev, 'metric', res.vtun_conf.metric)
+		uci:set('network', res.vtun_conf.dev, 'auto', '0')
+		uci:set('network', res.vtun_conf.dev, 'type', 'tunnel')
 
-        uci:save('vtund')
-        uci:commit('vtund')
-        table.insert(ret, "vtund")
+		addInterfaceInZone("wan", res.vtun_conf.dev)
 
-    end
+		if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
+			for _, conf in pairs(res.vtun_conf.additional_interfaces) do
+				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
 
-    if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu') then
-        uci:set('glorytun', 'otb', 'tunnel')
-        uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
-        uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
-        uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
-        uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
-        uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
-        uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
-        uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
+					uci:set('vtund', conf.dev, 'interface')
+					uci:set('vtund', conf.dev, 'remoteip', conf.ip_peer)
+					uci:set('vtund', conf.dev, 'localip', conf.ip_local)
+					uci:set('vtund', conf.dev, 'port', conf.port)
+					uci:set('vtund', conf.dev, 'mtu', conf.mtu)
 
-        uci:set('glorytun', 'otb', 'table',   '99' )
-        uci:set('glorytun', 'otb', 'pref',    '10099' )
+					uci:set('vtund', conf.dev, 'table', conf.table)
+					uci:set('vtund', conf.dev, 'pref', conf.pref)
+					uci:set('vtund', conf.dev, 'metric', conf.metric)
 
-        uci:save('glorytun')
-        uci:commit('glorytun')
-        table.insert(ret, 'glorytun')
-    end
+					uci:set('network', conf.dev, 'interface')
+					uci:set('network', conf.dev, 'ifname', conf.dev)
+					uci:set('network', conf.dev, 'proto', 'none')
+					uci:set('network', conf.dev, 'multipath', 'off')
+					uci:set('network', conf.dev, 'delegate', '0')
+					uci:set('network', conf.dev, 'metric', conf.metric)
+					uci:set('network', conf.dev, 'auto', '0')
+					uci:set('network', conf.dev, 'type', 'tunnel')
 
-    if not res.tun_conf then
-        res.tun_conf = {}
-    end
-    if not res.tun_conf.app then
-        res.tun_conf.app = "none"
-    end
+					addInterfaceInZone("wan", conf.dev)
 
-    if res.tun_conf.app == 'glorytun' then
-        uci:set('glorytun', 'otb', 'enable', '1')
-        uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
-    else
-        uci:set('glorytun', 'otb', 'enable', '0')
-    end
-    uci:save('glorytun')
-    uci:commit('glorytun')
+				end
+			end
+		end
+		uci:save('network')
+		uci:commit('network')
+		uci:save('vtund')
+		uci:commit('vtund')
+		table.insert(ret, "vtund")
 
+	end
 
-    if res.tun_conf.app == 'vtun' then
-        uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
-        uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
-    else
-        uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
-    end
-    uci:save('vtund')
-    uci:commit('vtund')
+	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu') then
+		uci:set('glorytun', 'otb', 'tunnel')
+		uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
+		uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
+		uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+		uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
+		uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
+		uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
+		uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
 
-    uci:delete('mwan3', 'socks', 'dest_port')
-    uci:save('mwan3')
-    uci:commit('mwan3')
+		uci:set('glorytun', 'otb', 'table',   '99' )
+		uci:set('glorytun', 'otb', 'pref',    '10099' )
 
-    if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-        uci:set('shadowsocks','proxy','client')
-        uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
-        uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
-        uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
-        uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
-        uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
-        uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
-        uci:save('shadowsocks')
-        uci:commit('shadowsocks')
-        table.insert(ret, "shadowsocks")
-    end
+		uci:save('glorytun')
+		uci:commit('glorytun')
 
-    if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-        uci:set('scollector','opentsdb', 'client')
-        uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-        uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-        uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
-        uci:save('scollector')
-        uci:commit('scollector')
-        table.insert(ret, 'scollector')
-    end
+		table.insert(ret, 'glorytun')
+	end
 
-    if res.log_conf and exists( res.log_conf, 'host', 'port') then
+	if not res.tun_conf then
+		res.tun_conf = {}
+	end
+	if not res.tun_conf.app then
+		res.tun_conf.app = "none"
+	end
 
-        uci:foreach("system", "system",
-        function (e)
-            uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
-            uci:set('system', e[".name"], 'log_port', res.log_conf.port )
-        end
-        )
+	if res.tun_conf.app == 'glorytun' then
+		uci:set('glorytun', 'otb', 'enable', '1')
+		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+	else
+		uci:set('glorytun', 'otb', 'enable', '0')
+	end
+	uci:save('glorytun')
+	uci:commit('glorytun')
 
-        uci:save('system')
-        uci:commit('system')
-        table.insert(ret, 'log')
-    end
+	if res.tun_conf.app == 'vtun' then
+		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
+	else
+		uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
+	end
+	uci:save('vtund')
+	uci:commit('vtund')
 
-    return true, ret 
+	uci:delete('mwan3', 'socks', 'dest_port')
+	uci:save('mwan3')
+	uci:commit('mwan3')
+
+	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
+		uci:set('shadowsocks','proxy','client')
+		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+		uci:save('shadowsocks')
+		uci:commit('shadowsocks')
+		table.insert(ret, "shadowsocks")
+	end
+
+	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
+		uci:set('scollector','opentsdb', 'client')
+		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
+		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+
+		uci:save('scollector')
+		uci:commit('scollector')
+		table.insert(ret, 'scollector')
+	end
+
+	if res.log_conf and exists( res.log_conf, 'host', 'port') then
+
+		uci:foreach("system", "system",
+			function (e)
+				uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+				uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+			end
+		)
+
+		uci:save('system')
+		uci:commit('system')
+
+		table.insert(ret, 'log')
+	end
+
+	return true, ret 
 end
 
 function send_properties( props )
-        body = {}
-        if props.interfaces then
-                body.interfaces = {}
-                uci:foreach("network", "interface",
-                        function (e)
-                                if not e.ifname then
-                                    return
-                                end
-                                entry = {
-                                        ip=e.ipaddr,
-                                        netmask=e.netmask,
-                                        gateway=e.gateway,
-                                        name=e.ifname,
-                                        multipath_status=e.multipath
-                                }
-                                if e.dns then
-                                        entry.dns_servers = string.gmatch( e.dns , "%S+")
-                                end
-                                if e.gateway then
-                                        entry.public_ip = get_ip_public(e.ifname)
-                                end
+	body = {}
 
-                                table.insert( body.interfaces, entry)
-                        end
-                )
-        end
+	local uci = uci.cursor()
+	if props.interfaces then
+		body.interfaces = {}
+		uci:foreach("network", "interface",
+			function (e)
+				if not e.ifname then
+					return
+				end
+				entry = {
+					ip=e.ipaddr,
+					netmask=e.netmask,
+					gateway=e.gateway,
+					name=e.ifname,
+					multipath_status=e.multipath
+				}
+				if e.dns then
+					entry.dns_servers = string.gmatch( e.dns , "%S+")
+				end
+				if e.gateway then
+					entry.public_ip = get_ip_public(e.ifname)
+				end
 
-        if props.packages then
-                body.packages = {}
-                for i, pkg in pairs(props.packages) do
-                        local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
-                        ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
-                        table.insert( body.packages, {name=pkg, version=ret})
-                end
-        end
+				table.insert( body.interfaces, entry)
+			end
+		)
+	end
 
-        if props.mounts then
-                body.mounts = {}
-                for line in io.lines("/proc/mounts") do
-                        t = split(line)
-                        table.insert(body.mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
-                end
-        end
+	if props.packages then
+		body.packages = {}
+		for i, pkg in pairs(props.packages) do
+			local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
+			ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
+			table.insert( body.packages, {name=pkg, version=ret})
+		end
+	end
 
---      tprint(body)
+	if props.mounts then
+		body.mounts = {}
+		for line in io.lines("/proc/mounts") do
+			t = split(line)
+			table.insert(body.mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
+		end
+	end
 
-        local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
-        tprint(res)
-        print(rcode)
-        return (rcode == 200), res
+--	tprint(body)
+
+	local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
+	tprint(res)
+	print(rcode)
+	return (rcode == 200), res
 end
 
 function get_ip_public(interface)
-        return run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ):match("(%d+%.%d+%.%d+%.%d+)")
+	return run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ):match("(%d+%.%d+%.%d+%.%d+)")
 end
 
 function check_release_channel(rc)
-        local myrc = uci:get("overthebox", "me", "release_channel", {}) or ""
-        return myrc == rc
+	local myrc = uci.cursor():get("overthebox", "me", "release_channel", {}) or ""
+	return myrc == rc
 end
 
 function update_release_channel()
-        local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/release_channel")
-        if rcode == 200 then
-                if res.feeds then
-                        set_feeds(res.feeds)
-                end
-                if res.name and res.image_url then
-                        uci:set("overthebox", "me", "release_channel", res.name)
-                        uci:set("overthebox", "me", "image_url", res.image_url)
-                        uci:save('overthebox')
-                        uci:commit('overthebox')
-                end
-                return true, "ok"
-        end
-        return false, "error"
+	local uci = uci.cursor()
+	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/release_channel")
+	if rcode == 200 then
+		if res.feeds then
+			set_feeds(res.feeds)
+		end
+		if res.name and res.image_url then
+			uci:set("overthebox", "me", "release_channel", res.name)
+			uci:set("overthebox", "me", "image_url", res.image_url)
+			uci:save('overthebox')
+			uci:commit('overthebox')
+		end
+		return true, "ok"
+	end
+	return false, "error"
 end
 
 -- write feeds in distfeeds.conf file
 function set_feeds(feeds)
-        local txt = ""
-        for i, f in pairs(feeds) do
-                txt = txt .. f.type .. " " .. f.name .. " " ..f.url .."\n"
-        end
+	local txt = ""
+	for i, f in pairs(feeds) do
+		txt = txt .. f.type .. " " .. f.name .. " " ..f.url .."\n"
+	end
 
 	if txt ~= "" then
 		fd = io.open("/etc/opkg/distfeeds.conf", "w")
@@ -283,94 +362,92 @@ end
 
 
 function createKey(remoteId)
-    ret, key = create_ssh_key()
-    if ret and key then
-        local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
-        return (rcode == 200), "ok"
-    end
-
-    return false, "key not well created"
+	ret, key = create_ssh_key()
+	if ret and key then
+		local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
+		return (rcode == 200), "ok"
+	end
+	return false, "key not well created"
 end
 
 function create_ssh_key()
-    local private_key = "/root/.ssh_otb_remote"
-    local public_key = private_key..".pub"
+	local private_key = "/root/.ssh_otb_remote"
+	local public_key = private_key..".pub"
 
-    if not file_exists( private_key ) then
-        local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
-    end
-    if not file_exists( public_key ) then
-        local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
-    end
+	if not file_exists( private_key ) then
+		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+	end
+	if not file_exists( public_key ) then
+		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+	end
 
-    key=""
-    -- read public key
-    for line in io.lines(public_key) do
-        if string_starts( line, "ssh-") then
-            key = line
-            break
-        end
-    end
+	key=""
+	-- read public key
+	for line in io.lines(public_key) do
+		if string_starts( line, "ssh-") then
+			key = line
+			break
+		end
+	end
 
-    return true, key
+	return true, key
 end
 
 function remoteAccessConnect(args)
-    if not args or not exists( args, 'forwarded_port', 'ip', 'port', 'server_public_key', 'remote_public_key')    then
-        return false, "no arguments or missing"
-    end
+	if not args or not exists( args, 'forwarded_port', 'ip', 'port', 'server_public_key', 'remote_public_key')    then
+		return false, "no arguments or missing"
+	end
 
-    local name="remote"..args.port
+	local name="remote"..args.port
+	-- set arguments to config
+	local uci = uci.cursor()
+	uci:set("overthebox", name, "remote")
+	uci:set("overthebox", name, "forwarded_port", args.forwarded_port )
+	uci:set("overthebox", name, "ip", args.ip )
+	uci:set("overthebox", name, "port", args.port )
+	uci:set("overthebox", name, "server_public_key", args.server_public_key)
+	uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
 
-    -- set arguments to config
-    uci:set("overthebox", name, "remote")
-    uci:set("overthebox", name, "forwarded_port", args.forwarded_port )
-    uci:set("overthebox", name, "ip", args.ip )
-    uci:set("overthebox", name, "port", args.port )
-    uci:set("overthebox", name, "server_public_key", args.server_public_key)
-    uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
+	uci:save("overthebox")
+	uci:commit("overthebox")
 
-    uci:save("overthebox")
-    uci:commit("overthebox")
-
-    local ret = run("/etc/init.d/otb-remote restart")
-
-    return true, "ok"
+	local ret = run("/etc/init.d/otb-remote restart")
+	return true, "ok"
 end
 
 function remoteAccessDisconnect(args)
-    if not args then
-        return false, "no arguments"
-    end
+	if not args then
+		return false, "no arguments"
+	end
 
-    local name="remote"..args.port
+	local name="remote"..args.port
 
-    uci:delete("overthebox", name)
-    uci:commit("overthebox")
-    uci:save("overthebox")
+	local uci = uci.cursor()
+	uci:delete("overthebox", name)
+	uci:commit("overthebox")
+	uci:save("overthebox")
 
-    local ret = run("/etc/init.d/otb-remote stop")
-
-    return true, "ok"
+	local ret = run("/etc/init.d/otb-remote stop")
+	return true, "ok"
 end
 
 function string_starts(String,Start)
-    return string.sub(String,1,string.len(Start))==Start
+	return string.sub(String,1,string.len(Start))==Start
 end
 
 function file_exists(name)
-    local f=io.open(name,"r")
-    if f~=nil then io.close(f) return true else return false end
+	local f=io.open(name,"r")
+	if f~=nil then io.close(f) return true else return false end
 end
 
 -- exec command local
 function restart(service)
-        local ret = run("/etc/init.d/"..service.." restart")
-        return true, ret
+	local ret = run("/etc/init.d/"..service.." restart")
+	return true, ret
 end
 function restartmwan3()
-        local ret = os.execute("/usr/sbin/mwan3 restart")
-        return true, ret
+	local ret = os.execute("/usr/sbin/mwan3 restart")
+	return true, ret
 end
 
 
@@ -380,7 +457,7 @@ function opkg_update()
 end
 
 function opkg_upgradable()
-        local ret = run("opkg list-upgradable")
+	local ret = run("opkg list-upgradable")
 	return true, ret
 end
 function opkg_install(package)
@@ -394,7 +471,7 @@ end
 
 function upgrade()
 	local packages = {'overthebox', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'rdisc6'}
-    local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
+	local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
 	local retcode = true
 	local ret = "install:\n"
 	for i = 1, #packages do
@@ -407,45 +484,47 @@ function upgrade()
 		ret = ret ..  p .. ": \n" .. r .."\n"
 	end
 
-    ret = ret .. "\nuninstall:\n"
-    for i = 1, #unwantedPackages do
-        -- install package
-        local p = unwantedPackages[i]
-        local c, r = opkg_remove(p)
-        if c == false then
-            retcode = false
-        end
-        ret = ret ..  p .. ": \n" .. r .."\n"
-    end
+	ret = ret .. "\nuninstall:\n"
+	for i = 1, #unwantedPackages do
+		-- install package
+		local p = unwantedPackages[i]
+		local c, r = opkg_remove(p)
+		if c == false then
+			retcode = false
+		end
+		ret = ret ..  p .. ": \n" .. r .."\n"
+	end
 
 	return retcode, ret
 end
 
 function sysupgrade()
 	local ret = run("overthebox_last_upgrade -f")
-        return true, ret
+	return true, ret
 end
 function reboot()
-        local ret = run("reboot")
-        return true, ret
+	local ret = run("reboot")
+	return true, ret
 end
 
 
 -- action api
 function backup_last_action(id)
-        uci:set("overthebox", "me", "last_action_id", id)
-        uci:save("overthebox")
-        uci:commit("overthebox")
+	local uci = uci.cursor()
+	uci:set("overthebox", "me", "last_action_id", id)
+	uci:save("overthebox")
+	uci:commit("overthebox")
 end
 
 function get_last_action()
-        return uci:get("overthebox", "me", "last_action_id")
+	return uci.cursor():get("overthebox", "me", "last_action_id")
 end
 
 function flush_action(id)
-        uci:delete("overthebox", "me", "last_action_id", id)
-        uci:save("overthebox")
-        uci:commit("overthebox")
+	local uci = uci.cursor()
+	uci:delete("overthebox", "me", "last_action_id", id)
+	uci:save("overthebox")
+	uci:commit("overthebox")
 end
 
 
@@ -460,66 +539,68 @@ function confirm_action(action, status, msg )
 		status = "error"
 	end
 
-	local rcode, res = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/actions/"..action, {status=status, details = msg})
 
 	return (rcode == 200), res
 end
 
 -- notification events
 function notify_boot()
-    send_properties( {interfaces="all"} )
+	send_properties( {interfaces="all"} )
 	return notify("BOOT")
 end
 function notify_shutdown()
-        return notify("SHUTDOWN")
+	return notify("SHUTDOWN")
 end
 function notify_ifdown(iface)
-        mprobe = uci:get("mwan3", iface, "track_method") or ""
-        return notify("IFDOWN", {interface=iface, probe=mprobe})
+	mprobe = uci.cursor():get("mwan3", iface, "track_method") or ""
+	return notify("IFDOWN", {interface=iface, probe=mprobe})
 end
 function notify_ifup(iface)
-        mprobe = uci:get("mwan3", iface, "track_method") or ""
-        return notify("IFUP", {interface=iface, probe=mprobe})
+	mprobe = uci.cursor():get("mwan3", iface, "track_method") or ""
+	return notify("IFUP", {interface=iface, probe=mprobe})
 end
 function notify(event, details)
-        return POST('devices/'..(uci:get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time(), details = details})
+	return POST('devices/'..(uci.cursor():get("overthebox", "me", "device_id", {}) or "none" ).."/events", {event_name = event, timestamp = os.time(), details = details})
 end
 
 
 -- service ovh
 function ask_service_confirmation(service)
-        uci:set("overthebox", "me", "service", service)
-        uci:set("overthebox", "me", "askserviceconfirmation", "1")
+	local uci = uci.cursor()
+	uci:set("overthebox", "me", "service", service)
+	uci:set("overthebox", "me", "askserviceconfirmation", "1")
 	uci:save("overthebox")
-        uci:commit("overthebox")
+	uci:commit("overthebox")
 	-- Ask web interface to display activation form
 	uci:set("luci", "overthebox", "overthebox")
 	uci:set("luci", "overthebox", "activate", "1")
 	uci:save("luci")
 	uci:commit("luci")
 
-        return true
+	return true
 end
 function get_service()
-        local rcode, ret = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service")
-        return (rcode == 200), ret
+	local rcode, ret = GET('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/service")
+	return (rcode == 200), ret
 end
 function confirm_service(service)
-        if service ~= uci:get("overthebox", "me", "service") then
-                return false, "service does not match"
-        end
+	local uci = uci.cursor()
+	if service ~= uci:get("overthebox", "me", "service") then
+		return false, "service does not match"
+	end
 
-        local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
+	local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
 	if rcode == 200 then
-	        uci:delete("overthebox", "me", "askserviceconfirmation")
-	        uci:save("overthebox")
-	        uci:commit("overthebox")
+		uci:delete("overthebox", "me", "askserviceconfirmation")
+		uci:save("overthebox")
+		uci:commit("overthebox")
 		-- Ask web interface to enter activated mode
 		uci:delete("luci", "overthebox", "activate")
 		uci:save("luci")
 		uci:commit("luci")
 	end
-        return (rcode == 200), ret
+	return (rcode == 200), ret
 end
 
 
@@ -540,16 +621,16 @@ function API(uri, method, data)
 	local reqbody 	= json.encode(data)
 	local respbody 	= {}
 	-- Building Request
-    http.TIMEOUT=5
+	http.TIMEOUT=5
 	local body, code, headers, status = https.request{
 		method = method,
 		url = url,
 		protocol = "tlsv1",
 		headers = 
 		{
-                        ["Content-Type"] = "application/json",
-                        ["Content-length"] = reqbody:len(),
-			["X-Auth-OVH"] = uci:get("overthebox", "me", "token"),
+			["Content-Type"] = "application/json",
+			["Content-length"] = reqbody:len(),
+			["X-Auth-OVH"] = uci.cursor():get("overthebox", "me", "token"),
 			["X-Overthebox-Version"] = VERSION
 		},
 		source = ltn12.source.string(reqbody),
@@ -560,7 +641,7 @@ function API(uri, method, data)
 
 	if debug then
 		print(method .. " " ..url)
-        	print('headers:')
+		print('headers:')
 		tprint(headers)
 		print('reqbody:' .. reqbody)
 		print('body:' .. tostring(table.concat(respbody)))
@@ -577,21 +658,21 @@ end
 -- returns
 --   s: processed string
 function chomp(s)
-  return string.gsub(s, "\n$", "")
+	return string.gsub(s, "\n$", "")
 end
 
 function split(t)
-        local r = {}
-        for v in string.gmatch(t, "%S+") do
-                table.insert(r, v)
-        end
-        return r
+	local r = {}
+	for v in string.gmatch(t, "%S+") do
+		table.insert(r, v)
+	end
+	return r
 end
 
 
 -- Mwan conf generator
 function update_confmwan()
-	local uci = require('luci.model.uci').cursor()
+	local uci = uci.cursor()
 	-- Check if we need to update mwan conf
 	local oldmd5 = uci:get("mwan3", "netconfchecksum")
 	local newmd5 = string.match(sys.exec("uci -q export network | md5sum"), "[0-9a-f]*")
@@ -626,76 +707,122 @@ function update_confmwan()
 			end
 		end
 	)
-	-- Get trackers IPs
-	local interfaces= {}
-	local size_interfaces = 0 -- table.getn( does not work....
+	-- Setup trackers IPs
 	local tracking_servers = {}
---	uci:foreach("openvpn", "openvpn",
---		function (section)
---			if section["enabled"] == "1" and section["remote"] ~= nil then
---				table.insert( tracking_servers, section["remote"])
---			end
---		end
---	)
 	table.insert( tracking_servers, "51.254.49.132" )
 	table.insert( tracking_servers, "51.254.49.133" )
+	-- 
+	local interfaces={}
+	local size_interfaces = 0 -- table.getn( does not work....
+
 	-- Table indexed with dns ips to list reacheable interface for this DNS ip
 	local dns_policies = {}
+
 	-- Create a tracker for each mptcp interface
 	uci:foreach("network", "interface",
 		function (section)
-			if section["type"] == "macvlan" then
-				if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
-					if section["gateway"] then
-						size_interfaces = size_interfaces + 1
-						interfaces[ section[".name"] ] = section
-						uci:set("mwan3", section[".name"], "interface")
-						uci:set("mwan3", section[".name"], "enabled", "1")
-						if next(tracking_servers) then
-							uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
-						end
-						uci:set("mwan3", section[".name"], "track_method","dns")
-						uci:set("mwan3", section[".name"], "reliability", "1")
-						uci:set("mwan3", section[".name"], "count", "1")
-						uci:set("mwan3", section[".name"], "timeout", "2")
-						uci:set("mwan3", section[".name"], "interval", "5")
-						uci:set("mwan3", section[".name"], "down", "3")
-						uci:set("mwan3", section[".name"], "up", "3")
-						if section["dns"] then
-							for dns in string.gmatch(section["dns"], "%S+") do
-								if dns_policies[dns] == nil then
-									dns_policies[dns] = {}
-								end
-								table.insert(dns_policies[dns], section[".name"])
+			if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
+				if section["gateway"] then
+					size_interfaces = size_interfaces + 1
+					interfaces[ section[".name"] ] = section
+					uci:set("mwan3", section[".name"], "interface")
+					uci:set("mwan3", section[".name"], "enabled", "1")
+					if next(tracking_servers) then
+						uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
+					end
+					uci:set("mwan3", section[".name"], "track_method","dns")
+					uci:set("mwan3", section[".name"], "reliability", "1")
+					uci:set("mwan3", section[".name"], "count", "1")
+					uci:set("mwan3", section[".name"], "timeout", "2")
+					uci:set("mwan3", section[".name"], "interval", "5")
+					uci:set("mwan3", section[".name"], "down", "3")
+					uci:set("mwan3", section[".name"], "up", "3")
+					if section["dns"] then
+						for dns in string.gmatch(section["dns"], "%S+") do
+							if dns_policies[dns] == nil then
+								dns_policies[dns] = {}
 							end
+							table.insert(dns_policies[dns], section[".name"])
 						end
 					end
 				end
+			elseif section["type"] == "tunnel" then
+				size_interfaces = size_interfaces + 1
+				interfaces[section[".name"]] = section
+				-- Create a tracker used to monitor tunnel interface
+				uci:set("mwan3", section[".name"], "interface")
+				uci:set("mwan3", section[".name"], "enabled", "1")
+				uci:delete("mwan3", section[".name"], "track_ip") -- No tracking ip for tunnel interface
+				uci:set("mwan3", section[".name"], "reliability", "1")
+				uci:set("mwan3", section[".name"], "count", "1")
+				uci:set("mwan3", section[".name"], "timeout", "2")
+				uci:set("mwan3", section[".name"], "interval", "5")
+				uci:set("mwan3", section[".name"], "down", "3")
+				uci:set("mwan3", section[".name"], "up", "3")
 			elseif section[".name"] == "tun0" then
 				size_interfaces = size_interfaces + 1
-				interfaces["tun0"] = section
+				interfaces[section[".name"]] = section
+				-- Create a tun0 tracker used for non tcp traffic
+				uci:set("mwan3", "tun0", "interface")
+				uci:set("mwan3", "tun0", "enabled", "1")
+				uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
+				uci:set("mwan3", "tun0", "reliability", "1")
+				uci:set("mwan3", "tun0", "count", "1")
+				uci:set("mwan3", "tun0", "timeout", "2")
+				uci:set("mwan3", "tun0", "interval", "5")
+				uci:set("mwan3", "tun0", "down", "3")
+				uci:set("mwan3", "tun0", "up", "3")
 			end
 		end
 	)
-	-- Create a tun0 tracker used for non tcp traffic
-	uci:set("mwan3", "tun0", "interface")
-	uci:set("mwan3", "tun0", "enabled", "1")
---      uci:set_list("mwan3", "tun0", "track_ip", uci:get("vtund", "tunnel", "remoteip"))
-        uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
-	uci:set("mwan3", "tun0", "reliability", "1")
-	uci:set("mwan3", "tun0", "count", "1")
-	uci:set("mwan3", "tun0", "timeout", "2")
-	uci:set("mwan3", "tun0", "interval", "5")
-	uci:set("mwan3", "tun0", "down", "3")
-	uci:set("mwan3", "tun0", "up", "3")
-	-- Creates mwan3 routing policies
-	local first_tun0_policy
 	-- generate all members
 	local members = {}
-	local members_wan = {}
-	local list_interf = {}
 
-	for name, interf  in pairs(interfaces) do
+	local members_wan = {}
+	local members_tun = {}
+	local members_qos = {}
+
+	local list_interf = {}
+	local list_wan 	  = {}
+	local list_tun	  = {}
+	local list_qos    = {}
+
+	-- sorted iterator to sort interface by metric
+	function __genOrderedIndex( t )
+		local orderedIndex = {}
+		for key in pairs(t) do
+			table.insert( orderedIndex, key )
+		end
+		table.sort( orderedIndex, function (a, b) 
+			return tonumber(interfaces[a].metric or 0) < tonumber(interfaces[b].metric or 0)
+		end )
+		return orderedIndex
+	end
+
+	function orderedNext(t, state)
+		key = nil
+		if state == nil then
+			t.__orderedIndex = __genOrderedIndex( t )
+			key = t.__orderedIndex[1]
+		else
+			for i = 1,table.getn(t.__orderedIndex) do
+				if t.__orderedIndex[i] == state then
+					key = t.__orderedIndex[i+1]
+				end
+			end
+		end
+		if key then
+			return key, t[key]
+		end
+		t.__orderedIndex = nil
+		return
+	end
+
+	function sortByMetric(t)
+		return orderedNext, t, nil
+	end
+	-- create interface members
+	for name, interf in sortByMetric(interfaces) do
 		log("Creating mwan policy for " .. name)
 		for i=1,size_interfaces do
 			local metric = i
@@ -707,31 +834,63 @@ function update_confmwan()
 			if not list_interf[metric] then
 				list_interf[metric] =  {}
 			end
-			if interf[".name"] ~= "tun0" then
+			-- parc type of members
+			if interf[".name"] == "tun0" then
+				if not members_tun[metric] then
+					members_tun[metric] = {}
+				end
+				if not list_tun[metric] then
+					list_tun[metric] = {}
+				end
+				table.insert(members_tun[metric], name)
+				table.insert(list_tun[metric], interf[".name"])
+
+			elseif interf["type"] == "tunnel" then
+				if not members_qos[metric] then
+					members_qos[metric] = {}
+				end
+				if not list_qos[metric] then
+					list_qos[metric] = {}
+				end
+				table.insert(members_qos[metric], name)
+				table.insert(list_qos[metric], interf[".name"])
+			elseif interf["multipath"] == "on" or interf["multipath"] == "master" or interf["multipath"] == "backup" or interf["multipath"] == "handover" then
 				if not members_wan[metric] then
 					members_wan[metric] = {}
 				end
-				table.insert(members_wan[metric], name)
-			else
-				if first_tun0_policy == nil then
-					first_tun0_policy=name
+				if not list_wan[metric] then
+					list_wan[metric] = {}
 				end
+				table.insert(members_wan[metric], name)
+				table.insert(list_wan[metric], interf[".name"])
 			end
 			-- populating ref tables
 			table.insert(members[metric], name)
 			table.insert(list_interf[metric], interf[".name"])
 			--- Creating mwan3 member
 			uci:set("mwan3", name, "member")
-			uci:set("mwan3", name, "interface",interf[".name"])
+			uci:set("mwan3", name, "interface", interf[".name"])
 			uci:set("mwan3", name, "metric", metric)
 			uci:set("mwan3", name, "weight", 1)
 		end
 	end
 	-- generate policies
-	log("Creating mwan balanced policy")
-	uci:set("mwan3", "balanced", "policy")
-	uci:set_list("mwan3", "balanced", "use_member", members_wan[1])
-	
+	if #members_wan and members_wan[1] then
+		log("Creating mwan balanced policy")
+		uci:set("mwan3", "balanced", "policy")
+		uci:set_list("mwan3", "balanced", "use_member", members_wan[1])
+	end
+
+	if #members_tun and members_tun[1] then
+		uci:set("mwan3", "balanced_tuns", "policy")
+		uci:set_list("mwan3", "balanced_tuns", "use_member", members_tun[1])
+	end
+
+	if #members_qos and members_qos[1] then
+		uci:set("mwan3", "balanced_qos", "policy")
+		uci:set_list("mwan3", "balanced_qos", "use_member", members_qos[1])
+	end
+
 	-- all uniq policy
 	log("Creating mwan single policy")
 	for i=1,#list_interf[1] do
@@ -820,16 +979,43 @@ function update_confmwan()
 		if n < 4 then
 			generate_all_routes({}, key_members, 0)
 		end
+
 		-- Generate failover policy
-   		uci:set("mwan3", "failover", "policy")
+		uci:set("mwan3", "failover", "policy")
 		local my_members = {}
-		table.insert(my_members, first_tun0_policy)
-		for i=2,size_interfaces do
-			table.insert(my_members, members_wan[i][i - 1])
+		if #members_tun then
+			for i=1,#members_tun[1] do
+				table.insert(my_members, members_tun[i][i])
+			end
+		end
+		if #members_wan then
+			for i=1,#members_wan[1] do
+				if members_wan[i + #members_tun[1]] then
+					table.insert(my_members, members_wan[#my_members + 1][i])
+				end
+			end
 		end
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
+
+		-- Generate qos failover policy
+		if #members_qos and members_qos[1] then
+			for i=1,#members_qos[1] do
+				local name = list_qos[1][i].."_failover"
+				uci:set("mwan3", name, "policy")
+				local my_members = {}
+				table.insert(my_members, members_qos[1][i])
+				for j=i,#list_wan[1] do
+					table.insert(my_members, members_wan[j + 1][j])
+				end
+				uci:set_list("mwan3", name, "use_member", my_members)
+				if list_qos[1][i] == "xtun0" then
+					uci:set("mwan3", "voip", "use_policy", name)
+				end
+			end
+		end
 	end
+
 	-- Generate DNS policy
 	local count = 0
 	for dns, interfaces in pairs(dns_policies) do
@@ -934,7 +1120,7 @@ end
 
 function create_dhcp_server()
 	local result = {}
-	local uci = require('luci.model.uci').cursor()
+	local uci = uci.cursor()
 	-- Setup a dhcp server if needed
 	local dhcpd_configured = 0
 	local dhcpd = list_running_dhcp()
@@ -1018,24 +1204,24 @@ end
 
 -- helpers
 function lock(name)
-        -- Open fd for appending
+	-- Open fd for appending
 	local nixio = require('nixio')
-        local oflags = nixio.open_flags("wronly", "creat")
-        local file, code, msg = nixio.open("/tmp/" .. name, oflags)
+	local oflags = nixio.open_flags("wronly", "creat")
+	local file, code, msg = nixio.open("/tmp/" .. name, oflags)
 
-        if not file then
-        	return file, code, msg
-        end
+	if not file then
+		return file, code, msg
+	end
 
-        -- Acquire lock
-        local stat, code, msg = file:lock("tlock")
-        if not stat then
-                return stat, code, msg
-        end
+	-- Acquire lock
+	local stat, code, msg = file:lock("tlock")
+	if not stat then
+		return stat, code, msg
+	end
 
-        file:seek(0, "end")
+	file:seek(0, "end")
 
-        return file
+	return file
 end
 
 function run(command)
@@ -1060,21 +1246,21 @@ function iface_info(iface)
 		-- populate ipv4 address
 		local _, a
 		for _, a in ipairs(device:ipaddrs()) do
-                	result.ipaddrs[#result.ipaddrs+1] = {
-                                        addr      = a:host():string(),
-                                        netmask   = a:mask():string(),
-                                        prefix    = a:prefix()
-                                }
+			result.ipaddrs[#result.ipaddrs+1] = {
+				addr	= a:host():string(),
+				netmask	= a:mask():string(),
+				prefix	= a:prefix()
+			}
 		end
 		-- populate ipv6 address
 		for _, a in ipairs(device:ip6addrs()) do
 			if not a:is6linklocal() then
-                        	result.ip6addrs[#result.ip6addrs+1] = {
-                                	addr      = a:host():string(),
-                                        netmask   = a:mask():string(),
-                                        prefix    = a:prefix()
-                                }
-                        end
+				result.ip6addrs[#result.ip6addrs+1] = {
+					addr	= a:host():string(),
+					netmask	= a:mask():string(),
+					prefix	= a:prefix()
+				}
+			end
 		end
 	end
 	
@@ -1084,14 +1270,14 @@ end
 
 -- Debug utils
 function log(msg)
-        if (type(msg) == "table") then
-                for key, val in pairs(msg) do
-                        log('{')
-                        log(key)
-                        log(':')
-                        log(val)
-                        log('}')
-        	end
+	if (type(msg) == "table") then
+		for key, val in pairs(msg) do
+			log('{')
+			log(key)
+			log(':')
+			log(val)
+			log('}')
+		end
 	else
 		sys.exec("logger -t luci \"" .. tostring(msg) .. '"')
 	end
@@ -1099,19 +1285,19 @@ end
 
 
 function tprint (tbl, indent)
-  if not indent then indent = 0 end
-  if not tbl then return end
-  for k, v in pairs(tbl) do
-    formatting = string.rep("  ", indent) .. k .. ": "
-    if type(v) == "table" then
-      print(formatting)
-      tprint(v, indent+1)
-    elseif type(v) == 'boolean' then
-      print(formatting .. tostring(v))      
-    else
-      print(formatting .. v)
-    end
-  end
+	if not indent then indent = 0 end
+	if not tbl then return end
+	for k, v in pairs(tbl) do
+		formatting = string.rep("  ", indent) .. k .. ": "
+		if type(v) == "table" then
+			print(formatting)
+			tprint(v, indent+1)
+		elseif type(v) == 'boolean' then
+			print(formatting .. tostring(v))      
+		else
+			print(formatting .. v)
+		end
+	end
 end
 
 

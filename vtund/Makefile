@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=vtun
 PKG_VERSION:=3.0.3
-PKG_RELEASE:=8
+PKG_RELEASE:=9
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/vtun
@@ -75,6 +75,7 @@ define Package/vtund/install
 	$(INSTALL_CONF) ./files/vtund.config $(1)/etc/config/vtund
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/vtund $(1)/usr/sbin/
+	$(INSTALL_BIN) ./files/vtund.ifup.sh $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/vtund.init $(1)/etc/init.d/vtund
 endef

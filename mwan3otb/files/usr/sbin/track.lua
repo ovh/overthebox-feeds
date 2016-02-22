@@ -224,7 +224,7 @@ function get_public_ip(interface)
 		end
 		p.close(fd)
 		data = table.concat(data)
-		return data:match("(%d+%.%d+%.%d+%.%d+)")
+		return data:match("\r\n\r\n(%d+%.%d+%.%d+%.%d+)")
 	end
 end
 
