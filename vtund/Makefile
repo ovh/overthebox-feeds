@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=vtun
 PKG_VERSION:=3.0.3
-PKG_RELEASE:=9
+PKG_RELEASE:=10
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/vtun
@@ -66,6 +66,15 @@ CONFIGURE_VARS += \
 
 define Build/Compile
 	$(call Build/Compile/Default,vtund)
+endef
+
+define Package/vtund/postinst
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+        /etc/init.d/vtund stop
+        killall vtund
+fi
+exit 0
 endef
 
 define Package/vtund/install
