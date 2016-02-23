@@ -1046,8 +1046,8 @@ function update_confmwan()
 	uci:commit("mwan3")
 	-- Saving net conf md5 and restarting services
 	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") == 0 then
-		os.execute("nohup /etc/init.d/network reload &")
-		os.execute("nohup /etc/init.d/firewall reload &")
+		os.execute("/etc/init.d/network reload")
+		os.execute("/etc/init.d/firewall reload")
 		os.execute("nohup /usr/sbin/mwan3 restart &")
 		os.execute("nohup /etc/init.d/vtund restart &")
 	end
