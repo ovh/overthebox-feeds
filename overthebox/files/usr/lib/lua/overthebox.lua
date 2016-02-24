@@ -793,11 +793,15 @@ function update_confmwan()
 					uci:set("mwan3", section[".name"], "down", "3")
 					uci:set("mwan3", section[".name"], "up", "3")
 					if section["dns"] then
+						local seen = {}
 						for dns in string.gmatch(section["dns"], "%S+") do
-							if dns_policies[dns] == nil then
-								dns_policies[dns] = {}
+							if seen[dns] == nil then
+								if dns_policies[dns] == nil then
+									dns_policies[dns] = {}
+								end
+								seen[dns] = section[".name"]
+								table.insert(dns_policies[dns], section[".name"])
 							end
-							table.insert(dns_policies[dns], section[".name"])
 						end
 					end
 				end
