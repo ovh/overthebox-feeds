@@ -39,6 +39,7 @@ stopped() {
     if [ -n "${table}" ]; then
         ip rule del from ${iplocal} table ${table}
         ip route del default via ${ippeer} table ${table}
+	ip route del default via ${ippeer} metric ${metric}
     fi
     ubus call network.interface.${dev} down
     ip link set ${dev} down
