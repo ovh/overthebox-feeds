@@ -40,6 +40,7 @@ generateConfig() {
 	local pref
 	local metric
 
+	config_get enable $1 enable "1"
 	config_get dev $1 dev "tun0"
 	config_get host $1 host "Sticky"
 	config_get conf $1 conf "/etc/vtund.conf"
@@ -102,9 +103,12 @@ $host
 }
 
 EOF
-	# exit if conf is missing!
 	if [ "$server" != "127.0.0.1" ]; then
-		vtun_add_instance $conf $host $server
+		if [ -z "$enable" ]; then
+			vtun_add_instance $conf $host $server
+		elif [ "$enable" == "1" ]; then
+			vtun_add_instance $conf $host $server
+		fi
 	fi
 }
 
@@ -117,7 +121,9 @@ addInterface() {
 	local table
 	local pref
 	local metric
+	local enable="$enable"
 
+	config_get enable $1 enable "$enable"
 	config_get host $1 host "$dev"
 	config_get conf $1 conf "/etc/vtund.${dev}.conf"
 
@@ -175,7 +181,11 @@ $host
 
 EOF
 	if [ "$server" != "127.0.0.1" ]; then
-		vtun_add_instance $conf $host $server
+		if [ -z "$enable" ]; then
+			vtun_add_instance $conf $host $server
+		elif [ "$enable" == "1" ]; then
+			vtun_add_instance $conf $host $server
+		fi
 	fi
 }
 

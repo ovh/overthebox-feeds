@@ -253,19 +253,37 @@ function config()
 	end
 
 	if res.tun_conf.app == 'glorytun' then
-		uci:set('glorytun', 'otb', 'enable', '1')
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '1' )
+			end
+		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
 	else
-		uci:set('glorytun', 'otb', 'enable', '0')
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0' )
+			end
+		)
 	end
 	uci:save('glorytun')
 	uci:commit('glorytun')
 
 	if res.tun_conf.app == 'vtun' then
-		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+		uci:set('vtund', 'tunnel', 'enable', '1')
+		uci:foreach("vtund", "interface",
+			function (e)
+				uci:set('vtund', e[".name"], 'enable', '1' )
+			end
+		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
 	else
-		uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
+		uci:set('vtund', 'tunnel', 'enable', '0')
+		uci:foreach("vtund", "interface",
+			function (e)
+				uci:set('vtund', e[".name"], 'enable', '0' )
+			end
+		)
 	end
 	uci:save('vtund')
 	uci:commit('vtund')
