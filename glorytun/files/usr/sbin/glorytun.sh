@@ -19,7 +19,8 @@ GTPID=$!
 initialized() {
     ip addr add ${iplocal} peer ${ippeer} dev ${dev}
     [ -n "${mtu}" ] && ip link set ${dev} mtu ${mtu}
-
+    # Workaround to make mwan3 update tun rule
+    /etc/init.d/sqm start ${dev}
     multipath ${dev} off
 }
 
