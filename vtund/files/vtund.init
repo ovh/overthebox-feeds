@@ -167,7 +167,7 @@ $host
 	multi killold;
 	up
 	{
-		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref $mtu";
 		program "ubus call network.interface.%% up";
 	};
 	down
