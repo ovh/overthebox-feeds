@@ -90,7 +90,7 @@ $host
 	multi killold;
 	up
 	{
-		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref $mtu";
 		program "/etc/init.d/shadowsocks start";
 		program "ubus call network.interface.%% up";
 	};
