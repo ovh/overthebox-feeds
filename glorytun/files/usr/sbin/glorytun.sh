@@ -19,7 +19,8 @@ GTPID=$!
 initialized() {
     ip addr add ${iplocal} peer ${ippeer} dev ${dev}
     [ -n "${mtu}" ] && ip link set ${dev} mtu ${mtu}
-
+    # Workaround to make mwan3 update tun rule
+    /etc/init.d/sqm start ${dev}
     multipath ${dev} off
 }
 
@@ -39,6 +40,7 @@ stopped() {
     if [ -n "${table}" ]; then
         ip rule del from ${iplocal} table ${table}
         ip route del default via ${ippeer} table ${table}
+	ip route del default via ${ippeer} metric ${metric}
     fi
     ubus call network.interface.${dev} down
     ip link set ${dev} down

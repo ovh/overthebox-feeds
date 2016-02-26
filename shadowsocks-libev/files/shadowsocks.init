@@ -91,6 +91,8 @@ BOF
 		iptables -t nat -D SOCKS -p tcp -j REDIRECT --to-ports $lport 2>/dev/null
 		iptables -t nat -A SOCKS -p tcp -j REDIRECT --to-ports $lport
 
+		iptables -t nat -D PREROUTING  -i lan -p tcp -j SOCKS 2>/dev/null
+		iptables -t nat -A PREROUTING  -i lan -p tcp -j SOCKS
 		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
 		do
 			iptables -t nat -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null

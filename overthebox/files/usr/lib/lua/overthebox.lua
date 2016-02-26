@@ -124,6 +124,10 @@ function config()
 		uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
 		uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
 
+		uci:set('vtund', 'tunnel', 'table', res.vtun_conf.table)
+		uci:set('vtund', 'tunnel', 'pref', res.vtun_conf.pref)
+		uci:set('vtund', 'tunnel', 'metric', res.vtun_conf.metric)
+
 		uci:set('network', res.vtun_conf.dev, 'interface')
 		uci:set('network', res.vtun_conf.dev, 'ifname', res.vtun_conf.dev)
 		uci:set('network', res.vtun_conf.dev, 'proto', 'none')
@@ -172,18 +176,68 @@ function config()
 
 	end
 
-	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu') then
+	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', 'otb', 'tunnel')
+
+		uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
+
 		uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
 		uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
 		uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+
 		uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
 		uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
 		uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
-		uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
 
-		uci:set('glorytun', 'otb', 'table',   '99' )
-		uci:set('glorytun', 'otb', 'pref',    '10099' )
+		uci:set('glorytun', 'otb', 'table',   res.glorytun_conf.table )
+		uci:set('glorytun', 'otb', 'pref',    res.glorytun_conf.pref )
+		uci:set('glorytun', 'otb', 'metric',  res.glorytun_conf.metric )
+
+		uci:set('network', res.glorytun_conf.dev, 'interface')
+		uci:set('network', res.glorytun_conf.dev, 'ifname', res.vtun_conf.dev)
+		uci:set('network', res.glorytun_conf.dev, 'proto', 'none')
+		uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
+		uci:set('network', res.glorytun_conf.dev, 'delegate', '0')
+		uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
+		uci:set('network', res.glorytun_conf.dev, 'auto', '0')
+		uci:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
+
+		addInterfaceInZone("wan", res.glorytun_conf.dev)
+
+		if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
+			for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
+				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
+
+					uci:set('glorytun', conf.dev, 'tunnel')
+
+					uci:set('glorytun', conf.dev, 'dev', conf.dev)
+
+					uci:set('glorytun', conf.dev, 'server', conf.server or res.glorytun_conf.server)
+					uci:set('glorytun', conf.dev, 'port', conf.port)
+					uci:set('glorytun', conf.dev, 'key', conf.key or res.glorytun_conf.key)
+
+					uci:set('glorytun', conf.dev, 'iplocal', conf.ip_local)
+					uci:set('glorytun', conf.dev, 'ippeer', conf.ip_peer)
+					uci:set('glorytun', conf.dev, 'mtu', conf.mtu)
+
+					uci:set('glorytun', conf.dev, 'table', conf.table)
+					uci:set('glorytun', conf.dev, 'pref', conf.pref)
+					uci:set('glorytun', conf.dev, 'metric', conf.metric)
+
+					uci:set('network', conf.dev, 'interface')
+					uci:set('network', conf.dev, 'ifname', conf.dev)
+					uci:set('network', conf.dev, 'proto', 'none')
+					uci:set('network', conf.dev, 'multipath', 'off')
+					uci:set('network', conf.dev, 'delegate', '0')
+					uci:set('network', conf.dev, 'metric', conf.metric)
+					uci:set('network', conf.dev, 'auto', '0')
+					uci:set('network', conf.dev, 'type', 'tunnel')
+
+					addInterfaceInZone("wan", conf.dev)
+
+				end
+			end
+		end
 
 		uci:save('glorytun')
 		uci:commit('glorytun')
@@ -199,19 +253,37 @@ function config()
 	end
 
 	if res.tun_conf.app == 'glorytun' then
-		uci:set('glorytun', 'otb', 'enable', '1')
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '1' )
+			end
+		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
 	else
-		uci:set('glorytun', 'otb', 'enable', '0')
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0' )
+			end
+		)
 	end
 	uci:save('glorytun')
 	uci:commit('glorytun')
 
 	if res.tun_conf.app == 'vtun' then
-		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
+		uci:set('vtund', 'tunnel', 'enable', '1')
+		uci:foreach("vtund", "interface",
+			function (e)
+				uci:set('vtund', e[".name"], 'enable', '1' )
+			end
+		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
 	else
-		uci:set('vtund', 'tunnel', 'server', '127.0.0.1') -- inhibate vtun
+		uci:set('vtund', 'tunnel', 'enable', '0')
+		uci:foreach("vtund", "interface",
+			function (e)
+				uci:set('vtund', e[".name"], 'enable', '0' )
+			end
+		)
 	end
 	uci:save('vtund')
 	uci:commit('vtund')
@@ -739,11 +811,15 @@ function update_confmwan()
 					uci:set("mwan3", section[".name"], "down", "3")
 					uci:set("mwan3", section[".name"], "up", "3")
 					if section["dns"] then
+						local seen = {}
 						for dns in string.gmatch(section["dns"], "%S+") do
-							if dns_policies[dns] == nil then
-								dns_policies[dns] = {}
+							if seen[dns] == nil then
+								if dns_policies[dns] == nil then
+									dns_policies[dns] = {}
+								end
+								seen[dns] = section[".name"]
+								table.insert(dns_policies[dns], section[".name"])
 							end
-							table.insert(dns_policies[dns], section[".name"])
 						end
 					end
 				end
