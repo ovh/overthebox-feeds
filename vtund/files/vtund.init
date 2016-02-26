@@ -20,7 +20,9 @@ vtun_add_instance() {
 	local conf="$1"
 	local host="$2"
 	local server="$3"
+	local device="$4"
 
+	/etc/init.d/sqm start $device
 	procd_open_instance
 	procd_set_param command "$PROG" -n -f $conf $host $server
 	procd_set_param file "$conf"
@@ -105,9 +107,9 @@ $host
 EOF
 	if [ "$server" != "127.0.0.1" ]; then
 		if [ -z "$enable" ]; then
-			vtun_add_instance $conf $host $server
+			vtun_add_instance $conf $host $server $dev
 		elif [ "$enable" == "1" ]; then
-			vtun_add_instance $conf $host $server
+			vtun_add_instance $conf $host $server $dev
 		fi
 	fi
 }
