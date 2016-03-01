@@ -69,5 +69,3 @@ done < ${statefile}
 stopped
 
 logger -t glorytun BYE
-# be sure gt is down
-kill ${GTPID} 2>/dev/null
