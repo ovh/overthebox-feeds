@@ -80,3 +80,10 @@ start_service() {
         config_foreach start_instance 'tunnel'
 }
 
+stop_service() {
+	# be sure, all is down
+        killall glorytun
+}
+
+
+
