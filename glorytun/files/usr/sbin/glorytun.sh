@@ -12,7 +12,7 @@ mkfifo ${statefile}
 
 trap "pkill -TERM -P $$" TERM
 logger -t glorytun RUN dev ${dev} statefile ${statefile} retry count -1 timeout 5000 $*
-glorytun dev ${dev} statefile ${statefile} retry count -1 const 5000000 timeout 5000 $* &
+glorytun dev ${dev} statefile ${statefile} retry count -1 const 5000000 timeout 5000 keepalive count 3 idle 10 interval 1 $* &
 
 GTPID=$!
 
@@ -69,3 +69,5 @@ done < ${statefile}
 stopped
 
 logger -t glorytun BYE
+# be sure gt is down
+kill ${GTPID} 2>/dev/null
