@@ -82,7 +82,7 @@ $host
 	type tun;
 	device $dev;
 	proto tcp;
-	persist yes;
+	persist no;
 	keepalive yes;
 	timeout 15;
 #compress zlib:9;
@@ -161,7 +161,7 @@ $host
 	type tun;
 	device $dev;
 	proto tcp;
-	persist yes;
+	persist no;
 	keepalive yes;
 	timeout 15;
 #compress zlib:9;
