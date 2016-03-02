@@ -397,7 +397,7 @@ end
 function checkReadOnly()
 	for _, mount in pairs(get_mounts()) do
 		if mount.mount_point == "/" then
-			if mount.options.match("^ro") then -- assume ro is always the first of the option
+			if mount.options:match("^ro") then -- assume ro is always the first of the option
 				return true
 			end
 		end
