@@ -6,7 +6,7 @@ if [ -z "${dev}" -o -z "${iplocal}" -o -z "${ippeer}" ]; then
     exit 1
 fi
 
-statefile=/tmp/glorytun.fifo
+statefile=/tmp/glorytun.${dev}.fifo
 [ -e "${statefile}" ] && rm -f "${statefile}"
 mkfifo ${statefile}
 
@@ -19,7 +19,8 @@ GTPID=$!
 initialized() {
     ip addr add ${iplocal} peer ${ippeer} dev ${dev}
     [ -n "${mtu}" ] && ip link set ${dev} mtu ${mtu}
-
+    # Workaround to make mwan3 update tun rule
+    /etc/init.d/sqm start ${dev}
     multipath ${dev} off
 }
 
@@ -31,14 +32,19 @@ started() {
     fi
     [ -n "${metric}" ] && ip route add default via ${ippeer} metric ${metric}
     ubus call network.interface.${dev} up
-    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start ;
+    if [ "${dev}" == "tun0" ]; then
+        [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start ;
+    fi
 }
 
 stopped() {
-    [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop ;
+    if [ "${dev}" == "tun0" ]; then
+    	[ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop;
+    fi
     if [ -n "${table}" ]; then
         ip rule del from ${iplocal} table ${table}
         ip route del default via ${ippeer} table ${table}
+	ip route del default via ${ippeer} metric ${metric}
     fi
     ubus call network.interface.${dev} down
     ip link set ${dev} down

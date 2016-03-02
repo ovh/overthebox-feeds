@@ -20,7 +20,9 @@ vtun_add_instance() {
 	local conf="$1"
 	local host="$2"
 	local server="$3"
+	local device="$4"
 
+	/etc/init.d/sqm start $device
 	procd_open_instance
 	procd_set_param command "$PROG" -n -f $conf $host $server
 	procd_set_param file "$conf"
@@ -40,6 +42,7 @@ generateConfig() {
 	local pref
 	local metric
 
+	config_get enable $1 enable "1"
 	config_get dev $1 dev "tun0"
 	config_get host $1 host "Sticky"
 	config_get conf $1 conf "/etc/vtund.conf"
@@ -87,7 +90,7 @@ $host
 	multi killold;
 	up
 	{
-		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref $mtu";
 		program "/etc/init.d/shadowsocks start";
 		program "ubus call network.interface.%% up";
 	};
@@ -102,9 +105,12 @@ $host
 }
 
 EOF
-	# exit if conf is missing!
 	if [ "$server" != "127.0.0.1" ]; then
-		vtun_add_instance $conf $host $server
+		if [ -z "$enable" ]; then
+			vtun_add_instance $conf $host $server $dev
+		elif [ "$enable" == "1" ]; then
+			vtun_add_instance $conf $host $server $dev
+		fi
 	fi
 }
 
@@ -117,7 +123,9 @@ addInterface() {
 	local table
 	local pref
 	local metric
+	local enable="$enable"
 
+	config_get enable $1 enable "$enable"
 	config_get host $1 host "$dev"
 	config_get conf $1 conf "/etc/vtund.${dev}.conf"
 
@@ -161,7 +169,7 @@ $host
 	multi killold;
 	up
 	{
-		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref";
+		program "/usr/sbin/vtund.ifup.sh %% $localip $remoteip $metric $table $pref $mtu";
 		program "ubus call network.interface.%% up";
 	};
 	down
@@ -175,7 +183,11 @@ $host
 
 EOF
 	if [ "$server" != "127.0.0.1" ]; then
-		vtun_add_instance $conf $host $server
+		if [ -z "$enable" ]; then
+			vtun_add_instance $conf $host $server
+		elif [ "$enable" == "1" ]; then
+			vtun_add_instance $conf $host $server
+		fi
 	fi
 }
 
