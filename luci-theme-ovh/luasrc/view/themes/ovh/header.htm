@@ -196,7 +196,16 @@
 	<div class="alert-message warning">
 		<h4><%:No password set!%></h4>
 		<%:There is no password set on this router. Please configure a root password to protect the web interface and enable SSH.%><br>
-        <a href="<%=pcdata(luci.dispatcher.build_url("admin/system/admin"))%>"><%:Go to password configuration...%></a>
+	        <a href="<%=pcdata(luci.dispatcher.build_url("admin/system/admin"))%>"><%:Go to password configuration...%></a>
+	</div>
+</div>
+<%- end -%>
+
+<%- if require('overthebox').checkReadOnly() then -%>
+<div class="container">
+	<div class="alert-message error">
+		<h4><%:File system is in read only !%></h4>
+		<%:Your file system is corrupted and has been remounted in read only. Please run "fsck.ext4 -p /dev/mmcblk0p2" and reboot.%><br>
 	</div>
 </div>
 <%- end -%>
