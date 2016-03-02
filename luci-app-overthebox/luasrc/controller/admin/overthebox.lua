@@ -67,7 +67,11 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "activate"},  call("action_activate"))
+	local e = entry({"admin", "overthebox", "activate_service"},  call("action_activate"))
+	e.leaf = true
+	e.sysauth = false
+
+	local e = entry({"admin", "overthebox", "activate"}, template("overthebox/index"))
 	e.leaf = true
 	e.sysauth = false
 
