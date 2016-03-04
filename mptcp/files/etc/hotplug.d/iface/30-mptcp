@@ -21,7 +21,7 @@ fi
 . /lib/functions/network.sh
 
 id=0
-count=101
+count=301
 
 set_default() {
     local mode
