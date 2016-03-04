@@ -142,13 +142,10 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,188 @@
 +#!/bin/sh
 +
-+# This script implements a 3 queue traffic classification system on egress and
-+# single queue on ingress. It is built specifically for NAT/Masquerade gateways.
-+
-+# This program is free software; you can redistribute it and/or modify
++# This program is free software moded by Bash; you can redistribute it and/or modify
 +# it under the terms of the GNU General Public License version 2 as
 +# published by the Free Software Foundation.
 +
@@ -171,56 +168,95 @@ index 0000000..2384ace
 +    ipt -t mangle -X QOS_RULES_${IFACE}
 +    ipt -t mangle -N QOS_RULES_${IFACE}
 +
++# Marking dscp SS tagged packets  
 +    ipt -t mangle -A OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length :512  -j MARK --set-mark 0x02${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 512:  -j MARK --set-mark 0x03${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length :512  -j MARK --set-mark 0x05${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1  -j MARK --set-mark 0x01${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3  -j MARK --set-mark 0x03${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs5  -j MARK --set-mark 0x05${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 512:  -j MARK --set-mark 0x01${IPT_MASK_STRING}
 +
++########################
 +
-+
-+    #PRIORITY traffic is guaranteed 30% of the bandwidth and capped to max 30%.
-+    PRIO=$(( ${UPLINK} * 30 / 100 ))
-+    #NORMAL is given a link share target of 50% without guarantee resulting in
-+    #a 2.5:1 bandwidth allocation vs BULK which is given a target of 20%.
-+    #Starvation is avoided by capping the PRIORITY queue. HFSC corner cases are
-+    #mitigated by using the same LS+RT curve on PRIORITY.
-+    NORMAL=$(( ${UPLINK} * 50 / 100 ))
-+    BULK=$(( ${UPLINK} * 20 / 100 ))
-+
-+
++# Delete existing queue
 +    $TC qdisc del dev ${IFACE} root 2> /dev/null
-+    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 13
++# Traffic classes:
++# 1:2 Interactive (SSH, DNS, ACK)
++# 1:3 Low latency (VoIP)
++# 1:4 Browsing (HTTP, HTTPs)
++# 1:5 Default
++# 1:6 Low priority (p2p, pop3, smtp, etc)
 +
-+    $TC class add dev ${IFACE} parent 1: classid 1:1 hfsc sc rate ${UPLINK}kbit \
++# add HFSC root qdisc
++    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 5
++
++
++# add main rate limit class
++    $TC class add dev ${IFACE} parent 1: classid 1:1 hfsc \
++                sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
++
++# Interactive traffic: guarantee realtime full uplink for 50ms, then
++# 50% of the uplink
++
++    $TC class add dev ${IFACE} parent 1:1  classid 1:2 hfsc \
++    rt m1   ${UPLINK}kbit d  50ms m2 $((5*$UPLINK/10))kbit \
++    ls m1   ${UPLINK}kbit d  50ms m2 $((7*$UPLINK/10))kbit \
 +    ul rate ${UPLINK}kbit
 +
-+    $TC class add dev ${IFACE} parent 1:1 classid 1:11 hfsc sc rate ${PRIO}kbit \
-+    ul rate ${NORMAL}kbit
-+    $TC class add dev ${IFACE} parent 1:1 classid 1:12 hfsc ls rate ${NORMAL}kbit
-+    $TC class add dev ${IFACE} parent 1:1 classid 1:13 hfsc ls rate ${BULK}kbit
++# VoIP: guarantee full uplink for 200ms, then 30%
++    $TC class add dev ${IFACE} parent 1:1  classid 1:3 hfsc \
++    sc m1 ${UPLINK}kbit d 200ms m2 $((3*$UPLINK/10))kbit \
++    ul rate ${UPLINK}kbit
 +
-+    $TC qdisc add dev ${IFACE} parent 1:11 handle 110: ${QDISC} \
++# Browsing: Don't guarantee anything for the first second, then
++# guarantee 10%
++
++    $TC class add dev ${IFACE} parent 1:1  classid 1:4 hfsc \
++    sc m1         0 d    1s m2 $((1*$UPLINK/10))kbit \
++    ul rate ${UPLINK}kbit
++
++# Default traffic: don't guarantee anything for the first two seconds,
++# then guarantee 5%
++
++    $TC class add dev ${IFACE} parent 1:1  classid 1:5 hfsc \
++    sc m1         0 d    2s m2 $((1*$UPLINK/20))kbit \
++    ul rate ${UPLINK}kbit
++
++# Default traffic: don't guarantee anything for the first 10 seconds,
++# then guarantee 5%
++
++    $TC class add dev ${IFACE} parent 1:1  classid 1:6 hfsc \
++    sc m1         0 d   10s m2 $((1*$UPLINK/20))kbit \
++    ul rate ${UPLINK}kbit
++
++################
++
++    $TC qdisc add dev ${IFACE} parent 1:2 handle 12: ${QDISC} \
 +    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
 +    `get_quantum  300` `get_flows ${PRIO}` ${EQDISC_OPTS}
-+    $TC qdisc add dev ${IFACE} parent 1:12 handle 120: ${QDISC} \
++    $TC qdisc add dev ${IFACE} parent 1:3 handle 13: ${QDISC} \
 +    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
 +    `get_quantum  300` `get_flows ${NORMAL}` ${EQDISC_OPTS}
-+    $TC qdisc add dev ${IFACE} parent 1:13 handle 130: ${QDISC} \
++    $TC qdisc add dev ${IFACE} parent 1:4 handle 14: ${QDISC} \
++    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
++    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
++    $TC qdisc add dev ${IFACE} parent 1:5 handle 15: ${QDISC} \
++    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
++    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
++    $TC qdisc add dev ${IFACE} parent 1:6 handle 16: ${QDISC} \
 +    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
 +    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
 +
-+    #FLOW qdisc ensures that on Xfq_codel flows are taking pre-nat informations.
-+    $TC filter add dev ${IFACE} parent 110: handle 110 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${PRIO}`
-+    $TC filter add dev ${IFACE} parent 120: handle 120 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${NORMAL}`
-+    $TC filter add dev ${IFACE} parent 130: handle 130 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst divisor `get_flows_count ${BULK}`
 +
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:11
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:12
-+#    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${SOCKS_PORT} 0xffff  flowid 1:13
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x02 ${IPT_MASK} flowid 1:12
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:13
++# Redirect filtered packets to specific queues
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:3
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:4
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x05 ${IPT_MASK} flowid 1:2
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:4
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x01 ${IPT_MASK} flowid 1:6
 +
 +}
 +
