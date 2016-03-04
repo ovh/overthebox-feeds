@@ -148,7 +148,7 @@ mwan3_track()
 		rm /var/run/mwan3track-$INTERFACE.pid &> /dev/null
 	fi
 
-	config_get track_method $INTERFACE track_method icmp
+	config_get track_method $INTERFACE track_method none # no default value, avoid error in logs
 	if [ -n "$track_ips" ]; then
 		config_get reliability $INTERFACE reliability 1
 		config_get count $INTERFACE count 1
