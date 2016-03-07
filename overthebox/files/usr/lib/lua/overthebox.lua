@@ -374,11 +374,7 @@ function send_properties( props )
 	end
 
 	if props.mounts then
-		body.mounts = {}
-		for line in io.lines("/proc/mounts") do
-			t = split(line)
-			table.insert(body.mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
-		end
+		body.mounts = get_mounts()
 	end
 
 --	tprint(body)
@@ -387,6 +383,26 @@ function send_properties( props )
 	tprint(res)
 	print(rcode)
 	return (rcode == 200), res
+end
+
+function get_mounts()
+	local mounts = {}
+	for line in io.lines("/proc/mounts") do
+		t = split(line)
+		table.insert(mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
+	end
+	return mounts
+end
+
+function checkReadOnly()
+	for _, mount in pairs(get_mounts()) do
+		if mount.mount_point == "/" then
+			if mount.options:match("^ro") then -- assume ro is always the first of the option
+				return true
+			end
+		end
+	end
+	return false
 end
 
 function get_ip_public(interface)
