@@ -139,18 +139,20 @@ genrateStaticRoutesRules() {
 
 	config_get interface $1 interface 'lan'
 	config_get target $1 target ''
-	config_get netmask $1 netmask ''
+	config_get netmask $1 netmask '255.255.255.255'
 	config_get gateway $1 gateway ''
 	config_get metric $1 metric ''
 	config_get mtu $1 mtu ''
 	
 	if [ -n "$gateway" ] && [ -n "$target" ]; then
 		eval "$(ipcalc.sh $target $netmask)"
-		$IPTN -D SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN
+		if [ "$NETWORK" != "0.0.0.0" ] && [ "$PREFIX" != "0" ]; then
+			$IPTN -D SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN 2>/dev/null
+			$IPTN -A SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN
 
-		$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-		$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+		fi
 	fi
 }
 

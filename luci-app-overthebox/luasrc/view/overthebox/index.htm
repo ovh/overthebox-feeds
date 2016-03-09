@@ -159,7 +159,11 @@
 
 <%
 if not service_id then
-	include("overthebox/register")
+	if luci.dispatcher.context.requestpath[#luci.dispatcher.context.requestpath] == "activate" then
+		include("overthebox/activate")
+	else
+		include("overthebox/register")
+	end
 elseif has_service_confirmation then
 	%>
 	<script type="text/javascript">
