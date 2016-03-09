@@ -19,6 +19,7 @@
 
 local tools = require "luci.tools.status"
 local sys = require "luci.sys"
+local json      = require("luci.json")
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
@@ -31,8 +32,16 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("QoS graphs"), 3)
+	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 3)
         e.leaf = true
+	e.sysauth = false
+
+	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 4)
+        e.leaf = true
+	e.sysauth = false
+
+	local e = entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data"))
+	e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
@@ -86,7 +95,6 @@ function interfaces_status()
 	local ut 	= require "luci.util"
 	local ntm 	= require "luci.model.network".init()
 	local uci 	= require "luci.model.uci".cursor()
-	local json      = require("luci.json")
 
 	local logged	= isLogged()
 	local mArray = {}
@@ -250,6 +258,41 @@ function lease_overview()
 	}
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(rv)
+end
+
+function write_qos_cache(data)
+	local json_data = json.encode(data)
+        local file = io.open( "/tmp/tc_stats", "w" )
+        file:write(json_data)
+        file:close()
+end
+
+function read_qos_cache()
+	local data = {}
+        local file = io.open( "/tmp/tc_stats", "r" )
+	if file then
+		local json_data = file:read("*all")
+	        file:close()
+		data = json.decode(json_data) or {}
+	end
+	return data
+end
+
+function action_qos_data()
+	local data = read_qos_cache()
+	local timestamp = os.time()
+	data[os.time()] = require('overthebox').tc_stats()
+	-- keep only last minute
+	local striped_data = {}
+	for k,v in pairs(data) do
+		if tonumber(k) > tonumber(timestamp) - 60 then
+			striped_data[k] = data[k]
+		end
+	end
+	write_qos_cache(striped_data)
+	-- format output
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(striped_data)
 end
 
 function action_bandwidth_data(dev)
