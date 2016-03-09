@@ -21,7 +21,7 @@ fi
 . /lib/functions/network.sh
 
 id=0
-count=101
+count=301
 
 set_default() {
     local mode
@@ -92,8 +92,8 @@ __network_ifstatus  netmask $INTERFACE "['ipv4-address'][0]['mask']"
 network=`ipcalc.sh $network | sed -n '/NETWORK=/{;s/.*=//;s/ .*//;p;}'`
 
 ip rule del table $id
-ip route flush $id
+# ip route flush table $id
 ip rule add from $ipaddr table $id pref $(( 10000 + $id ))
 ip route add $network/$netmask dev $DEVICE scope link table $id
 ip route add default via $gateway dev $DEVICE table $id
-ip route flush $id
+# ip route flush table $id

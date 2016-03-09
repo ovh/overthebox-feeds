@@ -54,8 +54,20 @@ generateConfig() {
         "local_port": $lport,
         "password": "$password",
         "timeout": $timeout,
-        "method": "$method" 
-}       
+        "method": "$method",
+        "dscp": {
+		"21": "CS1",
+		"22": "CS5",
+		"23": "CS5",
+		"25": "CS1",
+		"80": "CS3",
+		"110": "CS1",
+		"143": "CS1",
+		"443": "CS3",
+		"465": "CS1",
+		"995": "CS1"
+	} 
+} 
 
 BOF
 
