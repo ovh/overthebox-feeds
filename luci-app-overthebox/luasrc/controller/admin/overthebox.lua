@@ -281,7 +281,10 @@ end
 function action_qos_data()
 	local data = read_qos_cache()
 	local timestamp = os.time()
-	data[os.time()] = require('overthebox').tc_stats()
+	local stats = require('overthebox').tc_stats()
+	if stats and next(stats) ~= nil then
+		data[timestamp] = stats
+	end
 	-- keep only last minute
 	local striped_data = {}
 	for k,v in pairs(data) do
