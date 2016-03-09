@@ -1104,6 +1104,7 @@ function update_confmwan()
 				uci:set_list("mwan3", name, "use_member", my_members)
 				if list_qos[1][i] == "xtun0" then
 					uci:set("mwan3", "voip", "use_policy", name)
+					uci:set("mwan3", "icmp", "use_policy", name)
 				end
 			end
 		end
