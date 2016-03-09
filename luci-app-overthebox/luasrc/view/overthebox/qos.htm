@@ -33,7 +33,7 @@
 	end
 
 	local curdev = luci.dispatcher.context.requestpath
-	curdev = curdev[#curdev] ~= "tunnels" and curdev[#curdev] or devices[1]
+	curdev = curdev[#curdev] ~= "qos" and curdev[#curdev] or devices[1]
 -%>
 
 <%+header%>
@@ -78,6 +78,17 @@
                 if(str == "if8")
                         return "BlueViolet";
 
+		if(str == "12")
+			return "#cc0000";
+		if(str == "13")
+			return "#3399ff";
+		if(str == "14")
+			return "#ff00ff";
+		if(str == "15")
+			return "#00ff00";
+		if(str == "16")
+			return "#006600";
+
 		if(str == "tun0")
 			return "DimGrey";
 		if(str == "xtun0")
@@ -95,7 +106,7 @@
 	var all = true;
 	var bwxhr = new XHR();
 
-	var Gdn;
+	//var Gdn;
 	var Gup;
 
 	var TIME = 0;
@@ -150,23 +161,23 @@
 			var upsvg = document.getElementById('upsvg');
 
 			try {
-				Gdn = dnsvg.getSVGDocument ? dnsvg.getSVGDocument() : dnsvg.contentDocument;
+				//Gdn = dnsvg.getSVGDocument ? dnsvg.getSVGDocument() : dnsvg.contentDocument;
 				Gup = upsvg.getSVGDocument ? upsvg.getSVGDocument() : upsvg.contentDocument;
 			}
 			catch(e) {
-				Gdn = document.embeds['dnsvg'].getSVGDocument();
+				//Gdn = document.embeds['dnsvg'].getSVGDocument();
 				Gup = document.embeds['upsvg'].getSVGDocument();
 			}
 
-			if (!Gdn || !Gup)
+			if (!Gup) //(!Gdn || !Gup)
 			{
 				window.setTimeout(arguments.callee, 1000);
 			}
 			else
 			{
 				/* find sizes */
-				width       = dnsvg.offsetWidth  - 2;
-				height      = dnsvg.offsetHeight - 2;
+				width       = upsvg.offsetWidth  - 2;
+				height      = upsvg.offsetHeight - 2;
 				data_wanted = Math.ceil(width / step);
 
 				/* prefill datasets
@@ -177,9 +188,9 @@
 				*/
 
 				/* find svg elements */
-				labeldn_25 = $("#dn_label_25");
-				labeldn_50 = $("#dn_label_50");
-				labeldn_75 = $("#dn_label_75");
+				//labeldn_25 = $("#dn_label_25");
+				//labeldn_50 = $("#dn_label_50");
+				//labeldn_75 = $("#dn_label_75");
 
 				labelup_25 = $("#up_label_25");
 				labelup_50 = $("#up_label_50");
@@ -195,21 +206,12 @@
 				label_tx_peak = document.getElementById('tx_bw_peak');
 				*/
 
-				labeldn_scale   = document.getElementById('dnscale');
+				//labeldn_scale   = document.getElementById('dnscale');
 				labelup_scale   = document.getElementById('upscale');
 
 				/* plot horizontal time interval lines */
 				for (var i = width % (step * 60); i < width; i += step * 60)
 				{
-					var linedn = Gdn.createElementNS('http://www.w3.org/2000/svg', 'line');
-						linedn.setAttribute('x1', i);
-						linedn.setAttribute('y1', 0);
-						linedn.setAttribute('x2', i);
-						linedn.setAttribute('y2', '100%');
-						linedn.setAttribute('style', 'stroke:black;stroke-width:0.1');
-
-					Gdn.getElementById('label_25').parentNode.appendChild(linedn);
-
 					var lineup = Gup.createElementNS('http://www.w3.org/2000/svg', 'line');
 					lineup.setAttribute('x1', i);
 					lineup.setAttribute('y1', 0);
@@ -224,11 +226,10 @@
 					insertXAxisValue($("div#up-x-axis-info"), labelContent, 0, i - 5);
 				}
 
-				labeldn_scale.innerHTML = String.format('<%:(%d minutes window, %d seconds interval)%>', 3, data_wanted / 60);
 				labelup_scale.innerHTML = String.format('<%:(%d minutes window, %d seconds interval)%>', 3, data_wanted / 60);
 
 					/* render datasets, start update interval */
-					XHR.poll(3, '<%=build_url("admin/overthebox/bandwidth_status", curdev)%>', null,
+					XHR.poll(3, '<%=build_url("admin/overthebox/qos_stats", curdev)%>', null,
 					function(x, dataarray)
 					{
 						var data_max_dnl   = 0;
@@ -243,146 +244,67 @@
 						var data_tx_peak = 0;
 
 						var data = {};
-						
-						dataarray["all"] = {};
-						for(var prop in dataarray["wans"])
-						{
-							dataarray["all"][prop] = dataarray["wans"][prop]
-						}
-						for(var prop in dataarray["tuns"])
-						{
-							dataarray["all"][prop] = dataarray["tuns"][prop]
-						}
 
-						for(var itf in dataarray["tuns"])
+						// Sort timestamp
+						var timestamps = Object.keys(dataarray);
+						timestamps.sort();
+
+						// Create and initialize qdisc graphic elements
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]])
 						{
-							// convert json string to json object
-							data[itf] = JSON.parse(dataarray["tuns"][itf]);
 							// Create lines for each interfaces
-							var color = stringToColour(itf);
-							if(typeof dnPolygons[itf] != "object")
-							{
-								// Create a new polygon to draw the bandwith
-								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
-								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.8;stroke:black;stroke-width:0.1');
-								Gdn.getElementById('rx').parentNode.appendChild(dnline);
-
-								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
-						                /* prefill datasets */
-								dndata[itf] = [ ];
-								for (var i = 0; i < data_wanted; i++)
-								{
-										dndata[itf][i] = 0;
-								}
-								createStatsFooter("download", itf, color);
-							}
-							if(typeof upPolygons[itf] != "object")
+							var color = stringToColour(qdisc);
+							if(typeof upPolygons[qdisc] != "object")
 							{
 								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-								upline.setAttributeNS(null, 'id', 'tx_' + itf);
-								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.8;stroke:black;stroke-width:0.1');
+								upline.setAttributeNS(null, 'id', 'tx_' + qdisc);
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
 								Gup.getElementById('tx').parentNode.appendChild(upline);
 
-								upPolygons[itf] = Gup.getElementById('tx_' + itf);
+								upPolygons[qdisc] = Gup.getElementById('tx_' + qdisc);
 								/* prefill datasets */
-								updata[itf] = [ ];
+								updata[qdisc] = [ ];
 								for (var i = 0; i < data_wanted; i++)
 								{
-										updata[itf][i] = 0;
+									updata[qdisc][i] = 0;
 								}
-								createStatsFooter("upload", itf, color);
+								createStatsFooter("upload", qdisc, color);
 							}
 						}
-
-						if(!document.getElementById('overall_upload_peak'))
-							createStatsFooter("upload", "overall", "LightGrey");
-						if(!document.getElementById('overall_download_peak'))
-							createStatsFooter("download", "overall", "LightGrey");
-
-						for(var itf in dataarray["wans"])
+						// compute data point
+						for(var i= data_stamp ? 0 : 1; i < timestamps.length; i++)
 						{
-							// convert json string to json object
-							data[itf] = JSON.parse(dataarray["wans"][itf]);
-							// Create lines for each interfaces
-							var color = 'LightGrey';
-							if(typeof dnPolygons[itf] != "object")
+							if ( timestamps[i] <= data_stamp)
+								continue;
+							if (i > 0)
 							{
-								// Create a new polygon to draw the bandwith
-								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-								dnline.setAttributeNS(null, 'id', 'rx_' + itf);
-								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.2;stroke:black;stroke-width:0.1');
-								Gdn.getElementById('rx').parentNode.appendChild(dnline);
-
-								dnPolygons[itf] = Gdn.getElementById('rx_' + itf);
-						                /* prefill datasets */
-								dndata[itf] = [ ];
-								for (var i = 0; i < data_wanted; i++)
+								var time_delta = timestamps[i] - timestamps[i-1];
+								if(time_delta)
 								{
-										dndata[itf][i] = 0;
-								}
-								// createStatsFooter("download", itf, color);
-							}
-							if(typeof upPolygons[itf] != "object")
-							{
-								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-								upline.setAttributeNS(null, 'id', 'tx_' + itf);
-								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.2;stroke:black;stroke-width:0.1');
-								Gup.getElementById('tx').parentNode.appendChild(upline);
-
-								upPolygons[itf] = Gup.getElementById('tx_' + itf);
-								/* prefill datasets */
-								updata[itf] = [ ];
-								for (var i = 0; i < data_wanted; i++)
+								for(var qdisc in dataarray[timestamps[i]])
 								{
-										updata[itf][i] = 0;
-								}
-								// createStatsFooter("upload", itf, color);
-							}
-						}
-
-						var dnsma = {};
-						var upsma = {};
-						for (var itf in data)
-						{
-							if(!dnsma[itf])
-							{
-								dnsma[itf] = simple_moving_averager('down_'+itf, 15);
-							}
-							if(!upsma[itf])
-							{
-								upsma[itf] = simple_moving_averager('up_'+itf, 15);
-							}
-							for (var i = data_stamp ? 0 : 1; i < data[itf].length; i++)
-							{
-								/* skip overlapping entries */
-								if (data[itf][i][TIME] <= data_stamp)
-									continue;
-									/* normalize difference against time interval */
-								if (i > 0)
-								{
-									var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
-									if (time_delta)
+									// Compute datapoint : add all interfaces bytes counters
+									var upload = 0;
+									for(var intf in dataarray[timestamps[i]][qdisc])
 									{
-										dndata[itf].push(dnsma[itf]((data[itf][i][RXB] - data[itf][i-1][RXB]) / time_delta));
-										updata[itf].push(upsma[itf]((data[itf][i][TXB] - data[itf][i-1][TXB]) / time_delta));
+										upload += (Number(dataarray[timestamps[i]][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]][qdisc][intf].bytes)) / time_delta;
 									}
+									updata[qdisc].push(upload);
+									//dndata[qdisc].push(upload);
+								}
 								}
 							}
-							/* cut off outdated entries */
-							dndata[itf] = dndata[itf].slice(dndata[itf].length - data_wanted, dndata[itf].length);
-							updata[itf] = updata[itf].slice(updata[itf].length - data_wanted, updata[itf].length);
+							data_stamp = Math.max(data_stamp, timestamps[i])
 						}
 
-						/* remember current timestamp, calculate horizontal scale */
-						for (var itf in data)
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]])
 						{
-							for (var i = 0; i < data[itf].length; i++)
-								data_stamp = Math.max(data_stamp, data[itf][data[itf].length-1][TIME]);
+							//dndata[qdisc] = dndata[qdisc].slice(dndata[qdisc].length - data_wanted, dndata[qdisc].length);
+							updata[qdisc] = updata[qdisc].slice(updata[qdisc].length - data_wanted, updata[qdisc].length);
 						}
 
-						var el = Gdn.getElementById('rx').parentNode;
 
+						var el = Gup.getElementById('rx').parentNode;
 
 						// intialize upline and downline datas for download and upload
 						var uplineDnl 	= { };
@@ -400,7 +322,7 @@
 						var overall_tx_peak = 0;
 						var overall_rx_peak = 0;
 
-						for(var itf in dataarray["wans"])
+						for(var itf in updata)
 						{
 							var data_tx_avg  = 0;
 							var data_rx_avg  = 0;
@@ -410,46 +332,46 @@
 							downlineDnl[itf]= [ ];
                                                         uplineUpl[itf]  = [ ];
                                                         downlineUpl[itf]= [ ];
-							for (var i = 0; i < dndata[itf].length; i++)
+							for (var i = 0; i < updata[itf].length; i++)
 							{
 								var rx_bot=0;
 								var tx_bot=0;
 								for(var j=0; j < toadditf.length; j++)
 								{
-									rx_bot += dndata[toadditf[j]][i];
+									//rx_bot += dndata[toadditf[j]][i];
 									tx_bot += updata[toadditf[j]][i];
 								}
 								// set upline of the interface
-								uplineDnl[itf][i] = dndata[itf][i] + rx_bot;
-								data_rx_peak = Math.max(data_rx_peak, dndata[itf][i]);
-								data_max_dnl = Math.max(data_max_dnl, uplineDnl[itf][i]);
+								//uplineDnl[itf][i] = dndata[itf][i] + rx_bot;
+								//data_rx_peak = Math.max(data_rx_peak, dndata[itf][i]);
+								//data_max_dnl = Math.max(data_max_dnl, uplineDnl[itf][i]);
 								uplineUpl[itf][i] = updata[itf][i] + tx_bot;
 								data_tx_peak = Math.max(data_tx_peak, updata[itf][i]);
 								data_max_upl = Math.max(data_max_upl, uplineUpl[itf][i]);
 
 								if (i > 0)
 								{
-									data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
+									//data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
 									data_tx_avg = (data_tx_avg + updata[itf][i]) / 2;
 								}
 								else
 								{
-									data_rx_avg = dndata[itf][i];
+									//data_rx_avg = dndata[itf][i];
 									data_tx_avg = updata[itf][i];
 								}
 								if(toadditf.length)
 								{
-									downlineDnl[itf][i] = uplineDnl[toadditf[toadditf.length-1]][i];
+									//downlineDnl[itf][i] = uplineDnl[toadditf[toadditf.length-1]][i];
 									downlineUpl[itf][i] = uplineUpl[toadditf[toadditf.length-1]][i];
 								}
 							}
 							toadditf.push(itf);
 							// Compute overall values
-							overall_rx_cur += dndata[itf][dndata[itf].length-1];
+							//overall_rx_cur += dndata[itf][dndata[itf].length-1];
 							overall_tx_cur += updata[itf][updata[itf].length-1];
-							overall_rx_avg += data_rx_avg;
+							//overall_rx_avg += data_rx_avg;
 							overall_tx_avg += data_tx_avg;
-							overall_rx_peak+= data_rx_peak;
+							//overall_rx_peak+= data_rx_peak;
 							overall_tx_peak+= data_tx_peak;
 							// Update stats labels
 							if(document.getElementById(itf + '_download_cur'))
@@ -514,22 +436,11 @@
 						data_scale_upl = height / (data_max_upl * 1.1);
 						data_scale_dnl = height / (data_max_dnl * 1.1);
 
-
-
 						/* now draw top line */
 						var keys = Object.keys(uplineDnl);
 						if (keys.length)
 						{
 							var itf = keys[keys.length - 1];
-							if (typeof dntopline != "object")
-							{
-                                                                dntopline = Gdn.getElementById('rx');
-								dntopline.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
-								/* Move line on top */
-								var father = dntopline.parentNode;
-								father.removeChild(dntopline);
-								father.appendChild(dntopline);
-							}
 							if (typeof uptopline != "object")
                                                         {
                                                                 uptopline = Gup.getElementById('tx');
@@ -547,7 +458,7 @@
                                                         var pt_tx = '0,' + height;
 
                                                         // draw polygon
-                                                        for (var i = 0; i < uplineDnl[itf].length; i++)
+                                                        for (var i = 0; i < uplineUpl[itf].length; i++)
                                                         {
                                                                 var x = i * step;
 
@@ -564,78 +475,53 @@
                                                         pt_tx += ' ' + width + ',' + y_tx;
                                                         pt_tx += ' ' + width + ',' + height;
 							
-							dntopline.setAttribute('points', pt_rx);
+							//dntopline.setAttribute('points', pt_rx);
                                                         uptopline.setAttribute('points', pt_tx);
 						}
 
 						// fetch upline and downline datas
 						var toadditf = [ ];
-						for(var itf in dataarray["tuns"])
+						for(var itf in dndata)
 						{
-							uplineDnl[itf] 	= [ ];
-							downlineDnl[itf]= [ ];
                                                         uplineUpl[itf]  = [ ];
                                                         downlineUpl[itf]= [ ];
 							// build point sets
 							var data_tx_avg;
-							var data_rx_avg;
-							var data_rx_peak = 0;
 							var data_tx_peak = 0;
-							for (var i = 0; i < dndata[itf].length; i++)
+							for (var i = 0; i < updata[itf].length; i++)
 							{
-								var rx_bot=0;
 								var tx_bot=0;
 								for(var j=0; j < toadditf.length; j++)
 								{
-									rx_bot += dndata[toadditf[j]][i];
 									tx_bot += updata[toadditf[j]][i];
 								}
 								// set upline of the interface
-								uplineDnl[itf][i] = dndata[itf][i] + rx_bot;
-								data_rx_peak = Math.max(data_rx_peak, dndata[itf][i]);
 								uplineUpl[itf][i] = updata[itf][i] + tx_bot;
 								data_tx_peak = Math.max(data_tx_peak, updata[itf][i]);
 
 								if (i > 0)
 								{
-									data_rx_avg = (data_rx_avg + dndata[itf][i]) / 2;
 									data_tx_avg = (data_tx_avg + updata[itf][i]) / 2;
 								}
 								else
 								{
-									data_rx_avg = dndata[itf][i];
 									data_tx_avg = updata[itf][i];
 								}
 								if(toadditf.length)
 								{
-									downlineDnl[itf][i] = uplineDnl[toadditf[toadditf.length-1]][i];
 									downlineUpl[itf][i] = uplineUpl[toadditf[toadditf.length-1]][i];
 								}
 							}
 							toadditf.push(itf);
 							// Update stats labels
-							if(document.getElementById(itf + '_download_cur'))
-							{
-								var label = document.getElementById(itf + '_download_cur');
-								label.innerHTML = bandwidth_label(dndata[itf][dndata[itf].length-1]);
-							}
 							if(document.getElementById(itf + '_upload_cur'))
 							{
 								var label = document.getElementById(itf + '_upload_cur');
 								label.innerHTML = bandwidth_label(updata[itf][updata[itf].length-1]);
 							}
-							if(label = document.getElementById(itf + '_download_avg'))
-							{
-								label.innerHTML = bandwidth_label(data_rx_avg);
-							}
 							if(label = document.getElementById(itf + '_upload_avg'))
 							{
 								label.innerHTML = bandwidth_label(data_tx_avg);
-							}
-							if(document.getElementById(itf + '_download_peak'))
-							{
-								var label = document.getElementById(itf + '_download_peak');
-								label.innerHTML = bandwidth_label(data_rx_peak);
 							}
 							if(document.getElementById(itf + '_upload_peak'))
 							{
@@ -644,67 +530,40 @@
 							}
 						}
 
-						for (var itf in uplineDnl)
+						for (var itf in uplineUpl)
 						{
-							var y_rx = 0;
 							var y_tx = 0;
-
-							/* plot data */
-							var pt_rx = '0,' + height;
 							var pt_tx = '0,' + height;
 
 							// draw polygon	
-							for (var i = 0; i < uplineDnl[itf].length; i++)
+							for (var i = 0; i < uplineUpl[itf].length; i++)
 							{
 								var x = i * step;
 
-								y_rx = height - Math.floor((uplineDnl[itf][i]) * data_scale_dnl);
 								y_tx = height - Math.floor((uplineUpl[itf][i]) * data_scale_upl);
-
-								pt_rx += ' ' + x + ',' + y_rx;
 								pt_tx += ' ' + x + ',' + y_tx;
 							}
 							// draw last tangant point in upline graph
-							pt_rx += ' ' + width + ',' + y_rx;
-							pt_rx += ' ' + width + ',' + height;
-
 							pt_tx += ' ' + width + ',' + y_tx;
 							pt_tx += ' ' + width + ',' + height;
 
-							for (var i = downlineDnl[itf].length - 1; i >= 0; i--)
+							for (var i = downlineUpl[itf].length - 1; i >= 0; i--)
 							{
 								var x = i * step;
 
-								y_rx = height - Math.floor((downlineDnl[itf][i] - 10) * data_scale_dnl);
 								y_tx = height - Math.floor((downlineUpl[itf][i] - 10) * data_scale_upl);
-								// recreate tangant point in bottom line graph
-								if(i == downlineDnl[itf].length - 1)
+								if(i == downlineUpl[itf].length - 1)
 								{
-										pt_rx += ' ' + width + ',' + height;
-										pt_rx += ' ' + width + ',' + y_rx;
-
-										pt_tx += ' ' + width + ',' + height;
-										pt_tx += ' ' + width + ',' + y_tx;
+									pt_tx += ' ' + width + ',' + height;
+									pt_tx += ' ' + width + ',' + y_tx;
 								}
-
-								pt_rx += ' ' + x + ',' + y_rx;
 								pt_tx += ' ' + x + ',' + y_tx;
 							}
 							// go back to right bottom corner to correctly fill polyline
 							pt_tx += ' ' + 0 + ',' + height;
 							pt_tx += ' ' + width + ',' + height;
-							pt_rx += ' ' + 0 + ',' + height;
-							pt_rx += ' ' + width + ',' + height;
-
 							// Draw polygon
-							dnPolygons[itf].setAttribute('points', pt_rx);
 							upPolygons[itf].setAttribute('points', pt_tx);
-
-
-
-							labeldn_25.html(bandwidth_label(1.1 * 0.25 * data_max_dnl, true));
-							labeldn_50.html(bandwidth_label(1.1 * 0.50 * data_max_dnl, true));
-							labeldn_75.html(bandwidth_label(1.1 * 0.75 * data_max_dnl, true));
 
 							labelup_25.html(bandwidth_label(1.1 * 0.25 * data_max_upl, true));
 							labelup_50.html(bandwidth_label(1.1 * 0.50 * data_max_upl, true));
@@ -1000,14 +859,14 @@ document.write('\
 );
 </script>
 
-<h2><%:Tunnels traffic%></h2>
-
+<h2><%:Traffic Control%></h2>
+<!--
 <div class="deviceChoice">
 	<div class="description"><%:Select a device to show: %></div>
 	<div class="ovh-select" style="position: relative; float: right;">
 		<select id="ddlInterface">
 			<% for _, dev in ipairs(devices) do %>
-			<option class="<%=pcdata(dev)%>" value="<%=build_url("admin/overthebox/tunnels", dev)%>"
+			<option class="<%=pcdata(dev)%>" value="<%=build_url("admin/overthebox/qos", dev)%>"
 				<%= dev == curdev and "selected" or "" %>><%=pcdata(dev)%>
 			</option>
 			<% end %>
@@ -1015,7 +874,7 @@ document.write('\
 	</div>
 	<div class="clear"></div>
 </div>
-
+-->
 <% if curdev == "all" then %>
 
 <div class="graph-section">
@@ -1038,7 +897,7 @@ document.write('\
 	</div>
 	<div class="clear"></div>
 </div>
-
+<!--
 <div class="graph-section">
 	<div class="title"><%:Download%></div>
 	<div class="graph-main">
@@ -1059,7 +918,7 @@ document.write('\
 	</div>
 	<div class="clear"></div>
 </div>
-
+-->
 
 <% else %>
 
