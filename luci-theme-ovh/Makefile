@@ -6,9 +6,36 @@
 
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=OVH Theme
-LUCI_DEPENDS:=
+PKG_NAME:=luci-theme-ovh
+PKG_VERSION:=0.1
+PKG_RELEASE:=1
+PKG_MAINTAINER:=Simon Lelievre <simon.lelievre@corp.ovh.com>
+PKG_LICENSE:=GPLv2
 
-include ../../luci/luci.mk
+include $(INCLUDE_DIR)/package.mk
 
-# call BuildPackage - OpenWrt buildroot signature
+define Package/luci-theme-ovh
+  SECTION:=luci
+  CATEGORY:=LuCI
+  TITLE:=OVH Theme
+  PKGARCH:=all
+  SUBMENU:=4. Themes
+endef
+
+define Package/luci-theme-ovh/description
+	Overthebox Theme by OVH
+endef
+
+define Build/Compile
+endef
+
+define Package/luci-theme-ovh/install
+	$(CP) ./root/* $(1)
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
+	$(CP) ./luasrc/* $(1)/usr/lib/lua/luci
+	$(INSTALL_DIR) $(1)/www
+	$(CP) ./htdocs/* $(1)/www
+endef
+
+$(eval $(call BuildPackage,luci-theme-ovh))
+
