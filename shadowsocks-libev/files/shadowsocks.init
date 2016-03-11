@@ -15,6 +15,7 @@ service_triggers() {
 	procd_add_reload_trigger "shadowsocks"
 	procd_add_reload_trigger "mwan3"
 	procd_add_reload_trigger "network"
+	procd_add_reload_trigger "dscp"
 }
 
 shadowsocks_add_instance() {
@@ -28,6 +29,25 @@ shadowsocks_add_instance() {
 	procd_set_param stderr 1
 	procd_close_instance
 }
+
+generateDscpSection() {
+	local conf="$2"
+
+	local proto
+	local ports
+	local class
+
+	config_get proto $1 proto ""
+	config_get ports $1 ports ""
+	config_get class $1 class ""
+
+	if [ -n "$conf" ]; then
+		[ "$COUNT" != 0 ] && echo "," >> $conf
+		echo -n "		\"$ports\": \"$class\"" >> $conf
+		COUNT=$(( $COUNT + 1))
+	fi
+}
+
 
 generateConfig() {
 	local conf
@@ -56,16 +76,14 @@ generateConfig() {
         "timeout": $timeout,
         "method": "$method",
         "dscp": {
-		"21": "CS1",
-		"22": "CS5",
-		"23": "CS5",
-		"25": "CS1",
-		"80": "CS3",
-		"110": "CS1",
-		"143": "CS1",
-		"443": "CS3",
-		"465": "CS1",
-		"995": "CS1"
+BOF
+
+	COUNT=0
+	config_load dscp
+	config_foreach generateDscpSection classify $conf
+
+	cat <<BOF >>$conf
+
 	} 
 } 
 
@@ -180,6 +198,9 @@ start_service() {
 }
 
 reload_service() {
+	config_load shadowsocks
+	config_foreach generateConfig client
+
 	config_load mwan3
 	config_foreach genrateRules rule
 
