@@ -8,7 +8,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-ovh
 PKG_VERSION:=v0.1
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MAINTAINER:=Simon Lelievre <simon.lelievre@corp.ovh.com>
 PKG_LICENSE:=GPLv2
 
@@ -36,6 +36,15 @@ define Package/luci-theme-ovh/install
 	$(INSTALL_DIR) $(1)/www
 	$(CP) ./htdocs/* $(1)/www
 endef
+
+define Package/luci-theme-ovh/postinst
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	(. /etc/uci-defaults/luci-theme-ovh) && rm -f /etc/uci-defaults/luci-theme-ovh
+	exit 0
+}
+endef
+
 
 $(eval $(call BuildPackage,luci-theme-ovh))
 
