@@ -1,0 +1,68 @@
+
+config classify
+	option proto 'tcp'
+	option ports '22'
+	option comment 'SSH'
+	option class 'CS5'
+
+config classify
+	option proto 'tcp'
+	option ports '23'
+	option comment 'Telnet'
+	option class 'CS5'
+
+config classify
+	option proto 'tcp'
+	option ports '80'
+	option comment 'HTTP'
+	option class 'CS3'
+
+config classify
+	option proto 'tcp'
+	option ports '443'
+	option comment 'HTTPS'
+	option class 'CS3'
+
+config classify
+	option proto 'tcp'
+	option ports '21'
+	option class 'CS1'
+	option comment 'FTP'
+
+config classify
+	option proto 'tcp'
+	option ports '25'
+	option class 'CS1'
+	option comment 'SMTP'
+
+config classify
+	option proto 'tcp'
+	option ports '465'
+	option class 'CS1'
+	option comment 'SMTP-SSL'
+
+config classify
+	option proto 'tcp'
+	option ports '110'
+	option class 'CS1'
+	option comment 'POP3'
+
+config classify
+	option proto 'tcp'
+	option ports '995'
+	option class 'CS1'
+	option comment 'POP3-SSL'
+
+config classify
+	option proto 'tcp'
+	option ports '143'
+	option class 'CS1'
+	option comment 'IMAP'
+
+config classify
+	option proto 'tcp'
+	option ports '993'
+	option class 'CS1'
+	option comment 'IMAP-SSL'
+
+
