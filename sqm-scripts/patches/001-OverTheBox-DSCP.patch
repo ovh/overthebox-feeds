@@ -1,0 +1,42 @@
+diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
+index 97171a6..40fd6d3 100644
+--- a/src/run-openwrt.sh
++++ b/src/run-openwrt.sh
+@@ -26,6 +26,37 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+     exit 0
+ fi
+ 
++# Generate dscp tagging preferences
++IPT="/usr/sbin/iptables -t mangle -w"
++genrateDscp() {
++        local ipset proto src_ip src_port dest_ip $ipset dest_port class
++
++        config_get proto $1 proto all
++        config_get ipset $1 ipset
++        config_get src_ip $1 src_ip 0.0.0.0/0
++        config_get src_port $1 src_port 0:65535
++        config_get dest_ip $1 dest_ip 0.0.0.0/0
++        config_get dest_port $1 dest_port 0:65535
++        config_get class $1 class
++
++        case $proto in
++                tcp)
++                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++                        ;;
++                udp)
++                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++                        ;;
++                *)
++                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++                        ;;
++	esac
++}
++config_load dscp
++config_foreach genrateDscp classify
++
+ config_load sqm
+ 
+ run_sqm_scripts() {

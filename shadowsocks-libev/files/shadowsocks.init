@@ -15,7 +15,6 @@ service_triggers() {
 	procd_add_reload_trigger "shadowsocks"
 	procd_add_reload_trigger "mwan3"
 	procd_add_reload_trigger "network"
-	procd_add_reload_trigger "dscp"
 }
 
 shadowsocks_add_instance() {
@@ -29,25 +28,6 @@ shadowsocks_add_instance() {
 	procd_set_param stderr 1
 	procd_close_instance
 }
-
-generateDscpSection() {
-	local conf="$2"
-
-	local proto
-	local ports
-	local class
-
-	config_get proto $1 proto ""
-	config_get ports $1 ports ""
-	config_get class $1 class ""
-
-	if [ -n "$conf" ]; then
-		[ "$COUNT" != 0 ] && echo "," >> $conf
-		echo -n "		\"$ports\": \"$class\"" >> $conf
-		COUNT=$(( $COUNT + 1))
-	fi
-}
-
 
 generateConfig() {
 	local conf
@@ -76,14 +56,13 @@ generateConfig() {
         "timeout": $timeout,
         "method": "$method",
         "dscp": {
-BOF
-
-	COUNT=0
-	config_load dscp
-	config_foreach generateDscpSection classify $conf
-
-	cat <<BOF >>$conf
-
+		"$(( $lport + 1 ))": "CS7",
+		"$(( $lport + 2 ))": "CS6",
+		"$(( $lport + 3 ))": "CS5",
+		"$(( $lport + 4 ))": "CS4",
+		"$(( $lport + 5 ))": "CS3",
+		"$(( $lport + 6 ))": "CS2",
+		"$(( $lport + 7 ))": "CS1"
 	} 
 } 
 
@@ -118,6 +97,27 @@ BOF
 		iptables -t nat -D SOCKS -d 240.0.0.0/4 -j RETURN 2>/dev/null
 		iptables -t nat -A SOCKS -d 240.0.0.0/4 -j RETURN
 
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs7 -j REDIRECT --to-ports $(( $lport + 1 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs7 -j REDIRECT --to-ports $(( $lport + 1 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs6 -j REDIRECT --to-ports $(( $lport + 2 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs6 -j REDIRECT --to-ports $(( $lport + 2 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs5 -j REDIRECT --to-ports $(( $lport + 3 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs5 -j REDIRECT --to-ports $(( $lport + 3 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs4 -j REDIRECT --to-ports $(( $lport + 4 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs4 -j REDIRECT --to-ports $(( $lport + 4 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs3 -j REDIRECT --to-ports $(( $lport + 5 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs3 -j REDIRECT --to-ports $(( $lport + 5 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs2 -j REDIRECT --to-ports $(( $lport + 6 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs2 -j REDIRECT --to-ports $(( $lport + 6 ))
+
+		iptables -t nat -D SOCKS -p tcp -m dscp --dscp-class cs1 -j REDIRECT --to-ports $(( $lport + 7 )) 2>/dev/null
+		iptables -t nat -A SOCKS -p tcp -m dscp --dscp-class cs1 -j REDIRECT --to-ports $(( $lport + 7 ))
+
 		iptables -t nat -D SOCKS -p tcp -j REDIRECT --to-ports $lport 2>/dev/null
 		iptables -t nat -A SOCKS -p tcp -j REDIRECT --to-ports $lport
 
@@ -151,9 +151,8 @@ genrateRules() {
 		tcp)
 			$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
 			$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
-
-			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			# Keep redirect rules at the end in the same order
+			iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t nat -w -A "$0"; /usr/sbin/iptables -t nat -w -D "$0 }' | sh
 			;;
 		udp)
 			;;
@@ -179,9 +178,8 @@ genrateStaticRoutesRules() {
 		if [ "$NETWORK" != "0.0.0.0" ] && [ "$PREFIX" != "0" ]; then
 			$IPTN -D SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN 2>/dev/null
 			$IPTN -A SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN
-
-			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			# Keep redirect rules at the end in the same order
+			iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t nat -w -A "$0"; /usr/sbin/iptables -t nat -w -D "$0 }' | sh
 		fi
 	fi
 }
@@ -198,9 +196,6 @@ start_service() {
 }
 
 reload_service() {
-	config_load shadowsocks
-	config_foreach generateConfig client
-
 	config_load mwan3
 	config_foreach genrateRules rule
 

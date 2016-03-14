@@ -2,7 +2,8 @@
 -- Licensed to the public under the Apache License 2.0.
 
 local wa = require "luci.tools.webadmin"
---local fs = require "nixio.fs"
+local ut = require "luci.util"
+local sys = require "luci.sys"
 
 m = Map("dscp", translate("Differentiated services"),
 	translate("Traffic may be classified by many different parameters, such as source address, destination address or traffic type and assigned to a specific traffic class."))
@@ -13,42 +14,54 @@ s.anonymous = true
 s.addremove = true
 s.sortable  = true
 
-p = s:option(ListValue, "proto", translate("Protocol"))
-p:value("tcp", "TCP")
---p:value("", translate("all"))
-p.default = "tcp"
---p:value("udp", "UDP")
---p:value("icmp", "ICMP")
---p.rmempty = true
+function cbiAddProtocol(field)
+        local protocols = ut.trim(sys.exec("cat /etc/protocols | grep '\\s# ' | awk '{print $1}' | grep -v '^#' | grep -vw -e 'ip' -e 'tcp' -e 'udp' -e 'icmp' -e 'esp' | grep -v 'ipv6' | sort | tr '\n' ' '"))
+        for p in string.gmatch(protocols, "%S+") do
+                field:value(p)
+        end
+end
 
-ports = s:option(Value, "ports", translate("Ports"))
---ports.rmempty = true
---ports:value("", translate("all"))
+proto = s:option(Value, "proto", translate("Protocol"),
+        translate("View the contents of /etc/protocols for protocol descriptions"))
+        proto.default = "all"
+        proto.rmempty = false
+        proto:value("tcp")
+        proto:value("udp")
+        proto:value("all")
+        proto:value("ip")
+        proto:value("icmp")
+        proto:value("esp")
+        cbiAddProtocol(proto)
 
---srch = s:option(Value, "srchost", translate("Source host"))
---srch.rmempty = true
---srch:value("", translate("all"))
---wa.cbi_add_knownips(srch)
+srch = s:option(Value, "src_ip", translate("Source host"))
+srch.rmempty = true
+srch:value("", translate("all"))
+wa.cbi_add_knownips(srch)
 
---dsth = s:option(Value, "dsthost", translate("Destination host"))
---dsth.rmempty = true
---dsth:value("", translate("all"))
---wa.cbi_add_knownips(dsth)
+ports = s:option(Value, "src_port", translate("Source ports"))
+ports.rmempty = true
+ports:value("", translate("all"))
 
-comment = s:option(Value, "comment", translate("Comment"))
+dsth = s:option(Value, "dest_ip", translate("Destination host"))
+dsth.rmempty = true
+dsth:value("", translate("all"))
+wa.cbi_add_knownips(dsth)
+
+ports = s:option(Value, "dest_port", translate("Destination ports"))
+ports.rmempty = true
+ports:value("", translate("all"))
 
 t = s:option(ListValue, "class", translate("Class"))
-t:value("CS1", translate("CS1 - Scavenger"))
-t:value("CS2", translate("CS2 - Normal"))
-t:value("CS3", translate("CS3 - Signaling"))
-t:value("CS4", translate("CS4 - Realtime"))
-t:value("CS5", translate("CS5 - Broadcast video"))
-t:value("CS6", translate("CS6 - Network control"))
---t:value("CS7", translate("Reserved"))
+t:value("cs1", translate("CS1 - Scavenger"))
+t:value("cs2", translate("CS2 - Normal"))
+t:value("cs3", translate("CS3 - Signaling"))
+t:value("cs4", translate("CS4 - Realtime"))
+t:value("cs5", translate("CS5 - Broadcast video"))
+t:value("cs6", translate("CS6 - Network control"))
+--t:value("cs7", translate("Reserved"))
 t.default = "OAM"
 
-
+comment = s:option(Value, "comment", translate("Comment"))
 --bytes = s:option(Value, "connbytes", translate("Number of bytes"))
-
 
 return m

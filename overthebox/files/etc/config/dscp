@@ -1,68 +1,61 @@
 
 config classify
 	option proto 'tcp'
-	option ports '22'
+	option dest_port '22'
 	option comment 'SSH'
-	option class 'CS5'
+	option class 'cs5'
 
 config classify
 	option proto 'tcp'
-	option ports '23'
+	option dest_port '23'
 	option comment 'Telnet'
-	option class 'CS5'
+	option class 'cs5'
 
 config classify
 	option proto 'tcp'
-	option ports '80'
+	option dest_port '80'
 	option comment 'HTTP'
-	option class 'CS3'
+	option class 'cs3'
 
 config classify
 	option proto 'tcp'
-	option ports '443'
+	option dest_port '443'
 	option comment 'HTTPS'
-	option class 'CS3'
+	option class 'cs3'
 
 config classify
 	option proto 'tcp'
-	option ports '21'
-	option class 'CS1'
-	option comment 'FTP'
-
-config classify
-	option proto 'tcp'
-	option ports '25'
-	option class 'CS1'
+	option dest_port '25'
+	option class 'cs1'
 	option comment 'SMTP'
 
 config classify
 	option proto 'tcp'
-	option ports '465'
-	option class 'CS1'
-	option comment 'SMTP-SSL'
+	option dest_port '21'
+	option class 'cs1'
+	option comment 'FTP'
 
 config classify
 	option proto 'tcp'
-	option ports '110'
-	option class 'CS1'
-	option comment 'POP3'
+	option dest_port '110'
+	option class 'cs1'
+	option comment 'Mails'
 
 config classify
 	option proto 'tcp'
-	option ports '995'
-	option class 'CS1'
-	option comment 'POP3-SSL'
+	option dest_port '143'
+	option class 'cs1'
+	option comment 'Mails'
 
 config classify
 	option proto 'tcp'
-	option ports '143'
-	option class 'CS1'
-	option comment 'IMAP'
+	option dest_port '465'
+	option class 'cs1'
+	option comment 'Mails'
 
 config classify
 	option proto 'tcp'
-	option ports '993'
-	option class 'CS1'
-	option comment 'IMAP-SSL'
-
+	option dest_port '995'
+	option class 'cs1'
+	option comment 'Mails'
 
