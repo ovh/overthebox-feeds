@@ -322,6 +322,8 @@ function config()
 			function (e)
 				uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
 				uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+				uci:set('system', e[".name"], 'log_proto', res.log_conf.protocol )
+				uci:set('system', e[".name"], 'log_prefix', res.log_conf.key )
 			end
 		)
 
