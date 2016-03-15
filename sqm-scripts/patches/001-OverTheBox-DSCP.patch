@@ -1,8 +1,13 @@
 diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
-index 97171a6..40fd6d3 100644
+index 97171a6..3d538b9 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -26,6 +26,37 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -23,9 +23,42 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+         # $SCRIPT variables saved in there.
+         [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
+     done
++    # Clear DSCP rules
++    iptables-save | grep "j DSCP" | grep "dscp_" | sed "s/-A /iptables -t mangle -w -D /g" | sh
      exit 0
  fi
  

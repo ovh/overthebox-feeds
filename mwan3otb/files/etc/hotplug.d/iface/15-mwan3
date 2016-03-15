@@ -359,9 +359,8 @@ mwan3_set_user_rules_iptables()
 		tcp)
 			$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
 			$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
-
-			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
+			# Keep redirect rules at the end in the same order
+			iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t nat -w -A "$0"; /usr/sbin/iptables -t nat -w -D "$0 }' | sh
 
 			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			;;
