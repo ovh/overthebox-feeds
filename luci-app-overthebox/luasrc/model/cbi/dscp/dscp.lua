@@ -21,8 +21,7 @@ function cbiAddProtocol(field)
         end
 end
 
-proto = s:option(Value, "proto", translate("Protocol"),
-        translate("View the contents of /etc/protocols for protocol descriptions"))
+proto = s:option(Value, "proto", translate("Protocol"))
         proto.default = "all"
         proto.rmempty = false
         proto:value("tcp")
