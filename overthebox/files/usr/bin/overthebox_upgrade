@@ -1,0 +1,5 @@
+#!/usr/bin/env lua
+local overthebox = require("overthebox")
+
+local retcode, ret = overthebox.upgrade()
+print(ret)

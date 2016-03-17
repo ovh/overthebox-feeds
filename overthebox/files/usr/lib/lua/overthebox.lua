@@ -561,33 +561,59 @@ function opkg_remove(package)
 	return true, ret
 end
 
+local pkgs = { 
+    overthebox='0.2-14',
+    ["luci-base"]='git-16.067.54393-f931ee9-1',
+    ["luci-mod-admin-full"]='git-16.067.54393-f931ee9-1',
+    ["luci-app-overthebox"]='git-16.067.54393-f931ee9-1',
+    ["luci-app-mwan3otb"]='1.5-3',
+    ["shadowsocks-libev"]='2.4.5-3',
+    ["luci-theme-ovh"]='git-16.067.54393-f931ee9-1',
+    ["dnsmasq-full"]='2.75-8',
+    ["sqm-scripts"]='1.0.5-6',
+    ["luci-app-sqm"]='1.0.5-6',
+    mptcp='1.0.0-5',
+    netifd='2015-08-25-58',
+    mwan3otb='1.7-13',
+    bosun='0.4.0-0.8',
+    vtund='3.0.3-12',
+    e2fsprogs='1.42.12-1',
+    e2freefrag='1.42.12-1',
+    dumpe2fs='1.42.12-1',
+    resize2fs='1.42.12-1',
+    tune2fs='1.42.12-1',
+    libsodium='1.0.8-2',
+    glorytun='0.0.26-8',
+    rdisc6='1.0.3-1',
+    ['luci-app-qos']='remove',
+    ['qos-scripts']='remove'
+}
 function upgrade()
-	local packages = {'overthebox', 'mptcp', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'rdisc6'}
-	local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
-	local retcode = true
-	local ret = "install:\n"
-	for i = 1, #packages do
-		-- install package
-		local p = packages[i]
-		local c, r = opkg_install(p)
-		if c == false then
-			retcode = false
-		end
-		ret = ret ..  p .. ": \n" .. r .."\n"
-	end
+    local listpkginstalled, _, _ = run("opkg list-installed")
+    local ret = ""
+    local retcode = true
 
-	ret = ret .. "\nuninstall:\n"
-	for i = 1, #unwantedPackages do
-		-- install package
-		local p = unwantedPackages[i]
-		local c, r = opkg_remove(p)
-		if c == false then
-			retcode = false
-		end
-		ret = ret ..  p .. ": \n" .. r .."\n"
-	end
+    for str in string.gmatch(listpkginstalled,'[^\r\n]+') do
+        local f = split(str)
+        local pkg, version  = f[1], f[3]
 
-	return retcode, ret
+        if pkgs[pkg] ~= nil then
+            local mversion = pkgs[pkg]
+            if mversion == 'remove' then
+                local c, r = opkg_remove(pkg)
+                ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
+            elseif version:find(mversion,1, true) == 1  then
+                ret = ret .. "keep "..pkg.. "version match\n"
+            elseif version < mversion then
+                local c, r = opkg_install(pkg)
+                ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
+            elseif version > mversion then
+                -- do nothing
+                ret = ret .. pkg.." version newest, installed:"..version.." asked:"..mversion.."\n"
+            end
+        end
+    end
+    return retcode, ret
 end
 
 function sysupgrade()
