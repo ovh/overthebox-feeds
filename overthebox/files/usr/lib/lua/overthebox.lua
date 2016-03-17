@@ -28,7 +28,8 @@ local ltn12	= require("ltn12")
 local io 	= require("io")
 local os 	= require("os")
 local string	= require("string")
-
+local posix     = require("posix")
+local sys_stat  = require("posix.sys.stat")
 local print = print
 local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next, type, tostring, tonumber, error
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
@@ -754,6 +755,7 @@ end
 
 function split(t)
 	local r = {}
+	if t == nil then return r end
 	for v in string.gmatch(t, "%S+") do
 		table.insert(r, v)
 	end
@@ -1310,6 +1312,127 @@ function create_dhcp_server()
 	return true
 end
 
+-- checks methods
+function restart_daemon_if_stalled()
+    local otb_cmdline = "lua /usr/bin/overtheboxd"
+    local max_age_socket = 3600
+
+    local nb_pid = 0
+    for pid, cmdline in pairs(pidof(otb_cmdline)) do
+        for k, v in pairs(tcpsocketsof(pid)) do
+            if v.age > max_age_socket then
+                return restart_daemon
+            end
+        end
+        nb_pid = nb_pid +  1
+    end
+    if nb_pid == 0 then
+        return restart_daemon
+    end
+
+    return false
+end
+
+function restart_daemon()
+    system.run("/etc/init.d/overtheboxd restart")
+    return true
+end
+
+--
+-- function get_cmdline read cmdline file for a PID
+-- return the command line which start the PID process
+function get_cmdline(pid)
+    local f = io.open(string.format('/proc/%s/cmdline', pid), "rb")
+    if f == nil then return end
+    local t = f:read("*all")
+    f:close()
+    --      hex_dump(t)
+    local z = string.char(0)
+    return t:gsub("(.)", function(c) if c == z then return ' ' end return c end)
+end
+
+--
+-- function pidof search program in processus running
+-- return array of pid
+function pidof(program)
+    local ret = {}
+    if program == nil then return ret end
+    local files = posix.dir("/proc")
+    local me = posix.getpid()
+    for _, name in ipairs(files) do
+        if string.match(name, '[0-9]+') then
+            if tonumber(name) ~= me  then
+                local cmdline = get_cmdline(name)
+                if cmdline:find(program, 1, true) ~= nil then
+                    table.insert(ret, tonumber(name), cmdline)
+                end
+            end
+        end
+    end
+    return ret
+end
+
+--
+-- function
+local function display_ipport(a,b,c,d,p)
+    return string.format("%d.%d.%d.%d:%d", tonumber(d, 16), tonumber(c, 16), tonumber(b, 16), tonumber(a, 16),    tonumber(p, 16))
+end
+
+--
+-- function ipport transform hexa notation ip:port in decimal
+local function ipport(str)
+    return str:gsub( '(%x%x)(%x%x)(%x%x)(%x%x):(%x%x%x%x)', display_ipport)
+end
+
+-- function get_sockets retreive sockets opened by pid
+-- return and array of socket informations
+function tcpsocketsof(pid)
+    local ret = {}
+    local sockets={}
+    -- format described below
+    local f = io.open(string.format('/proc/%s/net/tcp',pid), "r")
+    if f == nil then return ret end
+    for line in f:lines() do
+        local fis = split(line or "" )
+        if #fis > 12 then
+            fis[1] = fis[1]:gsub(":", "") -- clean id
+            fis[2] = ipport(fis[2])
+            fis[3] = ipport(fis[3])
+
+            local inode = tonumber(fis[10])
+            if sockets[inode] == nil then sockets[inode]={} end
+            table.insert(sockets[inode], fis)
+        end
+    end
+    f:close()
+
+    for id, infos in pairs(socketsof(pid)) do
+        if infos.inode ~= nil and sockets[infos.inode] ~= nil and type(sockets[infos.inode]) == "table" then
+            for _, s in pairs(sockets[infos.inode]) do
+                print(s[2], s[3], infos.age)
+            end
+        end
+    end
+    return ret
+end
+
+function socketsof(pid)
+    local ret = {}
+    local files = posix.dir(string.format('/proc/%s/fd/',pid))
+    for _, name in ipairs(files) do
+        local fn = string.format('/proc/%s/fd/%s',pid,name)
+        local fstat = sys_stat.stat(fn)
+        -- for k,v in pairs(fstat) do print(k,v) end
+
+        if fstat ~= nil and fstat.st_mode ~= nil and  sys_stat.S_ISSOCK ( fstat.st_mode ) ~= 0 then
+            local age = os.time() - sys_stat.lstat(fn).st_ctime
+            table.insert(ret, {name=name, fn=fn, age=age, inode=fstat.st_ino} )
+        end
+    end
+
+    return ret
+end
+
 -- helpers
 function lock(name)
 	-- Open fd for appending
@@ -1332,11 +1455,13 @@ function lock(name)
 	return file
 end
 
+-- function run execute a program
+-- return stdout and status code
 function run(command)
-	local handle = io.popen(command)
-	local result = handle:read("*a")
-	handle:close()
-	return result
+        local handle = io.popen(command)
+        local result = handle:read("*a")
+        local rc = {handle:close()}
+        return result, rc[3]
 end
 
 function iface_info(iface)
