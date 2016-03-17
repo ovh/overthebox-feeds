@@ -142,7 +142,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,188 @@
+@@ -0,0 +1,199 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -173,11 +173,17 @@ index 0000000..2384ace
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length :512  -j MARK --set-mark 0x05${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1  -j MARK --set-mark 0x01${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3  -j MARK --set-mark 0x03${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs5  -j MARK --set-mark 0x05${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 512:  -j MARK --set-mark 0x01${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1 -m comment --comment "Scavenger" -j MARK --set-mark 0x01${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs2 -m comment --comment "Normal" -j MARK --set-mark 0x02${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3 -m comment --comment "Signaling" -j MARK --set-mark 0x03${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs4 -m comment --comment "Realtime" -j MARK --set-mark 0x04${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs5 -m comment --comment "BroadcastVideo" -j MARK --set-mark 0x05${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs6 -m comment --comment "NetworkControl" -j MARK --set-mark 0x06${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs7 -m comment --comment "Reserved" -j MARK --set-mark 0x07${IPT_MASK_STRING}
++
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 512: -m comment --comment "Heavy" -j MARK --set-mark 0x01${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 128:512 -m comment --comment "Interactive" --j MARK --set-mark 0x03${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 0:128 -m comment --comment "Acknowledge" -j MARK --set-mark 0x06${IPT_MASK_STRING}
 +
 +########################
 +
@@ -251,11 +257,16 @@ index 0000000..2384ace
 +    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
 +
 +
-+# Redirect filtered packets to specific queues
++    # Redirect filtered packets to specific queues
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:3
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:4
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x05 ${IPT_MASK} flowid 1:2
++
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x07 ${IPT_MASK} flowid 1:2
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x06 ${IPT_MASK} flowid 1:2
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x05 ${IPT_MASK} flowid 1:3
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x04 ${IPT_MASK} flowid 1:4
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:4
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x02 ${IPT_MASK} flowid 1:5
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x01 ${IPT_MASK} flowid 1:6
 +
 +}
