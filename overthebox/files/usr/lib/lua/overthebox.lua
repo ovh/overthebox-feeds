@@ -1333,6 +1333,14 @@ function restart_daemon_if_stalled()
     return false
 end
 
+function test_if_running(cmdline)
+    local nb_pid = 0
+    for _, _ in pairs(pidof(cmdline)) do
+        nb_pid = nb_pid +  1
+    end
+    return nb_pid ~= 0
+end
+
 function restart_daemon()
     system.run("/etc/init.d/overtheboxd restart")
     return true
