@@ -44,17 +44,17 @@ index 97171a6..c11e82f 100644
 +config_load dscp
 +config_foreach genrateDscp classify
 +# Create multiwan forward rules for udp
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover 2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover 2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs3 -m comment --comment Signaling -j mwan3_policy_xtun0_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs3 -m comment --comment Signaling -j mwan3_policy_xtun0_failover 2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs4 -m comment --comment Realtime -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover 2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover
++$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover 2>/dev/null
 +$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover
 +iptables-save | grep mwan3_rules | grep "mark 0x0/0xff00" | grep -v "dscp" | tail -n1 | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t mangle -w -A "$0"; /usr/sbin/iptables -t mangle -w -D "$0 }' | sh
 +
