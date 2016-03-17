@@ -1,0 +1,170 @@
+diff --git a/src/jconf.c b/src/jconf.c
+index 2ddaedc..321aa41 100644
+--- a/src/jconf.c
++++ b/src/jconf.c
+@@ -193,6 +193,10 @@ jconf_t *read_jconf(const char *file)
+                 conf.nofile = value->u.integer;
+             } else if (strcmp(name, "nameserver") == 0) {
+                 conf.nameserver = to_string(value);
++            } else if (strcmp(name, "monitoring_ip") == 0) {
++                if (inet_pton(AF_INET, to_string(value), &conf.monitor_addr) != 1) {
++                    FATAL("Invalid monitoring IPv4 address");
++                }
+             }
+         }
+     } else {
+diff --git a/src/jconf.h b/src/jconf.h
+index 752caf4..ace59fb 100644
+--- a/src/jconf.h
++++ b/src/jconf.h
+@@ -29,6 +29,8 @@
+ #define MAX_CONNECT_TIMEOUT 10
+ #define MIN_UDP_TIMEOUT 10
+ 
++#include <arpa/inet.h>
++
+ typedef struct {
+     char *host;
+     char *port;
+@@ -54,6 +56,7 @@ typedef struct {
+     int fast_open;
+     int nofile;
+     char *nameserver;
++    struct in_addr monitor_addr;
+ } jconf_t;
+ 
+ jconf_t *read_jconf(const char *file);
+diff --git a/src/server.c b/src/server.c
+index c95d51f..b31da22 100644
+--- a/src/server.c
++++ b/src/server.c
+@@ -678,6 +678,54 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
+             info.ai_protocol = IPPROTO_TCP;
+             info.ai_addrlen  = sizeof(struct sockaddr_in);
+             info.ai_addr     = (struct sockaddr *)addr;
++
++            // Monitoring requested
++            if (server->listen_ctx->monitor_addr != NULL) {
++                if (memcmp(&addr->sin_addr, server->listen_ctx->monitor_addr, sizeof (addr->sin_addr)) == 0) {
++                    char *peer_name = get_peer_name(server->fd);
++                    if (peer_name) {
++                        LOGI("Monitoring request from %s", peer_name);
++                    }
++
++                    const char * payload = "{'ok': true}";
++                    int payload_size = strlen(payload);
++                    server->buf->len = payload_size;
++                    memcpy(server->buf->array, payload, payload_size);
++
++                    int err = ss_encrypt(server->buf, server->e_ctx, BUF_SIZE);
++
++                    if (err) {
++                        LOGE("invalid password or cipher");
++                        close_and_free_server(EV_A_ server);
++                        return;
++                    }
++
++                    int s = send(server->fd, server->buf->array, server->buf->len, 0);
++
++                    server->bypass_remote = 1;
++                    if (s == -1) {
++                        if (errno == EAGAIN || errno == EWOULDBLOCK) {
++                            // no data, wait for send
++                            server->buf->idx = 0;
++                            ev_io_stop(EV_A_ & server_recv_ctx->io);
++                            ev_io_start(EV_A_ & server->send_ctx->io);
++                        } else {
++                            ERROR("server_recv_send");
++                            close_and_free_server(EV_A_ server);
++                        }
++                        return;
++                    } else if (s < server->buf->len) {
++                        server->buf->len -= s;
++                        server->buf->idx  = s;
++                        ev_io_stop(EV_A_ & server_recv_ctx->io);
++                        ev_io_start(EV_A_ & server->send_ctx->io);
++                        return;
++                    }
++                    close_and_free_server(EV_A_ server);
++                    return;
++                }
++            }
++
+         } else if ((atyp & ADDRTYPE_MASK) == 3) {
+             // Domain name
+             uint8_t name_len = *(uint8_t *)(server->buf->array + offset);
+@@ -819,7 +867,7 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
+     server_t *server              = server_send_ctx->server;
+     remote_t *remote              = server->remote;
+ 
+-    if (remote == NULL) {
++    if (remote == NULL && !server->bypass_remote) {
+         LOGE("invalid server");
+         close_and_free_server(EV_A_ server);
+         return;
+@@ -858,7 +906,9 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
+                 ev_io_start(EV_A_ & remote->recv_ctx->io);
+                 return;
+             } else {
+-                LOGE("invalid remote");
++                if (!server->bypass_remote) {
++                    LOGE("invalid remote");
++                }
+                 close_and_free_remote(EV_A_ remote);
+                 close_and_free_server(EV_A_ server);
+                 return;
+@@ -1171,6 +1221,7 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
+     server->query               = NULL;
+     server->listen_ctx          = listener;
+     server->remote              = NULL;
++    server->bypass_remote       = 0;
+ 
+     if (listener->method) {
+         server->e_ctx = malloc(sizeof(enc_ctx_t));
+@@ -1311,6 +1362,8 @@ int main(int argc, char **argv)
+     char *acl_path  = NULL;
+     char *iface     = NULL;
+ 
++    struct in_addr monitor_addr;
++
+     int server_num = 0;
+     const char *server_host[MAX_REMOTE_NUM];
+ 
+@@ -1458,6 +1511,8 @@ int main(int argc, char **argv)
+         if (conf->nameserver != NULL) {
+             nameservers[nameserver_num++] = conf->nameserver;
+         }
++
++        memcpy(&monitor_addr, &conf->monitor_addr, sizeof(struct in_addr));
+     }
+ 
+     if (server_num == 0) {
+@@ -1560,6 +1615,7 @@ int main(int argc, char **argv)
+             listen_ctx->method  = m;
+             listen_ctx->iface   = iface;
+             listen_ctx->loop    = loop;
++            listen_ctx->monitor_addr = &monitor_addr;
+ 
+             ev_io_init(&listen_ctx->io, accept_cb, listenfd, EV_READ);
+             ev_io_start(loop, &listen_ctx->io);
+diff --git a/src/server.h b/src/server.h
+index 3febdf5..f1861ce 100644
+--- a/src/server.h
++++ b/src/server.h
+@@ -40,6 +40,7 @@ typedef struct listen_ctx {
+     int method;
+     char *iface;
+     struct ev_loop *loop;
++    struct in_addr * monitor_addr;
+ } listen_ctx_t;
+ 
+ typedef struct server_ctx {
+@@ -64,6 +65,8 @@ typedef struct server {
+     struct listen_ctx *listen_ctx;
+     struct remote *remote;
+ 
++    int bypass_remote;
++
+     struct ResolvQuery *query;
+ 
+     struct cork_dllist_item entries;
