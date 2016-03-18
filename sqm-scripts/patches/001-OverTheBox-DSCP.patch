@@ -1,8 +1,8 @@
 diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
-index 97171a6..c11e82f 100644
+index 97171a6..720560c 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -23,9 +23,58 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -23,9 +23,86 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
          # $SCRIPT variables saved in there.
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
@@ -14,48 +14,76 @@ index 97171a6..c11e82f 100644
 +# Generate dscp tagging preferences
 +IPT="/usr/sbin/iptables -t mangle -w"
 +genrateDscp() {
-+        local ipset proto src_ip src_port dest_ip $ipset dest_port class
++	local ipset proto src_ip src_port dest_ip $ipset dest_port class
 +
-+        config_get proto $1 proto all
-+        config_get ipset $1 ipset
-+        config_get src_ip $1 src_ip 0.0.0.0/0
-+        config_get src_port $1 src_port 0:65535
-+        config_get dest_ip $1 dest_ip 0.0.0.0/0
-+        config_get dest_port $1 dest_port 0:65535
-+        config_get class $1 class
++	config_get proto $1 proto all
++	config_get ipset $1 ipset
++	config_get src_ip $1 src_ip 0.0.0.0/0
++	config_get src_port $1 src_port 0:65535
++	config_get dest_ip $1 dest_ip 0.0.0.0/0
++	config_get dest_port $1 dest_port 0:65535
++	config_get class $1 class
 +
-+        case $proto in
-+                tcp)
-+                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+                        ;;
-+                udp)
-+                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+                        ;;
-+                *)
-+                        $IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+                        $IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+                        ;;
++	case $proto in
++		tcp)
++			$IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			;;
++		udp)
++			$IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j mwan3_rules 2>/dev/null
++			$IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j mwan3_rules
++			;;
++		*)
++
++			$IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -D PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j mwan3_rules 2>/dev/null
++			$IPT -A PREROUTING -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j mwan3_rules
++			;;
 +	esac
 +}
 +# Clear DSCP rules before recreate
 +iptables-save | grep "j DSCP" | grep "dscp_" | sed "s/-A /iptables -t mangle -w -D /g" | sh
 +config_load dscp
 +config_foreach genrateDscp classify
-+# Create multiwan forward rules for udp
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover 2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover 2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs3 -m comment --comment Signaling -j mwan3_policy_xtun0_failover 2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs4 -m comment --comment Realtime -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover 2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover
-+$IPT -D mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover 2>/dev/null
-+$IPT -A mwan3_rules -m mark --mark 0x0/0xff00 -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover
++# Create multiwan forward workaround for dscp
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs1 -m comment --comment Scavenger -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs1 -m comment --comment Scavenger -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs1 -m comment --comment Scavenger -j mwan3_policy_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs2 -m comment --comment Normal -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs2 -m comment --comment Normal -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs2 -m comment --comment Normal -j mwan3_policy_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs3 -m comment --comment Signaling -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs3 -m comment --comment Signaling -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs3 -m comment --comment Signaling -j mwan3_policy_xtun0_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs3 -m comment --comment Signaling -j mwan3_policy_xtun0_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs4 -m comment --comment Realtime -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs4 -m comment --comment Realtime -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs4 -m comment --comment Realtime -j mwan3_policy_xtun0_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs4 -m comment --comment Realtime -j mwan3_policy_xtun0_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs5 -m comment --comment BroadcastVideo -j mwan3_policy_xtun0_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs6 -m comment --comment NetworkControl -j mwan3_policy_xtun0_failover
++
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs7 -m comment --comment Reserved -j MARK --set-xmark 0x0/0xff00 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs7 -m comment --comment Reserved -j MARK --set-xmark 0x0/0xff00
++$IPT -D mwan3_rules -p all -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover 2>/dev/null
++$IPT -A mwan3_rules -p all -m dscp --dscp-class cs7 -m comment --comment Reserved -j mwan3_policy_xtun0_failover
++
 +iptables-save | grep mwan3_rules | grep "mark 0x0/0xff00" | grep -v "dscp" | tail -n1 | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t mangle -w -A "$0"; /usr/sbin/iptables -t mangle -w -D "$0 }' | sh
 +
  config_load sqm
