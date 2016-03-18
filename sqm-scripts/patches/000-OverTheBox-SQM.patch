@@ -142,7 +142,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,199 @@
+@@ -0,0 +1,208 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -155,9 +155,18 @@ index 0000000..2384ace
 +
 +egress() {
 +
-+
-+    TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
-+    XTUN0_PORT=$(uci -q get vtund.Xtun0.port || echo "5008")
++    if [ "$(uci -q get vtund.tunnel.enable)" == "1" ]; then
++        TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
++    fi
++    if [ "$(uci -q get vtund.xtun0.enable)" == "1" ]; then
++	 XTUN0_PORT=$(uci -q get vtund.xtun0.port || echo "5008")
++    fi
++    if [ "$(uci -q get glorytun.otb.enable)" == "1" ]; then
++        TUN0_PORT=$(uci -q get glorytun.otb.port || echo "5006")
++    fi
++    if [ "$(uci -q get glorytun.xtun0.enable)" == "1" ]; then
++        XTUN0_PORT=$(uci -q get glorytun.xtun0.port || echo "5009")
++    fi
 +    SOCKS_PORT=$(uci -q get shadowsocks.proxy.port || echo "1090")
 +
 +    ipt -t mangle -F QOS_MARK_${IFACE}
