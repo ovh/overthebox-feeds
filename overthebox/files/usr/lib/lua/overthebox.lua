@@ -194,7 +194,7 @@ function config()
 		uci:set('glorytun', 'otb', 'metric',  res.glorytun_conf.metric )
 
 		uci:set('network', res.glorytun_conf.dev, 'interface')
-		uci:set('network', res.glorytun_conf.dev, 'ifname', res.vtun_conf.dev)
+		uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
 		uci:set('network', res.glorytun_conf.dev, 'proto', 'none')
 		uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
 		uci:set('network', res.glorytun_conf.dev, 'delegate', '0')
