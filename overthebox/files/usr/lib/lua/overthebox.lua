@@ -561,6 +561,8 @@ function opkg_remove(package)
 	return true, ret
 end
 
+
+-- all our packages, and the minimum version needed.
 local pkgs = { 
     overthebox='0.2-14',
     ["luci-base"]='git-16.067.54393-f931ee9-1',
@@ -588,7 +590,13 @@ local pkgs = {
     ['luci-app-qos']='remove',
     ['qos-scripts']='remove'
 }
+
+-- function upgrade check if all package asked are up to date
 function upgrade()
+    -- first, we upgrade ourself
+    opkg_install("overthebox")
+
+    -- let's check others
     local listpkginstalled, _, _ = run("opkg list-installed")
     local ret = ""
     local retcode = true
@@ -603,7 +611,7 @@ function upgrade()
                 local c, r = opkg_remove(pkg)
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
             elseif version:find(mversion,1, true) == 1  then
-                ret = ret .. "keep "..pkg.. "version match\n"
+                ret = ret .. "keep "..pkg.. " version match\n"
             elseif version < mversion then
                 local c, r = opkg_install(pkg)
                 ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
