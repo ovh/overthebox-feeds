@@ -1376,8 +1376,8 @@ function test_if_running(cmdline)
 end
 
 function restart_daemon()
-    system.run("/etc/init.d/overtheboxd restart")
-    return true
+    local ret = run("/etc/init.d/overtheboxd restart")
+    return true, ret 
 end
 
 --
