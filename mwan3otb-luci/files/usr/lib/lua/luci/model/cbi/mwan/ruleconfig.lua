@@ -81,6 +81,19 @@ proto = mwan_rule:option(Value, "proto", translate("Protocol"),
 	proto:value("esp")
 	cbiAddProtocol(proto)
 
+dscp_class = mwan_rule:option(ListValue, "dscp_class", translate("DSCP Class match"),
+        translate("DSCP class"))
+dscp_class.default = ""
+dscp_class:value("", translate("Default"))
+--dscp_class:value("cs0", translate("CS0 - Default"))
+dscp_class:value("cs1", translate("CS1 - Scavenger"))
+dscp_class:value("cs2", translate("CS2 - Normal"))
+dscp_class:value("cs3", translate("CS3 - Signaling"))
+dscp_class:value("cs4", translate("CS4 - Realtime"))
+dscp_class:value("cs5", translate("CS5 - Broadcast video"))
+dscp_class:value("cs6", translate("CS6 - Network control"))
+--dscp_class:value("cs7", translate("CS7 - Reserved"))
+
 sticky = mwan_rule:option(ListValue, "sticky", translate("Sticky"),
 	translate("Traffic from the same source IP address that previously matched this rule within the sticky timeout period will use the same WAN interface"))
 	sticky.default = "0"
