@@ -358,7 +358,7 @@ mwan3_set_user_rules_iptables()
 
 		case $proto in
 		tcp)
-			if [ -n "dscp_class" ]; then
+			if [ -n "$dscp_class" ]; then
 				$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
 				$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
 			else
@@ -368,21 +368,21 @@ mwan3_set_user_rules_iptables()
 			# Keep redirect rules at the end in the same order
 			iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t nat -w -A "$0"; /usr/sbin/iptables -t nat -w -D "$0 }' | sh
 
-			if [ -n "dscp_class" ]; then
+			if [ -n "$dscp_class" ]; then
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			else
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			fi
 			;;
 		udp)
-			if [ -n "dscp_class" ]; then
+			if [ -n "$dscp_class" ]; then
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			else
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			fi
 			;;
 		*)
-			if [ -n "dscp_class" ]; then
+			if [ -n "$dscp_class" ]; then
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			else
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null

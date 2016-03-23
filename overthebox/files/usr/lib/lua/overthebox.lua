@@ -1090,6 +1090,8 @@ function update_confmwan()
 		end
 		uci:set_list("mwan3", "failover", "use_member", my_members)
 		uci:set("mwan3", "all", "use_policy", "failover")
+		uci:set("mwan3", "CS1_Scavenger", "use_policy", "failover")
+		uci:set("mwan3", "CS2_Normal", "use_policy", "failover")
 
 		-- Generate qos failover policy
 		if #members_qos and members_qos[1] then
@@ -1105,6 +1107,14 @@ function update_confmwan()
 				if list_qos[1][i] == "xtun0" then
 					uci:set("mwan3", "voip", "use_policy", name)
 					uci:set("mwan3", "icmp", "use_policy", name)
+					uci:set("mwan3", "CS3_Signaling", "use_policy", name)
+					uci:set("mwan3", "CS4_Realtime", "use_policy", name)
+					uci:set("mwan3", "CS5_BroadcastVd", "use_policy", name)
+					uci:set("mwan3", "CS6_NetworkCtrl", "use_policy", name)
+					uci:set("mwan3", "CS7_Reserved", "use_policy", name)
+				end
+				if list_qos[1][i] == "stun0" then
+					uci:set("mwan3", "CS1_Scavenger", "use_policy", name)
 				end
 			end
 		end

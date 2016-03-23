@@ -15,7 +15,7 @@ fi
 
 if ! uci -q get mwan3.icmp.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.icmp='icmp'
+	set mwan3.icmp='rule'
 	set mwan3.icmp.proto='icmp'
 	set mwan3.icmp.sticky='0'
 	set mwan3.icmp.use_policy='failover'
@@ -27,11 +27,11 @@ fi
 
 if ! uci -q get mwan3.CS1_Scavenger.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS1_Scavenger='CS1_Scavenger'
+	set mwan3.CS1_Scavenger='rule'
 	set mwan3.CS1_Scavenger.proto='all'
 	set mwan3.CS1_Scavenger.sticky='0'
 	set mwan3.CS1_Scavenger.dscp_class='cs1'
-	set mwan3.icmp.use_policy='failover'
+	set mwan3.CS1_Scavenger.use_policy='failover'
 	reorder mwan3.CS1_Scavenger=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -41,11 +41,11 @@ fi
 
 if ! uci -q get mwan3.CS2_Normal.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS2_Normal='CS2_Normal'
+	set mwan3.CS2_Normal='rule'
 	set mwan3.CS2_Normal.proto='all'
 	set mwan3.CS2_Normal.sticky='0'
 	set mwan3.CS2_Normal.dscp_class='cs2'
-	set mwan3.icmp.use_policy='failover'
+	set mwan3.CS2_Normal.use_policy='failover'
 	reorder mwan3.CS2_Normal=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -55,11 +55,11 @@ fi
 
 if ! uci -q get mwan3.CS3_Signaling.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS3_Signaling='CS3_Signaling'
+	set mwan3.CS3_Signaling='rule'
 	set mwan3.CS3_Signaling.proto='all'
 	set mwan3.CS3_Signaling.sticky='0'
 	set mwan3.CS3_Signaling.dscp_class='cs3'
-	set mwan3.icmp.use_policy='xtun0_failover'
+	set mwan3.CS3_Signaling.use_policy='xtun0_failover'
 	reorder mwan3.CS3_Signaling=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -69,11 +69,11 @@ fi
 
 if ! uci -q get mwan3.CS4_Realtime.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS4_Realtime='CS4_Realtime'
+	set mwan3.CS4_Realtime='rule'
 	set mwan3.CS4_Realtime.proto='all'
 	set mwan3.CS4_Realtime.sticky='0'
 	set mwan3.CS4_Realtime.dscp_class='cs4'
-	set mwan3.icmp.use_policy='xtun0_failover'
+	set mwan3.CS4_Realtime.use_policy='xtun0_failover'
 	reorder mwan3.CS4_Realtime=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -83,11 +83,11 @@ fi
 
 if ! uci -q get mwan3.CS5_BroadcastVd.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS5_BroadcastVd='CS5_BroadcastVd'
+	set mwan3.CS5_BroadcastVd='rule'
 	set mwan3.CS5_BroadcastVd.proto='all'
 	set mwan3.CS5_BroadcastVd.sticky='0'
 	set mwan3.CS5_BroadcastVd.dscp_class='cs5'
-	set mwan3.icmp.use_policy='xtun0_failover'
+	set mwan3.CS5_BroadcastVd.use_policy='xtun0_failover'
 	reorder mwan3.CS5_BroadcastVd=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -97,11 +97,11 @@ fi
 
 if ! uci -q get mwan3.CS6_NetworkCtrl.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS6_NetworkCtrl='CS6_NetworkCtrl'
+	set mwan3.CS6_NetworkCtrl='rule'
 	set mwan3.CS6_NetworkCtrl.proto='all'
 	set mwan3.CS6_NetworkCtrl.sticky='0'
 	set mwan3.CS6_NetworkCtrl.dscp_class='cs6'
-	set mwan3.icmp.use_policy='xtun0_failover'
+	set mwan3.CS6_NetworkCtrl.use_policy='xtun0_failover'
 	reorder mwan3.CS6_NetworkCtrl=100
 	reorder mwan3.all=101
 	commit mwan3
@@ -111,11 +111,11 @@ fi
 
 if ! uci -q get mwan3.CS7_Reserved.use_policy &>/dev/null; then
   uci -q batch <<-EOF >/dev/null
-	set mwan3.CS7_Reserved='CS7_Reserved'
+	set mwan3.CS7_Reserved='rule'
 	set mwan3.CS7_Reserved.proto='all'
 	set mwan3.CS7_Reserved.sticky='0'
 	set mwan3.CS7_Reserved.dscp_class='cs7'
-	set mwan3.icmp.use_policy='xtun0_failover'
+	set mwan3.CS7_Reserved.use_policy='xtun0_failover'
 	reorder mwan3.CS7_Reserved=100
 	reorder mwan3.all=101
 	commit mwan3
