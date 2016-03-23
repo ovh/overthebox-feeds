@@ -376,9 +376,9 @@ mwan3_set_user_rules_iptables()
 			;;
 		udp)
 			if [ -n "$dscp_class" ]; then
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			else
 				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			else
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			fi
 			;;
 		*)
