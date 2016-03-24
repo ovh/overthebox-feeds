@@ -142,7 +142,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,225 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -193,6 +193,9 @@ index 0000000..2384ace
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 512: -m comment --comment "Heavy" -j MARK --set-mark 0x01${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 128:512 -m comment --comment "Interactive" --j MARK --set-mark 0x03${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 0:128 -m comment --comment "Acknowledge" -j MARK --set-mark 0x06${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} --tcp-flags ALL ACK -j MARK --set-mark 0x06${IPT_MASK_STRING}
++
++    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --save-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +
 +########################
 +
@@ -268,7 +271,7 @@ index 0000000..2384ace
 +
 +    # Redirect filtered packets to specific queues
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:3
-+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:4
++    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${TUN0_PORT} 0xffff  flowid 1:5
 +
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x07 ${IPT_MASK} flowid 1:2
 +    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x06 ${IPT_MASK} flowid 1:2
@@ -286,20 +289,34 @@ index 0000000..2384ace
 +    $TC qdisc add dev ${IFACE} handle ffff: ingress
 +
 +    $TC qdisc del dev ${DEV} root 2> /dev/null
-+    $TC qdisc add dev ${DEV} root handle 1: `get_stab_string` hfsc default 1
++    $TC qdisc add dev ${DEV} root handle 1: `get_stab_string` hfsc default 50
 +
 +    #Use a single queue for ingress.
 +    $TC class add dev ${DEV} parent 1: classid 1:1 hfsc sc rate ${DOWNLINK}kbit ul rate ${DOWNLINK}kbit
 +
-+    $TC qdisc add dev ${DEV} parent 1:1 handle 11: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++    $TC class add dev ${DEV} parent 1:1  classid 1:20 hfsc rt m1 ${DOWNLINK}kbit d 50ms m2 $((5*$DOWNLINK/10))kbit ls m1 ${DOWNLINK}kbit d 50ms m2 $((7*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++    $TC class add dev ${DEV} parent 1:1  classid 1:30 hfsc sc m1 ${DOWNLINK}kbit d 200ms m2 $((3*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++    $TC class add dev ${DEV} parent 1:1  classid 1:40 hfsc sc m1 0 d 1s m2 $((1*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++    $TC class add dev ${DEV} parent 1:1  classid 1:50 hfsc sc m1 0 d 2s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
++    $TC class add dev ${DEV} parent 1:1  classid 1:60 hfsc sc m1 0 d 10s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
 +
-+    $TC filter add dev ${DEV} parent 11: handle 11 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++    $TC qdisc add dev ${DEV} parent 1:20 handle 20: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++    $TC qdisc add dev ${DEV} parent 1:30 handle 30: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++    $TC qdisc add dev ${DEV} parent 1:40 handle 40: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++    $TC qdisc add dev ${DEV} parent 1:50 handle 50: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++    $TC qdisc add dev ${DEV} parent 1:60 handle 60: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
 +
++    $TC filter add dev ${DEV} parent 20: handle 20 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++    $TC filter add dev ${DEV} parent 30: handle 30 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++    $TC filter add dev ${DEV} parent 40: handle 40 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++    $TC filter add dev ${DEV} parent 50: handle 50 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++    $TC filter add dev ${DEV} parent 60: handle 60 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
 +
 +    $IP link set dev ${DEV} up
++    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action connmark action mirred egress redirect dev ${DEV} 
 +
-+    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action mirred egress redirect dev ${DEV}
-+
++    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${XTUN0_PORT} 0xffff  flowid 1:20
++    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${SOCKS_PORT} 0xffff  flowid 1:60
 +}
 +
 +sqm_start() {

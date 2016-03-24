@@ -29,6 +29,7 @@ mwan3_set_general_iptables()
 	if [ "$($IPT -S mwan3_hook 2> /dev/null|wc -l)" -lt "2" ]; then
 		$IPT -N mwan3_hook
 		$IPT -A mwan3_hook -j CONNMARK --restore-mark --nfmask 0xff00 --ctmask 0xff00
+		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j DSCP
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_ifaces
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_connected
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_track
