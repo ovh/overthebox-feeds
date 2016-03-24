@@ -182,6 +182,7 @@ index 0000000..2384ace
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 --tcp-flags ALL ACK -j MARK --set-mark 0x06${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1 -m comment --comment "Scavenger" -j MARK --set-mark 0x01${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs2 -m comment --comment "Normal" -j MARK --set-mark 0x02${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3 -m comment --comment "Signaling" -j MARK --set-mark 0x03${IPT_MASK_STRING}
@@ -192,8 +193,7 @@ index 0000000..2384ace
 +
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 512: -m comment --comment "Heavy" -j MARK --set-mark 0x01${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 128:512 -m comment --comment "Interactive" --j MARK --set-mark 0x03${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m length --length 0:128 -m comment --comment "Acknowledge" -j MARK --set-mark 0x06${IPT_MASK_STRING}
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} --tcp-flags ALL ACK -j MARK --set-mark 0x06${IPT_MASK_STRING}
++    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 0:128 -m comment --comment "Acknowledge" -j MARK --set-mark 0x06${IPT_MASK_STRING}
 +
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --save-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +

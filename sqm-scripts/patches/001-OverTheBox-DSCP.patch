@@ -7,7 +7,7 @@ index 97171a6..2fe7d9a 100644
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
 +    # Clear DSCP rules
-+    $IPT -F DSCP
++    $IPT -F dscp
      exit 0
  fi
  
@@ -26,27 +26,27 @@ index 97171a6..2fe7d9a 100644
 +
 +	case $proto in
 +		tcp)
-+			$IPT -D DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			;;
 +		udp)
-+			$IPT -D DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			;;
 +		*)
 +
-+			$IPT -D DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A DSCP -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			;;
 +	esac
 +}
 +# Clear DSCP rules before recreate
-+$IPT -F DSCP 2>/dev/null
-+$IPT -N DSCP 2>/dev/null
++$IPT -F dscp 2>/dev/null
++$IPT -N dscp 2>/dev/null
 +config_load dscp
 +config_foreach genrateDscp classify
-+$IPT -D PREROUTING -j DSCP 2>/dev/null
-+$IPT -A PREROUTING -j DSCP
++$IPT -D PREROUTING -j dscp 2>/dev/null
++$IPT -A PREROUTING -j dscp
 +
  config_load sqm
  
