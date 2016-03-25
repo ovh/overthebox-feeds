@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.2
-PKG_RELEASE:=15
+PKG_RELEASE:=16
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -31,6 +31,7 @@ endef
 define Package/overthebox/conffiles
 /etc/config/overthebox
 /etc/config/network
+/etc/config/dscp
 endef
 
 define Build/Prepare
@@ -54,6 +55,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/crontab.defaults $(1)/etc/uci-defaults/otb-crontab.defaults
 	$(INSTALL_BIN) ./defaults/download_recovery.defaults $(1)/etc/uci-defaults/otb-recovery.defaults
 	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults/mwan3.defaults
+	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults/dscp.defaults
 endef
 
 define Package/overthebox/postinst
@@ -67,6 +69,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-recovery.defaults ) 
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
+	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 
 	sysctl -p /etc/sysctl.d/default.conf
 

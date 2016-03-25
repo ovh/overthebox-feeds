@@ -82,6 +82,12 @@ dest_port = mwan_rule:option(DummyValue, "dest_port", translate("Destination por
 		return self.map:get(s, "dest_port") or "&#8212;"
 	end
 
+dscp_class = mwan_rule:option(DummyValue, "dscp_class", translate("DSCP"))
+	dscp_class.rawhtml = true
+	function dscp_class.cfgvalue(self, s)
+		return self.map:get(s, "dscp_class") or "&#8212;"
+	end
+
 proto = mwan_rule:option(DummyValue, "proto", translate("Protocol"))
 	proto.rawhtml = true
 	function proto.cfgvalue(self, s)
