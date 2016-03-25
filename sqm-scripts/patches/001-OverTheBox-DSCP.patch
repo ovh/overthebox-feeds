@@ -2,7 +2,7 @@ diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
 index 97171a6..2fe7d9a 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -23,9 +23,48 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -23,9 +23,53 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
          # $SCRIPT variables saved in there.
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
@@ -26,17 +26,22 @@ index 97171a6..2fe7d9a 100644
 +
 +	case $proto in
 +		tcp)
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
 +			;;
 +		udp)
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
 +			;;
 +		*)
-+
++			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN
 +			;;
 +	esac
 +}
