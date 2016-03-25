@@ -58,7 +58,7 @@ t:value("cs4", translate("CS4 - Realtime"))
 t:value("cs5", translate("CS5 - Broadcast video"))
 t:value("cs6", translate("CS6 - Network control"))
 --t:value("cs7", translate("Reserved"))
-t.default = "OAM"
+t.default = "cs2"
 
 comment = s:option(Value, "comment", translate("Comment"))
 --bytes = s:option(Value, "connbytes", translate("Number of bytes"))
