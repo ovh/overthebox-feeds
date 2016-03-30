@@ -12,7 +12,7 @@ mwan3_set_general_iptables()
 		$IPT -N mwan3_ifaces
 	fi
 
-	if ! $IPT -S mwan3_connected &> /dev/null; then
+	if [ "$($IPT -S mwan3_connected 2> /dev/null|wc -l)" -lt "2" ]; then
 		$IPT -N mwan3_connected
 		$IPS create mwan3_connected hash:net
 		$IPT -A mwan3_connected -m set --match-set mwan3_connected dst -j MARK --set-xmark 0xff00/0xff00
