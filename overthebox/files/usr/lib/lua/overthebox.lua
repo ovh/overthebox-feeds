@@ -322,6 +322,8 @@ function config()
 			function (e)
 				uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
 				uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+				uci:set('system', e[".name"], 'log_proto', res.log_conf.protocol )
+				uci:set('system', e[".name"], 'log_prefix', res.log_conf.key )
 			end
 		)
 
@@ -1104,6 +1106,7 @@ function update_confmwan()
 				uci:set_list("mwan3", name, "use_member", my_members)
 				if list_qos[1][i] == "xtun0" then
 					uci:set("mwan3", "voip", "use_policy", name)
+					uci:set("mwan3", "icmp", "use_policy", name)
 				end
 			end
 		end
@@ -1362,6 +1365,39 @@ function iface_info(iface)
 	return result
 end
 
+function tc_stats()
+	local output = {}
+	for line in string.gmatch((sys.exec("tc -s q")), '[^\r\n]+') do
+		table.insert(output, line)
+	end
+
+
+	local result = {}
+	local curdev;
+	local curq;
+	for i=1, #output do
+		if string.byte(output[i]) ~= string.byte(' ') then
+			curdev = nil
+			curq = nil
+		end
+		if string.match(output[i], "dev ([^%s]+)") then
+			curdev = string.match(output[i], "dev ([^%s]+)")
+		end
+		if string.match(output[i], "sfq (%d+)") then
+			curq = string.match(output[i], "sfq (%d+)")
+		end
+		if curdev and curq then
+			for bytes, pkt, dropped, overlimits, reque in string.gmatch(output[i], "Sent (%d+) bytes (%d+) pkt %(dropped (%d+), overlimits (%d+) requeues (%d+)") do
+				-- print("["..curdev..", "..curq..", "..bytes.. ", "..pkt..", "..dropped..", "..overlimits..", ".. reque .. "]")
+				if result[curq] == nil then
+					result[curq] = {}
+				end
+				result[curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
+			end
+		end
+	end
+	return result
+end
 
 -- Debug utils
 function log(msg)

@@ -13,4 +13,16 @@ if ! uci -q get mwan3.voip.use_policy &>/dev/null; then
 EOF
 fi
 
+if ! uci -q get mwan3.icmp.use_policy &>/dev/null; then
+  uci -q batch <<-EOF >/dev/null
+        set mwan3.icmp='icmp'
+        set mwan3.icmp.proto='icmp'
+        set mwan3.icmp.sticky='0'
+        set mwan3.icmp.use_policy='failover'
+        reorder mwan3.icmp=0
+        commit mwan3
+        delete mwan3.netconfchecksum
+EOF
+fi
+
 exit 0
