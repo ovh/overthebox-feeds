@@ -151,7 +151,7 @@ index 3e2bc1b..b027389 100644
 +            ERROR("setsockopt IP_TOS");
 +        }
 +    }
-+
++   /*
 +    // Logging (client address and original destination)
 +    char ip[2][NI_MAXHOST];
 +    char port[2][NI_MAXSERV];
@@ -172,7 +172,7 @@ index 3e2bc1b..b027389 100644
 +        else {
 +            LOGI("accept client %s:%s (-> %s:%s)", ip[0], port[0], ip[1], port[1]);
 +        }
-+    }
++    } */
 +
      server_t *server = new_server(serverfd, listener->method);
      remote_t *remote = new_remote(remotefd, listener->timeout);
