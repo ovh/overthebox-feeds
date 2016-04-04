@@ -24,6 +24,18 @@ then
         mv $TMP $FILE
 fi
 
+
+CMD="/usr/bin/overthebox_emergency_action"
+if [ "$(grep "$CMD" $FILE -c )" != "1" ]
+then
+        TMP=$(mktemp)
+        # cleanup
+        grep -v "$CMD" $FILE > $TMP
+        # fix
+        echo '00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null' >>$TMP
+        mv $TMP $FILE
+fi
+
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
 
