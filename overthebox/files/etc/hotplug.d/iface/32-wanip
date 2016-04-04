@@ -6,8 +6,20 @@ WANIP=$(curl --connect-timeout 1 ifconfig.ovh 2>/dev/null)
 if [ $? -eq  0 ]; then
 	if /usr/bin/owipcalc "$WANIP" quiet 2>/dev/null; then
 		echo -n "$WANIP" > /tmp/wanip
-		# Update dns wanip record
 #		. /lib/functions.sh
+                # Update upnp wanip record
+                if test -e /etc/init.d/miniupnpd && /etc/init.d/miniupnpd enabled ; then
+		  config_load upnp
+		  local extip=$(uci get upnpd.config.external_ip)
+		  if [ "$WANIP" != "$extip" ]; then
+		    uci set upnpd.config.external_ip=$WANIP
+		    uci set upnpd.config.external_iface=tun0
+		    uci set upnpd.config.presentation_url="https://overthebox.ovh"
+		    uci commit upnpd
+		    /etc/init.d/miniupnpd restart
+		  fi
+		fi 
+                # Update dns wanip record
 #		config_load dhcp
 #		getrecord() {
 #		        config_get names $1 name

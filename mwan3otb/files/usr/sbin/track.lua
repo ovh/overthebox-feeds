@@ -215,12 +215,22 @@ function get_public_ip(interface)
 	if fd then
 		p.send(fd, "GET / HTTP/1.0\r\nHost: ifconfig.ovh\r\n\r\n")
 		local data = {}
-		while true do
-			local b = p.recv (fd, 1024)
-			if not b or #b == 0 then
+		local cnt=3
+		while cnt > 0  do
+			local b,str,err= p.recv (fd, 1024)
+			if not b then
+			  if err == 11 then
+			    cnt=cnt-1
+			  else
+			    debug("get_public_ip:"..str)
+			    break
+			  end
+			else
+			  if #b == 0 then
 				break
+			  end
+			  table.insert (data, b)
 			end
-			table.insert (data, b)
 		end
 		p.close(fd)
 		data = table.concat(data)
@@ -248,12 +258,22 @@ function whois(interface, ip)
 	if fd then
 		p.send(fd, ip .. "\n")
 		local data = {}
-		while true do
-			local b = p.recv (fd, 1024)
-			if not b or #b == 0 then
+		local cnt=3
+		while cnt>0 do
+			local b,str,err = p.recv (fd, 1024)
+			if not b then
+			  if err == 11 then
+			    cnt = cnt - 1
+			  else
+			    debug("whois:"..str)
+			    break
+			  end
+			else
+			  if #b == 0 then
 				break
+			  end
+			  table.insert (data, b)
 			end
-			table.insert (data, b)
 		end
 		p.close(fd)
 		data = table.concat(data)
@@ -277,12 +297,21 @@ function whois(interface, ip)
 			if fd then
 				p.send(fd, ip .. "\n")
 				local data = {}
-				while true do
-					local b = p.recv (fd, 1024)
-					if not b or #b == 0 then
+				cnt=3
+				while cnt>0 do
+					local b,str,err = p.recv (fd, 1024)
+					if not b then
+					  if err == 11 then
+					    cnt=cnt-1
+					  else
+					    debug("whois:"..str)
+					  end
+					else
+					  if #b == 0 then
 						break
+					  end
+					  table.insert (data, b)
 					end
-					table.insert (data, b)
 				end
 				p.close(fd)
 				data = table.concat(data)
@@ -469,7 +498,12 @@ pingstats.wanaddr	= get_public_ip(opts["i"])
 if pingstats.wanaddr then
 	pingstats.whois		= whois(opts["i"], pingstats.wanaddr)
 else
-	pingstats.whois	= false
+	pingstats.wanaddr       = get_public_ip(opts["i"])
+	if pingstats.wanaddr then
+	        pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
+	else
+		pingstats.whois	= false
+	end
 end
 
 function pingstats:push(value)

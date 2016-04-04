@@ -779,9 +779,51 @@ function update_confmwan()
 	-- Start main code
 	local results={}
 	-- clear up mwan config
-	uci:delete_all("mwan3","policy")
-	uci:delete_all("mwan3","member")
-	uci:delete_all("mwan3","interface")
+
+	uci:foreach("mwan3", "interface",
+	  function (section)
+	    if uci:get("network",section[".name"]) == nil then
+	        uci:delete("mwan3", section[".name"])
+	    end
+	  end
+	)
+
+	uci:foreach("mwan3", "member",
+	  function (section)
+	    local interface
+	    interface=uci:get("mwan3",section[".name"],"interface")
+	    if interface ~= nil then
+	      if uci:get("mwan3",interface) == nil then
+	        uci:delete("mwan3", section[".name"])
+	      end
+	    else
+	      uci:delete("mwan3", section[".name"])
+	    end
+	  end
+	)
+
+	uci:foreach("mwan3", "policy",
+	  function (section)
+	    local list
+	    local nlist={}
+	    local i
+	    list = uci:get_list("mwan3",section[".name"], "use_member")
+	    for i=1,#list do
+	      if uci:get("mwan3",list[i]) ~= nil then
+	        table.insert(nlist,list[i])
+	      end
+	    end
+	    if #nlist == 0 then
+	      uci:delete("mwan3", section[".name"])
+
+	    else
+	      if #list ~= #nlist then
+	        uci:set_list("mwan3", section[".name"], "use_member", nlist)
+	      end
+	    end
+	  end
+	)
+
 	uci:foreach("mwan3", "rule",
 		function (section)
 			if string.match(section[".name"], "^dns_") then
@@ -819,13 +861,15 @@ function update_confmwan()
 					if next(tracking_servers) then
 						uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
 					end
-					uci:set("mwan3", section[".name"], "track_method","dns")
-					uci:set("mwan3", section[".name"], "reliability", "1")
-					uci:set("mwan3", section[".name"], "count", "1")
-					uci:set("mwan3", section[".name"], "timeout", "2")
-					uci:set("mwan3", section[".name"], "interval", "5")
-					uci:set("mwan3", section[".name"], "down", "3")
-					uci:set("mwan3", section[".name"], "up", "3")
+					if uci:get("mwan3", section[".name"], "track_method") == nil then
+					  uci:set("mwan3", section[".name"], "track_method","dns")
+					  uci:set("mwan3", section[".name"], "reliability", "1")
+					  uci:set("mwan3", section[".name"], "count", "1")
+					  uci:set("mwan3", section[".name"], "timeout", "2")
+					  uci:set("mwan3", section[".name"], "interval", "5")
+					  uci:set("mwan3", section[".name"], "down", "3")
+					  uci:set("mwan3", section[".name"], "up", "3")
+					end
 					if section["dns"] then
 						local seen = {}
 						for dns in string.gmatch(section["dns"], "%S+") do
