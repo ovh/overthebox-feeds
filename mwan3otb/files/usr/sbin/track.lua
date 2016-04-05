@@ -17,6 +17,10 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with OverTheBox.  If not, see <http://www.gnu.org/licenses/>
+--
+--	Contributor : Jean Labrousse <jlabrous@github.com>
+--
+
 
 local p   = require 'posix'
 local sig = require "posix.signal"
@@ -199,14 +203,14 @@ function get_public_ip(interface)
 	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 	if not fd then return fd, err end
 	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-        -- timeout on socket
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-        if not ok then return ok, err end
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-        if not ok then return ok, err end
-        -- bind to specific device
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-        if not ok then return ok, err end
+	-- timeout on socket
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
+	if not ok then return ok, err end
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
+	if not ok then return ok, err end
+	-- bind to specific device
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+	if not ok then return ok, err end
 	-- Get host address
 	local r, err = p.getaddrinfo('ifconfig.ovh', '80', { family = p.AF_INET, socktype = p.SOCK_STREAM })
 	if not r then return false, err end
@@ -215,12 +219,22 @@ function get_public_ip(interface)
 	if fd then
 		p.send(fd, "GET / HTTP/1.0\r\nHost: ifconfig.ovh\r\n\r\n")
 		local data = {}
-		while true do
-			local b = p.recv (fd, 1024)
-			if not b or #b == 0 then
-				break
+		local cnt=3
+		while cnt > 0  do
+			local b,str,err= p.recv (fd, 1024)
+			if not b then
+				if err == 11 then
+					cnt=cnt-1
+				else
+					debug("get_public_ip:"..str)
+					break
+				end
+			else
+				if #b == 0 then
+					break
+				end
+				table.insert (data, b)
 			end
-			table.insert (data, b)
 		end
 		p.close(fd)
 		data = table.concat(data)
@@ -232,14 +246,14 @@ function whois(interface, ip)
 	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 	if not fd then return fd, err end
 	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-        -- timeout on socket
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-        if not ok then return ok, err end
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-        if not ok then return ok, err end
-        -- bind to specific device
-        local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-        if not ok then return ok, err end
+	-- timeout on socket
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
+	if not ok then return ok, err end
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
+	if not ok then return ok, err end
+	-- bind to specific device
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+	if not ok then return ok, err end
 	-- Get host address
 	local r, err = p.getaddrinfo('whois.iana.org', '43', { family = p.AF_INET, socktype = p.SOCK_STREAM })
 	if not r then return false, err end
@@ -248,12 +262,22 @@ function whois(interface, ip)
 	if fd then
 		p.send(fd, ip .. "\n")
 		local data = {}
-		while true do
-			local b = p.recv (fd, 1024)
-			if not b or #b == 0 then
-				break
+		local cnt=3
+		while cnt>0 do
+			local b,str,err = p.recv (fd, 1024)
+			if not b then
+				if err == 11 then
+					cnt = cnt - 1
+				else
+					debug("whois:"..str)
+					break
+				end
+			else
+				if #b == 0 then
+					break
+				end
+				table.insert (data, b)
 			end
-			table.insert (data, b)
 		end
 		p.close(fd)
 		data = table.concat(data)
@@ -277,12 +301,21 @@ function whois(interface, ip)
 			if fd then
 				p.send(fd, ip .. "\n")
 				local data = {}
-				while true do
-					local b = p.recv (fd, 1024)
-					if not b or #b == 0 then
-						break
+				cnt=3
+				while cnt>0 do
+					local b,str,err = p.recv (fd, 1024)
+					if not b then
+						if err == 11 then
+							cnt=cnt-1
+						else
+							debug("whois:"..str)
+						end
+					else
+						if #b == 0 then
+							break
+						end
+						table.insert (data, b)
 					end
-					table.insert (data, b)
 				end
 				p.close(fd)
 				data = table.concat(data)
@@ -307,7 +340,7 @@ function log(str)
 	p.syslog( p.LOG_NOTICE, opts["i"] .. '.' .. str)
 end
 function debug(str)
-        p.syslog( p.LOG_DEBUG, opts["i"] .. '.' .. str)
+	p.syslog( p.LOG_DEBUG, opts["i"] .. '.' .. str)
 end
 
 function hex_dump(buf)
@@ -469,7 +502,12 @@ pingstats.wanaddr	= get_public_ip(opts["i"])
 if pingstats.wanaddr then
 	pingstats.whois		= whois(opts["i"], pingstats.wanaddr)
 else
-	pingstats.whois	= false
+	pingstats.wanaddr       = get_public_ip(opts["i"])
+	if pingstats.wanaddr then
+	        pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
+	else
+		pingstats.whois	= false
+	end
 end
 
 function pingstats:push(value)

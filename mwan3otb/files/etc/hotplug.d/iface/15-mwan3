@@ -12,7 +12,7 @@ mwan3_set_general_iptables()
 		$IPT -N mwan3_ifaces
 	fi
 
-	if ! $IPT -S mwan3_connected &> /dev/null; then
+	if [ "$($IPT -S mwan3_connected 2> /dev/null|wc -l)" -lt "2" ]; then
 		$IPT -N mwan3_connected
 		$IPS create mwan3_connected hash:net
 		$IPT -A mwan3_connected -m set --match-set mwan3_connected dst -j MARK --set-xmark 0xff00/0xff00
@@ -26,9 +26,14 @@ mwan3_set_general_iptables()
 		$IPT -N mwan3_rules
 	fi
 
+	if ! $IPT -S dscp &> /dev/null; then
+		$IPT -N dscp
+	fi
+
 	if [ "$($IPT -S mwan3_hook 2> /dev/null|wc -l)" -lt "2" ]; then
 		$IPT -N mwan3_hook
 		$IPT -A mwan3_hook -j CONNMARK --restore-mark --nfmask 0xff00 --ctmask 0xff00
+		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j dscp
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_ifaces
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_connected
 		$IPT -A mwan3_hook -m mark --mark 0x0/0xff00 -j mwan3_track
@@ -301,7 +306,7 @@ mwan3_set_sticky_iptables()
 
 mwan3_set_user_rules_iptables()
 {
-	local ipset proto src_ip src_port sticky dest_ip dest_port use_policy rule timeout
+	local ipset proto src_ip src_port sticky dest_ip dest_port dscp_class use_policy rule timeout 
 
 	config_get sticky $1 sticky 0
 	config_get timeout $1 timeout 600
@@ -311,6 +316,7 @@ mwan3_set_user_rules_iptables()
 	config_get src_port $1 src_port 0:65535
 	config_get dest_ip $1 dest_ip 0.0.0.0/0
 	config_get dest_port $1 dest_port 0:65535
+	config_get dscp_class $1 dscp_class
 	config_get use_policy $1 use_policy
 
 	rule="$1"
@@ -357,19 +363,35 @@ mwan3_set_user_rules_iptables()
 
 		case $proto in
 		tcp)
-			$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
-			$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+			if [ -n "$dscp_class" ]; then
+				$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+				$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+			else
+				$IPTN -D SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+				$IPTN -A SOCKS -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j RETURN &> /dev/null
+			fi
+			# Keep redirect rules at the end in the same order
+			iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | awk '{ print "/usr/sbin/iptables -t nat -w -A "$0"; /usr/sbin/iptables -t nat -w -D "$0 }' | sh
 
-			$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-			$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $(uci get shadowsocks.proxy.lport) &> /dev/null
-
-			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			if [ -n "$dscp_class" ]; then
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			else
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			fi
 			;;
 		udp)
-			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			if [ -n "$dscp_class" ]; then
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			else
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			fi
 			;;
 		*)
-			$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			if [ -n "$dscp_class" ]; then
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			else
+				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			fi
 			;;
 		esac
 	fi
