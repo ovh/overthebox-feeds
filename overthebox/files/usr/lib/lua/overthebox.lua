@@ -370,8 +370,8 @@ function send_properties( props )
 	if props.packages then
 		body.packages = {}
 		for i, pkg in pairs(props.packages) do
-			local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
-			ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
+			local ret, rcode = run("opkg status ".. pkg .. " |grep Version: ")
+			ret = string.gsub(chomp(ret), "Version: ", "" ) -- remove Version: prefix
 			table.insert( body.packages, {name=pkg, version=ret})
 		end
 	end
@@ -409,7 +409,8 @@ function checkReadOnly()
 end
 
 function get_ip_public(interface)
-	return run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ):match("(%d+%.%d+%.%d+%.%d+)")
+	local ret, _ = run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" )
+	return ret:match("(%d+%.%d+%.%d+%.%d+)")
 end
 
 function check_release_channel(rc)
@@ -467,10 +468,12 @@ function create_ssh_key()
 	local public_key = private_key..".pub"
 
 	if not file_exists( private_key ) then
-		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+		local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+		if not status_code_ok(rcode) then return false, "error create key" end
 	end
 	if not file_exists( public_key ) then
-		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+		local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+		if not status_code_ok(rcode) then return false, "error dump key" end
 	end
 
 	key=""
@@ -503,7 +506,8 @@ function remoteAccessConnect(args)
 	uci:save("overthebox")
 	uci:commit("overthebox")
 
-	local ret = run("/etc/init.d/otb-remote restart")
+	local ret, rcode = run("/etc/init.d/otb-remote restart")
+	if not status_code_ok(rcode) then return false, "error on restart otb-remote daemon" end
 	return true, "ok"
 end
 
@@ -519,7 +523,8 @@ function remoteAccessDisconnect(args)
 	uci:commit("overthebox")
 	uci:save("overthebox")
 
-	local ret = run("/etc/init.d/otb-remote stop")
+	local ret, rcode = run("/etc/init.d/otb-remote stop")
+	if not status_code_ok(rcode) then return false, "error on stop otb-remote daemon" end
 	return true, "ok"
 end
 
@@ -534,37 +539,40 @@ end
 
 -- exec command local
 function restart(service)
-	local ret = run("/etc/init.d/"..service.." restart")
-	return true, ret
+	local ret, rcode = run("/etc/init.d/"..service.." restart")
+	return status_code_ok(rcode), ret
 end
 function restartmwan3()
-	local ret = os.execute("/usr/sbin/mwan3 restart")
-	return true, ret
+	local ret, rcode = run("/usr/sbin/mwan3 restart")
+	return status_code_ok(rcode), ret
 end
 
 
 function opkg_update()
-	local ret = run("opkg update 2>&1")
-	return true, ret
+	local ret, rcode = run("opkg update 2>&1")
+	return status_code_ok(rcode), ret
 end
 
 function opkg_upgradable()
-	local ret = run("opkg list-upgradable")
-	return true, ret
+	local ret, rcode = run("opkg list-upgradable")
+	return status_code_ok(rcode), ret
 end
 function opkg_install(package)
-	local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
-	return true, ret
+	local ret, rcode = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
+	return status_code_ok(rcode), ret
 end
 function opkg_remove(package)
-	local ret = run("opkg remove "..package )
-	return true, ret
+	local ret, rcode = run("opkg remove "..package )
+	return status_code_ok(rcode), ret
 end
 
 
 -- all our packages, and the minimum version needed.
 local pkgs = { 
-    overthebox='0.2-14',
+    overthebox='0.2-16',
+    lua='5.1.5-3',
+    liblua='5.1.5-3',
+    luac='5.1.5-3',
     ["luci-base"]='git-16.067.54393-f931ee9-1',
     ["luci-mod-admin-full"]='git-16.067.54393-f931ee9-1',
     ["luci-app-overthebox"]='git-16.067.54393-f931ee9-1',
@@ -597,7 +605,7 @@ function upgrade()
     opkg_install("overthebox")
 
     -- let's check others
-    local listpkginstalled, _, _ = run("opkg list-installed")
+    local listpkginstalled, _ = run("opkg list-installed")
     local ret = ""
     local retcode = true
 
@@ -624,13 +632,14 @@ function upgrade()
     return retcode, ret
 end
 
+
 function sysupgrade()
-	local ret = run("overthebox_last_upgrade -f")
-	return true, ret
+	local ret, rcode = run("overthebox_last_upgrade -f")
+	return status_code_ok(rcode), ret
 end
 function reboot()
-	local ret = run("reboot")
-	return true, ret
+	local ret, rcode = run("reboot")
+	return status_code_ok(rcode), ret
 end
 
 
@@ -1376,8 +1385,8 @@ function test_if_running(cmdline)
 end
 
 function restart_daemon()
-    local ret = run("/etc/init.d/overtheboxd restart")
-    return true, ret 
+	local ret, rcode = run("/etc/init.d/overtheboxd restart")
+	return status_code_ok(rcode), ret 
 end
 
 --
@@ -1500,10 +1509,16 @@ end
 -- function run execute a program
 -- return stdout and status code
 function run(command)
-        local handle = io.popen(command)
-        local result = handle:read("*a")
-        local rc = {handle:close()}
-        return result, rc[3]
+	local handle = io.popen(command)
+	local result = handle:read("*a")
+	local rc = {handle:close()}
+	return result, rc[4]
+end
+
+-- function status_code_ok test a status code returned by the function run
+-- return true if status code is OK, else if not
+function status_code_ok(rcode)
+	return rcode ~= nil and rcode == 0
 end
 
 function iface_info(iface)
