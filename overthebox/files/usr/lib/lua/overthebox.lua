@@ -984,9 +984,11 @@ function update_confmwan()
 			table.insert(list_interf[metric], interf[".name"])
 			--- Creating mwan3 member
 			uci:set("mwan3", name, "member")
-			uci:set("mwan3", name, "interface", interf[".name"])
-			uci:set("mwan3", name, "metric", metric)
-			uci:set("mwan3", name, "weight", 1)
+			if uci:get("mwan3", name, "edited") ~= "1" then
+				uci:set("mwan3", name, "interface", interf[".name"])
+				uci:set("mwan3", name, "metric", metric)
+				uci:set("mwan3", name, "weight", 1)
+			end
 			uci:set("mwan3", name, "generated", 1)
 		end
 	end
