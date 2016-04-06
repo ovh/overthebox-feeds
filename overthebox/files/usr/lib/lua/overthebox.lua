@@ -1105,7 +1105,6 @@ function update_confmwan()
 		uci:set("mwan3", "all", "rule") 
 		uci:set("mwan3", "all", "proto", "all")
 		uci:set("mwan3", "all", "sticky", "0")
-		uci:set("mwan3", "all", "generated", "1")
 	end
 	if uci:get("mwan3", "all", "edited") ~= "1" then
 		uci:set("mwan3", "all", "use_policy", "tun0_only")
@@ -1134,19 +1133,86 @@ function update_confmwan()
 		if uci:get("mwan3", "failover", "edited") ~= "1" then
 			uci:set_list("mwan3", "failover", "use_member", my_members)
 		end
+		uci:set("mwan3", "failover", "generated", "1")
 		-- Update "all" policy
+		uci:set("mwan3", "all", "rule")
+		uci:set("mwan3", "all", "proto", "all")
 		if uci:get("mwan3", "all", "edited") ~= "1" then
 			uci:set("mwan3", "all", "use_policy", "failover")
 		end
-		-- Update DSCPs policies
+		uci:set("mwan3", "all", "generated", "1")
+		-- Create icmp policies
+		uci:set("mwan3", "icmp", "rule")
+		uci:set("mwan3", "icmp", "proto", "icmp")
+		if uci:get("mwan3", "icmp", "edited") ~= "1" then
+			uci:set("mwan3", "icmp", "use_policy", "failover")
+		end
+		uci:set("mwan3", "icmp", "generated", "1")
+		-- Create voip policies
+		uci:set("mwan3", "voip", "rule")
+		if uci:get("mwan3", "voip", "edited") ~= "1" then
+			uci:set("mwan3", "voip", "proto", "udp")
+			-- uci:set("mwan3", "voip", "dest_ip", '91.121.128.0/23')
+			uci:set("mwan3", "voip", "use_policy", "failover")
+		end
+		uci:set("mwan3", "voip", "generated", "1")
+		-- Create DSCPs policies
+		-- cs1
+		uci:set("mwan3", "CS1_Scavenger", "rule")
+		uci:set("mwan3", "CS1_Scavenger", "proto", "all")
+		uci:set("mwan3", "CS1_Scavenger", "dscp_class", "cs1")
 		if uci:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
 			uci:set("mwan3", "CS1_Scavenger", "use_policy", "failover")
-			uci:set("mwan3", "CS1_Scavenger", "generated", "1")
 		end
+		uci:set("mwan3", "CS1_Scavenger", "generated", "1")
+		-- cs2
+		uci:set("mwan3", "CS2_Normal", "rule")
+		uci:set("mwan3", "CS2_Normal", "proto", "all")
+		uci:set("mwan3", "CS2_Normal", "dscp_class", "cs2")
 		if uci:get("mwan3", "CS2_Normal", "edited") ~= "1" then
 			uci:set("mwan3", "CS2_Normal", "use_policy", "failover")
-			uci:set("mwan3", "CS2_Normal", "generated", "1")
 		end
+		uci:set("mwan3", "CS2_Normal", "generated", "1")
+		-- cs3
+		uci:set("mwan3", "CS3_Signaling", "rule")
+		uci:set("mwan3", "CS3_Signaling", "proto", "all")
+		uci:set("mwan3", "CS3_Signaling", "dscp_class", "cs3")
+		if uci:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
+			uci:set("mwan3", "CS3_Signaling", "use_policy", "failover")
+		end
+		uci:set("mwan3", "CS3_Signaling", "generated", "1")
+		-- cs4
+		uci:set("mwan3", "CS4_Realtime", "rule")
+		uci:set("mwan3", "CS4_Realtime", "proto", "all")
+		uci:set("mwan3", "CS4_Realtime", "dscp_class", "cs4")
+		if uci:get("mwan3", "CS4_Realtime", "edited") ~= "1" then
+			uci:set("mwan3", "CS4_Realtime", "use_policy", "failover")
+		end
+		uci:set("mwan3", "CS4_Realtime", "generated", "1")
+		-- cs5
+		uci:set("mwan3", "CS5_BroadcastVd", "rule")
+		uci:set("mwan3", "CS5_BroadcastVd", "proto", "all")
+		uci:set("mwan3", "CS5_BroadcastVd", "dscp_class", "cs5")
+		if uci:get("mwan3", "CS5_BroadcastVd", "edited") ~= "1" then
+			uci:set("mwan3", "CS5_BroadcastVd", "use_policy", "failover")
+		end
+		uci:set("mwan3", "CS5_BroadcastVd", "generated", "1")
+		-- cs6
+		uci:set("mwan3", "CS6_NetworkCtrl", "rule")
+		uci:set("mwan3", "CS6_NetworkCtrl", "proto", "all")
+		uci:set("mwan3", "CS6_NetworkCtrl", "dscp_class", "cs6")
+		if uci:get("mwan3", "CS6_NetworkCtrl", "edited") ~= "1" then
+			uci:set("mwan3", "CS6_NetworkCtrl", "use_policy", "failover")
+		end
+		uci:set("mwan3", "CS6_NetworkCtrl", "generated", "1")
+		-- cs7
+		uci:set("mwan3", "CS7_Reserved", "rule")
+		uci:set("mwan3", "CS7_Reserved", "proto", "all")
+		uci:set("mwan3", "CS7_Reserved", "dscp_class", "cs7")
+		if uci:get("mwan3", "CS7_Reserved", "edited") ~= "1" then
+			uci:set("mwan3", "CS7_Reserved", "use_policy", "failover")
+		end
+		uci:set("mwan3", "CS7_Reserved", "generated", "1")
 		-- Generate qos failover policy
 		if #members_qos and members_qos[1] then
 			for i=1,#members_qos[1] do
@@ -1160,11 +1226,16 @@ function update_confmwan()
 				if uci:get("mwan3", name, "edited") ~= "1" then
 					uci:set_list("mwan3", name, "use_member", my_members)
 				end
+				uci:set("mwan3", name, "generated", "1")
 				--
 				if list_qos[1][i] == "xtun0" then
 					-- Update voip and icmp policies
-					uci:set("mwan3", "voip", "use_policy", name)
-					uci:set("mwan3", "icmp", "use_policy", name)
+					if uci:get("mwan3", "voip", "edited") ~= "1" then
+						uci:set("mwan3", "voip", "use_policy", name)
+					end
+					if uci:get("mwan3", "icmp", "edited") ~= "1" then
+						uci:set("mwan3", "icmp", "use_policy", name)
+					end
 					-- Update DSCPs policies
 					if uci:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
 						uci:set("mwan3", "CS3_Signaling", "use_policy", name)
@@ -1190,8 +1261,7 @@ function update_confmwan()
 			end
 		end
 	end
-
-	-- Generate DNS policy
+	-- Generate DNS policy at top
 	local count = 0
 	for dns, interfaces in pairs(dns_policies) do
 		count = count + 1;
@@ -1218,8 +1288,18 @@ function update_confmwan()
 		end
 		uci:set("mwan3", "dns_p_" .. count, "generated", "1")
 		uci:reorder("mwan3", "dns_" .. count, count - 1)
-
 	end
+	-- reorder lasts policies
+	uci:reorder("mwan3", "icmp", 245)
+	uci:reorder("mwan3", "voip", 246)
+	uci:reorder("mwan3", "CS1_Scavenger", 247)
+	uci:reorder("mwan3", "CS2_Normal", 248)
+	uci:reorder("mwan3", "CS3_Signaling", 249)
+	uci:reorder("mwan3", "CS4_Realtime", 250)
+	uci:reorder("mwan3", "CS5_BroadcastVd", 251)
+	uci:reorder("mwan3", "CS6_NetworkCtrl", 252)
+	uci:reorder("mwan3", "CS7_Reserved", 253)
+	uci:reorder("mwan3", "all", 254)
 
 	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
