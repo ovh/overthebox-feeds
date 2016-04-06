@@ -28,7 +28,8 @@ local ltn12	= require("ltn12")
 local io 	= require("io")
 local os 	= require("os")
 local string	= require("string")
-
+local posix     = require("posix")
+local sys_stat  = require("posix.sys.stat")
 local print = print
 local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next, type, tostring, tonumber, error
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
@@ -369,8 +370,8 @@ function send_properties( props )
 	if props.packages then
 		body.packages = {}
 		for i, pkg in pairs(props.packages) do
-			local ret = chomp(run("opkg status ".. pkg .. " |grep Version: "))
-			ret = string.gsub(ret, "Version: ", "" ) -- remove Version: prefix
+			local ret, rcode = run("opkg status ".. pkg .. " |grep Version: ")
+			ret = string.gsub(chomp(ret), "Version: ", "" ) -- remove Version: prefix
 			table.insert( body.packages, {name=pkg, version=ret})
 		end
 	end
@@ -408,7 +409,8 @@ function checkReadOnly()
 end
 
 function get_ip_public(interface)
-	return run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" ):match("(%d+%.%d+%.%d+%.%d+)")
+	local ret, _ = run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" )
+	return ret:match("(%d+%.%d+%.%d+%.%d+)")
 end
 
 function check_release_channel(rc)
@@ -466,10 +468,12 @@ function create_ssh_key()
 	local public_key = private_key..".pub"
 
 	if not file_exists( private_key ) then
-		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+		local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+		if not status_code_ok(rcode) then return false, "error create key" end
 	end
 	if not file_exists( public_key ) then
-		local ret = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+		local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+		if not status_code_ok(rcode) then return false, "error dump key" end
 	end
 
 	key=""
@@ -502,7 +506,8 @@ function remoteAccessConnect(args)
 	uci:save("overthebox")
 	uci:commit("overthebox")
 
-	local ret = run("/etc/init.d/otb-remote restart")
+	local ret, rcode = run("/etc/init.d/otb-remote restart")
+	if not status_code_ok(rcode) then return false, "error on restart otb-remote daemon" end
 	return true, "ok"
 end
 
@@ -518,7 +523,8 @@ function remoteAccessDisconnect(args)
 	uci:commit("overthebox")
 	uci:save("overthebox")
 
-	local ret = run("/etc/init.d/otb-remote stop")
+	local ret, rcode = run("/etc/init.d/otb-remote stop")
+	if not status_code_ok(rcode) then return false, "error on stop otb-remote daemon" end
 	return true, "ok"
 end
 
@@ -533,69 +539,107 @@ end
 
 -- exec command local
 function restart(service)
-	local ret = run("/etc/init.d/"..service.." restart")
-	return true, ret
+	local ret, rcode = run("/etc/init.d/"..service.." restart")
+	return status_code_ok(rcode), ret
 end
 function restartmwan3()
-	local ret = os.execute("/usr/sbin/mwan3 restart")
-	return true, ret
+	local ret, rcode = run("/usr/sbin/mwan3 restart")
+	return status_code_ok(rcode), ret
 end
 
 
 function opkg_update()
-	local ret = run("opkg update 2>&1")
-	return true, ret
+	local ret, rcode = run("opkg update 2>&1")
+	return status_code_ok(rcode), ret
 end
 
 function opkg_upgradable()
-	local ret = run("opkg list-upgradable")
-	return true, ret
+	local ret, rcode = run("opkg list-upgradable")
+	return status_code_ok(rcode), ret
 end
 function opkg_install(package)
-	local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
-	return true, ret
+	local ret, rcode = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
+	return status_code_ok(rcode), ret
 end
 function opkg_remove(package)
-	local ret = run("opkg remove "..package )
-	return true, ret
+	local ret, rcode = run("opkg remove "..package )
+	return status_code_ok(rcode), ret
 end
 
+
+-- all our packages, and the minimum version needed.
+local pkgs = { 
+    overthebox='0.2-16',
+    lua='5.1.5-3',
+    liblua='5.1.5-3',
+    luac='5.1.5-3',
+    ["luci-base"]='git-16.067.54393-f931ee9-1',
+    ["luci-mod-admin-full"]='git-16.067.54393-f931ee9-1',
+    ["luci-app-overthebox"]='git-16.067.54393-f931ee9-1',
+    ["luci-app-mwan3otb"]='1.5-3',
+    ["shadowsocks-libev"]='2.4.5-3',
+    ["luci-theme-ovh"]='git-16.067.54393-f931ee9-1',
+    ["dnsmasq-full"]='2.75-8',
+    ["sqm-scripts"]='1.0.5-6',
+    ["luci-app-sqm"]='1.0.5-6',
+    mptcp='1.0.0-5',
+    netifd='2015-08-25-58',
+    mwan3otb='1.7-13',
+    bosun='0.4.0-0.8',
+    vtund='3.0.3-12',
+    e2fsprogs='1.42.12-1',
+    e2freefrag='1.42.12-1',
+    dumpe2fs='1.42.12-1',
+    resize2fs='1.42.12-1',
+    tune2fs='1.42.12-1',
+    libsodium='1.0.8-2',
+    glorytun='0.0.26-8',
+    rdisc6='1.0.3-1',
+    ['luci-app-qos']='remove',
+    ['qos-scripts']='remove'
+}
+
+-- function upgrade check if all package asked are up to date
 function upgrade()
-	local packages = {'overthebox', 'mptcp', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'vtund', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'rdisc6'}
-	local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
-	local retcode = true
-	local ret = "install:\n"
-	for i = 1, #packages do
-		-- install package
-		local p = packages[i]
-		local c, r = opkg_install(p)
-		if c == false then
-			retcode = false
-		end
-		ret = ret ..  p .. ": \n" .. r .."\n"
-	end
+    -- first, we upgrade ourself
+    opkg_install("overthebox")
 
-	ret = ret .. "\nuninstall:\n"
-	for i = 1, #unwantedPackages do
-		-- install package
-		local p = unwantedPackages[i]
-		local c, r = opkg_remove(p)
-		if c == false then
-			retcode = false
-		end
-		ret = ret ..  p .. ": \n" .. r .."\n"
-	end
+    -- let's check others
+    local listpkginstalled, _ = run("opkg list-installed")
+    local ret = ""
+    local retcode = true
 
-	return retcode, ret
+    for str in string.gmatch(listpkginstalled,'[^\r\n]+') do
+        local f = split(str)
+        local pkg, version  = f[1], f[3]
+
+        if pkgs[pkg] ~= nil then
+            local mversion = pkgs[pkg]
+            if mversion == 'remove' then
+                local c, r = opkg_remove(pkg)
+                ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
+            elseif version:find(mversion,1, true) == 1  then
+                ret = ret .. "keep "..pkg.. " version match\n"
+            elseif version < mversion then
+                local c, r = opkg_install(pkg)
+                ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
+            elseif version > mversion then
+                -- do nothing
+                ret = ret .. pkg.." version newest, installed:"..version.." asked:"..mversion.."\n"
+            end
+        end
+    end
+    return retcode, ret
 end
+
 
 function sysupgrade()
-	local ret = run("overthebox_last_upgrade -f")
-	return true, ret
+	local ret, rcode = run("overthebox_last_upgrade -f")
+	return status_code_ok(rcode), ret
 end
 function reboot()
-	local ret = run("reboot")
-	return true, ret
+	local ret, rcode = run("reboot")
+	return status_code_ok(rcode), ret
 end
 
 
@@ -754,6 +798,7 @@ end
 
 function split(t)
 	local r = {}
+	if t == nil then return r end
 	for v in string.gmatch(t, "%S+") do
 		table.insert(r, v)
 	end
@@ -1310,6 +1355,135 @@ function create_dhcp_server()
 	return true
 end
 
+-- checks methods
+function restart_daemon_if_stalled()
+    local otb_cmdline = "lua /usr/bin/overtheboxd"
+    local max_age_socket = 3600
+
+    local nb_pid = 0
+    for pid, cmdline in pairs(pidof(otb_cmdline)) do
+        for k, v in pairs(tcpsocketsof(pid)) do
+            if v.age > max_age_socket then
+                return restart_daemon
+            end
+        end
+        nb_pid = nb_pid +  1
+    end
+    if nb_pid == 0 then
+        return restart_daemon
+    end
+
+    return false
+end
+
+function test_if_running(cmdline)
+    local nb_pid = 0
+    for _, _ in pairs(pidof(cmdline)) do
+        nb_pid = nb_pid +  1
+    end
+    return nb_pid ~= 0
+end
+
+function restart_daemon()
+	local ret, rcode = run("/etc/init.d/overtheboxd restart")
+	return status_code_ok(rcode), ret 
+end
+
+--
+-- function get_cmdline read cmdline file for a PID
+-- return the command line which start the PID process
+function get_cmdline(pid)
+    local f = io.open(string.format('/proc/%s/cmdline', pid), "rb")
+    if f == nil then return end
+    local t = f:read("*all")
+    f:close()
+    --      hex_dump(t)
+    local z = string.char(0)
+    return t:gsub("(.)", function(c) if c == z then return ' ' end return c end)
+end
+
+--
+-- function pidof search program in processus running
+-- return array of pid
+function pidof(program)
+    local ret = {}
+    if program == nil then return ret end
+    local files = posix.dir("/proc")
+    local me = posix.getpid()
+    for _, name in ipairs(files) do
+        if string.match(name, '[0-9]+') then
+            if tonumber(name) ~= me  then
+                local cmdline = get_cmdline(name)
+                if cmdline:find(program, 1, true) ~= nil then
+                    table.insert(ret, tonumber(name), cmdline)
+                end
+            end
+        end
+    end
+    return ret
+end
+
+--
+-- function
+local function display_ipport(a,b,c,d,p)
+    return string.format("%d.%d.%d.%d:%d", tonumber(d, 16), tonumber(c, 16), tonumber(b, 16), tonumber(a, 16),    tonumber(p, 16))
+end
+
+--
+-- function ipport transform hexa notation ip:port in decimal
+local function ipport(str)
+    return str:gsub( '(%x%x)(%x%x)(%x%x)(%x%x):(%x%x%x%x)', display_ipport)
+end
+
+-- function get_sockets retreive sockets opened by pid
+-- return and array of socket informations
+function tcpsocketsof(pid)
+    local ret = {}
+    local sockets={}
+    -- format described below
+    local f = io.open(string.format('/proc/%s/net/tcp',pid), "r")
+    if f == nil then return ret end
+    for line in f:lines() do
+        local fis = split(line or "" )
+        if #fis > 12 then
+            fis[1] = fis[1]:gsub(":", "") -- clean id
+            fis[2] = ipport(fis[2])
+            fis[3] = ipport(fis[3])
+
+            local inode = tonumber(fis[10])
+            if sockets[inode] == nil then sockets[inode]={} end
+            table.insert(sockets[inode], fis)
+        end
+    end
+    f:close()
+
+    for id, infos in pairs(socketsof(pid)) do
+        if infos.inode ~= nil and sockets[infos.inode] ~= nil and type(sockets[infos.inode]) == "table" then
+            for _, s in pairs(sockets[infos.inode]) do
+                print(s[2], s[3], infos.age)
+            end
+        end
+    end
+    return ret
+end
+
+function socketsof(pid)
+    local ret = {}
+    local files = posix.dir(string.format('/proc/%s/fd/',pid))
+    for _, name in ipairs(files) do
+        local fn = string.format('/proc/%s/fd/%s',pid,name)
+        local fstat = sys_stat.stat(fn)
+        -- for k,v in pairs(fstat) do print(k,v) end
+
+        if fstat ~= nil and fstat.st_mode ~= nil and  sys_stat.S_ISSOCK ( fstat.st_mode ) ~= 0 then
+            local age = os.time() - sys_stat.lstat(fn).st_ctime
+            table.insert(ret, {name=name, fn=fn, age=age, inode=fstat.st_ino} )
+        end
+    end
+
+    return ret
+end
+
 -- helpers
 function lock(name)
 	-- Open fd for appending
@@ -1332,11 +1506,19 @@ function lock(name)
 	return file
 end
 
+-- function run execute a program
+-- return stdout and status code
 function run(command)
 	local handle = io.popen(command)
 	local result = handle:read("*a")
-	handle:close()
-	return result
+	local rc = {handle:close()}
+	return result, rc[4]
+end
+
+-- function status_code_ok test a status code returned by the function run
+-- return true if status code is OK, else if not
+function status_code_ok(rcode)
+	return rcode ~= nil and rcode == 0
 end
 
 function iface_info(iface)
