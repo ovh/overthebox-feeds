@@ -161,6 +161,22 @@ function confirm_action(action, status, msg )
     return (rcode == 200), res
 end
 
+function tprint (tbl, indent)
+    if not indent then indent = 0 end
+    if not tbl then return end
+    for k, v in pairs(tbl) do
+        formatting = string.rep("  ", indent) .. k .. ": "
+        if type(v) == "table" then
+            print(formatting)
+            tprint(v, indent+1)
+        elseif type(v) == 'boolean' then
+            print(formatting .. tostring(v))
+        else
+            print(formatting .. v)
+        end
+    end
+end
+
 -- base API helpers
 function GET(uri)
     return API(uri, "GET", nil)
@@ -196,7 +212,7 @@ function API(uri, method, data)
     -- Parsing response
     -- Parsing json response
 
-    if debug then
+    if debugmode then
         print(method .. " " ..url)
         print('headers:')
         tprint(headers)
@@ -211,10 +227,10 @@ function API(uri, method, data)
 end
 
 run = true
-debug = true
+debugmode = true
 
 while run do
-	local rcode, ret = overthebox.status()
+	local rcode, ret = status()
 	if rcode == 401 then
         run = false
 	elseif rcode == 200 and ret.action then
@@ -224,23 +240,23 @@ while run do
 
 		if ret.action == "upgrade" then
 			if ret.arguments and ret.arguments.release_channel then
-				if not overthebox.check_release_channel( ret.arguments.release_channel ) then
-					overthebox.update_release_channel()
+				if not check_release_channel( ret.arguments.release_channel ) then
+					update_release_channel()
 				end
 			end
-			actionreturn, msg = overthebox.opkg_update()
+			actionreturn, msg = opkg_update()
 			if actionreturn then
-				actionreturn, tmsg = overthebox.upgrade()
+				actionreturn, tmsg = upgrade()
 				msg = msg .. "\n" .. tmsg
 			end
 		elseif ret.action == "updateReleaseChannel" then
-			actionreturn, msg = overthebox.update_release_channel()
+			actionreturn, msg = update_release_channel()
 		elseif ret.action == "sysupgrade" then
-			overthebox.sysupgrade()
+			sysupgrade()
 			run = false
 		elseif ret.action == "reboot" then
-			overthebox.backup_last_action(ret.id)
-			overthebox.reboot()
+			backup_last_action(ret.id)
+			reboot()
 			run = false
 			msg = "ok"
 		elseif ret.action == "wait" then
@@ -266,7 +282,7 @@ while run do
 				end
 				debug("Got error: "..msg)
 			end
-			checkConfirm, errTab = overthebox.confirm_action(ret.id, actionreturn, msg)
+			checkConfirm, errTab = confirm_action(ret.id, actionreturn, msg)
 			if checkConfirm == false then
 				if errTab == nil or errTab.error == nil then
 					errMsg = "OTB Unknown error while updating action"
