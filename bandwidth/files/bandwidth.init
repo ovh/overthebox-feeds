@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+# "new(er)" style init script
+# Look at /lib/functions/service.sh on a running system for explanations of what other SERVICE_
+# options you can use, and when you might want them.
+
+START=80
+STOP=20
+APP_BASE="/usr/sbin/"
+APP_NAME="bandwidth"
+APP="$APP_BASE$APP_NAME"
+SERVICE_WRITE_PID=0
+SERVICE_DAEMONIZE=0
+
+start() {
+	$APP setup
+	(crontab -l 2> /dev/null | grep -v $APP; echo "*/5 * * * * $APP ipt-update > /dev/null") | crontab - 2> /dev/null
+}
+
+stop() {
+	(crontab -l 2> /dev/null | grep -v $APP) | crontab - 2> /dev/null
+	$APP unsetup
+}
+
