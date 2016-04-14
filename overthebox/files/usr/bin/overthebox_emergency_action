@@ -22,6 +22,8 @@ local io    = require("io")
 local os    = require("os")
 local string    = require("string")
 
+local VERSION = "<VERSION>"
+
 api_url = 'https://provisionning.overthebox.net:4443/'
 
 
@@ -136,6 +138,15 @@ function upgrade()
     return retcode, ret
 end
 
+-- function run execute a program
+-- return stdout and status code
+function run(command)
+    local handle = io.popen(command)
+    local result = handle:read("*a")
+    local rc = {handle:close()}
+    return result, rc[4]
+end
+
 function sysupgrade()
     local ret = run("overthebox_last_upgrade -f")
     return true, ret
@@ -226,13 +237,13 @@ function API(uri, method, data)
     return code, json.decode(table.concat(respbody))
 end
 
-run = true
+running = true
 debugmode = true
 
-while run do
+while running do
 	local rcode, ret = status()
 	if rcode == 401 then
-        run = false
+        running = false
 	elseif rcode == 200 and ret.action then
 		local actionreturn
 		local msg
@@ -253,17 +264,17 @@ while run do
 			actionreturn, msg = update_release_channel()
 		elseif ret.action == "sysupgrade" then
 			sysupgrade()
-			run = false
+			running = false
 		elseif ret.action == "reboot" then
 			backup_last_action(ret.id)
 			reboot()
-			run = false
+			running = false
 			msg = "ok"
 		elseif ret.action == "wait" then
-			run = false
+			running = false
 			msg = ""
 		else
-			run = false
+			running = false
 			actionreturn = false
 			msg = {error = "Unknown action: "..ret.action}
 		end
@@ -293,7 +304,7 @@ while run do
 			end
 		end
     else
-        run = false
+        running = false
 	end
 end
 
