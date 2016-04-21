@@ -156,7 +156,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,244 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -350,6 +350,8 @@ index 0000000..2384ace
 +
 +sqm_start() {
 +    [ -n "${IFACE}" ] || return 1
++    push_to_api start
++    [ "${RUN_IFACE}" == "tun0" ] && return 1
 +    [ -z "$DEV" ] && DEV=$( get_ifb_for_if ${IFACE} )
 +    do_modules
 +    verify_qdisc "hfsc" || return 1
@@ -377,11 +379,13 @@ index 0000000..2384ace
 +        $TC qdisc del dev ${DEV} root 2> /dev/null
 +        $TC qdisc del dev ${IFACE} ingress 2> /dev/null
 +    fi
-+    push_to_api start
 +    return 0
 +}
 +
 +sqm_stop() {
++    push_to_api stop
++    [ "${RUN_IFACE}" == "tun0" ] && return 1
++
 +    $TC qdisc del dev ${IFACE} ingress 2> /dev/null
 +    $TC qdisc del dev ${IFACE} root 2> /dev/null
 +    [ -n "$CUR_IFB" ] && $TC qdisc del dev ${CUR_IFB} root 2> /dev/null
@@ -396,7 +400,4 @@ index 0000000..2384ace
 +    
 +    [ -n "$CUR_IFB" ] && $IP link delete ${CUR_IFB} type ifb
 +    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} interface deleted"
-+
-+    push_to_api stop
 +}
-
