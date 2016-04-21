@@ -28,15 +28,17 @@ function index()
 	local e = entry({"admin", "overthebox", "overview"}, template("overthebox/index"), _("Overview"), 1)
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 2)
+	entry({"admin", "overthebox", "dscp"}, cbi("dscp/dscp"), _("DSCP Settings"), 2)
+
+	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 3)
 	e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 3)
+	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 4)
         e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 4)
+	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 5)
         e.leaf = true
 	e.sysauth = false
 
