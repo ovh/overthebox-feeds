@@ -42,10 +42,17 @@ if uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'"; then
 fi
 
 if ! uci get -q system.@system[0].zonename 1>/dev/null; then
+        uci -q batch <<-EOF >/dev/null
+       set system.@system[0].zonename="Europe/Paris"
+       set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
+       commit system
+EOF
+
+if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'"; then
 	uci -q batch <<-EOF >/dev/null
-	set system.@system[0].zonename="Europe/Paris"
-	set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
-	commit system
+		add dhcp hostrecord
+		set dhcp.@hostrecord[-1].name='api'
+		set dhcp.@hostrecord[-1].ip='169.254.254.1'
 EOF
 fi
 
