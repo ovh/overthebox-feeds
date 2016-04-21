@@ -137,6 +137,20 @@ index 13a7a0b..82372e5 100644
 +	option upload '1000'
 +	option qdisc_advanced '0'
 
+diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
+index cabaa8c..3e2d0f8 100644
+--- a/src/run-openwrt.sh
++++ b/src/run-openwrt.sh
+@@ -76,7 +76,8 @@ run_sqm_scripts() {
+     local section="$1"
+     export IFACE=$(config_get "$section" interface)
+ 
+-    [ -z "$RUN_IFACE" -o "$RUN_IFACE" = "$IFACE" ] || return
++    [ -z "$RUN_IFACE" -o "$RUN_IFACE" = "$IFACE" -o "$RUN_IFACE" = "tun0" ] || return
++    export RUN_IFACE=${RUN_IFACE}
+ 
+     [ $(config_get "$section" enabled) -ne 1 ] && ACTION=stop
+ 
 diff --git a/src/otb.qos b/src/otb.qos
 new file mode 100644
 index 0000000..2384ace
@@ -385,3 +399,4 @@ index 0000000..2384ace
 +
 +    push_to_api stop
 +}
+
