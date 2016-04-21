@@ -192,7 +192,8 @@ index 0000000..2384ace
 +    ipt -t mangle -N QOS_RULES_${IFACE}
 +
 +# Marking dscp SS tagged packets  
-+    ipt -t mangle -A OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE}
++    ipt -t mangle -D OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE} 2>/dev/null
++    ipt -t mangle -I OUTPUT 2 -o ${IFACE} -g QOS_MARK_${IFACE}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
