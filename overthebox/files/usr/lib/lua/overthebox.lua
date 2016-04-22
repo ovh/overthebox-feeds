@@ -1748,7 +1748,7 @@ function tc_stats()
 	output = {}
 	result["download"] = {}
 	local json = json.decode(sys.exec("curl -s --connect-timeout 1 api/qos/tcstats"))
-	if json.raw_output then
+	if json and json.raw_output then
 		
 		for line in string.gmatch(json.raw_output, '[^\r\n]+') do
 			table.insert(output, line)
