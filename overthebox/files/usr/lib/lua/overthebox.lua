@@ -1720,6 +1720,7 @@ function tc_stats()
 
 
 	local result = {}
+	result["upload"] = {}
 	local curdev;
 	local curq;
 	for i=1, #output do
@@ -1736,10 +1737,42 @@ function tc_stats()
 		if curdev and curq then
 			for bytes, pkt, dropped, overlimits, reque in string.gmatch(output[i], "Sent (%d+) bytes (%d+) pkt %(dropped (%d+), overlimits (%d+) requeues (%d+)") do
 				-- print("["..curdev..", "..curq..", "..bytes.. ", "..pkt..", "..dropped..", "..overlimits..", ".. reque .. "]")
-				if result[curq] == nil then
-					result[curq] = {}
+				if result["upload"][curq] == nil then
+					result["upload"][curq] = {}
 				end
-				result[curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
+				result["upload"][curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
+			end
+		end
+	end
+
+	output = {}
+	result["download"] = {}
+	local json = json.decode(sys.exec("curl -s --connect-timeout 1 api/qos/tcstats"))
+	if json.raw_output then
+		
+		for line in string.gmatch(json.raw_output, '[^\r\n]+') do
+			table.insert(output, line)
+		end
+
+		for i=1, #output do
+			if string.byte(output[i]) ~= string.byte(' ') then
+				curdev = nil
+				curq = nil
+			end
+			if string.match(output[i], "dev ([^%s]+)") then
+				curdev = string.match(output[i], "dev ([^%s]+)")
+			end
+			if string.match(output[i], "sfq (%d+)") then
+				curq = string.match(output[i], "sfq (%d+)")
+			end
+			if curdev and curq then
+				for bytes, pkt, dropped, overlimits, reque in string.gmatch(output[i], "Sent (%d+) bytes (%d+) pkt %(dropped (%d+), overlimits (%d+) requeues (%d+)") do
+					-- print("["..curdev..", "..curq..", "..bytes.. ", "..pkt..", "..dropped..", "..overlimits..", ".. reque .. "]")
+					if result["download"][curq] == nil then
+						result["download"][curq] = {}
+					end
+					result["download"][curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
+				end
 			end
 		end
 	end
