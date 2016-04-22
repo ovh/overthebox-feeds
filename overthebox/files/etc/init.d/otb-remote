@@ -29,6 +29,22 @@ mount_ram() {
 	mount -o bind $TMP $DST
 }
 
+mount_ssh_dir() {
+    mkdir /tmp/dropbear /tmp/root_ssh
+    if [ ! -d /root/.ssh ]; then
+        mkdir /root/.ssh
+        chmod 700 /root/.ssh
+    fi
+    if [ ! -f "$knownhosts" ]; then
+        touch "$knownhosts"
+    fi
+
+    mount_ram /etc/dropbear /tmp/dropbear
+    mount_ram /root/.ssh /tmp/root_ssh
+
+    cp $sshkeypriv $sshkey
+}
+
 umount_ram() {
 	local DST="$1"
 	local TMP="$2"
@@ -56,7 +72,6 @@ start_instance() {
     }
 
     [ "$enable" = "0" ] && return
-    [ ! -e "$sshkey" ] && return
 
     [ -n "$ip" ]   || return 1
     [ -n "$port" ] || return 1
@@ -65,8 +80,11 @@ start_instance() {
 
     internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
 
+    grep -q -s /etc/dropbear /proc/mounts || mount_ssh_dir
+    [ ! -e "$sshkey" ] && return
+
     if [ -n "$remote_public_key" ]; then
-        grep -q "$remote_public_key" $authkeys || echo "$remote_public_key" >> $authkeys
+        grep -q "$remote_public_key" $authkeys 2>/dev/null || echo "$remote_public_key" >> $authkeys
     fi
 
     hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
@@ -85,23 +103,11 @@ start_service() {
     # do not start ssh tunnel if customer does not want it.
     [ "$(uci get -q overthebox.me.forbidremote)" = "1" ] && return
 
-    mkdir /tmp/dropbear /tmp/root_ssh
-    if [ ! -d /root/.ssh ]; then
-        mkdir /root/.ssh
-        chmod 700 /root/.ssh
-    fi
-    if [ ! -f "$knownhosts" ]; then
-        touch "$knownhosts"
-    fi
-
-    mount_ram /etc/dropbear /tmp/dropbear
-    mount_ram /root/.ssh /tmp/root_ssh
-
-    cp $sshkeypriv $sshkey
-
     config_load 'overthebox'
     config_foreach start_instance 'remote'
 }
+
+
 
 stop_service() {
      umount_ram /etc/dropbear /tmp/dropbear
