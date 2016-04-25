@@ -47,12 +47,14 @@ if ! uci get -q system.@system[0].zonename 1>/dev/null; then
        set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
        commit system
 EOF
+fi
 
-if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'"; then
+if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'" &>/dev/null; then
 	uci -q batch <<-EOF >/dev/null
 		add dhcp hostrecord
 		set dhcp.@hostrecord[-1].name='api'
 		set dhcp.@hostrecord[-1].ip='169.254.254.1'
+		commit dhcp
 EOF
 fi
 
