@@ -619,7 +619,8 @@ function upgrade()
                 local c, r = opkg_remove(pkg)
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
             elseif version:find(mversion,1, true) == 1  then
-                ret = ret .. "keep "..pkg.. " version match\n"
+                local c, r = opkg_install(pkg)
+                ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version < mversion then
                 local c, r = opkg_install(pkg)
                 ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
