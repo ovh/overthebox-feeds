@@ -47,7 +47,7 @@ mwan3_set_general_iptables()
 	fi
 
 	if ! $IPT -S OUTPUT | grep mwan3_hook &> /dev/null; then
-		$IPT -A OUTPUT -j mwan3_hook
+		$IPT -I OUTPUT -j mwan3_hook
 	fi
 
 	$IPT -F mwan3_rules
