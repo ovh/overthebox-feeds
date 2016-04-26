@@ -453,6 +453,65 @@ function set_feeds(feeds)
 	end
 end
 
+local diags = {
+	cpuinfo = { cmd = 'cat /proc/cpuinfo'},
+	mem = { cmd = 'free -m'},
+	dhcp_leases = { cmd = 'cat /tmp/dhcp.leases'},
+	mwan3_status = { cmd = 'mwan3 status'},
+	ifconfig = { cmd = 'ifconfig'},
+	df = { cmd = 'df'},
+	netstat = { cmd = 'netstat -natupe'},
+	lsof_network = { cmd = 'lsof -i'},
+	dig = { cmd = 'dig {{domain}} @{{server}}', default = { domain = 'www.ovh.com', server = '127.0.0.1' }},
+	mtr = { cmd = 'mtr -rn -c {{count}} {{host}}', default = { host = 'www.ovh.com', count = 2 }},
+	iptables_save = { cmd = 'iptables-save'},
+	iproute = { cmd = 'ip route show table {{table}}', default = { table = 0 }},
+	iprule = { cmd = 'ip rule' },
+	tc = { cmd = 'tc qdisc show' },
+	ping = { cmd = 'ping -c {{count}} {{ip}}', default = { ip = '213.186.33.99', count = 2 }},
+	dmidecode = { cmd = 'dmidecode -s baseboard-serial-number' },
+}
+
+function send_diagnostic(id, info)
+	local api_ok, diag_id = create_diagnostic( id or "")
+	if diag_id == "" then
+		return false, "no diag id found"
+	end
+
+	ret = true
+	if info and info.diags and type(info.diags) == "table" then
+		for _, name in ipairs(info.diags) do
+			ret = run_diagnostic( diag_id, name, info and info.arguments and info.arguments[name]) and ret
+		end
+	else
+		for name, diag in pairs(diags) do
+			ret = run_diagnostic( diag_id, name, info and info.arguments and info.arguments[name]) and ret
+		end
+	end
+
+	return ret, "ok"
+end
+
+function run_diagnostic( id, name, arg )
+	cmd = string.gsub( diags[name].cmd, "{{(%w+)}}", function(w)
+		return (arg and arg[w]) or diags[name].default[w] or "" 
+	end )
+	local ret, rcode = run(cmd)
+	local ret_api = post_result_diagnostic(id, name, cmd, ret, rcode)
+	return rcode==0
+end
+
+function create_diagnostic(action_id)
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics",  {device_action_id=action_id or "" })
+	return (rcode == 200), res.diagnostic_id or ""
+end
+
+function post_result_diagnostic(id, name, cmd, output, exit_code)
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics/"..id , { name= name, cmd=cmd, output=output, exit_code=exit_code})
+	return (rcode == 200)
+end
+
+
 
 function createKey(remoteId)
 	ret, key = create_ssh_key()
