@@ -111,7 +111,8 @@ while run do
 			end
 		elseif ret.action == "refreshProperties" then
 			actionreturn, msg = overthebox.send_properties(ret.arguments)
-
+		elseif ret.action == "diagnostic" then
+			actionreturn, msg = overthebox.send_diagnostic(ret.id, ret.arguments)
 		elseif ret.action == "createKey" then
 			remoteId=""
 			if ret and ret.arguments and ret.arguments.remote_access_id then
