@@ -250,6 +250,12 @@
 						var timestamps = Object.keys(dataarray);
 						timestamps.sort();
 
+						// Hide 500 qdisc download values
+						for(var timestp in dataarray)
+						{
+							delete dataarray[timestp]["download"]["500"];
+						}
+
 						// Create and initialize qdisc graphic elements
 						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["upload"])
 						{

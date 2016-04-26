@@ -1047,12 +1047,16 @@ function update_confmwan()
 		uci:set("mwan3", "balanced", "generated", "1")
 	end
 
+	uci:set("mwan3", "failover_api", "policy")
 	if #members_tun and members_tun[1] then
 		uci:set("mwan3", "balanced_tuns", "policy")
 		if uci:get("mwan3", "balanced_tuns", "edited") ~= "1" then
 			uci:set_list("mwan3", "balanced_tuns", "use_member", members_tun[1])
 		end
 		uci:set("mwan3", "balanced_tuns", "generated", "1")
+		if uci:get("mwan3", "failover_api", "edited") ~= "1" then
+			uci:set_list("mwan3", "failover_api", "use_member", members_tun[1])
+		end
 	end
 
 	if #members_qos and members_qos[1] then
@@ -1061,7 +1065,24 @@ function update_confmwan()
 			uci:set_list("mwan3", "balanced_qos", "use_member", members_qos[1])
 		end
 		uci:set("mwan3", "balanced_qos", "generated", "1")
+		if uci:get("mwan3", "failover_api", "edited") ~= "1" then
+			uci:set_list("mwan3", "failover_api", "use_member", members_qos[1])
+		end
 	end
+
+	if #members_qos and #members_tun and members_qos[1] and members_tun[2] then
+		local members_tuns = {}
+		for k, v in pairs(members_qos[1]) do
+			table.insert(members_tuns, v)
+		end
+		for k, v in pairs(members_tun[2]) do
+			table.insert(members_tuns, v)
+		end
+		if uci:get("mwan3", "failover_api", "edited") ~= "1" then
+			uci:set_list("mwan3", "failover_api", "use_member", members_tuns)
+		end
+	end
+	uci:set("mwan3", "failover_api", "generated", "1")
 
 	-- all uniq policy
 	log("Creating mwan single policy")
@@ -1201,6 +1222,15 @@ function update_confmwan()
 			uci:set("mwan3", "voip", "use_policy", "failover")
 		end
 		uci:set("mwan3", "voip", "generated", "1")
+		-- Create api policies
+		uci:set("mwan3", "api", "rule")
+		if uci:get("mwan3", "api", "edited") ~= "1" then
+			uci:set("mwan3", "api", "proto", "tcp")
+			uci:set("mwan3", "api", "dest_ip", 'api')
+			uci:set("mwan3", "api", "dest_port", '80')
+			uci:set("mwan3", "api", "use_policy", "failover_api")
+		end
+		uci:set("mwan3", "api", "generated", "1")
 		-- Create DSCPs policies
 		-- cs1
 		uci:set("mwan3", "CS1_Scavenger", "rule")
@@ -1335,6 +1365,7 @@ function update_confmwan()
 		uci:reorder("mwan3", "dns_" .. count, count - 1)
 	end
 	-- reorder lasts policies
+	uci:reorder("mwan3", "api", 244)
 	uci:reorder("mwan3", "icmp", 245)
 	uci:reorder("mwan3", "voip", 246)
 	uci:reorder("mwan3", "CS1_Scavenger", 247)
