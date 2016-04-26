@@ -340,11 +340,11 @@ index 0000000..2384ace
 +	TOKEN=$(uci -q get overthebox.me.token)
 +	METRIC=$(uci -q get network.${IFACE}.metric)
 +	if [ "$1" == "stop" ]; then
-+		curl -s --connect-timeout 1 -X DELETE api/qos/${METRIC}?auth_token=${TOKEN}
++		curl -s --connect-timeout 3 -X DELETE api/qos/${METRIC}?auth_token=${TOKEN}
 +	elif [ "$1" == "start" ]; then
-+		WAN_IP=$(curl -s --connect-timeout 1 --interface ${IFACE} ifconfig.ovh)
++		WAN_IP=$(curl -s --connect-timeout 3 --interface ${IFACE} ifconfig.ovh)
 +		if [ -n "${WAN_IP}" ]; then
-+			curl -s --connect-timeout 1 -X PUT -H "Content-Type: application/json" --data "{ \"interface\": \"${IFACE}\", \"metric\": \"${METRIC}\", \"wan_ip\": \"${WAN_IP}\", \"downlink\": \"${DOWNLINK}\", \"uplink\": \"${UPLINK}\" }" api/qos?auth_token=${TOKEN}
++			curl -s --connect-timeout 3 -X PUT -H "Content-Type: application/json" --data "{ \"interface\": \"${IFACE}\", \"metric\": \"${METRIC}\", \"wan_ip\": \"${WAN_IP}\", \"downlink\": \"${DOWNLINK}\", \"uplink\": \"${UPLINK}\" }" api/qos?auth_token=${TOKEN}
 +		fi
 +	fi
 +}
