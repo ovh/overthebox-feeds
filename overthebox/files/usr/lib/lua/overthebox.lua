@@ -602,8 +602,8 @@ function restart(service)
 	return status_code_ok(rcode), ret
 end
 function restartmwan3()
-	local ret, rcode = run("/usr/sbin/mwan3 restart")
-	return status_code_ok(rcode), ret
+	local ret = os.execute("/usr/sbin/mwan3 restart")
+	return true, ret
 end
 
 
