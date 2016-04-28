@@ -1,5 +1,6 @@
 #!/bin/sh
 . /lib/functions.sh
+. /lib/functions/procd.sh
 
 IP="/usr/sbin/ip -4"
 IPS="/usr/sbin/ipset"
@@ -34,7 +35,8 @@ ifdown()
 	if [ -n "$2" ]; then
 		echo "Error: Too many arguments. Usage: mwan3 ifdown <interface>" && exit 0
 	fi
-
+	
+	procd_kill mwan3track.$1
 	if [ -e /var/run/mwan3track-$1.pid ] ; then
 		kill $(cat /var/run/mwan3track-$1.pid)
 		rm /var/run/mwan3track-$1.pid
@@ -86,7 +88,7 @@ interfaces()
 
 		config_get enabled "$1" enabled 0
 
-		if [ -n "$(ps -w | grep mwan3track | grep -v grep | sed '/.*\/usr\/sbin\/mwan3track \([^ ]*\) .*$/!d;s//\1/' | awk '$1 == "'$1'"')" ]; then
+		if [ -n "$(ps -w | grep mwan3track | grep -v grep | sed '/.*\/usr\/sbin\/mwan3track -i \([^ ]*\) .*$/!d;s//\1/' | awk '$1 == "'$1'"')" ]; then
 			tracking="active"
 		else
 			tracking="down"
@@ -181,6 +183,11 @@ stop()
 		kill $i &> /dev/null
 	done
 	rm /var/run/mwan3track-* &> /dev/null
+
+	for itf in `ps -w | grep mwan3track | grep -v grep | sed '/.*\/usr\/sbin\/mwan3track -i \([^ ]*\) .*$/!d;s//\1/'`
+	do
+		procd_kill mwan3track.$itf
+	done
 
 	pkill -f mwan3track &> /dev/null
 
