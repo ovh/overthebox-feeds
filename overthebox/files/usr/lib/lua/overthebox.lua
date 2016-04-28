@@ -845,6 +845,18 @@ function API(uri, method, data)
 		print()
 	end
 
+	for k, v in pairs(headers) do
+		if k == "x-otb-client-ip" then
+			if v:match("(%d+)%.(%d+)%.(%d+)%.(%d+)") then
+		                fd = io.open("/tmp/wanip", "w")
+		                if fd then
+		                        fd:write(v)
+		                        fd:close()
+		                end
+			end
+		end
+	end
+
 	return code, json.decode(table.concat(respbody))
 end
 
