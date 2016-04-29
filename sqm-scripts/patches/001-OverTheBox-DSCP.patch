@@ -7,7 +7,7 @@ index 97171a6..2fe7d9a 100644
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
 +    # Clear DSCP rules
-+    $IPT -F dscp
++    /usr/sbin/iptables -t mangle -w -F dscp
      exit 0
  fi
  

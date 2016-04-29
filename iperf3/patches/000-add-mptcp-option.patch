@@ -1,0 +1,279 @@
+diff --git a/src/iperf.h b/src/iperf.h
+index ca0a4e2..caa683e 100755
+--- a/src/iperf.h
++++ b/src/iperf.h
+@@ -229,6 +229,7 @@ struct iperf_test
+     int       daemon;                           /* -D option */
+     int       one_off;                          /* -1 option */
+     int       no_delay;                         /* -N option */
++    int       mptcp;                            /* -x option */
+     int       reverse;                          /* -R option */
+     int	      verbose;                          /* -V option - verbose mode */
+     int	      json_output;                      /* -J option - JSON output */
+diff --git a/src/iperf3.1 b/src/iperf3.1
+index 272a6f7..a155ba1 100644
+--- a/src/iperf3.1
++++ b/src/iperf3.1
+@@ -49,6 +49,9 @@ CPUs).
+ .BR -B ", " --bind " \fIhost\fR"
+ bind to a specific interface
+ .TP
++.BR -x ", " --mptcp " "
++enable MPTCP
++.TP
+ .BR -V ", " --verbose " "
+ give more detailed output 
+ .TP
+diff --git a/src/iperf_api.c b/src/iperf_api.c
+index d7c5749..8f5575a 100755
+--- a/src/iperf_api.c
++++ b/src/iperf_api.c
+@@ -629,6 +629,7 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
+         {"cport", required_argument, NULL, OPT_CLIENT_PORT},
+         {"set-mss", required_argument, NULL, 'M'},
+         {"no-delay", no_argument, NULL, 'N'},
++        {"mptcp", no_argument, NULL, 'x'},
+         {"version4", no_argument, NULL, '4'},
+         {"version6", no_argument, NULL, '6'},
+         {"tos", required_argument, NULL, 'S'},
+@@ -671,7 +672,7 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
+ 
+     blksize = 0;
+     server_flag = client_flag = rate_flag = duration_flag = 0;
+-    while ((flag = getopt_long(argc, argv, "p:f:i:D1VJvsc:ub:t:n:k:l:P:Rw:B:M:N46S:L:ZO:F:A:T:C:dI:hX:", longopts, NULL)) != -1) {
++    while ((flag = getopt_long(argc, argv, "p:f:i:D1VJvsc:ub:t:n:k:l:P:Rw:B:M:Nx46S:L:ZO:F:A:T:C:dI:hX:", longopts, NULL)) != -1) {
+         switch (flag) {
+             case 'p':
+                 test->server_port = atoi(optarg);
+@@ -819,6 +820,9 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
+                 test->no_delay = 1;
+ 		client_flag = 1;
+                 break;
++            case 'x':
++                test->mptcp = 1;
++                break;
+             case '4':
+                 test->settings->domain = AF_INET;
+                 break;
+@@ -1289,6 +1293,8 @@ send_parameters(struct iperf_test *test)
+ 	    cJSON_AddIntToObject(j, "MSS", test->settings->mss);
+ 	if (test->no_delay)
+ 	    cJSON_AddTrueToObject(j, "nodelay");
++	if (test->mptcp)
++	    cJSON_AddTrueToObject(j, "mptcp");
+ 	cJSON_AddIntToObject(j, "parallel", test->num_streams);
+ 	if (test->reverse)
+ 	    cJSON_AddTrueToObject(j, "reverse");
+@@ -1366,6 +1372,8 @@ get_parameters(struct iperf_test *test)
+ 	    test->settings->mss = j_p->valueint;
+ 	if ((j_p = cJSON_GetObjectItem(j, "nodelay")) != NULL)
+ 	    test->no_delay = 1;
++	if ((j_p = cJSON_GetObjectItem(j, "mptcp")) != NULL)
++	    test->mptcp = 1;
+ 	if ((j_p = cJSON_GetObjectItem(j, "parallel")) != NULL)
+ 	    test->num_streams = j_p->valueint;
+ 	if ((j_p = cJSON_GetObjectItem(j, "reverse")) != NULL)
+@@ -2018,6 +2026,7 @@ iperf_reset_test(struct iperf_test *test)
+ 
+     test->reverse = 0;
+     test->no_delay = 0;
++    test->mptcp = 0;
+ 
+     FD_ZERO(&test->read_set);
+     FD_ZERO(&test->write_set);
+diff --git a/src/iperf_api.h b/src/iperf_api.h
+index d16cb8a..793e41e 100755
+--- a/src/iperf_api.h
++++ b/src/iperf_api.h
+@@ -331,6 +331,7 @@ enum {
+     IESETSCTPDISABLEFRAG = 137, // Unable to set SCTP Fragmentation (check perror)
+     IESETSCTPNSTREAM= 138,  //  Unable to set SCTP number of streams (check perror)
+     IESETSCTPBINDX= 139,    // Unable to process sctp_bindx() parameters
++    IESETMPTCP = 142,       // Unable to set TCP MPTCP (check perror)
+     /* Stream errors */
+     IECREATESTREAM = 200,   // Unable to create a new stream (check herror/perror)
+     IEINITSTREAM = 201,     // Unable to initialize stream (check herror/perror)
+diff --git a/src/iperf_error.c b/src/iperf_error.c
+index 9201cb7..92be95d 100644
+--- a/src/iperf_error.c
++++ b/src/iperf_error.c
+@@ -247,6 +247,10 @@ iperf_strerror(int i_errno)
+             snprintf(errstr, len, "unable to set TCP/SCTP NODELAY");
+             perr = 1;
+             break;
++        case IESETMPTCP:
++            snprintf(errstr, len, "unable to set TCP MPTCP");
++            perr = 1;
++            break;
+         case IESETMSS:
+             snprintf(errstr, len, "unable to set TCP/SCTP MSS");
+             perr = 1;
+diff --git a/src/iperf_locale.c b/src/iperf_locale.c
+index ee3a74a..571bb9e 100644
+--- a/src/iperf_locale.c
++++ b/src/iperf_locale.c
+@@ -105,6 +105,7 @@ const char usage_longstr[] = "Usage: iperf [-s|-c host] [options]\n"
+                            "  -A, --affinity n/n,m      set CPU affinity\n"
+ #endif /* HAVE_CPU_AFFINITY */
+                            "  -B, --bind      <host>    bind to a specific interface\n"
++                           "  -x, --mptcp               enable MPTCP\n"
+                            "  -V, --verbose             more detailed output\n"
+                            "  -J, --json                output in JSON format\n"
+                            "  --logfile f               send output to a log file\n"
+diff --git a/src/iperf_server_api.c b/src/iperf_server_api.c
+index ac0166a..6ca0a76 100644
+--- a/src/iperf_server_api.c
++++ b/src/iperf_server_api.c
+@@ -67,7 +67,7 @@ int
+ iperf_server_listen(struct iperf_test *test)
+ {
+     retry:
+-    if((test->listener = netannounce(test->settings->domain, Ptcp, test->bind_address, test->server_port)) < 0) {
++    if((test->listener = netannounce(test->settings->domain, Ptcp, test->bind_address, test->server_port, test->mptcp)) < 0) {
+ 	if (errno == EAFNOSUPPORT && (test->settings->domain == AF_INET6 || test->settings->domain == AF_UNSPEC)) {
+ 	    /* If we get "Address family not supported by protocol", that
+ 	    ** probably means we were compiled with IPv6 but the running
+@@ -297,6 +297,7 @@ iperf_test_reset(struct iperf_test *test)
+     test->sender = 0;
+     test->sender_has_retransmits = 0;
+     test->no_delay = 0;
++    test->mptcp = 0;
+ 
+     FD_ZERO(&test->read_set);
+     FD_ZERO(&test->write_set);
+@@ -542,10 +543,10 @@ iperf_run_server(struct iperf_test *test)
+                         FD_CLR(test->prot_listener, &test->read_set);
+                         close(test->prot_listener);
+                     } else { 
+-                        if (test->no_delay || test->settings->mss || test->settings->socket_bufsize) {
++                        if (test->mptcp || test->no_delay || test->settings->mss || test->settings->socket_bufsize) {
+                             FD_CLR(test->listener, &test->read_set);
+                             close(test->listener);
+-                            if ((s = netannounce(test->settings->domain, Ptcp, test->bind_address, test->server_port)) < 0) {
++                            if ((s = netannounce(test->settings->domain, Ptcp, test->bind_address, test->server_port, test->mptcp)) < 0) {
+ 				cleanup_server(test);
+                                 i_errno = IELISTEN;
+                                 return -1;
+diff --git a/src/iperf_tcp.c b/src/iperf_tcp.c
+index 78501fe..2388ac7 100644
+--- a/src/iperf_tcp.c
++++ b/src/iperf_tcp.c
+@@ -152,7 +152,7 @@ iperf_tcp_listen(struct iperf_test *test)
+      *
+      * It's not clear whether this is a requirement or a convenience.
+      */
+-    if (test->no_delay || test->settings->mss || test->settings->socket_bufsize) {
++    if (test->mptcp || test->no_delay || test->settings->mss || test->settings->socket_bufsize) {
+         FD_CLR(s, &test->read_set);
+         close(s);
+ 
+@@ -194,6 +194,17 @@ iperf_tcp_listen(struct iperf_test *test)
+                 return -1;
+             }
+         }
++        if (test->mptcp) {
++            opt = 1;
++            if (setsockopt(s, IPPROTO_TCP, MPTCP_ENABLED, &opt, sizeof(opt)) < 0) {
++		saved_errno = errno;
++		close(s);
++		freeaddrinfo(res);
++		errno = saved_errno;
++                i_errno = IESETMPTCP;
++                return -1;
++            }
++        }
+         // XXX: Setting MSS is very buggy!
+         if ((opt = test->settings->mss)) {
+             if (setsockopt(s, IPPROTO_TCP, TCP_MAXSEG, &opt, sizeof(opt)) < 0) {
+@@ -372,6 +383,17 @@ iperf_tcp_connect(struct iperf_test *test)
+             return -1;
+         }
+     }
++    if (test->mptcp) {
++        opt = 1;
++        if (setsockopt(s, IPPROTO_TCP, MPTCP_ENABLED, &opt, sizeof(opt)) < 0) {
++	    saved_errno = errno;
++	    close(s);
++	    freeaddrinfo(server_res);
++	    errno = saved_errno;
++            i_errno = IESETMPTCP;
++            return -1;
++        }
++    }
+     if ((opt = test->settings->mss)) {
+         if (setsockopt(s, IPPROTO_TCP, TCP_MAXSEG, &opt, sizeof(opt)) < 0) {
+ 	    saved_errno = errno;
+diff --git a/src/iperf_udp.c b/src/iperf_udp.c
+index 9500aa1..9ea71a8 100644
+--- a/src/iperf_udp.c
++++ b/src/iperf_udp.c
+@@ -247,7 +247,7 @@ iperf_udp_accept(struct iperf_test *test)
+     /*
+      * Create a new "listening" socket to replace the one we were using before.
+      */
+-    test->prot_listener = netannounce(test->settings->domain, Pudp, test->bind_address, test->server_port);
++    test->prot_listener = netannounce(test->settings->domain, Pudp, test->bind_address, test->server_port, 0);
+     if (test->prot_listener < 0) {
+         i_errno = IESTREAMLISTEN;
+         return -1;
+@@ -279,7 +279,7 @@ iperf_udp_listen(struct iperf_test *test)
+ {
+     int s;
+ 
+-    if ((s = netannounce(test->settings->domain, Pudp, test->bind_address, test->server_port)) < 0) {
++    if ((s = netannounce(test->settings->domain, Pudp, test->bind_address, test->server_port, 0)) < 0) {
+         i_errno = IESTREAMLISTEN;
+         return -1;
+     }
+diff --git a/src/net.c b/src/net.c
+index aa4a15c..671f4a1 100644
+--- a/src/net.c
++++ b/src/net.c
+@@ -124,7 +124,7 @@ netdial(int domain, int proto, char *local, int local_port, char *server, int po
+ /***************************************************************/
+ 
+ int
+-netannounce(int domain, int proto, char *local, int port)
++netannounce(int domain, int proto, char *local, int port, int mptcp)
+ {
+     struct addrinfo hints, *res;
+     char portstr[6];
+@@ -168,6 +168,16 @@ netannounce(int domain, int proto, char *local, int port)
+ 	freeaddrinfo(res);
+ 	return -1;
+     }
++
++    if (mptcp) {
++        opt = 1;
++        if (setsockopt(s, SOL_TCP, MPTCP_ENABLED, 
++               (char *) &opt, sizeof(opt)) < 0) {
++        close(s);
++        freeaddrinfo(res);
++        return -1;
++        }
++    }
+     /*
+      * If we got an IPv6 socket, figure out if it should accept IPv4
+      * connections as well.  We do that if and only if no address
+diff --git a/src/net.h b/src/net.h
+index 543365c..a97988e 100644
+--- a/src/net.h
++++ b/src/net.h
+@@ -28,7 +28,7 @@
+ #define __NET_H
+ 
+ int netdial(int domain, int proto, char *local, int local_port, char *server, int port);
+-int netannounce(int domain, int proto, char *local, int port);
++int netannounce(int domain, int proto, char *local, int port, int mptcp);
+ int Nread(int fd, char *buf, size_t count, int prot);
+ int Nwrite(int fd, const char *buf, size_t count, int prot) /* __attribute__((hot)) */;
+ int has_sendfile(void);
+@@ -38,6 +38,8 @@ int set_tcp_options(int sock, int no_delay, int mss);
+ int setnonblocking(int fd, int nonblocking);
+ int getsockdomain(int sock);
+ 
++#define MPTCP_ENABLED 26
++
+ #define NET_SOFTERROR -1
+ #define NET_HARDERROR -2
+ 

@@ -137,12 +137,26 @@ index 13a7a0b..82372e5 100644
 +	option upload '1000'
 +	option qdisc_advanced '0'
 
+diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
+index cabaa8c..3e2d0f8 100644
+--- a/src/run-openwrt.sh
++++ b/src/run-openwrt.sh
+@@ -76,7 +76,8 @@ run_sqm_scripts() {
+     local section="$1"
+     export IFACE=$(config_get "$section" interface)
+ 
+-    [ -z "$RUN_IFACE" -o "$RUN_IFACE" = "$IFACE" ] || return
++    [ -z "$RUN_IFACE" -o "$RUN_IFACE" = "$IFACE" -o "$RUN_IFACE" = "tun0" ] || return
++    export RUN_IFACE=${RUN_IFACE}
+ 
+     [ $(config_get "$section" enabled) -ne 1 ] && ACTION=stop
+ 
 diff --git a/src/otb.qos b/src/otb.qos
 new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,245 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -178,7 +192,8 @@ index 0000000..2384ace
 +    ipt -t mangle -N QOS_RULES_${IFACE}
 +
 +# Marking dscp SS tagged packets  
-+    ipt -t mangle -A OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE}
++    ipt -t mangle -D OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE} 2>/dev/null
++    ipt -t mangle -I OUTPUT 2 -o ${IFACE} -g QOS_MARK_${IFACE}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
@@ -284,43 +299,60 @@ index 0000000..2384ace
 +}
 +
 +ingress() {
++      return
++#    $TC qdisc del dev ${IFACE} handle ffff: ingress 2> /dev/null
++#    $TC qdisc add dev ${IFACE} handle ffff: ingress
++#
++#    $TC qdisc del dev ${DEV} root 2> /dev/null
++#    $TC qdisc add dev ${DEV} root handle 1: `get_stab_string` hfsc default 50
++#
++#    #Use a single queue for ingress.
++#    $TC class add dev ${DEV} parent 1: classid 1:1 hfsc sc rate ${DOWNLINK}kbit ul rate ${DOWNLINK}kbit
++#
++#    $TC class add dev ${DEV} parent 1:1  classid 1:20 hfsc rt m1 ${DOWNLINK}kbit d 50ms m2 $((5*$DOWNLINK/10))kbit ls m1 ${DOWNLINK}kbit d 50ms m2 $((7*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++#    $TC class add dev ${DEV} parent 1:1  classid 1:30 hfsc sc m1 ${DOWNLINK}kbit d 200ms m2 $((3*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++#    $TC class add dev ${DEV} parent 1:1  classid 1:40 hfsc sc m1 0 d 1s m2 $((1*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
++#    $TC class add dev ${DEV} parent 1:1  classid 1:50 hfsc sc m1 0 d 2s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
++#    $TC class add dev ${DEV} parent 1:1  classid 1:60 hfsc sc m1 0 d 10s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
++#
++#    $TC qdisc add dev ${DEV} parent 1:20 handle 20: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++#    $TC qdisc add dev ${DEV} parent 1:30 handle 30: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++#    $TC qdisc add dev ${DEV} parent 1:40 handle 40: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++#    $TC qdisc add dev ${DEV} parent 1:50 handle 50: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++#    $TC qdisc add dev ${DEV} parent 1:60 handle 60: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
++#
++#    $TC filter add dev ${DEV} parent 20: handle 20 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++#    $TC filter add dev ${DEV} parent 30: handle 30 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++#    $TC filter add dev ${DEV} parent 40: handle 40 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++#    $TC filter add dev ${DEV} parent 50: handle 50 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++#    $TC filter add dev ${DEV} parent 60: handle 60 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
++#
++#    $IP link set dev ${DEV} up
++#    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action connmark action mirred egress redirect dev ${DEV} 
++#
++#    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${XTUN0_PORT} 0xffff  flowid 1:20
++#    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${SOCKS_PORT} 0xffff  flowid 1:60
++}
 +
-+    $TC qdisc del dev ${IFACE} handle ffff: ingress 2> /dev/null
-+    $TC qdisc add dev ${IFACE} handle ffff: ingress
-+
-+    $TC qdisc del dev ${DEV} root 2> /dev/null
-+    $TC qdisc add dev ${DEV} root handle 1: `get_stab_string` hfsc default 50
-+
-+    #Use a single queue for ingress.
-+    $TC class add dev ${DEV} parent 1: classid 1:1 hfsc sc rate ${DOWNLINK}kbit ul rate ${DOWNLINK}kbit
-+
-+    $TC class add dev ${DEV} parent 1:1  classid 1:20 hfsc rt m1 ${DOWNLINK}kbit d 50ms m2 $((5*$DOWNLINK/10))kbit ls m1 ${DOWNLINK}kbit d 50ms m2 $((7*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
-+    $TC class add dev ${DEV} parent 1:1  classid 1:30 hfsc sc m1 ${DOWNLINK}kbit d 200ms m2 $((3*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
-+    $TC class add dev ${DEV} parent 1:1  classid 1:40 hfsc sc m1 0 d 1s m2 $((1*$DOWNLINK/10))kbit ul rate ${DOWNLINK}kbit
-+    $TC class add dev ${DEV} parent 1:1  classid 1:50 hfsc sc m1 0 d 2s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
-+    $TC class add dev ${DEV} parent 1:1  classid 1:60 hfsc sc m1 0 d 10s m2 $((1*$DOWNLINK/20))kbit ul rate ${DOWNLINK}kbit
-+
-+    $TC qdisc add dev ${DEV} parent 1:20 handle 20: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
-+    $TC qdisc add dev ${DEV} parent 1:30 handle 30: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
-+    $TC qdisc add dev ${DEV} parent 1:40 handle 40: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
-+    $TC qdisc add dev ${DEV} parent 1:50 handle 50: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
-+    $TC qdisc add dev ${DEV} parent 1:60 handle 60: ${QDISC} `get_limit ${ILIMIT}` `get_target "${ITARGET}" ${DOWNLINK}` `get_ecn ${IECN}` `get_quantum  1540` `get_flows ${DOWNLINK}` ${IQDISC_OPTS}
-+
-+    $TC filter add dev ${DEV} parent 20: handle 20 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
-+    $TC filter add dev ${DEV} parent 30: handle 30 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
-+    $TC filter add dev ${DEV} parent 40: handle 40 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
-+    $TC filter add dev ${DEV} parent 50: handle 50 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
-+    $TC filter add dev ${DEV} parent 60: handle 60 protocol all flow hash keys nfct-src,nfct-dst,nfct-proto,nfct-proto-src,nfct-proto-dst  divisor `get_flows_count ${DOWNLINK}`
-+
-+    $IP link set dev ${DEV} up
-+    $TC filter add dev ${IFACE} parent ffff: protocol all prio 1 u32 match u32 0 0 action connmark action mirred egress redirect dev ${DEV} 
-+
-+    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${XTUN0_PORT} 0xffff  flowid 1:20
-+    $TC filter add dev ${DEV} parent 1:0 protocol all prio 1 u32 match ip sport ${SOCKS_PORT} 0xffff  flowid 1:60
++push_to_api() {
++	local TOKEN METRIC WAN_IP API_IP
++	
++	TOKEN=$(uci -q get overthebox.me.token)
++	METRIC=$(uci -q get network.${IFACE}.metric)
++	if [ "$1" == "stop" ]; then
++		curl -s --connect-timeout 3 -X DELETE api/qos/${METRIC}?auth_token=${TOKEN}
++	elif [ "$1" == "start" ]; then
++		WAN_IP=$(curl -s --connect-timeout 3 --interface ${IFACE} ifconfig.ovh)
++		if [ -n "${WAN_IP}" ]; then
++			curl -s --connect-timeout 3 -X PUT -H "Content-Type: application/json" --data "{ \"interface\": \"${IFACE}\", \"metric\": \"${METRIC}\", \"wan_ip\": \"${WAN_IP}\", \"downlink\": \"${DOWNLINK}\", \"uplink\": \"${UPLINK}\" }" api/qos?auth_token=${TOKEN}
++		fi
++	fi
 +}
 +
 +sqm_start() {
 +    [ -n "${IFACE}" ] || return 1
++    push_to_api start
++    [ "${RUN_IFACE}" == "tun0" ] && return 1
 +    [ -z "$DEV" ] && DEV=$( get_ifb_for_if ${IFACE} )
 +    do_modules
 +    verify_qdisc "hfsc" || return 1
@@ -348,11 +380,13 @@ index 0000000..2384ace
 +        $TC qdisc del dev ${DEV} root 2> /dev/null
 +        $TC qdisc del dev ${IFACE} ingress 2> /dev/null
 +    fi
-+
 +    return 0
 +}
 +
 +sqm_stop() {
++    push_to_api stop
++    [ "${RUN_IFACE}" == "tun0" ] && return 1
++
 +    $TC qdisc del dev ${IFACE} ingress 2> /dev/null
 +    $TC qdisc del dev ${IFACE} root 2> /dev/null
 +    [ -n "$CUR_IFB" ] && $TC qdisc del dev ${CUR_IFB} root 2> /dev/null

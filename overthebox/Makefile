@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
-PKG_VERSION:=0.2
-PKG_RELEASE:=16
+PKG_VERSION:=0.3
+PKG_RELEASE:=3
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -46,6 +46,7 @@ endef
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
 	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/lib/lua/overthebox.lua 
+	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/bin/overthebox_emergency_action 
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./defaults/overthebox.defaults $(1)/etc/uci-defaults/overthebox.defaults
 	$(INSTALL_BIN) ./defaults/network.defaults $(1)/etc/uci-defaults/otb-network.defaults
