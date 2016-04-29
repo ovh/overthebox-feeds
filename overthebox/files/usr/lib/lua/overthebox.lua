@@ -1647,6 +1647,38 @@ function restart_daemon()
 	return status_code_ok(rcode), ret 
 end
 
+
+
+--
+-- function getzombieppid search zombie programs
+-- return array of zombie's ppid
+function getzombieppid()
+	local ret = {}
+	local files = posix.dir("/proc")
+	for _, name in ipairs(files) do
+		if string.match(name, '[0-9]+') then -- only pids
+			local f = io.open(string.format('/proc/%s/stat', name), "r")
+			if f == nil then return ret end
+			for line in f:lines() do
+				local fis = split(line or "" )
+				if #fis > 4 and fis[3] == "Z" then
+					table.insert(ret, fis[4])
+				end
+			end
+			f:close()
+
+		end
+	end
+	return ret
+end
+
+--
+-- function sigkill kill a pid
+--
+function sigkill(pid)
+	return posix.kill(pid, posix.SIGKILL)
+end
+
 --
 -- function get_cmdline read cmdline file for a PID
 -- return the command line which start the PID process
@@ -1913,5 +1945,19 @@ function tprint (tbl, indent)
 		end
 	end
 end
+
+
+function info(msg)
+	posix.syslog( posix.LOG_INFO, msg)
+end
+
+function warning(msg)
+	posix.syslog( posix.LOG_WARNING, msg)
+end
+
+function err(msg)
+	posix.syslog( posix.LOG_ERR, msg)
+end
+
 
 
