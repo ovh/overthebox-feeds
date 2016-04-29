@@ -14,13 +14,34 @@ then
 fi
 
 CMD="/usr/bin/overtheboxd"
+if [ "$(grep "$CMD" $FILE -c )" != "0" ]
+then
+        TMP=$(mktemp)
+        # cleanup
+        grep -v "$CMD" $FILE > $TMP
+        mv $TMP $FILE
+fi
+
+CMD="/usr/bin/overthebox_checkup"
 if [ "$(grep "$CMD" $FILE -c )" != "1" ]
 then
         TMP=$(mktemp)
         # cleanup
         grep -v "$CMD" $FILE > $TMP
         # fix
-        echo '00 */2 * * * { pgrep -f "lua /usr/bin/overtheboxd" 2>&1 1>/dev/null || /etc/init.d/overtheboxd restart; } &>/dev/null' >>$TMP
+        echo '00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null' >> $TMP
+        mv $TMP $FILE
+fi
+
+
+CMD="/usr/bin/overthebox_emergency_action"
+if [ "$(grep "$CMD" $FILE -c )" != "1" ]
+then
+        TMP=$(mktemp)
+        # cleanup
+        grep -v "$CMD" $FILE > $TMP
+        # fix
+        echo '00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null' >>$TMP
         mv $TMP $FILE
 fi
 

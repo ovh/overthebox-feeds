@@ -250,48 +250,50 @@
 						var timestamps = Object.keys(dataarray);
 						timestamps.sort();
 
-						// Create and initialize qdisc graphic elements
-						for(var qdisc in dataarray[timestamps[timestamps.length - 1]])
+						// Hide 500 qdisc download values
+						for(var timestp in dataarray)
 						{
-							// Create lines for each interfaces
+							delete dataarray[timestp]["download"]["500"];
+						}
+
+						// Create and initialize qdisc graphic elements
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["upload"])
+						{
 							var color = stringToColour(qdisc);
-							if(Object.keys( dataarray[timestamps[timestamps.length - 1]][qdisc] )[0].substr(0, 4) == "ifb4")
+							if(typeof upPolygons[qdisc] != "object")
 							{
-								if(typeof dnPolygons[qdisc] != "object")
-								{
-									var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-									dnline.setAttributeNS(null, 'id', 'rx_' + qdisc);
-									dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
-									Gdn.getElementById('tx').parentNode.appendChild(dnline);
-
-									dnPolygons[qdisc] = Gdn.getElementById('rx_' + qdisc);
-									/* prefill datasets */
-									dndata[qdisc] = [ ];
-									for (var i = 0; i < data_wanted; i++)
-									{
-									       dndata[qdisc][i] = 0;
-									}
-									createStatsFooter("download", qdisc, color);
-								}
-							}
-							else
-							{
-								if(typeof upPolygons[qdisc] != "object")
-								{
-									var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-									upline.setAttributeNS(null, 'id', 'tx_' + qdisc);
-									upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
-									Gup.getElementById('rx').parentNode.appendChild(upline);
-
+								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+								upline.setAttributeNS(null, 'id', 'tx_' + qdisc);
+								upline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
+								Gup.getElementById('rx').parentNode.appendChild(upline);
 									upPolygons[qdisc] = Gup.getElementById('tx_' + qdisc);
-									/* prefill datasets */
-									updata[qdisc] = [ ];
-									for (var i = 0; i < data_wanted; i++)
-									{
-										updata[qdisc][i] = 0;
-									}
-									createStatsFooter("upload", qdisc, color);
+								/* prefill datasets */
+								updata[qdisc] = [ ];
+								for (var i = 0; i < data_wanted; i++)
+								{
+									updata[qdisc][i] = 0;
 								}
+								createStatsFooter("upload", qdisc, color);
+							}
+						}
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["download"])
+						{
+							var color = stringToColour(qdisc);
+							if(typeof dnPolygons[qdisc] != "object")
+							{
+								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+								dnline.setAttributeNS(null, 'id', 'rx_' + qdisc);
+								dnline.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity: 0.6;stroke:black;stroke-width:0.1');
+								Gdn.getElementById('tx').parentNode.appendChild(dnline);
+
+								dnPolygons[qdisc] = Gdn.getElementById('rx_' + qdisc);
+								/* prefill datasets */
+								dndata[qdisc] = [ ];
+								for (var i = 0; i < data_wanted; i++)
+								{
+								       dndata[qdisc][i] = 0;
+								}
+								createStatsFooter("download", qdisc, color);
 							}
 						}
 						// compute data point
@@ -304,44 +306,39 @@
 								var time_delta = timestamps[i] - timestamps[i-1];
 								if(time_delta)
 								{
-									for(var qdisc in dataarray[timestamps[i]])
+									for(var qdisc in dataarray[timestamps[i]]["upload"])
 									{
-										if(Object.keys( dataarray[timestamps[timestamps.length - 1]][qdisc] )[0].substr(0, 4) == "ifb4")
+										// Compute datapoint : add all interfaces bytes counters
+										var upload = 0;
+										for(var intf in dataarray[timestamps[i]]["upload"][qdisc])
 										{
-											// Compute datapoint : add all interfaces bytes counters
-											var download = 0;
-											for(var intf in dataarray[timestamps[i]][qdisc])
-											{
-												download += (Number(dataarray[timestamps[i]][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]][qdisc][intf].bytes)) / time_delta;
-											}
-											dndata[qdisc].push(download);
+											upload += (Number(dataarray[timestamps[i]]["upload"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["upload"][qdisc][intf].bytes)) / time_delta;
 										}
-										else
+										updata[qdisc].push(upload);
+									}
+									for(var qdisc in dataarray[timestamps[i]]["download"])
+									{
+										// Compute datapoint : add all interfaces bytes counters
+										var download = 0;
+										for(var intf in dataarray[timestamps[i]]["download"][qdisc])
 										{
-											// Compute datapoint : add all interfaces bytes counters
-											var upload = 0;
-											for(var intf in dataarray[timestamps[i]][qdisc])
-											{
-												upload += (Number(dataarray[timestamps[i]][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]][qdisc][intf].bytes)) / time_delta;
-											}
-											updata[qdisc].push(upload);
+											download += (Number(dataarray[timestamps[i]]["download"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["download"][qdisc][intf].bytes)) / time_delta;
 										}
+										dndata[qdisc].push(download);
 									}
 								}
 							}
 							data_stamp = Math.max(data_stamp, timestamps[i])
 						}
 
-						for(var qdisc in dataarray[timestamps[timestamps.length - 1]])
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["upload"])
 						{
-							if(Object.keys( dataarray[timestamps[timestamps.length - 1]][qdisc] )[0].substr(0, 4) == "ifb4")
-							{
-								dndata[qdisc] = dndata[qdisc].slice(dndata[qdisc].length - data_wanted, dndata[qdisc].length);
-							}
-							else
-							{
-								updata[qdisc] = updata[qdisc].slice(updata[qdisc].length - data_wanted, updata[qdisc].length);
-							}
+							updata[qdisc] = updata[qdisc].slice(updata[qdisc].length - data_wanted, updata[qdisc].length);
+						}
+
+						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["download"])
+						{
+							dndata[qdisc] = dndata[qdisc].slice(dndata[qdisc].length - data_wanted, dndata[qdisc].length);
 						}
 
 						// intialize upline datas for upload

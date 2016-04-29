@@ -1,0 +1,29 @@
+#!/usr/bin/env lua
+local uci = require("luci.model.uci").cursor()
+local overthebox = require("overthebox")
+
+-- first check if overtheboxd is running, and not stalled
+if overthebox.restart_daemon_if_stalled() then
+    print("daemon restarted")
+end
+
+if not uci:get("overthebox", "me", "service", {}) then
+    print("overthebox not linked")
+    os.exit(0)
+end
+
+-- check if ss run
+if not overthebox.test_if_running( "/usr/bin/ss-redir") then
+    print("shadowsocks starting")
+    overthebox.run("/etc/init.d/shadowsocks restart")
+end
+
+
+-- if neither glorytun and vtund are stopped, relaunch both. only one will start if configured
+if not overthebox.test_if_running("glorytun") and not overthebox.test_if_running("vtund") then
+    print("vtund and glorytun are stopped, relaunch its")
+    overthebox.run("/etc/init.d/vtund restart")
+    overthebox.run("/etc/init.d/glorytun restart")
+end
+
+
