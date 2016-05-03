@@ -38,10 +38,6 @@
 	$(document).ready(function(){
 		$('[data-toggle="popover"]').popover();
 	});
-	// Avoid browser crash after a long time spent on this page
-	window.setInterval(function(){
-		document.location.reload(true);
-	}, 1000 * 60 * 60);
 </script>
 
 <script type="text/javascript">//<![CDATA[
