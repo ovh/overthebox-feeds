@@ -25,7 +25,7 @@ function bandwidth_label(bytes, br)
     );
 }
 
-function createStatsFooter(name, itf, color){
+function createStatsFooter(name, itf, color, label){
     var table = document.getElementById(name + '_stats');
     var tr = table.insertRow();
     tr.setAttribute('id', itf + '_' + name);
@@ -35,7 +35,7 @@ function createStatsFooter(name, itf, color){
 
     // Crete itf legend
     var strong = document.createElement('strong');
-    strong.appendChild(document.createTextNode(itf));
+    strong.appendChild(document.createTextNode(label ? label : itf));
     strong.setAttribute('style', 'border-bottom:2px solid ' + color);
     itflabel.appendChild(strong);
 

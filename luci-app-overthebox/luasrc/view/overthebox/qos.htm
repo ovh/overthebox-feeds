@@ -52,6 +52,36 @@
 		});
 	});
 
+	function getQosLabel(qdisc, way) {
+		if(way == "upload"){
+			if(qdisc == "12")
+				return "Network control";
+			if(qdisc == "13")
+				return "Realtime";
+			if(qdisc == "14")
+				return "Signaling";
+			if(qdisc == "15")
+				return "Normal";
+			if(qdisc == "16")
+				return "Scavenger";
+		}
+		if(way == "download"){
+			var itf = qdisc.substr(0, qdisc.length - 1);
+			var qdisc = qdisc.substr(-1);
+			if(qdisc == "2")
+				return itf+" - Network control";
+			if(qdisc == "3")
+				return itf+" - Realtime";
+			if(qdisc == "4")
+				return itf+" - Signaling";
+			if(qdisc == "5")
+				return itf+" - Normal";
+			if(qdisc == "6")
+				return itf+" - Scavenger";
+		}
+		return qdisc;
+	}
+
         function stringToColour(str) {
 
                 if(str == "free1")
@@ -273,7 +303,7 @@
 								{
 									updata[qdisc][i] = 0;
 								}
-								createStatsFooter("upload", qdisc, color);
+								createStatsFooter("upload", qdisc, color, getQosLabel(qdisc, "upload"));
 							}
 						}
 						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["download"])
@@ -293,7 +323,7 @@
 								{
 								       dndata[qdisc][i] = 0;
 								}
-								createStatsFooter("download", qdisc, color);
+								createStatsFooter("download", qdisc, color, getQosLabel(qdisc, "download"));
 							}
 						}
 						// compute data point
