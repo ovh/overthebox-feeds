@@ -128,7 +128,7 @@ while run do
 			msg = ""
 		else
 			actionreturn = false
-			msg = {error = "Unknown action: "..ret.action}
+			msg = "Unknown action: "..ret.action
 		end
 
 		if actionreturn ~= nil then
@@ -138,10 +138,11 @@ while run do
 				debug("Failed to do "..ret.action)
 				actionreturn = "error"
 				-- If there was an error, the message should be in the error field
+				if msg == nil then
+					msg = "OTB Unknown error"
+				end
 				if msg.error ~= nil then
 					msg = msg.error
-				else
-					msg = "OTB Unknown error"
 				end
 				debug("Got error: "..msg)
 			end
