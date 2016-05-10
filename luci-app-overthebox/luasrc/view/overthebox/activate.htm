@@ -66,7 +66,14 @@ window.setTimeout(function()
 <!--	<legend><%:Activate service%></legend> -->
         <table width="100%" cellspacing="10">
 		<tr><td width="33%"><%:Device ID%></td><td><%=device_id or translate("Registering your device, please wait...")%></td></tr>
-                <tr><td width="33%"><%:Service name%></td><td><%=service or translate("Your service is being installed, please wait...")%></td></tr>
+		<tr><td width="33%"><%:Service name%></td><td><%=service or translate("Your service is being installed, please wait...")%></td></tr>
+		<tr><td width="33%"><%:Help%></td>
+			<td>
+				<a href="https://docs.ovh.com/pages/releaseview.action?pageId=18123335#Mes10premièresminutesavecOverTheBox-Activate" target="_blank">
+					<%:How to activate my service%>
+				</a>
+			</td>
+		</tr>
         </table>
 	<div id="activate_action_button" class="cbi-page-actions">
 	<% if service then %>
