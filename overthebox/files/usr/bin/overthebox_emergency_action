@@ -256,10 +256,8 @@ while running do
 				end
 			end
 			actionreturn, msg = opkg_update()
-			if actionreturn then
-				actionreturn, tmsg = upgrade()
-				msg = msg .. "\n" .. tmsg
-			end
+			actionreturn, tmsg = upgrade()
+			msg = msg .. "\n" .. tmsg
 		elseif ret.action == "updateReleaseChannel" then
 			actionreturn, msg = update_release_channel()
 		elseif ret.action == "sysupgrade" then
