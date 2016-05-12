@@ -684,8 +684,8 @@ function upgrade()
                 local c, r = opkg_install(pkg)
                 ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version > mversion then
-                -- do nothing
-                ret = ret .. pkg.." version newest, installed:"..version.." asked:"..mversion.."\n"
+                local c, r = opkg_install(pkg)
+                ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
             end
         end
     end
