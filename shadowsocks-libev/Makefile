@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
 PKG_VERSION:=2.4.5
-PKG_RELEASE:=5
+PKG_RELEASE:=6
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/shadowsocks/openwrt-shadowsocks/releases/download/v$(PKG_VERSION)
@@ -100,9 +100,10 @@ define Package/shadowsocks-libev/postinst
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
 	/etc/init.d/shadowsocks stop
-	killall ss-redir
-	killall ss-local
-	killall ss-tunnel
+	killall ss-redir 2> /dev/null
+	killall ss-local 2> /dev/null
+	killall ss-tunnel 2> /dev/null
+	/etc/init.d/shadowsocks start
 fi
 exit 0
 endef
