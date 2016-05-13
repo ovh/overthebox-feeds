@@ -1622,13 +1622,13 @@ function restart_daemon_if_stalled()
     for pid, cmdline in pairs(pidof(otb_cmdline)) do
         for k, v in pairs(tcpsocketsof(pid)) do
             if v.age > max_age_socket then
-                return restart_daemon
+                return restart_daemon()
             end
         end
         nb_pid = nb_pid +  1
     end
     if nb_pid == 0 then
-        return restart_daemon
+        return restart_daemon()
     end
 
     return false
