@@ -32,6 +32,7 @@ var bandwidth = { };
 var oldData = { };
 var newData = { };
 var period = 5;
+var sortingKey = 'rx';
 
 function transformArray(data)
 {
@@ -128,7 +129,7 @@ function updateHtml()
         computeBandwidth(data);
 
         macs = Object.keys(bandwidth);
-        sortArrayByKey(macs, bandwidth, "rx");
+        sortArrayByKey(macs, bandwidth, sortingKey);
 
         htmlOutput = "";
         $.each(macs, function(key, val)
@@ -143,10 +144,33 @@ function updateHtml()
     });
 }
 
-$(document).ready(function ()
+$(document).ready(function()
 {
+    if (sortingKey == 'tx')
+    {
+        $('#tx').css('text-decoration', 'underline');
+    }
+    else if (sortingKey == 'rx')
+    {
+        $('#rx').css('text-decoration', 'underline');
+    }
+
     updateHtml();
     setInterval(updateHtml, period * 1000);
+
+    $('#tx').click(function()
+    {
+        sortingKey = 'tx';
+        $('#tx').css('text-decoration', 'underline');
+        $('#rx').css('text-decoration', 'none');
+    });
+
+    $('#rx').click(function()
+    {
+        sortingKey = 'rx';
+        $('#rx').css('text-decoration', 'underline');
+        $('#tx').css('text-decoration', 'none');
+    });
 });
 
 </script>
@@ -161,8 +185,8 @@ $(document).ready(function ()
     <thead>
         <tr class="cbi-section-table-titles">
             <th class="cbi-section-table-cell">MAC</th>
-            <th class="cbi-section-table-cell">TX</th>
-            <th class="cbi-section-table-cell">RX</th>
+            <th class="cbi-section-table-cell"><a id="tx">TX</a></th>
+            <th class="cbi-section-table-cell"><a id="rx">RX</a></th>
         </tr>
     </thead>
     <tbody id="bandwidth">
