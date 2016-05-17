@@ -1,0 +1,175 @@
+<%
+-- Copyright 2016 OVH (OverTheBox@ovh.net)
+-- Simon Lelievre (simon.lelievre@corp.ovh.com)
+-- Sebastien Duponcheel (sebastien.duponcheel@ovh.net)
+-- Martin Wetterwald (martin.wetterwald@corp.ovh.com)
+--
+-- This file is part of OverTheBox for OpenWrt.
+--
+--    OverTheBox is free software: you can redistribute it and/or modify
+--    it under the terms of the GNU General Public License as published by
+--    the Free Software Foundation, either version 3 of the License, or
+--    (at your option) any later version.
+--
+--    OverTheBox is distributed in the hope that it will be useful,
+--    but WITHOUT ANY WARRANTY; without even the implied warranty of
+--    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--    GNU General Public License for more details.
+--
+--    You should have received a copy of the GNU General Public License
+--    along with OverTheBox.  If not, see (http://www.gnu.org/licenses/)
+-%>
+
+<%+header%>
+
+<script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+<script type="text/javascript" src="<%=resource%>/jquery-1.11.3.min.js"></script>
+<script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
+<script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
+
+<script type="text/javascript">
+var bandwidth = { };
+var oldData = { };
+var newData = { };
+var period = 5;
+
+function transformArray(data)
+{
+    var res = { };
+    $.each(data, function(key, val) {
+        res[val['mac']] = { };
+        res[val['mac']]['tx'] = val['tx'];
+        res[val['mac']]['rx'] = val['rx'];
+    });
+    return res;
+}
+
+function round(number)
+{
+    return (Math.round((number * 1000)/10)/100).toFixed(2);
+}
+
+function unitify(number, binary=false)
+{
+    var unitSuffix2 = "B/s";
+
+    var base = (binary ? 1024 : 1000);
+    var unitSuffix1 = (binary ? "i" : "");
+
+    var G = Math.pow(base, 3);
+    var M = Math.pow(base, 2);
+    var k = Math.pow(base, 1);
+
+    if (number >= G)
+    {
+        return round(number / G) + " G" + unitSuffix1 + unitSuffix2;
+    }
+    else if (number >= M)
+    {
+        return round(number / M) + " M" + unitSuffix1 + unitSuffix2;
+    }
+    else if (number >= k)
+    {
+        return round(number / k) + " k" + unitSuffix1 + unitSuffix2;
+    }
+    else
+    {
+        return number + " " + unitSuffix2;
+    }
+}
+
+function sortArrayByKey(toSort, lookup, key)
+{
+    return toSort.sort(function(a, b)
+    {
+        var x = lookup[a][key];
+        var y = lookup[b][key];
+        return ((x < y) ? 1 : ((x > y) ? -1 : 0));
+    });
+}
+
+function computeBandwidth(data)
+{
+    oldData = newData;
+    newData = transformArray(data);
+
+    var res = { };
+
+    $.each(newData, function(key, val)
+    {
+        res[key] = { };
+        if (!(key in oldData))
+        {
+            res[key]['tx'] = 0;
+            res[key]['rx'] = 0;
+            res[key]['tx_txt'] = "Gathering data..."
+            res[key]['rx_txt'] = "Gathering data..."
+        }
+        else
+        {
+            var tx = (newData[key]['tx'] - oldData[key]['tx']);
+            var rx = (newData[key]['rx'] - oldData[key]['rx']);
+
+            res[key]['tx'] = (tx >= 0 ? tx / period : bandwidth[key]['tx']);
+            res[key]['rx'] = (rx >= 0 ? rx / period : bandwidth[key]['rx']);
+
+            res[key]['tx_txt'] = unitify(res[key]['tx']);
+            res[key]['rx_txt'] = unitify(res[key]['rx']);
+        }
+    });
+
+    bandwidth = res;
+}
+
+function updateHtml()
+{
+    $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
+    {
+        computeBandwidth(data);
+
+        macs = Object.keys(bandwidth);
+        sortArrayByKey(macs, bandwidth, "rx");
+
+        htmlOutput = "";
+        $.each(macs, function(key, val)
+        {
+            htmlOutput += "<tr class=\"cbi-section-table-row\">";
+            htmlOutput += "<td class=\"cbi-value-field\">" + val + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
+            htmlOutput += "</tr>";
+        });
+        $("#bandwidth").html(htmlOutput);
+    });
+}
+
+$(document).ready(function ()
+{
+    updateHtml();
+    setInterval(updateHtml, period * 1000);
+});
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
+
+<h2><%:LAN Traffic%></h2>
+
+
+<table class="cbi-section-table">
+    <thead>
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-cell">MAC</th>
+            <th class="cbi-section-table-cell">TX</th>
+            <th class="cbi-section-table-cell">RX</th>
+        </tr>
+    </thead>
+    <tbody id="bandwidth">
+        <tr class="cbi-section-table-row">
+            <td colspan="3">Gathering data...</td>
+        </tr>
+    </tbody>
+</table>
+
+<%+footer%>
