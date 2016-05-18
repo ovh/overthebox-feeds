@@ -41,6 +41,8 @@ function transformArray(data)
         res[val['mac']] = { };
         res[val['mac']]['tx'] = val['tx'];
         res[val['mac']]['rx'] = val['rx'];
+        res[val['mac']]['ip'] = val['ip'];
+        res[val['mac']]['hostname'] = val['hostname'];
     });
     return res;
 }
@@ -136,6 +138,8 @@ function updateHtml()
         {
             htmlOutput += "<tr class=\"cbi-section-table-row\">";
             htmlOutput += "<td class=\"cbi-value-field\">" + val + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['ip'] + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['hostname'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "</tr>";
@@ -181,17 +185,19 @@ $(document).ready(function()
 <h2><%:LAN Traffic%></h2>
 
 
-<table class="cbi-section-table">
+<table class="cbi-section-table" style="table-layout:fixed;">
     <thead>
         <tr class="cbi-section-table-titles">
             <th class="cbi-section-table-cell">MAC</th>
+            <th class="cbi-section-table-cell">IP</th>
+            <th class="cbi-section-table-cell">Host</th>
             <th class="cbi-section-table-cell"><a id="tx">TX</a></th>
             <th class="cbi-section-table-cell"><a id="rx">RX</a></th>
         </tr>
     </thead>
     <tbody id="bandwidth">
         <tr class="cbi-section-table-row">
-            <td colspan="3">Gathering data...</td>
+            <td colspan="5">Gathering data...</td>
         </tr>
     </tbody>
 </table>
