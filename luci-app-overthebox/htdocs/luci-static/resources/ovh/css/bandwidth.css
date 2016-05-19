@@ -1,0 +1,8 @@
+.legend_square
+{
+    float: left;
+    width: 15px;
+    height: 15px;
+    margin: auto 5px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
