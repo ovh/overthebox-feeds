@@ -172,10 +172,18 @@ function plotPie(div, data, colors, title)
 
 function updateHtml()
 {
-    var graphDataRX = [ ["Total", 40000000 ] ];
-    var graphDataTX = [ ["Total", 1000000 ] ];
-    var colorsRX = [ 'rgba(200, 200, 200, 0.4)' ];
-    var colorsTX = [ 'rgba(200, 200, 200, 0.4)' ];
+    var totalRX = 4000000;
+    var totalTX = 100000;
+
+    var freeRX = totalRX;
+    var freeTX = totalTX;
+    var freeColor = "rgba(200, 200, 200, 0.4)";
+
+    var graphDataRX = [ ];
+    var graphDataTX = [ ];
+    var colorsRX = [ ];
+    var colorsTX = [ ];
+
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
     {
         computeBandwidth(data);
@@ -195,11 +203,27 @@ function updateHtml()
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "</tr>";
 
+            freeRX -= bandwidth[val]['rx'];
+            freeTX -= bandwidth[val]['tx'];
+
             graphDataRX.push([val, bandwidth[val]['rx']]);
             graphDataTX.push([val, bandwidth[val]['tx']]);
             colorsRX.push(color);
             colorsTX.push(color);
         });
+        freeRX = (freeRX < 0) ? 0 : freeRX;
+        freeTX = (freeTX < 0) ? 0 : freeTX;
+
+        htmlOutput += "<tr class=\"cbi-section-table-row\">";
+        htmlOutput += "<td class=\"cbi-value-field\" colspan=\"3\"><span class=\"legend_square\" style=\"background: " + freeColor + ";\"></span>Free</td>";
+        htmlOutput += "<td class=\"cbi-value-field\">" + unitify(freeTX) + "</td>";
+        htmlOutput += "<td class=\"cbi-value-field\">" + unitify(freeRX) + "</td>";
+        htmlOutput += "</tr>";
+
+        graphDataRX.push(["Free", freeRX]);
+        graphDataTX.push(["Free", freeTX]);
+        colorsRX.push(freeColor);
+        colorsTX.push(freeColor);
 
         $("#bandwidth").html(htmlOutput);
         plotPie('pieRX', graphDataRX, colorsRX, "RX");
