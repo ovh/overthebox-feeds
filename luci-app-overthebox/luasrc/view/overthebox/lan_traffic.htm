@@ -142,10 +142,36 @@ function macToColor(mac)
     return color;
 }
 
+function plotPie(div, data, colors)
+{
+    $.jqplot(div, [data],
+    {
+        seriesColors: colors,
+        grid:
+        {
+            drawBorder: false,
+            drawGridlines: false,
+            background: '#ffffff',
+            shadow:false
+        },
+        axesDefaults: { },
+        seriesDefaults:
+        {
+            renderer:$.jqplot.PieRenderer,
+            rendererOptions:
+            {
+                showDataLabels: true,
+            },
+            shadow: false
+        },
+        legend: { show: false }
+    });
+}
+
 function updateHtml()
 {
     var graphDataRX = [ ["Total", 40000000 ] ];
-    var colors = [ 'rgba(200, 200, 200, 0.4)' ];
+    var colorsRX = [ 'rgba(200, 200, 200, 0.4)' ];
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
     {
         computeBandwidth(data);
@@ -166,33 +192,11 @@ function updateHtml()
             htmlOutput += "</tr>";
 
             graphDataRX.push([val, bandwidth[val]['rx']]);
-            colors.push(color);
+            colorsRX.push(color);
         });
 
         $("#bandwidth").html(htmlOutput);
-
-        var plot = $.jqplot('pieRX', [graphDataRX],
-        {
-            seriesColors: colors,
-            grid:
-            {
-                drawBorder: false,
-                drawGridlines: false,
-                background: '#ffffff',
-                shadow:false
-            },
-            axesDefaults: { },
-            seriesDefaults:
-            {
-                renderer:$.jqplot.PieRenderer,
-                rendererOptions:
-                {
-                    showDataLabels: true,
-                },
-                shadow: false
-            },
-            legend: { show: false }
-        });
+        plotPie('pieRX', graphDataRX, colorsRX);
     });
 }
 
