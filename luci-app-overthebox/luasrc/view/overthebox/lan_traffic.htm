@@ -171,7 +171,9 @@ function plotPie(div, data, colors)
 function updateHtml()
 {
     var graphDataRX = [ ["Total", 40000000 ] ];
+    var graphDataTX = [ ["Total", 1000000 ] ];
     var colorsRX = [ 'rgba(200, 200, 200, 0.4)' ];
+    var colorsTX = [ 'rgba(200, 200, 200, 0.4)' ];
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
     {
         computeBandwidth(data);
@@ -192,11 +194,14 @@ function updateHtml()
             htmlOutput += "</tr>";
 
             graphDataRX.push([val, bandwidth[val]['rx']]);
+            graphDataTX.push([val, bandwidth[val]['tx']]);
             colorsRX.push(color);
+            colorsTX.push(color);
         });
 
         $("#bandwidth").html(htmlOutput);
         plotPie('pieRX', graphDataRX, colorsRX);
+        plotPie('pieTX', graphDataTX, colorsTX);
     });
 }
 
@@ -235,9 +240,10 @@ $(document).ready(function()
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
 <h2><%:LAN Traffic%></h2>
-<div id="pieRX"></div>
+<div id="pieTX" style="float: left;"></div>
+<div id="pieRX" style="float: right;"></div>
 
-<h2><%:Details%></h2>
+<h2 style="clear: both;"><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
     <thead>
         <tr class="cbi-section-table-titles">
