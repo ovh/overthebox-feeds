@@ -26,6 +26,8 @@
 <script type="text/javascript" src="<%=resource%>/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
+<script type="text/javascript" src="<%=resource%>/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="<%=resource%>/jqplot.pieRenderer.min.js"></script>
 
 <script type="text/javascript">
 var bandwidth = { };
@@ -124,8 +126,24 @@ function computeBandwidth(data)
     bandwidth = res;
 }
 
+function macToColor(mac)
+{
+    Math.seedrandom(mac);
+    var rand = Math.random() * Math.pow(255, 3);
+    Math.seedrandom();
+
+    color = "rgba(" +
+        (rand & 0xFF).toString(10) +  ", " +
+        ((rand >> 1 * 8) & 0xFF).toString(10) + ", " +
+        ((rand >> 2 * 8) & 0xFF).toString(10) +
+        ", 0.4)";
+    return color;
+}
+
 function updateHtml()
 {
+    var graphDataRX = [ ["Total", 40000000 ] ];
+    var colors = [ 'rgba(200, 200, 200, 0.4)' ];
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
     {
         computeBandwidth(data);
@@ -143,8 +161,35 @@ function updateHtml()
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "</tr>";
+
+            graphDataRX.push([val, bandwidth[val]['rx']]);
+            colors.push(macToColor(val));
         });
+
         $("#bandwidth").html(htmlOutput);
+
+        var plot = $.jqplot('pieRX', [graphDataRX],
+        {
+            seriesColors: colors,
+            grid:
+            {
+                drawBorder: false,
+                drawGridlines: false,
+                background: '#ffffff',
+                shadow:false
+            },
+            axesDefaults: { },
+            seriesDefaults:
+            {
+                renderer:$.jqplot.PieRenderer,
+                rendererOptions:
+                {
+                    showDataLabels: true,
+                },
+                shadow: false
+            },
+            legend: { show: false }
+        });
     });
 }
 
@@ -183,8 +228,9 @@ $(document).ready(function()
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
 <h2><%:LAN Traffic%></h2>
+<div id="pieRX"></div>
 
-
+<h2><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
     <thead>
         <tr class="cbi-section-table-titles">
@@ -201,5 +247,4 @@ $(document).ready(function()
         </tr>
     </tbody>
 </table>
-
 <%+footer%>
