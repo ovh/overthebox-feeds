@@ -6,3 +6,18 @@
     margin: auto 5px;
     border: 1px solid rgba(0, 0, 0, 0.2);
 }
+
+.pieGraph
+{
+    margin-top: 20px;
+}
+
+.pieGraph#pieTX
+{
+    float: left;
+}
+
+.pieGraph#pieRX
+{
+    float: right;
+}

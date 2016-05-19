@@ -30,6 +30,7 @@
 <script type="text/javascript" src="<%=resource%>/jqplot.pieRenderer.min.js"></script>
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/bandwidth.css" />
+<link rel="stylesheet" type="text/css" href="<%=resource%>/jquery.jqplot.min.css" />
 
 <script type="text/javascript">
 var bandwidth = { };
@@ -142,7 +143,7 @@ function macToColor(mac)
     return color;
 }
 
-function plotPie(div, data, colors)
+function plotPie(div, data, colors, title)
 {
     $.jqplot(div, [data],
     {
@@ -164,7 +165,8 @@ function plotPie(div, data, colors)
             },
             shadow: false
         },
-        legend: { show: false }
+        legend: { show: false },
+        title: title
     });
 }
 
@@ -200,8 +202,8 @@ function updateHtml()
         });
 
         $("#bandwidth").html(htmlOutput);
-        plotPie('pieRX', graphDataRX, colorsRX);
-        plotPie('pieTX', graphDataTX, colorsTX);
+        plotPie('pieRX', graphDataRX, colorsRX, "RX");
+        plotPie('pieTX', graphDataTX, colorsTX, "TX");
     });
 }
 
@@ -240,8 +242,8 @@ $(document).ready(function()
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
 <h2><%:LAN Traffic%></h2>
-<div id="pieTX" style="float: left;"></div>
-<div id="pieRX" style="float: right;"></div>
+<div id="pieTX" class="pieGraph"></div>
+<div id="pieRX" class="pieGraph"></div>
 
 <h2 style="clear: both;"><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
