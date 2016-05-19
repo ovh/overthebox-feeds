@@ -57,9 +57,9 @@ function round(number)
     return (Math.round((number * 1000)/10)/100).toFixed(2);
 }
 
-function unitify(number, binary=false)
+function unitify(number, bit=false, binary=false)
 {
-    var unitSuffix2 = "B/s";
+    var unitSuffix2 = (bit ? "bit/s" : "B/s");
 
     var base = (binary ? 1024 : 1000);
     var unitSuffix1 = (binary ? "i" : "");
@@ -67,6 +67,11 @@ function unitify(number, binary=false)
     var G = Math.pow(base, 3);
     var M = Math.pow(base, 2);
     var k = Math.pow(base, 1);
+
+    if (bit)
+    {
+        number *= 8;
+    }
 
     if (number >= G)
     {
@@ -172,8 +177,12 @@ function plotPie(div, data, colors, title)
 
 function updateHtml()
 {
-    var totalRX = 4000000;
-    var totalTX = 100000;
+    var totalRX = 350000;
+    var totalTX = 350000;
+
+    // SQM values are given in kbit/s so we need to convert to B/s
+    totalRX *= (1000 / 8);
+    totalTX *= (1000 / 8);
 
     var freeRX = totalRX;
     var freeTX = totalTX;
