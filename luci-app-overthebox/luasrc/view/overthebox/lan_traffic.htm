@@ -26,11 +26,8 @@
 <script type="text/javascript" src="<%=resource%>/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
-<script type="text/javascript" src="<%=resource%>/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="<%=resource%>/jqplot.pieRenderer.min.js"></script>
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/bandwidth.css" />
-<link rel="stylesheet" type="text/css" href="<%=resource%>/jquery.jqplot.min.css" />
 
 <script type="text/javascript">
 var bandwidth = { };
@@ -148,33 +145,6 @@ function macToColor(mac)
     return color;
 }
 
-function plotPie(div, data, colors, title)
-{
-    $.jqplot(div, [data],
-    {
-        seriesColors: colors,
-        grid:
-        {
-            drawBorder: false,
-            drawGridlines: false,
-            background: '#ffffff',
-            shadow:false
-        },
-        axesDefaults: { },
-        seriesDefaults:
-        {
-            renderer:$.jqplot.PieRenderer,
-            rendererOptions:
-            {
-                showDataLabels: true,
-            },
-            shadow: false
-        },
-        legend: { show: false },
-        title: title
-    });
-}
-
 function updateHtml()
 {
     var graphDataRX = [ ];
@@ -208,8 +178,6 @@ function updateHtml()
         });
 
         $("#bandwidth").html(htmlOutput);
-        plotPie('pieRX', graphDataRX, colorsRX, "RX");
-        plotPie('pieTX', graphDataTX, colorsTX, "TX");
     });
 }
 
