@@ -595,6 +595,7 @@ bw_stats.command= "/usr/bin/luci-bwc"
 function bw_stats:collect()
 	-- run bandwidth monitor
 	local handle = io.popen(string.format("%s -i %s", bw_stats.command, opts["i"]))
+	if not handle then return 0 end
 	local result = handle:read("*a")
 	handle:close()
 	-- store rsult in table
