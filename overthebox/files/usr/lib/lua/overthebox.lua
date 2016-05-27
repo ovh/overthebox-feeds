@@ -1746,7 +1746,9 @@ function tcpsocketsof(pid)
     for id, infos in pairs(socketsof(pid)) do
         if infos.inode ~= nil and sockets[infos.inode] ~= nil and type(sockets[infos.inode]) == "table" then
             for _, s in pairs(sockets[infos.inode]) do
-                print(s[2], s[3], infos.age)
+                infos.src = s[2]
+                infos.dst = s[3]
+                table.insert(ret, infos)
             end
         end
     end
