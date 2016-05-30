@@ -157,7 +157,9 @@ function updateHtml()
         macs = Object.keys(bandwidth);
         sortArrayByKey(macs, bandwidth, sortingKey);
 
+        var newDataTX = [['x', new Date()]];
         var newDataRX = [['x', new Date()]];
+        var chartTX = $('#chartTX').data('chart');
         var chartRX = $('#chartRX').data('chart');
 
         htmlOutput = "";
@@ -172,16 +174,14 @@ function updateHtml()
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "</tr>";
 
+            newDataTX.push([val, bandwidth[val]['tx']]);
             newDataRX.push([val, bandwidth[val]['rx']]);
         });
 
         $("#bandwidth").html(htmlOutput);
 
-        chartRX.flow(
-        {
-            columns: newDataRX,
-            length: 0
-        });
+        chartTX.flow( { columns: newDataTX, length: 0 });
+        chartRX.flow( { columns: newDataRX, length: 0 });
     });
 }
 
@@ -267,6 +267,7 @@ $(document).ready(function()
         $('#tx').css('text-decoration', 'none');
     });
 
+    initChart("#chartTX");
     initChart("#chartRX");
 });
 
@@ -275,10 +276,13 @@ $(document).ready(function()
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
-<h2><%:LAN Traffic%></h2>
+<h2><%:LAN Traffic (upload)%></h2>
+<div id="chartTX"></div>
+
+<h2><%:LAN Traffic (download)%></h2>
 <div id="chartRX"></div>
 
-<h2 style="clear: both;"><%:Details%></h2>
+<h2><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
     <thead>
         <tr class="cbi-section-table-titles">
