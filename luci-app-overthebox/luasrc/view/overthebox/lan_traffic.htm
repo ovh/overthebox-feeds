@@ -38,6 +38,8 @@ var oldData = { };
 var newData = { };
 var period = 5;
 var sortingKey = 'rx';
+var nbUpdate = 0;
+var historySize = 60;
 
 function transformArray(data)
 {
@@ -54,7 +56,7 @@ function transformArray(data)
 
 function round(number)
 {
-    return (Math.round((number * 1000)/10)/100).toFixed(2);
+    return (Math.round((number * 1000)/10)/100);
 }
 
 function unitify(number, bit=false, binary=false)
@@ -148,6 +150,12 @@ function macToColor(mac)
     return color;
 }
 
+function highlight(mac)
+{
+    $('#chartRX').data('chart').focus(mac);
+    $('#chartTX').data('chart').focus(mac);
+}
+
 function updateHtml()
 {
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
@@ -157,31 +165,31 @@ function updateHtml()
         macs = Object.keys(bandwidth);
         sortArrayByKey(macs, bandwidth, sortingKey);
 
-        var newDataTX = [['x', new Date()]];
-        var newDataRX = [['x', new Date()]];
-        var chartTX = $('#chartTX').data('chart');
-        var chartRX = $('#chartRX').data('chart');
+        var date = new Date();
+        var newDataRX = [['x', date]];
+        var newDataTX = [['x', date]];
 
         htmlOutput = "";
         $.each(macs, function(key, val)
         {
             var color = macToColor(val);
-            htmlOutput += "<tr class=\"cbi-section-table-row\">";
+            htmlOutput += "<tr class=\"cbi-section-table-row\" onMouseOver=\"highlight('" + val + "');\" onMouseOut=\"highlight('');\">";
             htmlOutput += "<td class=\"cbi-value-field\"><span class=\"legend_square\" style=\"background: " + color + ";\"></span>" + val + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['ip'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['hostname'] + "</td>";
-            htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
             htmlOutput += "</tr>";
 
-            newDataTX.push([val, bandwidth[val]['tx']]);
             newDataRX.push([val, bandwidth[val]['rx']]);
+            newDataTX.push([val, bandwidth[val]['tx']]);
         });
 
         $("#bandwidth").html(htmlOutput);
 
-        chartTX.flow( { columns: newDataTX, length: 0 });
-        chartRX.flow( { columns: newDataRX, length: 0 });
+        var pop = (nbUpdate++ >= historySize) ? 1 : 0;
+        $('#chartRX').data('chart').flow( { columns: newDataRX, length: pop });
+        $('#chartTX').data('chart').flow( { columns: newDataTX, length: pop });
     });
 }
 
@@ -212,13 +220,19 @@ function initChart(divSelector)
                 type: 'timeseries',
                 tick:
                 {
-                    format: '%H:%M:%S'
+                    format: '%H:%M:%S',
+                    outer: false
                 }
             },
             y:
             {
                 min: 0,
-                padding: { top: 20, bottom: 0}
+                padding: { top: 20, bottom: 0},
+                tick:
+                {
+                    format: function(d) { return unitify(d); },
+                    outer: false
+                }
             }
         },
         grid:
@@ -241,24 +255,20 @@ function initChart(divSelector)
 
 $(document).ready(function()
 {
-    if (sortingKey == 'tx')
-    {
-        $('#tx').css('text-decoration', 'underline');
-    }
-    else if (sortingKey == 'rx')
+    if (sortingKey == 'rx')
     {
         $('#rx').css('text-decoration', 'underline');
     }
+    else if (sortingKey == 'tx')
+    {
+        $('#tx').css('text-decoration', 'underline');
+    }
+
+    initChart("#chartRX");
+    initChart("#chartTX");
 
     updateHtml();
     setInterval(updateHtml, period * 1000);
-
-    $('#tx').click(function()
-    {
-        sortingKey = 'tx';
-        $('#tx').css('text-decoration', 'underline');
-        $('#rx').css('text-decoration', 'none');
-    });
 
     $('#rx').click(function()
     {
@@ -267,8 +277,12 @@ $(document).ready(function()
         $('#tx').css('text-decoration', 'none');
     });
 
-    initChart("#chartTX");
-    initChart("#chartRX");
+    $('#tx').click(function()
+    {
+        sortingKey = 'tx';
+        $('#tx').css('text-decoration', 'underline');
+        $('#rx').css('text-decoration', 'none');
+    });
 });
 
 </script>
@@ -276,11 +290,12 @@ $(document).ready(function()
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
-<h2><%:LAN Traffic (upload)%></h2>
-<div id="chartTX"></div>
-
-<h2><%:LAN Traffic (download)%></h2>
+<h2><%:LAN Traffic%></h2>
+<h3><%:Download%></h2>
 <div id="chartRX"></div>
+
+<h3><%:Upload%></h2>
+<div id="chartTX"></div>
 
 <h2><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
@@ -289,13 +304,13 @@ $(document).ready(function()
             <th class="cbi-section-table-cell">MAC</th>
             <th class="cbi-section-table-cell">IP</th>
             <th class="cbi-section-table-cell">Host</th>
-            <th class="cbi-section-table-cell"><a id="tx">TX</a></th>
-            <th class="cbi-section-table-cell"><a id="rx">RX</a></th>
+            <th class="cbi-section-table-cell"><a id="rx">Download</a></th>
+            <th class="cbi-section-table-cell"><a id="tx">Upload</a></th>
         </tr>
     </thead>
     <tbody id="bandwidth">
         <tr class="cbi-section-table-row">
-            <td colspan="5">Gathering data...</td>
+            <td colspan="5">No data</td>
         </tr>
     </tbody>
 </table>
