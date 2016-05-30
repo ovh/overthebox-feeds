@@ -26,8 +26,11 @@
 <script type="text/javascript" src="<%=resource%>/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
+<script type="text/javascript" src="<%=resource%>/d3.v3.min.js"></script>
+<script type="text/javascript" src="<%=resource%>/c3.min.js"></script>
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/bandwidth.css" />
+<link rel="stylesheet" type="text/css" href="<%=resource%>/c3.min.css" />
 
 <script type="text/javascript">
 var bandwidth = { };
@@ -147,17 +150,15 @@ function macToColor(mac)
 
 function updateHtml()
 {
-    var graphDataRX = [ ];
-    var graphDataTX = [ ];
-    var colorsRX = [ ];
-    var colorsTX = [ ];
-
     $.getJSON('<%=build_url("admin/overthebox/lan_traffic_data")%>', "", function(data)
     {
         computeBandwidth(data);
 
         macs = Object.keys(bandwidth);
         sortArrayByKey(macs, bandwidth, sortingKey);
+
+        var newDataRX = [['x', new Date()]];
+        var chartRX = $('#chartRX').data('chart');
 
         htmlOutput = "";
         $.each(macs, function(key, val)
@@ -171,14 +172,71 @@ function updateHtml()
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "</tr>";
 
-            graphDataRX.push([val, bandwidth[val]['rx']]);
-            graphDataTX.push([val, bandwidth[val]['tx']]);
-            colorsRX.push(color);
-            colorsTX.push(color);
+            newDataRX.push([val, bandwidth[val]['rx']]);
         });
 
         $("#bandwidth").html(htmlOutput);
+
+        chartRX.flow(
+        {
+            columns: newDataRX,
+            length: 0
+        });
     });
+}
+
+function initChart(divSelector)
+{
+    var chart = c3.generate(
+    {
+        bindto: divSelector,
+        data:
+        {
+            type: "spline",
+            x: 'x',
+            columns: [ ['x'] ],
+            color: function (color, d)
+            {
+                return macToColor(d.id);
+            },
+            empty:
+            {
+                label: { text: "No data" }
+            }
+        },
+        axis:
+        {
+            min: { y: 0 },
+            x:
+            {
+                type: 'timeseries',
+                tick:
+                {
+                    format: '%H:%M:%S'
+                }
+            },
+            y:
+            {
+                min: 0,
+                padding: { top: 20, bottom: 0}
+            }
+        },
+        grid:
+        {
+            y: { show: true }
+        },
+        legend:
+        {
+            show: false
+        },
+        tooltip:
+        {
+            grouped: false
+        }
+    });
+
+    $(divSelector).data('chart', chart);
+    return chart;
 }
 
 $(document).ready(function()
@@ -208,6 +266,8 @@ $(document).ready(function()
         $('#rx').css('text-decoration', 'underline');
         $('#tx').css('text-decoration', 'none');
     });
+
+    initChart("#chartRX");
 });
 
 </script>
@@ -216,8 +276,7 @@ $(document).ready(function()
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
 <h2><%:LAN Traffic%></h2>
-<div id="pieTX" class="pieGraph"></div>
-<div id="pieRX" class="pieGraph"></div>
+<div id="chartRX"></div>
 
 <h2 style="clear: both;"><%:Details%></h2>
 <table class="cbi-section-table" style="table-layout:fixed;">
