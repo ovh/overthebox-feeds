@@ -31,6 +31,7 @@
 
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/bandwidth.css" />
 <link rel="stylesheet" type="text/css" href="<%=resource%>/c3.min.css" />
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 
 <script type="text/javascript">
 var bandwidth = { };
@@ -38,6 +39,7 @@ var oldData = { };
 var newData = { };
 var period = 5;
 var sortingKey = 'rx';
+var bit = true;
 var nbUpdate = 0;
 var historySize = 60;
 
@@ -128,8 +130,8 @@ function computeBandwidth(data)
             res[key]['tx'] = (tx >= 0 ? tx / period : bandwidth[key]['tx']);
             res[key]['rx'] = (rx >= 0 ? rx / period : bandwidth[key]['rx']);
 
-            res[key]['tx_txt'] = unitify(res[key]['tx']);
-            res[key]['rx_txt'] = unitify(res[key]['rx']);
+            res[key]['tx_txt'] = unitify(res[key]['tx'], bit);
+            res[key]['rx_txt'] = unitify(res[key]['rx'], bit);
         }
     });
 
@@ -230,7 +232,7 @@ function initChart(divSelector)
                 padding: { top: 20, bottom: 0},
                 tick:
                 {
-                    format: function(d) { return unitify(d); },
+                    format: function(d) { return unitify(d, bit); },
                     outer: false
                 }
             }
@@ -264,6 +266,15 @@ $(document).ready(function()
         $('#tx').css('text-decoration', 'underline');
     }
 
+    if (bit)
+    {
+        $('#bit').css('text-decoration', 'underline');
+    }
+    else
+    {
+        $('#byte').css('text-decoration', 'underline');
+    }
+
     initChart("#chartRX");
     initChart("#chartTX");
 
@@ -283,14 +294,25 @@ $(document).ready(function()
         $('#tx').css('text-decoration', 'underline');
         $('#rx').css('text-decoration', 'none');
     });
+
+    $('#bit').click(function()
+    {
+        bit = true;
+        $('#bit').css('text-decoration', 'underline');
+        $('#byte').css('text-decoration', 'none');
+    });
+
+    $('#byte').click(function()
+    {
+        bit = false;
+        $('#byte').css('text-decoration', 'underline');
+        $('#bit').css('text-decoration', 'none');
+    });
 });
 
 </script>
 
-
-<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
-
-<h2><%:LAN Traffic%></h2>
+<h2><%:LAN Traffic%> <div id="bitbytelink"><a class="toggle-link" id="bit">Bit</a> | <a class="toggle-link" id="byte">Byte</a></div></h2>
 <h3><%:Download%></h2>
 <div id="chartRX"></div>
 
@@ -304,8 +326,8 @@ $(document).ready(function()
             <th class="cbi-section-table-cell">MAC</th>
             <th class="cbi-section-table-cell">IP</th>
             <th class="cbi-section-table-cell">Host</th>
-            <th class="cbi-section-table-cell"><a id="rx">Download</a></th>
-            <th class="cbi-section-table-cell"><a id="tx">Upload</a></th>
+            <th class="cbi-section-table-cell"><a class="toggle-link" id="rx">Download</a></th>
+            <th class="cbi-section-table-cell"><a class="toggle-link" id="tx">Upload</a></th>
         </tr>
     </thead>
     <tbody id="bandwidth">

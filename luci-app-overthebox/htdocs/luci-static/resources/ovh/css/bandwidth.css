@@ -7,17 +7,18 @@
     border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
-.pieGraph
+a.toggle-link
 {
-    margin-top: 20px;
+    cursor: pointer;
 }
 
-.pieGraph#pieTX
-{
-    float: left;
-}
-
-.pieGraph#pieRX
+#bitbytelink
 {
     float: right;
+    font-size: 12px;
+}
+
+#bitbytelink > a
+{
+    font-weight: bold;
 }
