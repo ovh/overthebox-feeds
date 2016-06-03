@@ -1,0 +1,124 @@
+#!/bin/sh
+txname="BANDWIDTH-TX"
+rxname="BANDWIDTH-RX"
+iif="lan"
+leasefile="/tmp/dhcp.leases"
+traf_tmp="/tmp/bandwidth_traf_$$.tmp"
+tx_tmp="/tmp/bandwidth_tx_$$.tmp"
+rx_tmp="/tmp/bandwidth_rx_$$.tmp"
+neigh_tmp="/tmp/bandwidth_neigh.tmp"
+awk_fetch="/usr/share/bandwidth/fetch.awk"
+awk_watch="/usr/share/bandwidth/watch.awk"
+neigh_cmd="ip -4 n s dev $iif nud reachable nud stale nud delay nud probe nud permanent"
+interval=5
+
+sig_handler()
+{
+    rm -f $tx_tmp $rx_tmp $traf_tmp.new $traf_tmp
+    exit 0
+}
+
+trap 'sig_handler' INT TERM
+
+fetch_neigh()
+{
+    $neigh_cmd | awk '{print $1,$3}' > $neigh_tmp
+}
+
+#This function installs new iptables rules based on ARP table
+arp_populate_iptables()
+{
+    fetch_neigh
+    cat $neigh_tmp | while read IP MAC;
+    do
+        iptables -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
+        if [ $? -ne 0 ]; then
+            iptables -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
+        fi
+        iptables -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
+        if [ $? -ne 0 ]; then
+            iptables -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
+        fi
+    done
+}
+
+fetch_bytes()
+{
+    #Fetches TX/RX by IP
+    iptables -t mangle -vxnL $txname > $tx_tmp
+    iptables -t mangle -vxnL $rxname > $rx_tmp
+
+    #Replaces IP by MAC, aggregates duplicate MAC into one row (sum of TXs and sum of RXs for that MAC)
+    awk -f $awk_fetch \
+        -v neighfile="$neigh_tmp" \
+        -v leasefile="$leasefile" \
+        -v txfile="$tx_tmp" \
+        -v rxfile="$rx_tmp" \
+        -v json="$1" \
+        $neigh_tmp $leasefile $tx_tmp $rx_tmp
+
+    rm -f $tx_tmp $rx_tmp
+}
+
+case $1 in
+    "setup")
+        iptables -t mangle -N $txname 2> /dev/null
+        iptables -t mangle -N $rxname 2> /dev/null
+        iptables -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
+        if [ $? -ne 0 ]; then
+            iptables -t mangle -I PREROUTING -i $iif -j $txname
+        fi
+        iptables -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
+        if [ $? -ne 0 ]; then
+            iptables -t mangle -I POSTROUTING -o $iif -j $rxname
+        fi
+        arp_populate_iptables
+        ;;
+
+    "ipt-update")
+        iptables -t mangle -F $txname
+        iptables -t mangle -F $rxname
+        arp_populate_iptables
+        ;;
+
+    "unsetup")
+        iptables -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
+        iptables -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
+        iptables -t mangle -F $txname 2> /dev/null
+        iptables -t mangle -F $rxname 2> /dev/null
+        iptables -t mangle -X $txname 2> /dev/null
+        iptables -t mangle -X $rxname 2> /dev/null
+        rm -f $neigh_tmp
+        ;;
+
+    "fetch")
+        if [ "$2" == "json" ]; then
+            fetch_bytes "json"
+        else
+            fetch_bytes
+        fi
+        ;;
+
+    "watch")
+        while :
+        do
+            fetch_bytes > $traf_tmp.new
+            clear
+            if [ -f $traf_tmp ]; then
+                awk -f $awk_watch \
+                    -v interval="$interval" \
+                    -v traffile="$traf_tmp" \
+                    $traf_tmp.new $traf_tmp
+            else
+                echo "Waiting for data..."
+            fi
+
+            mv $traf_tmp.new $traf_tmp
+            sleep $interval
+        done
+        ;;
+
+    *)
+        echo "Usage: $0 {setup|ipt-update|fetch|watch|unsetup}"
+        ;;
+esac
