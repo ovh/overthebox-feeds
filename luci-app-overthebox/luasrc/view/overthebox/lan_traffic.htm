@@ -87,7 +87,7 @@ function unitify(number, bit=false, binary=false)
     }
     else if (number >= k)
     {
-        return round(number / k) + " k" + unitSuffix1 + unitSuffix2;
+        return round(number / k) + (binary ? " K" : " k") + unitSuffix1 + unitSuffix2;
     }
     else
     {
@@ -247,6 +247,7 @@ function initChart(divSelector)
         },
         tooltip:
         {
+            show: false,
             grouped: false
         }
     });
