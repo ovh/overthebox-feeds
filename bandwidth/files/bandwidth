@@ -9,7 +9,8 @@ rx_tmp="/tmp/bandwidth_rx_$$.tmp"
 neigh_tmp="/tmp/bandwidth_neigh.tmp"
 awk_fetch="/usr/share/bandwidth/fetch.awk"
 awk_watch="/usr/share/bandwidth/watch.awk"
-neigh_cmd="ip -4 n s dev $iif nud reachable nud stale nud delay nud probe nud permanent"
+neigh_cmd="ip -s -4 n s dev $iif nud reachable nud stale nud delay nud probe nud permanent"
+neigh_thresh=7200
 interval=5
 
 sig_handler()
@@ -22,15 +23,20 @@ trap 'sig_handler' INT TERM
 
 fetch_neigh()
 {
-    $neigh_cmd | awk '{print $1,$3}' > $neigh_tmp
+    $neigh_cmd | sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' > $neigh_tmp
 }
 
 #This function installs new iptables rules based on ARP table
 arp_populate_iptables()
 {
     fetch_neigh
-    cat $neigh_tmp | while read IP MAC;
+    cat $neigh_tmp | while read IP MAC CONFIRMED;
     do
+        if [ $CONFIRMED -gt $neigh_thresh ];
+        then
+            continue
+        fi
+
         iptables -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
         if [ $? -ne 0 ]; then
             iptables -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
