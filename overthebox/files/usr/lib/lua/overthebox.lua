@@ -667,6 +667,7 @@ function upgrade()
     local listpkginstalled, _ = run("opkg list-installed")
     local ret = ""
     local retcode = true
+    local checked = {}
 
     for str in string.gmatch(listpkginstalled,'[^\r\n]+') do
         local f = split(str)
@@ -687,8 +688,22 @@ function upgrade()
                 local c, r = opkg_install(pkg)
                 ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
             end
+	    checked[pkg] = 1
         end
     end
+
+    for pkg, version in pairs(pkgs) do
+	if checked[pkg] == nil then -- not seen
+	    if version == 'remove' then
+		local c, r = opkg_remove(pkg)
+		ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
+	    else
+		local c, r = opkg_install(pkg)
+		ret = ret .. "install "..pkg.."\n" ..  r .."\n"
+	    end
+	end
+    end
+
     return retcode, ret
 end
 
