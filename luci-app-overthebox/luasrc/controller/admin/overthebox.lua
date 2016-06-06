@@ -32,7 +32,6 @@ function index()
 
     local e = entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 3)
     e.leaf = true
-    e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 4)
 	e.leaf = true
@@ -52,7 +51,6 @@ function index()
 
     local e = entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data"))
     e.leaf = true
-    e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
 	e.leaf = true
