@@ -47,5 +47,6 @@ fi
 
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
+/etc/init.d/cron restart
 
 exit 0
