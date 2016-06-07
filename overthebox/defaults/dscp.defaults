@@ -1,5 +1,7 @@
 #!/bin/sh
 
+touch /etc/config/ucitrack
+
 # replace existing mwan ucitrack entry
 uci -q batch <<-EOF >/dev/null
 	del ucitrack.@dscp[-1]

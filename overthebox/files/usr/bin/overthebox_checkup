@@ -1,12 +1,26 @@
 #!/usr/bin/env lua
 local uci = require("luci.model.uci").cursor()
 local o = require("overthebox")
+local string = require("string")
 
 o.info("overthebox checkup")
 
+local exceptions = { "crond" }
+
 for _, v in ipairs(o.getzombieppid()) do
-	o.warning(o.get_cmdline(v) .. " has a zombie, killing it")
+    local cmdline = o.get_cmdline(v)
+    o.warning( cmdline .. " has a zombie")
+    local excepted = false
+    for _, e in ipairs(exceptions) do
+	if string.find( cmdline, e, 1, true) ~= nil then
+	    excepted = true
+	    break
+	end
+    end
+    if not excepted then
+	o.warning("killing it")
 	o.sigkill(v)
+    end
 end
 
 
