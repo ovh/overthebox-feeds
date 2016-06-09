@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Clean udp conntrack when tun0 or xtun0 change state
+#
+[ "$INTERFACE" = tun0 -o "$INTERFACE" = xtun0 ] || exit 0
+
+if [ "$ACTION" = ifup -o "$ACTION" = ifupdate ]; then
+	/usr/sbin/ipv6 restart
+elif [ "$ACTION" = ifdown ]; then
+	/usr/sbin/ipv6 stop
+fi
+

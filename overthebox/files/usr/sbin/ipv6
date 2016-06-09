@@ -1,0 +1,63 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+reload()
+{
+	start
+}
+
+restart()
+{
+	reload
+}
+
+start()
+{
+	IPV6STATE=$(uci -q get ipv6.ipv6rd.6rd_ipv6_enable)
+	if [ "$IPV6STATE" -ne 1 ]; then
+		logger mwan3 ipv6 is disabled
+		stop
+		exit 0
+	fi
+
+
+	uci set dhcp.@dnsmasq[0].filter_aaaa='0'
+	uci set dhcp.lan.ra='server'
+	uci set dhcp.lan.ra_preference='high'
+	for i in `uci -q get ipv6.ipv6rd.dns` do
+		uci add_list dhcp.lan.dns=$i
+	done
+	uci commit dhcp
+	sysctl -w net.ipv6.conf.all.disable_ipv6=0 > /dev/null 2>&1
+	/etc/init.d/dnsmasq restart
+	/etc/init.d/odhcpd restart
+	ip link delete ipv6 > /dev/null 2>&1
+	sleep 1
+	logger mwan3 creating 6rd
+	ip tunnel add ipv6 mode sit local $(uci -q get glorytun.otb.iplocal)  ttl 64 > /dev/null 2>&1
+	ip tunnel 6rd dev ipv6 6rd-prefix $(uci -q get ipv6.ipv6rd.6rd_prefix) 6rd-relay_prefix $(uci -q get ipv6.ipv6rd.6rd_br_server)
+	ip link set dev ipv6 up
+
+	ip -6 addr add  $(uci -q get ipv6.ipv6rd.6rd_wan_prefix) dev ipv6
+	ip -6 route add ::/0 via "::$(uci -q get ipv6.ipv6rd.6rd_br_server)" dev ipv6 metric 1 > /dev/null 2>&1
+	ip -6 addr add  $(uci -q get ipv6.ipv6rd.6rd_lan_prefix) dev lan > /dev/null 2>&1
+
+
+}
+
+stop()
+{
+	uci set dhcp.@dnsmasq[0].filter_aaaa='1'
+	uci delete dhcp.lan.ra > /dev/null 2>&1
+	uci delete dhcp.lan.ra_preference > /dev/null 2>&1
+	uci delete dhcp.lan.dns > /dev/null 2>&1
+	uci commit dhcp
+	/etc/init.d/odhcpd restart
+	/etc/init.d/dnsmasq restart
+	sysctl -w net.ipv6.conf.all.disable_ipv6=1 > /dev/null 2>&1
+	logger mwan3 destoying 6rd
+	ip link delete ipv6 > /dev/null 2>&1
+	ip -6 addr de  $(uci -q get ipv6.ipv6rd.6rd_lan_prefix) dev lan > /dev/null 2>&1
+
+}
