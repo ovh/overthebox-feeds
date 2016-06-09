@@ -1,0 +1,30 @@
+#!/bin/sh
+
+touch /etc/config/ucitrack
+
+# Restore some ucitrack values
+if ! uci -q get ucitrack.@sqm[0]; then
+	uci add ucitrack sqm > /dev/null
+	uci set ucitrack.@sqm[0].init=sqm
+	uci add_list ucitrack.@firewall[0].affects=sqm
+	uci commit ucitrack
+fi
+
+if ! uci -q get ucitrack.@dscp[0]; then
+        uci add ucitrack dscp
+        uci add_list ucitrack.@dscp[-1].affects="sqm"
+        uci commit ucitrack
+fi
+
+if ! uci -q get ucitrack.@ipv6[0]; then
+        uci add ucitrack ipv6
+        uci set ucitrack.@ipv6[-1].exec="/usr/sbin/ipv6 restart"
+        uci commit ucitrack
+fi
+
+if ! uci -q get ucitrack.@mwan3[0]; then
+        uci add ucitrack mwan3
+        uci set ucitrack.@mwan3[-1].exec="/usr/sbin/mwan3 restart"
+        uci commit ucitrack
+fi
+

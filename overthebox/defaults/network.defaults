@@ -51,15 +51,6 @@ fi
 
 uci set network.tun0.auto='0'
 
-
-# be sure, ipv6 interface is here
-uci -q batch <<-EOF >/dev/null
-    set network.if6rd=interface
-    set network.if6rd.proto='none'
-    set network.if6rd.ifname=‘6rd’
-    set network.if6rd.multipath='off'
-EOF
-
 CHANGES=$(uci changes network)
 if [ -n "$CHANGES" ]
 then
@@ -68,4 +59,9 @@ then
 	/etc/init.d/network restart
 	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
 fi
+
+if uci -q get network.if6rd; then
+	uci -q delete network.if6rd
+fi
+
 exit 0
