@@ -58,4 +58,8 @@ if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'" &>/dev/null; then
 EOF
 fi
 
+if ! grep "mount / -o remount,sync" /etc/rc.local &>/dev/null; then
+	sed -i 's/exit 0/mount \/ -o remount,sync\n\n&/' /etc/rc.local
+fi
+
 exit 0
