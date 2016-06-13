@@ -27,6 +27,11 @@ include ../../luci/luci.mk
 define Host/Configure
 endef
 
+define Package/luci-base/conffiles
+/etc/config/luci
+/etc/config/ucitrack
+endef
+
 define Host/Compile
 	$(MAKE) -C src/ clean po2lmo
 	$(MAKE) -C $(HOST_BUILD_DIR) bin/LuaSrcDiet.lua

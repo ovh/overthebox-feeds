@@ -55,3 +55,16 @@ config tinyproxy
 
 config 6relayd
 	option init 6relayd
+
+config ipv6
+        option exec '/usr/sbin/ipv6 restart'
+
+config sqm
+        option init 'sqm'
+
+config dscp
+        list affects 'sqm'
+
+config mwan3
+        option exec '/usr/sbin/mwan3 restart'
+
