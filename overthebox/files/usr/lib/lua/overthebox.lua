@@ -756,8 +756,11 @@ end
 
 -- notification events
 function notify_boot()
-	send_properties( {interfaces="all", mounts="all"} )
-	return notify("BOOT")
+    send_properties( {interfaces="all", mounts="all"} )
+    if sys.uptime() > 180 then
+	return notify("START")
+    end
+    return notify("BOOT")
 end
 function notify_shutdown()
 	return notify("SHUTDOWN")
