@@ -7,13 +7,16 @@ if [ -z "${GLORYTUN_DEV}" -o -z "${GLORYTUN_IP_LOCAL}" -o -z "${GLORYTUN_IP_PEER
     exit 1
 fi
 
+: ${GLORYTUN_MTU:=1450}
+: ${GLORYTUN_TXQLEN:=1000}
+
 statefile=/tmp/glorytun.${GLORYTUN_DEV}.fifo
 
 rm -f "${statefile}"
 mkfifo "${statefile}"
 
 if glorytun version | grep mud ; then
-    GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} bind "
+    GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 
     add_multipath () {
         config_get ifname $1 ifname
@@ -33,8 +36,8 @@ GTPID=$!
 
 initialized() {
     ip addr add ${GLORYTUN_IP_LOCAL} peer ${GLORYTUN_IP_PEER} dev ${GLORYTUN_DEV}
-    [ -n "${GLORYTUN_MTU}" ] && ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
-    [ -n "${GLORYTUN_TXQLEN}" ] && ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
+    ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
+    ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
 
     # Workaround to make mwan3 update tun rule
     /etc/init.d/sqm start ${GLORYTUN_DEV}
