@@ -955,37 +955,35 @@ function update_confmwan()
 	uci:foreach("network", "interface",
 		function (section)
 			if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
---				if section["gateway"] then
-					size_interfaces = size_interfaces + 1
-					interfaces[ section[".name"] ] = section
-					uci:set("mwan3", section[".name"], "interface")
-					if uci:get("mwan3", section[".name"], "edited") ~= "1" then
-						uci:set("mwan3", section[".name"], "enabled", "1")
-						if next(tracking_servers) then
-							uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
-						end
-						uci:set("mwan3", section[".name"], "track_method","dns")
-						uci:set("mwan3", section[".name"], "reliability", "1")
-						uci:set("mwan3", section[".name"], "count", "1")
-						uci:set("mwan3", section[".name"], "timeout", "2")
-						uci:set("mwan3", section[".name"], "interval", "5")
-						uci:set("mwan3", section[".name"], "down", "3")
-						uci:set("mwan3", section[".name"], "up", "3")
+				size_interfaces = size_interfaces + 1
+				interfaces[ section[".name"] ] = section
+				uci:set("mwan3", section[".name"], "interface")
+				if uci:get("mwan3", section[".name"], "edited") ~= "1" then
+					uci:set("mwan3", section[".name"], "enabled", "1")
+					if next(tracking_servers) then
+						uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
 					end
-					uci:set("mwan3", section[".name"], "generated", "1")
-					if section["dns"] then
-						local seen = {}
-						for dns in string.gmatch(section["dns"], "%S+") do
-							if seen[dns] == nil then
-								if dns_policies[dns] == nil then
-									dns_policies[dns] = {}
-								end
-								seen[dns] = section[".name"]
-								table.insert(dns_policies[dns], section[".name"])
+					uci:set("mwan3", section[".name"], "track_method","dns")
+					uci:set("mwan3", section[".name"], "reliability", "1")
+					uci:set("mwan3", section[".name"], "count", "1")
+					uci:set("mwan3", section[".name"], "timeout", "2")
+					uci:set("mwan3", section[".name"], "interval", "5")
+					uci:set("mwan3", section[".name"], "down", "3")
+					uci:set("mwan3", section[".name"], "up", "3")
+				end
+				uci:set("mwan3", section[".name"], "generated", "1")
+				if section["dns"] then
+					local seen = {}
+					for dns in string.gmatch(section["dns"], "%S+") do
+						if seen[dns] == nil then
+							if dns_policies[dns] == nil then
+								dns_policies[dns] = {}
 							end
+							seen[dns] = section[".name"]
+							table.insert(dns_policies[dns], section[".name"])
 						end
 					end
---				end
+				end
 			elseif section["type"] == "tunnel" then
 				size_interfaces = size_interfaces + 1
 				interfaces[section[".name"]] = section
