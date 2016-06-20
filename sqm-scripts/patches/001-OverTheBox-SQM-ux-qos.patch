@@ -1,0 +1,156 @@
+diff --git a/luci/sqm-cbi.lua b/luci/sqm-cbi.lua
+index 9b8af51..6ade343 100644
+--- a/luci/sqm-cbi.lua
++++ b/luci/sqm-cbi.lua
+@@ -13,6 +13,7 @@ You may obtain a copy of the License at
+ $Id$
+ ]]--
+ 
++local uci = luci.model.uci.cursor()
+ local wa = require "luci.tools.webadmin"
+ local fs = require "nixio.fs"
+ local net = require "luci.model.network".init()
+@@ -55,17 +56,48 @@ function e.write(self, section, value)
+ 	end
+ 	return Flag.write(self, section, value)
+ end
+--- TODO: inform the user what we just did...
+ 
+-n = s:taboption("tab_basic", ListValue, "interface", translate("Interface name"))
++-- TODO: inform the user what we just did...
++n = s:taboption("tab_basic", ListValue, "_interface_all", translate("Interface name"))
+ -- sm lifted from luci-app-wol, the original implementation failed to show pppoe-ge00 type interface names
+ for _, iface in ipairs(ifaces) do
+ 	if not (iface == "lo" or iface:match("^ifb.*")) then
+-		n:value(iface)
++		local multipath = uci:get("network", iface, "multipath")
++		if multipath == "on" or multipath == "backup" or multipath == "master" or multipath == "handover" then
++			n:value(iface, (uci:get("network", iface, "label") or "") .. " (" .. iface .. ")" )
++		else
++			n:value(iface)
++		end
+ 	end
+ end
+ n.rmempty = false
++n.write = function(self, section, value)
++	m:set(section, "interface", value)
++end
++n.cfgvalue = function(self, section)
++	return m:get(section, "interface", value)
++end
++n.optional = true
+ 
++-- TODO: inform the user what we just did...
++n1 = s:taboption("tab_basic", ListValue, "_interface_mptcp", translate("Interface name"))
++-- sm lifted from luci-app-wol, the original implementation failed to show pppoe-ge00 type interface names
++for _, iface in ipairs(ifaces) do
++	if not (iface == "lo" or iface:match("^ifb.*")) then
++		local multipath = uci:get("network", iface, "multipath")
++		if multipath == "on" or multipath == "backup" or multipath == "master" or multipath == "handover" then
++			n1:value(iface, (uci:get("network", iface, "label") or "") .. " (" .. iface .. ")" )
++		end
++	end
++end
++n1.rmempty = false
++n1.write = function(self, section, value)
++		m:set(section, "interface", value)
++end
++n1.cfgvalue = function(self, section)
++	return m:get(section, "interface", value)
++end
++n1.optional = true
+ 
+ dl = s:taboption("tab_basic", Value, "download", translate("Download speed (kbit/s) (ingress) set to 0 to selectively disable ingress shaping:"))
+ dl.datatype = "and(uinteger,min(0))"
+@@ -86,23 +118,26 @@ if fs.stat(run_path) then
+ 		c:value( file )
+ 	end
+ end
+-c.default = "fq_codel"
++c.default = "sfq"
+ c.rmempty = false
+ 
+-
+-
+ local qos_desc = ""
+ sc = s:taboption("tab_qdisc", ListValue, "script", translate("Queue setup script"))
+ for file in fs.dir(path) do
+ 	if string.find(file, ".qos$") then
+ 		sc:value(file)
++		if file:find("otb") then
++			n1:depends("script", file)
++		else
++			n:depends("script", file)
++		end
+ 	end
+ 	if string.find(file, ".qos.help$") then
+ 		fh = io.open(path .. "/" .. file, "r")
+ 		qos_desc = qos_desc .. "<p><b>" .. file:gsub(".help$", "") .. ":</b><br />" .. fh:read("*a") .. "</p>"
+ 	end
+ end
+-sc.default = "simple.qos"
++sc.default = "otb.qos"
+ sc.rmempty = false
+ sc.description = qos_desc
+ 
+@@ -182,11 +217,11 @@ ll = s:taboption("tab_linklayer", ListValue, "linklayer", translate("Which link
+ ll:value("none", "none ("..translate("default")..")")
+ ll:value("ethernet", "Ethernet with overhead: select for e.g. VDSL2.")
+ ll:value("atm", "ATM: select for e.g. ADSL1, ADSL2, ADSL2+.")
+-ll.default = "none"
++ll.default = "atm"
+ 
+ po = s:taboption("tab_linklayer", Value, "overhead", translate("Per Packet Overhead (byte):"))
+ po.datatype = "and(integer,min(-1500))"
+-po.default = 0
++po.default = 44
+ po.isnumber = true
+ po.rmempty = true
+ po:depends("linklayer", "ethernet")
+diff --git a/platform/openwrt/sqm-uci b/platform/openwrt/sqm-uci
+index 13a7a0b..ee6be64 100644
+--- a/platform/openwrt/sqm-uci
++++ b/platform/openwrt/sqm-uci
+@@ -1,16 +1,11 @@
+ 
+-config queue 'eth1'
+-        option enabled '0'
+-        option interface 'eth1'
+-        option download '85000'
+-        option upload '10000'
+-        option qdisc 'fq_codel'
+-        option script 'simple.qos'
+-        option qdisc_advanced '0'
+-        option ingress_ecn 'ECN'
+-        option egress_ecn 'ECN'
+-        option qdisc_really_really_advanced '0'
+-        option itarget 'auto'
+-        option etarget 'auto'
+-        option linklayer 'none'
++config queue
++	option enabled '0'
++	option qdisc 'sfq'
++	option script 'otb.qos'
++	option linklayer 'atm'
++	option overhead '44'
++	option download '0'
++	option upload '1000'
++	option qdisc_advanced '0'
+ 
+diff --git a/luci/sqm-controller.lua b/luci/sqm-controller.lua
+index 10e5fdb..dbb69f6 100644
+--- a/luci/sqm-controller.lua
++++ b/luci/sqm-controller.lua
+@@ -19,8 +19,8 @@ function index()
+ 		return
+ 	end
+ 
+-	local page
+-
+-	page = entry({"admin", "network", "sqm"}, cbi("sqm"), _("SQM QoS"))
+-	page.dependent = true
++--	local page
++--
++--	page = entry({"admin", "network", "sqm"}, cbi("sqm"), _("SQM QoS"))
++--	page.dependent = true
+ end

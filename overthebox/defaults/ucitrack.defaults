@@ -28,3 +28,7 @@ if ! uci -q get ucitrack.@mwan3[0]; then
         uci commit ucitrack
 fi
 
+if ! uci show ucitrack.@network[0].affects | grep sqm &>/dev/null; then
+	uci add_list ucitrack.@network[0].affects="sqm"
+	uci commit ucitrack
+fi

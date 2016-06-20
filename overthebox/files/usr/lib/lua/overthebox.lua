@@ -897,7 +897,7 @@ function update_confmwan()
 	local uci = uci.cursor()
 	-- Check if we need to update mwan conf
 	local oldmd5 = uci:get("mwan3", "netconfchecksum")
-	local newmd5 = string.match(sys.exec("uci -q export network | md5sum"), "[0-9a-f]*")
+	local newmd5 = string.match(sys.exec("uci -q export network | egrep -v 'upload|download|upload_state|download_state|autoshape|label' | md5sum"), "[0-9a-f]*")
 	if oldmd5 and (oldmd5 == newmd5) then
 		log("update_confmwan: no changes !")
 		return false, nil

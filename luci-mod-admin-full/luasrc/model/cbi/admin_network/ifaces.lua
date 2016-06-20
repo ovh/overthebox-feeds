@@ -156,7 +156,7 @@ s.addremove = false
 s:tab("general",  translate("General Setup"))
 s:tab("advanced", translate("Advanced Settings"))
 s:tab("physical", translate("Physical Settings"))
-s:tab("autoshape", translate("Adaptive Shaping"))
+s:tab("autoshape", translate("Traffic Control"))
 
 if has_firewall then
 	s:tab("firewall", translate("Firewall Settings"))
@@ -324,7 +324,7 @@ if not net:is_virtual() then
 	ifname_multi.write = ifname_single.write
 end
 
-aushape = s:taboption("autoshape", ListValue, "autoshape", translate("Adaptive Shaping"))
+aushape = s:taboption("autoshape", ListValue, "autoshape", translate("Traffic Control"))
 aushape:value("off", translate("Disabled"))
 aushape:value("static", translate("Static"))
 aushape:value("auto", translate("Adaptive (experimental)"))

@@ -1,18 +1,25 @@
 diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
-index 97171a6..2fe7d9a 100644
+index 1cf6403..70f2ff0 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -23,9 +23,53 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -13,6 +13,7 @@
+ 
+ ACTION="${1:-start}"
+ RUN_IFACE="$2"
++IPT="/usr/sbin/iptables -t mangle -w"
+ 
+ [ -d "${SQM_QDISC_STATE_DIR}" ] || ${SQM_LIB_DIR}/update-available-qdiscs
+ 
+@@ -23,9 +24,52 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
          # $SCRIPT variables saved in there.
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
 +    # Clear DSCP rules
-+    /usr/sbin/iptables -t mangle -w -F dscp
++    $IPT -F dscp
      exit 0
  fi
  
 +# Generate dscp tagging preferences
-+IPT="/usr/sbin/iptables -t mangle -w"
 +genrateDscp() {
 +	local ipset proto src_ip src_port dest_ip $ipset dest_port class
 +
@@ -30,19 +37,19 @@ index 97171a6..2fe7d9a 100644
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
-+			;;
++		;;
 +		udp)
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
-+			;;
++		;;
 +		*)
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
 +			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
 +			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN
-+			;;
++		;;
 +	esac
 +}
 +# Clear DSCP rules before recreate
@@ -53,6 +60,6 @@ index 97171a6..2fe7d9a 100644
 +$IPT -D PREROUTING -j dscp 2>/dev/null
 +$IPT -A PREROUTING -j dscp
 +
+ # Convert SQM entity to network uci section
  config_load sqm
- 
  run_sqm_scripts() {

@@ -212,6 +212,12 @@ function interfaces_status()
 			if wanName:match("tun[%d+]") or wanName:match("voip[%d+]") then
 				mArray.tunnels[wanName] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
 			else
+				-- Link calibration
+				local autoshape = uci:get("network", wanName, "autoshape")
+				local upload = uci:get("network", wanName, "upload")
+				local upload_state = uci:get("network", wanName, "upload_state")
+				local download = uci:get("network", wanName, "download")
+				local download_state = uci:get("network", wanName, "download_state")
 				-- Add ping info
 				data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName .. " 2>/dev/null")))
 				local minping = "NaN"
@@ -233,7 +239,7 @@ function interfaces_status()
 						end
 					end
 				end
-				mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }
+				mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois, autoshape=autoshape, upload=upload, upload_state=upload_state, download=download, download_state=download_state }
 			end
 		end
 	end
