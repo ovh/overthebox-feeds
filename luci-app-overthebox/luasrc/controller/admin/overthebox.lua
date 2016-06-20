@@ -190,7 +190,7 @@ function interfaces_status()
 		mArray.tunnels = {}
 
 		for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
-		local wanInterfaceName = ut.trim(sys.exec("uci -p /var/state get network." .. wanName .. ".ifname"))
+		local wanInterfaceName = ut.trim(sys.exec("uci -q -p /var/state get network." .. wanName .. ".ifname"))
 		if wanInterfaceName == "" then
 			wanInterfaceName = "X"
 		end
