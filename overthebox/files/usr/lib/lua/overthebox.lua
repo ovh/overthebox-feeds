@@ -955,7 +955,7 @@ function update_confmwan()
 	uci:foreach("network", "interface",
 		function (section)
 			if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
-				if section["gateway"] then
+--				if section["gateway"] then
 					size_interfaces = size_interfaces + 1
 					interfaces[ section[".name"] ] = section
 					uci:set("mwan3", section[".name"], "interface")
@@ -985,7 +985,7 @@ function update_confmwan()
 							end
 						end
 					end
-				end
+--				end
 			elseif section["type"] == "tunnel" then
 				size_interfaces = size_interfaces + 1
 				interfaces[section[".name"]] = section
