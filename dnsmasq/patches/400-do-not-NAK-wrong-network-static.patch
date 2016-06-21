@@ -2,14 +2,13 @@ diff --git a/src/rfc2131.c b/src/rfc2131.c
 index 9f69ed5..050a45f 100644
 --- a/src/rfc2131.c
 +++ b/src/rfc2131.c
-@@ -1166,6 +1166,10 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
+@@ -1166,6 +1166,9 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
  	  
  	  if (!(context = narrow_context(context, mess->yiaddr, tagif_netid)))
  	    {
-+	      /* Do not return DHCPNAK on static network) */
-+	      if(context->flags & CONTEXT_STATIC){
-+		      return 0;
-+	      }
++ 	      /* Do not return DHCPNAK on static network) */
++ 	      log_packet("Not sending DHCPNAK", &mess->yiaddr, emac, emac_len, iface_name, NULL, NULL, mess->xid);
++ 	      return 0;
  	      /* If a machine moves networks whilst it has a lease, we catch that here. */
  	      message = _("wrong network");
  	      /* ensure we broadcast NAK */
