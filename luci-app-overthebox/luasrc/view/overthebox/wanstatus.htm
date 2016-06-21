@@ -20,6 +20,23 @@
 -%>
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/wanstatus.css"/>
 <script type="text/javascript">//<![CDATA[
+
+        function bandwidth_format(kbi)
+        {
+                if(isNaN(kbi))
+                        return kbi;
+
+                var ubi = '<%:kbit/s%>';
+                if (kbi >= 1000)
+                {
+                        ubi = '<%:Mbit/s%>';
+                        kbi = kbi / 1000;
+                }
+
+                return String.format("%f %s", kbi.toFixed(2), ubi);
+	}
+
+
 	XHR.poll(5, '/cgi-bin/luci/admin/overthebox/interfaces_status', null,
 		function(x, mArray)
 		{
@@ -204,6 +221,18 @@
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
 					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
+
+					if(mArray.wans[i].autoshape && mArray.wans[i].autoshape != "off")
+					{
+						var upload = "off";
+						var download = "off";
+						if(mArray.wans[i].upload_state == "up")
+							upload = mArray.wans[i].upload;
+						if(mArray.wans[i].download_state == "up")
+							download = mArray.wans[i].download;
+						content += String.format('<br />Link calibration: %s / %s', bandwidth_format(download), bandwidth_format(upload))
+					}
+
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
                                         temp += '</a></li>';
