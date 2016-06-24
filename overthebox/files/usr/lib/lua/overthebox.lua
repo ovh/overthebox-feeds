@@ -290,13 +290,13 @@ function config()
 		-- Activate MUD 
 		uci:foreach("glorytun", "mud",
 			function (e)
-				uci:set('glorytun', e[".name"], 'enable', '1' )
+				uci:set('glorytun', e[".name"], 'enable', '1')
 			end
 		)
 		-- Deactivate Glorytun
 		uci:foreach("glorytun", "tunnel",
 			function (e)
-				uci:set('glorytun', e[".name"], 'enable', '0' )
+				uci:set('glorytun', e[".name"], 'enable', '0')
 			end
 		)
 		-- Delete glorytun additionnal interface when using mud
@@ -324,13 +324,13 @@ function config()
 		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
 	else
-		-- Deactivate Glorytun
+		-- Deactivate MUD
 		uci:foreach("glorytun", "mud",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '0' )
 			end
 		)
-		-- Deactivate MUD
+		-- Deactivate Glorytun
 		uci:foreach("glorytun", "tunnel",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '0' )
