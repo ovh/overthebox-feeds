@@ -99,7 +99,3 @@ start_service() {
     fi
 }
 
-#stop_service() {
-# be sure, all is down
-#    killall ${PROG_NAME}
-#}

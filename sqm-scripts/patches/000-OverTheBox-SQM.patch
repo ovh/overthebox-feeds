@@ -156,7 +156,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,256 @@
+@@ -0,0 +1,255 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -197,7 +197,6 @@ index 0000000..2384ace
 +    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
 +    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
 +    
-+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 --tcp-flags ALL ACK -j MARK --set-mark 0x06${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1 -m comment --comment "Scavenger" -j MARK --set-mark 0x01${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs2 -m comment --comment "Normal" -j MARK --set-mark 0x02${IPT_MASK_STRING}
 +    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3 -m comment --comment "Signaling" -j MARK --set-mark 0x03${IPT_MASK_STRING}
