@@ -246,6 +246,39 @@ function config()
 		table.insert(ret, 'glorytun')
 	end
 
+	if res.glorytun_mud_conf and exists( res.glorytun_mud_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mud')
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev )
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'server',  res.glorytun_mud_conf.server)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'port',    res.glorytun_mud_conf.port)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'key',     res.glorytun_mud_conf.key)
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'iplocal', res.glorytun_mud_conf.ip_local)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'ippeer',  res.glorytun_mud_conf.ip_peer)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu )
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'table',   res.glorytun_mud_conf.table )
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'pref',    res.glorytun_mud_conf.pref )
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'metric',  res.glorytun_mud_conf.metric )
+
+		uci:set('network', res.glorytun_mud_conf.dev, 'interface')
+		uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
+		uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'none')
+		uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
+		uci:set('network', res.glorytun_mud_conf.dev, 'delegate', '0')
+		uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
+		uci:set('network', res.glorytun_mud_conf.dev, 'auto', '0')
+		uci:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
+
+		addInterfaceInZone("wan", res.glorytun_mud_conf.dev)
+		uci:save('glorytun')
+		uci:commit('glorytun')
+
+		table.insert(ret, 'glorytun-udp')
+	end
+
 	if not res.tun_conf then
 		res.tun_conf = {}
 	end
@@ -253,14 +286,51 @@ function config()
 		res.tun_conf.app = "none"
 	end
 
-	if res.tun_conf.app == 'glorytun' then
+	if res.tun_conf.app == 'glorytun_mud' then
+		-- Activate MUD 
+		uci:foreach("glorytun", "mud",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '1')
+			end
+		)
+		-- Deactivate Glorytun
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0')
+			end
+		)
+		-- Delete glorytun additionnal interface when using mud
+                if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
+			for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
+				if conf and exists('dev') then
+					uci:delete('network', conf.dev)
+				end
+			end
+			uci:commit('network')
+		end
+		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_mud_conf.server)
+	elseif res.tun_conf.app == 'glorytun' then
+		-- Activate Glorytun
 		uci:foreach("glorytun", "tunnel",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '1' )
 			end
 		)
+		-- Deactivate MUD
+                uci:foreach("glorytun", "mud",
+                        function (e)
+                                uci:set('glorytun', e[".name"], 'enable', '0' )
+                        end
+		)
 		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
 	else
+		-- Deactivate MUD
+		uci:foreach("glorytun", "mud",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0' )
+			end
+		)
+		-- Deactivate Glorytun
 		uci:foreach("glorytun", "tunnel",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '0' )
