@@ -1,8 +1,8 @@
 diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
-index 97171a6..2fe7d9a 100644
+index e2a494a..c5624ff 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -23,9 +23,53 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -23,9 +23,85 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
          # $SCRIPT variables saved in there.
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
@@ -23,27 +23,56 @@ index 97171a6..2fe7d9a 100644
 +	config_get dest_ip $1 dest_ip 0.0.0.0/0
 +	config_get dest_port $1 dest_port 0:65535
 +	config_get class $1 class
++	config_get direction $1 direction "upload"
 +
-+	case $proto in
-+		tcp)
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
++	# Take OTB point of view when using both direction (inverse source and destination)
++	if [ "$direction" == "both" ]; then
++		config_get src_ip $1 dest_ip 0.0.0.0/0
++		config_get src_port $1 dest_port 0:65535
++		config_get dest_ip $1 src_ip 0.0.0.0/0
++		config_get dest_port $1 src_port 0:65535
++	fi
++
++	if [ "$direction" == "upload" -o "$direction" == "both" ]; then
++		case $proto in
++			tcp)
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
 +			;;
 +		udp)
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
 +			;;
 +		*)
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-+			$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-+			$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
++				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
++				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN
 +			;;
-+	esac
++		esac
++	fi
++}
++
++pushDscpToApi() {
++	local ipset proto src_ip src_port dest_ip $ipset dest_port dpi class
++
++	config_get proto $1 proto all
++	config_get ipset $1 ipset
++	config_get src_ip $1 src_ip 0.0.0.0/0
++	config_get src_port $1 src_port 0:65535
++	config_get dest_ip $1 dest_ip 0.0.0.0/0
++	config_get dest_port $1 dest_port 0:65535
++	config_get dpi $1 dpi
++	config_get class $1 class
++	config_get direction $1 direction "upload"
++
++	if [ "$direction" == "download" -o "$direction" == "both" ]; then
++		curl -s --connect-timeout 3 -X POST -H "Content-Type: application/json" --data "{ \"proto\": \"${proto}\", \"src_ip\": \"${src_ip}\", \"src_port\": \"${src_port}\", \"dest_ip\": \"${dest_ip}\", \"dest_port\": \"${dest_port}\", \"dpi\": \"${dpi}\", \"class\": \"${class}\" }" api/dscp/$$?auth_token=${TOKEN}
++	fi
 +}
 +# Clear DSCP rules before recreate
 +$IPT -F dscp 2>/dev/null
@@ -52,6 +81,9 @@ index 97171a6..2fe7d9a 100644
 +config_foreach genrateDscp classify
 +$IPT -D PREROUTING -j dscp 2>/dev/null
 +$IPT -A PREROUTING -j dscp
++
++config_foreach pushDscpToApi classify
++curl -s --connect-timeout 3 -X POST api/dscp/$$/commit?auth_token=${TOKEN}
 +
  config_load sqm
  

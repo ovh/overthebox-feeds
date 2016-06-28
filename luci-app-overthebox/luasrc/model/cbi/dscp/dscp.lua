@@ -21,6 +21,13 @@ function cbiAddProtocol(field)
         end
 end
 
+direction = s:option(ListValue, "direction", translate("Direction"))
+	direction.default = "upload"
+	direction.rmempty = false
+	direction:value("upload")
+	direction:value("download")
+	direction:value("both")
+
 proto = s:option(Value, "proto", translate("Protocol"))
         proto.default = "all"
         proto.rmempty = false
@@ -35,20 +42,27 @@ proto = s:option(Value, "proto", translate("Protocol"))
 srch = s:option(Value, "src_ip", translate("Source host"))
 srch.rmempty = true
 srch:value("", translate("all"))
+srch:depends("direction", "upload")
 wa.cbi_add_knownips(srch)
 
-ports = s:option(Value, "src_port", translate("Source ports"))
-ports.rmempty = true
-ports:value("", translate("all"))
+sports = s:option(Value, "src_port", translate("Source ports"))
+sports.rmempty = true
+sports:value("", translate("all"))
+sports:depends("direction", "upload")
 
 dsth = s:option(Value, "dest_ip", translate("Destination host"))
 dsth.rmempty = true
 dsth:value("", translate("all"))
 wa.cbi_add_knownips(dsth)
 
-ports = s:option(Value, "dest_port", translate("Destination ports"))
-ports.rmempty = true
-ports:value("", translate("all"))
+dports = s:option(Value, "dest_port", translate("Destination ports"))
+dports.rmempty = true
+dports:value("", translate("all"))
+
+dpi = s:option(Value, "dpi", translate("Service"))
+dpi.rmempty = true
+dpi:depends("direction", "download")
+dpi:value("", translate("Disabled"))
 
 t = s:option(ListValue, "class", translate("Class"))
 t:value("cs1", translate("CS1 - Scavenger"))
@@ -57,7 +71,7 @@ t:value("cs3", translate("CS3 - Signaling"))
 t:value("cs4", translate("CS4 - Realtime"))
 t:value("cs5", translate("CS5 - Broadcast video"))
 t:value("cs6", translate("CS6 - Network control"))
---t:value("cs7", translate("Reserved"))
+t:value("cs7", translate("CS7 - Reserved"))
 t.default = "cs2"
 
 comment = s:option(Value, "comment", translate("Comment"))
