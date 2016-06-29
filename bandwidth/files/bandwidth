@@ -21,12 +21,15 @@ sig_handler()
 
 trap 'sig_handler' INT TERM
 
+#This function fetches neighbor entries along with the last confirmed timer
+#It then stores them in a file (format is IP MAC CONFIRMED)
 fetch_neigh()
 {
     $neigh_cmd | sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' > $neigh_tmp
 }
 
-#This function installs new iptables rules based on ARP table
+#This function installs new iptables rules based on fetched neighbors.
+#It cleans up entries if the neigh_thresh has been exceeded.
 arp_populate_iptables()
 {
     fetch_neigh
@@ -67,6 +70,8 @@ fetch_bytes()
 }
 
 case $1 in
+    #Prepares the chains in PREROUTING and POSTROUTING
+    #Populates it with first found devices on the LAN
     "setup")
         iptables -t mangle -N $txname 2> /dev/null
         iptables -t mangle -N $rxname 2> /dev/null
@@ -81,12 +86,14 @@ case $1 in
         arp_populate_iptables
         ;;
 
+    #Updates iptables with devices currently found on the LAN
     "ipt-update")
         iptables -t mangle -F $txname
         iptables -t mangle -F $rxname
         arp_populate_iptables
         ;;
 
+    #Cleans up everything in iptables
     "unsetup")
         iptables -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
         iptables -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
