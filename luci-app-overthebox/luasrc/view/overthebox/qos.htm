@@ -55,28 +55,32 @@
 	function getQosLabel(qdisc, way) {
 		if(way == "upload"){
 			if(qdisc == "12")
-				return "Network control";
+				return "Reserved";
 			if(qdisc == "13")
-				return "Realtime";
+				return "Network control";
 			if(qdisc == "14")
-				return "Signaling";
+				return "Realtime";
 			if(qdisc == "15")
-				return "Normal";
+				return "Signaling";
 			if(qdisc == "16")
+				return "Normal";
+			if(qdisc == "17")
 				return "Scavenger";
 		}
 		if(way == "download"){
 			var itf = qdisc.substr(0, qdisc.length - 1);
 			var qdisc = qdisc.substr(-1);
 			if(qdisc == "2")
-				return itf+" - Network control";
+				return itf+" - Reserved";
 			if(qdisc == "3")
-				return itf+" - Realtime";
+				return itf+" - Network control";
 			if(qdisc == "4")
-				return itf+" - Signaling";
+				return itf+" - Realtime";
 			if(qdisc == "5")
-				return itf+" - Normal";
+				return itf+" - Signaling";
 			if(qdisc == "6")
+				return itf+" - Normal";
+			if(qdisc == "7")
 				return itf+" - Scavenger";
 		}
 		return qdisc;

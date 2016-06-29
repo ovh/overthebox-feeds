@@ -57,7 +57,7 @@ t:value("cs3", translate("CS3 - Signaling"))
 t:value("cs4", translate("CS4 - Realtime"))
 t:value("cs5", translate("CS5 - Broadcast video"))
 t:value("cs6", translate("CS6 - Network control"))
---t:value("cs7", translate("Reserved"))
+t:value("cs7", translate("CS7 - Reserved"))
 t.default = "cs2"
 
 comment = s:option(Value, "comment", translate("Comment"))

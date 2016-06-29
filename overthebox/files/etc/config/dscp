@@ -1,6 +1,23 @@
 
 config classify
 	option proto 'tcp'
+	option dest_ip '169.254.254.1'
+	option class 'cs6'
+	option comment 'Service API'
+
+config classify
+	option proto 'icmp'
+	option class 'cs6'
+	option comment 'ICMP'
+
+config classify
+	option proto 'udp'
+	option dest_ip '91.121.128.0/23'
+	option class 'cs5'
+	option comment 'VoIP'
+
+config classify
+	option proto 'tcp'
 	option dest_port '22'
 	option comment 'SSH'
 	option class 'cs5'
