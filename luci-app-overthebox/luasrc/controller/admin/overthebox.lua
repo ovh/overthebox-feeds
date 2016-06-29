@@ -30,21 +30,27 @@ function index()
 
 	entry({"admin", "overthebox", "dscp"}, cbi("dscp/dscp"), _("DSCP Settings"), 2)
 
-	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 3)
+    local e = entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 3)
+    e.leaf = true
+
+	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 4)
 	e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 4)
+	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 5)
         e.leaf = true
 	e.sysauth = false
 
-	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 5)
+	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 6)
         e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data"))
 	e.leaf = true
 	e.sysauth = false
+
+    local e = entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data"))
+    e.leaf = true
 
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
 	e.leaf = true
@@ -298,6 +304,12 @@ function action_qos_data()
 	-- format output
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(striped_data)
+end
+
+function action_lan_traffic_data()
+    local result = luci.sys.exec("bandwidth fetch json")
+    luci.http.prepare_content("application/json")
+    luci.http.write(result)
 end
 
 function action_bandwidth_data(dev)
