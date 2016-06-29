@@ -698,7 +698,7 @@ end
 
 -- all our packages, and the minimum version needed.
 local pkgs = { 
-    overthebox='0.2-17',
+    overthebox='0.4-0',
     lua='5.1.5-3',
     liblua='5.1.5-3',
     luac='5.1.5-3',
@@ -713,7 +713,7 @@ local pkgs = {
     ["luci-app-sqm"]='1.0.5-8',
     mptcp='1.0.0-6',
     netifd='2015-08-25-58',
-    mwan3otb='1.7-16',
+    mwan3otb='1.7-22',
     bosun='0.4.0-0.8',
     vtund='3.0.3-12',
     e2fsprogs='1.42.12-1',
@@ -722,7 +722,10 @@ local pkgs = {
     resize2fs='1.42.12-1',
     tune2fs='1.42.12-1',
     libsodium='1.0.8-2',
-    glorytun='0.0.26-8',
+    glorytun='0.0.32-1',
+    glorytun-udp='0.0.50-mud-1',
+    sqm-scripts='1.0.5-15',
+    bandwith='0.6',
     rdisc6='1.0.3-1',
     ['luci-app-qos']='remove',
     ['qos-scripts']='remove'
