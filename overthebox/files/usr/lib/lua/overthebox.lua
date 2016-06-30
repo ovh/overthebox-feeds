@@ -57,7 +57,14 @@ function subscribe()
 
 	-- tprint(res)
 	if rcode == 200 then
+		local configfile = "/etc/config/overthebox"
+		if not file_exists(configfile) then
+			local file = io.open(configfile, "w")
+			file:write("")
+			file:close()
+		end
 		local uci = uci.cursor()
+		uci:set("overthebox", "me", "config")
 		uci:set("overthebox", "me", "token", res.token)
 		uci:set("overthebox", "me", "device_id", res.device_id)
 		uci:save("overthebox")
