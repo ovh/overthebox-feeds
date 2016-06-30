@@ -123,4 +123,8 @@ if ! uci -q get mwan3.CS7_Reserved.use_policy &>/dev/null; then
 EOF
 fi
 
+if ! uci -q get mwan3.tun0.track_ip &>/dev/null; then
+	uci delete mwan3.netconfchecksum
+fi
+
 exit 0
