@@ -61,8 +61,13 @@ function round(number)
     return (Math.round((number * 1000)/10)/100);
 }
 
-function unitify(number, bit=false, binary=false)
+function unitify(number, bit, binary)
 {
+    // Workaround for Pre ES2015/ES6 browsers
+    // They don't support default function parameters
+    bit = typeof bit !== 'undefined' ? bit : false;
+    binary = typeof binary !== 'undefined' ? binary : false;
+
     var unitSuffix2 = (bit ? "bit/s" : "B/s");
 
     var base = (binary ? 1024 : 1000);
