@@ -43,6 +43,55 @@
 <script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
 <script type="text/javascript" src="<%=resource%>/ovh/scripts/graph.js"></script>
+<script type="text/javascript">
+function createQosDownloadStatsFooter(name, qdisc, color, label){
+	var table = document.getElementById(name + '_stats');
+	// Group queue per label
+	var tr = document.getElementById(label + '_' + name);
+	var s_type = ["cur", "avg", "peak"];
+	if(!tr) {
+		tr = table.insertRow();
+		// Create cells of the table
+		var qdisclabel = tr.insertCell(0);
+		// Crete itf legend
+		var strong = document.createElement('strong');
+		strong.appendChild(document.createTextNode(label ? label : itf));
+		strong.setAttribute('style', 'border-bottom:2px solid ' + color);
+		qdisclabel.appendChild(strong);
+
+		s_type.forEach(function(stype){
+			var stats = tr.insertCell(-1);
+			var ul = document.createElement("lu");
+			ul.setAttribute('style', 'list-style: none;');
+			ul.setAttribute('id', stype + '_' + label + '_' + name);
+			stats.appendChild(ul);
+		});
+	}
+	tr.setAttribute('id', label + '_' + name);
+
+	// Create Cur, Avg, Peak cells
+	var itf = qdisc.substr(0, qdisc.length - 1);
+	s_type.forEach(function(stype) {
+		if(!document.getElementById('id', qdisc + '_' + name + '_' + stype)) {
+			var stats = document.getElementById(stype + '_' + label + '_' + name);
+			if(stats) {
+				var liValue = document.createElement("li");
+
+				var label1 = document.createElement("label");
+				label1.appendChild(document.createTextNode('if'+itf+': '));
+				liValue.appendChild(label1);
+
+				var spanValue = document.createElement("span");
+				spanValue.className = "value";
+				spanValue.setAttribute('id', qdisc + '_' + name + '_' + stype);
+				liValue.appendChild(spanValue);
+
+				stats.appendChild(liValue);
+			}
+		}
+	});
+}
+</script>
 
 <script type="text/javascript">//<![CDATA[
 
@@ -71,17 +120,17 @@
 			var itf = qdisc.substr(0, qdisc.length - 1);
 			var qdisc = qdisc.substr(-1);
 			if(qdisc == "2")
-				return itf+" - Reserved";
+				return "Reserved";
 			if(qdisc == "3")
-				return itf+" - Network control";
+				return "Network control";
 			if(qdisc == "4")
-				return itf+" - Realtime";
+				return "Realtime";
 			if(qdisc == "5")
-				return itf+" - Signaling";
+				return "Signaling";
 			if(qdisc == "6")
-				return itf+" - Normal";
+				return "Normal";
 			if(qdisc == "7")
-				return itf+" - Scavenger";
+				return "Scavenger";
 		}
 		return qdisc;
 	}
@@ -94,6 +143,19 @@
                         return "DeepSkyBlue";
                 if(str == "ovh2")
                         return "LightGreen";
+
+                if(str == "Reserved")
+                        return "Black";
+                if(str == "Network control")
+                        return "Red";
+                if(str == "Realtime")
+                        return "Orange";
+		if(str == "Signaling")
+                        return "Yellow";
+		if(str == "Normal")
+			return "LightGreen";
+		if(str == "Scavenger")
+			return "DarkOliveGreen";
 
                 if(str == "if1")
                         return "PowderBlue";
@@ -293,7 +355,7 @@
 						// Create and initialize qdisc graphic elements
 						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["upload"])
 						{
-							var color = stringToColour(qdisc);
+							var color = stringToColour(getQosLabel(qdisc, "upload"));
 							if(typeof upPolygons[qdisc] != "object")
 							{
 								var upline = Gup.createElementNS('http://www.w3.org/2000/svg', 'polyline');
@@ -312,7 +374,7 @@
 						}
 						for(var qdisc in dataarray[timestamps[timestamps.length - 1]]["download"])
 						{
-							var color = stringToColour(qdisc);
+							var color = stringToColour(getQosLabel(qdisc, "download"));
 							if(typeof dnPolygons[qdisc] != "object")
 							{
 								var dnline = Gdn.createElementNS('http://www.w3.org/2000/svg', 'polyline');
@@ -327,7 +389,7 @@
 								{
 								       dndata[qdisc][i] = 0;
 								}
-								createStatsFooter("download", qdisc, color, getQosLabel(qdisc, "download"));
+								createQosDownloadStatsFooter("download", qdisc, color, getQosLabel(qdisc, "download"));
 							}
 						}
 						// compute data point
@@ -346,7 +408,10 @@
 										var upload = 0;
 										for(var intf in dataarray[timestamps[i]]["upload"][qdisc])
 										{
-											upload += (Number(dataarray[timestamps[i]]["upload"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["upload"][qdisc][intf].bytes)) / time_delta;
+											if((typeof dataarray[timestamps[i]]["upload"][qdisc][intf] !== "undefined")
+												&& (typeof dataarray[timestamps[i-1]]["upload"][qdisc][intf] !== "undefined")) {
+												upload += (Number(dataarray[timestamps[i]]["upload"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["upload"][qdisc][intf].bytes)) / time_delta;
+											}
 										}
 										updata[qdisc].push(upload);
 									}
@@ -356,7 +421,10 @@
 										var download = 0;
 										for(var intf in dataarray[timestamps[i]]["download"][qdisc])
 										{
-											download += (Number(dataarray[timestamps[i]]["download"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["download"][qdisc][intf].bytes)) / time_delta;
+											if((typeof dataarray[timestamps[i]]["download"][qdisc][intf] !== "undefined")
+												&& (typeof dataarray[timestamps[i-1]]["download"][qdisc][intf] !== "undefined")) {
+												download += (Number(dataarray[timestamps[i]]["download"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["download"][qdisc][intf].bytes)) / time_delta;
+											}
 										}
 										dndata[qdisc].push(download);
 									}
@@ -787,6 +855,12 @@ document.write('\
 	</div>
 	<div class="graph-footer">
 		<table style="width:100%; table-layout:fixed" cellspacing="5" id="download_stats">
+			<tr>
+				<td></td>
+				<td><strong><%:Current%></strong></td>
+				<td><strong><%:Average%></strong></td>
+				<td><strong><%:Peak%></strong></td>
+			</tr>
 		</table>
 	</div>
 	<div class="clear"></div>

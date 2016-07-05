@@ -57,7 +57,14 @@ function subscribe()
 
 	-- tprint(res)
 	if rcode == 200 then
+		local configfile = "/etc/config/overthebox"
+		if not file_exists(configfile) then
+			local file = io.open(configfile, "w")
+			file:write("")
+			file:close()
+		end
 		local uci = uci.cursor()
+		uci:set("overthebox", "me", "config")
 		uci:set("overthebox", "me", "token", res.token)
 		uci:set("overthebox", "me", "device_id", res.device_id)
 		uci:save("overthebox")
@@ -1017,6 +1024,8 @@ function update_confmwan()
 	local tracking_servers = {}
 	table.insert( tracking_servers, "51.254.49.132" )
 	table.insert( tracking_servers, "51.254.49.133" )
+	local tracking_tunnels = {}
+	table.insert( tracking_tunnels, "169.254.254.1" )
 	-- 
 	local interfaces={}
 	local size_interfaces = 0 -- table.getn( does not work....
@@ -1064,7 +1073,10 @@ function update_confmwan()
 				uci:set("mwan3", section[".name"], "interface")
 				if uci:get("mwan3", section[".name"], "edited") ~= "1" then
 					uci:set("mwan3", section[".name"], "enabled", "1")
-					uci:delete("mwan3", section[".name"], "track_ip") -- No tracking ip for tunnel interface
+					if next(tracking_tunnels) then
+						uci:set_list("mwan3", section[".name"], "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
+					end
+					uci:set("mwan3", section[".name"], "track_method","icmp")
 					uci:set("mwan3", section[".name"], "reliability", "1")
 					uci:set("mwan3", section[".name"], "count", "1")
 					uci:set("mwan3", section[".name"], "timeout", "2")
@@ -1080,7 +1092,10 @@ function update_confmwan()
 				uci:set("mwan3", "tun0", "interface")
 				if uci:get("mwan3", "tun0", "edited") ~= "1" then
 					uci:set("mwan3", "tun0", "enabled", "1")
-					uci:delete("mwan3", "tun0", "track_ip") -- No tracking ip so tun0 is always up
+					if next(tracking_tunnels) then
+						uci:set_list("mwan3", "tun0", "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
+					end
+					uci:set("mwan3", section[".name"], "track_method","icmp")
 					uci:set("mwan3", "tun0", "reliability", "1")
 					uci:set("mwan3", "tun0", "count", "1")
 					uci:set("mwan3", "tun0", "timeout", "2")
