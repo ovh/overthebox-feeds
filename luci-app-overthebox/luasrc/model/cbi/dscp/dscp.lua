@@ -1,9 +1,13 @@
 -- Copyright 2008 Steven Barth <steven@midlink.org>
 -- Licensed to the public under the Apache License 2.0.
 
+local uci = luci.model.uci.cursor()
+
 local wa = require "luci.tools.webadmin"
 local ut = require "luci.util"
 local sys = require "luci.sys"
+
+local mud = (uci:get("glorytun", "tun0") == "mud" and uci:get("glorytun", "tun0", "enable") == "1")
 
 m = Map("dscp", translate("Differentiated services"),
 	translate("Traffic may be classified by many different parameters, such as source address, destination address or traffic type and assigned to a specific traffic class."))
@@ -25,8 +29,10 @@ direction = s:option(ListValue, "direction", translate("Direction"))
 	direction.default = "upload"
 	direction.rmempty = false
 	direction:value("upload")
+if mud then
 	direction:value("download")
 	direction:value("both")
+end
 
 --dpi = s:option(Value, "dpi", translate("Service"))
 --dpi.rmempty = true
@@ -59,13 +65,17 @@ sports = s:option(Value, "src_port", translate("Source ports"))
 dsth = s:option(Value, "dest_ip", translate("Destination host"))
 	dsth.rmempty = true
 	dsth:value("", translate("all"))
+if mud then
 	dsth:depends("direction", "upload")
+end
 	wa.cbi_add_knownips(dsth)
 
 dports = s:option(Value, "dest_port", translate("Destination ports"))
 	dports.rmempty = true
 	dports:value("", translate("all"))
+if mud then
 	dports:depends("direction", "upload")
+end
 
 t = s:option(ListValue, "class", translate("Class"))
 	t:value("cs1", translate("CS1 - Scavenger"))
