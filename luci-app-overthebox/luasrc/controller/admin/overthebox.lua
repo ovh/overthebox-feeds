@@ -132,9 +132,7 @@ function interfaces_status()
 	end
 	-- Check overthebox service are running
 	mArray.overthebox["tun_service"] = false
-	if string.find(sys.exec("/usr/bin/pgrep vtund"), "%d+") then
-		mArray.overthebox["tun_service"] = true
-	elseif string.find(sys.exec("/usr/bin/pgrep -f ^glorytun"), "%d+") then
+	if string.find(sys.exec("/usr/bin/pgrep -f ^glorytun"), "%d+") then
 		mArray.overthebox["tun_service"] = true
 	end
 	mArray.overthebox["socks_service"] = false
