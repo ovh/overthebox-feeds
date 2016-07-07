@@ -63,4 +63,9 @@ if grep "mount / -o remount,sync" /etc/rc.local &>/dev/null; then
 	sed -i '/mount \/ -o remount,sync/d' /etc/rc.local
 fi
 
+if mount | grep "on / " | grep ext4 | grep sync &>/dev/null; then
+	sync
+	mount / -o remount,async
+fi
+
 exit 0
