@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libsodium
-PKG_VERSION:=1.0.8
-PKG_RELEASE:=2
+PKG_VERSION:=1.0.10
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://download.libsodium.org/libsodium/releases
-PKG_MD5SUM:=0a66b86fd3aab3fe4c858edcd2772760
+PKG_MD5SUM:=ea89dcbbda0b2b6ff6a1c476231870dd
 
 PKG_FIXUP:=libtool autoreconf
 PKG_USE_MIPS16:=0
@@ -33,19 +33,20 @@ define Package/libsodium
 endef
 
 define Package/libsodium/description
-  NaCl (pronounced "salt") is a new easy-to-use high-speed software library for network communication, encryption, decryption, signatures, etc.
-  NaCl's goal is to provide all of the core operations needed to build higher-level cryptographic tools.
-  Sodium is a portable, cross-compilable, installable, packageable fork of NaCl (based on the latest released upstream version nacl-20110221), with a compatible API.
-  The design choices, particularly in regard to the Curve25519 Diffie-Hellman function, emphasize security (whereas NIST curves emphasize "performance" at the cost of security), and "magic constants" in NaCl/Sodium have clear rationales.
-  The same cannot be said of NIST curves, where the specific origins of certain constants are not described by the standards.
-  And despite the emphasis on higher security, primitives are faster across-the-board than most implementations of the NIST standards.
+  Sodium is a modern, easy-to-use software library for encryption, decryption, signatures, password hashing and more.
+
+  It is a portable, cross-compilable, installable, packageable fork of NaCl, with a compatible API, and an extended API to improve usability even further.
+  Its goal is to provide all of the core operations needed to build higher-level cryptographic tools.
+  Sodium supports a variety of compilers and operating systems, including Windows (with MinGW or Visual Studio, x86 and x86_64), iOS and Android.
+  The design choices emphasize security, and "magic constants" have clear rationales.
+  And despite the emphasis on high security, primitives are faster across-the-board than most implementations of the NIST standards.
 endef
 
 define Package/libsodium/config
 menu "Configuration"
 	depends on PACKAGE_libsodium
 	config LIBSODIUM_MINIMAL
-		bool "Compile only what is required for the high-level API (no aes128ctr), should be fine in most cases."
+		bool "Compile only what is required for the high-level API, should be fine in most cases."
 		default y
 endmenu
 endef
