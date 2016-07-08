@@ -457,6 +457,10 @@ function send_properties( props )
 		body.mounts = get_mounts()
 	end
 
+	if props.partscheme then
+		body.partscheme = getPartitionTableScheme()
+	end
+
 --	tprint(body)
 
 	local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
@@ -483,6 +487,11 @@ function checkReadOnly()
 		end
 	end
 	return false
+end
+
+function getPartitionTableScheme()
+	local ret, _ = chomp(run("fdisk -l 2>/dev/null | grep 'Disklabel type:' |awk '{ print $3 }'"))
+	return ret
 end
 
 function get_ip_public(interface)
