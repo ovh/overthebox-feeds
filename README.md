@@ -14,7 +14,6 @@ More information is available here :
 ## Prerequisite
 
 * an x86 machine
-* CPU with AES-NI 
 * 2Gb of RAM
 
 
