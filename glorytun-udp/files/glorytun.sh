@@ -19,9 +19,9 @@ if $1 version | grep mud ; then
     GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 
     add_multipath () {
-        config_get ifname $1 ifname
+        config_get ipaddr $1 ipaddr
         config_get multipath $1 multipath
-        [ "${multipath}" = "on" ] && GLORYTUN_ARGS="${GLORYTUN_ARGS}${ifname},"
+        [ "${multipath}" = "on" ] && GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
     }
 
     config_load network
