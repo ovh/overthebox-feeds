@@ -181,8 +181,7 @@ function updateHtml()
         {
             var color = macToColor(val);
             htmlOutput += "<tr class=\"cbi-section-table-row\" onMouseOver=\"highlight('" + val + "');\" onMouseOut=\"highlight('');\">";
-            htmlOutput += "<td class=\"cbi-value-field\"><span class=\"legend_square\" style=\"background: " + color + ";\"></span>" + val + "</td>";
-            htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['ip'] + "</td>";
+            htmlOutput += "<td class=\"cbi-value-field\"><span class=\"legend_square\" style=\"background: " + color + ";\"></span>" + newData[val]['ip'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + newData[val]['hostname'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['rx_txt'] + "</td>";
             htmlOutput += "<td class=\"cbi-value-field\">" + bandwidth[val]['tx_txt'] + "</td>";
@@ -329,9 +328,8 @@ $(document).ready(function()
 <table class="cbi-section-table" style="table-layout:fixed;">
     <thead>
         <tr class="cbi-section-table-titles">
-            <th class="cbi-section-table-cell">MAC</th>
             <th class="cbi-section-table-cell">IP</th>
-            <th class="cbi-section-table-cell">Host</th>
+            <th class="cbi-section-table-cell">Hostname</th>
             <th class="cbi-section-table-cell"><a class="toggle-link" id="rx">Download</a></th>
             <th class="cbi-section-table-cell"><a class="toggle-link" id="tx">Upload</a></th>
         </tr>
