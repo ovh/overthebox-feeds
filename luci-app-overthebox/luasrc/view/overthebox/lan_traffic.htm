@@ -40,8 +40,11 @@ var newData = { };
 var period = 5;
 var sortingKey = 'rx';
 var bit = true;
-var nbUpdate = 0;
+var nbPointRX = 0;
+var nbPointTX = 0;
 var historySize = 60;
+var hiddenBufferTX = new Array();
+var hiddenBufferRX = new Array();
 
 function transformArray(data)
 {
@@ -191,11 +194,41 @@ function updateHtml()
             newDataTX.push([val, bandwidth[val]['tx']]);
         });
 
-        $("#bandwidth").html(htmlOutput);
+        // Following code is a work-around because of a bug in c3js
+        // https://github.com/c3js/c3/issues/1097
+        // If we call chart.flow() method when tab is not focused in browser,
+        // points in the past are not popped properly.
+        // So we only call flow() when tab is focused.
+        if (document.hidden)
+        {
+            hiddenBufferRX.push(newDataRX);
+            hiddenBufferTX.push(newDataTX);
+            while (hiddenBufferRX.length > historySize)
+            {
+                hiddenBufferRX.shift();
+            }
+            while (hiddenBufferTX.length > historySize)
+            {
+                hiddenBufferTX.shift();
+            }
+        }
+        else
+        {
+            $("#bandwidth").html(htmlOutput);
 
-        var pop = (nbUpdate++ >= historySize) ? 1 : 0;
-        $('#chartRX').data('chart').flow( { columns: newDataRX, length: pop });
-        $('#chartTX').data('chart').flow( { columns: newDataTX, length: pop });
+            while (hiddenBufferRX.length > 0)
+            {
+                $('#chartRX').data('chart').flow({ columns: hiddenBufferRX.shift(), length: ++nbPointRX >= historySize ? 1 : 0 });
+            }
+
+            while (hiddenBufferTX.length > 0)
+            {
+                $('#chartTX').data('chart').flow({ columns: hiddenBufferTX.shift(), length: ++nbPointTX >= historySize ? 1 : 0 });
+            }
+
+            $('#chartRX').data('chart').flow({ columns: newDataRX, length: ++nbPointRX >= historySize ? 1 : 0 });
+            $('#chartTX').data('chart').flow({ columns: newDataTX, length: ++nbPointTX >= historySize ? 1 : 0 });
+        }
     });
 }
 
@@ -218,6 +251,7 @@ function initChart(divSelector)
                 label: { text: "No data" }
             }
         },
+        transition: { duration: 0 },
         axis:
         {
             min: { y: 0 },
