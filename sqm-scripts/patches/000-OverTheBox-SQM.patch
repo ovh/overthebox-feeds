@@ -169,12 +169,12 @@ index 0000000..2384ace
 +
 +egress() {
 +
-+    if [ "$(uci -q get vtund.tunnel.enable)" == "1" ]; then
-+        TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
-+    fi
-+    if [ "$(uci -q get vtund.xtun0.enable)" == "1" ]; then
-+	 XTUN0_PORT=$(uci -q get vtund.xtun0.port || echo "5008")
-+    fi
++#   if [ "$(uci -q get vtund.tunnel.enable)" == "1" ]; then
++#       TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
++#   fi
++#   if [ "$(uci -q get vtund.xtun0.enable)" == "1" ]; then
++#       XTUN0_PORT=$(uci -q get vtund.xtun0.port || echo "5008")
++#   fi
 +    if [ "$(uci -q get glorytun.otb.enable)" == "1" ]; then
 +        TUN0_PORT=$(uci -q get glorytun.otb.port || echo "5006")
 +    fi

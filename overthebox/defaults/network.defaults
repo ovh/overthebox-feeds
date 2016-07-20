@@ -66,6 +66,6 @@ then
 	uci commit network
 	reload_config network
 	/etc/init.d/network restart
-	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
+#	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ; # XXX
 fi
 exit 0

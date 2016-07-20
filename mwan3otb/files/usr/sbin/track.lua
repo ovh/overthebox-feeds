@@ -703,7 +703,7 @@ end
 
 -- used by conntrack bw stats
 local ipsrc     = uci:get("network", opts["i"], "ipaddr")
-local dports    = { uci:get("shadowsocks","proxy","port"), uci:get("vtund","tunnel","port") }
+local dports    = { uci:get("shadowsocks","proxy","port") } -- XXX and glorytun ?
 function bw_stats:conntrack(ipsrc, dports)
         local counter=0
         for _, stats in pairs(sys.net.conntrack())
