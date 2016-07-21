@@ -1,6 +1,7 @@
 #!/bin/sh
 
-source /lib/functions.sh
+. /lib/functions.sh
+. /lib/functions/network.sh
 
 if [ -z "${GLORYTUN_DEV}" -o -z "${GLORYTUN_IP_LOCAL}" -o -z "${GLORYTUN_IP_PEER}" -o -z "${GLORYTUN_HOST}" -o -z "${GLORYTUN_PORT}" ]; then
     echo "environnement variable is not set"
@@ -19,9 +20,12 @@ if $1 version | grep mud ; then
     GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 
     add_multipath () {
-        config_get ipaddr $1 ipaddr
+        config_get ifname $1 ifname
         config_get multipath $1 multipath
-        [ "${multipath}" = "on" ] && GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
+        if [ "${multipath}" = "on" ]; then
+            network_get_ipaddr ipaddr ${ifname}
+            GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
+        fi
     }
 
     config_load network
