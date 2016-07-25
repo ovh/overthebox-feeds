@@ -74,7 +74,7 @@ while run do
 				end
 			end
 			actionreturn, msg = overthebox.opkg_update()
-			
+
 			actionreturn, tmsg = overthebox.upgrade()
 			msg = msg .. "\n" .. tmsg
 		elseif ret.action == "updateReleaseChannel" then
@@ -112,12 +112,11 @@ while run do
 			actionreturn, msg = overthebox.send_properties(ret.arguments)
 		elseif ret.action == "diagnostic" then
 			actionreturn, msg = overthebox.send_diagnostic(ret.id, ret.arguments)
-		elseif ret.action == "createKey" then
-			remoteId=""
-			if ret and ret.arguments and ret.arguments.remote_access_id then
-				remoteId=ret.arguments.remote_access_id
-			end
-			actionreturn, msg = overthebox.createKey(remoteId)
+
+		-- TODO: Remember to remove the old name "createKey" after action has been renamed on infra side.
+		-- This is for backward compatibility during the rename of the action
+		elseif ret.action == "createKey" or ret.action == "remoteAccessPrepare" then
+			actionreturn, msg = overthebox.remoteAccessPrepare(ret.arguments)
 		elseif ret.action == "remoteAccessConnect" then
 			actionreturn, msg = overthebox.remoteAccessConnect(ret.arguments)
 		elseif ret.action == "remoteAccessDisconnect" then
