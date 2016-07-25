@@ -173,6 +173,7 @@ start()
 {
 	config_load mwan3
 	config_foreach ifup interface
+	/usr/bin/pkill -USR2 -f mwan3track
 }
 
 stop()

@@ -25,13 +25,13 @@
 local p   = require 'posix'
 local sig = require "posix.signal"
 
+local http      = require("socket.http")
+local ltn12     = require("ltn12")
+
 local json	= require("luci.json")
 local uci	= require("luci.model.uci").cursor()
 local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
--- sig.signal (sig.SIGQUIT, handle_exit)
--- sig.signal (sig.SIGTERM, handle_exit)
--- sig.signal (sig.SIGINT,  handle_exit)
 
 local method -- ping function bindings
 
@@ -742,6 +742,12 @@ function shaper:pushPing(lat)
 		bw_stats:collect()
 	end
 	pingstats:push(lat)
+	-- Check if we have to notify all trackers to send QoS data to API
+	if shaper.interface == "tun0" and shaper.qostimestamp then
+		shaper.qostimestamp = nil
+		run("pkill -USR1 -f mwan3track")
+	end
+	-- QoS manager
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
 			debug("Starting bandwidth stats collector on " .. opts["i"])
@@ -794,6 +800,7 @@ function shaper:update()
 			shaper:enableQos()
 		end
 	end
+
 end
 
 function shaper:enableQos()
@@ -860,6 +867,72 @@ function shaper:disableQos()
 	shaper.qostimestamp=nil
 	shaper.congestedtimestamp=nil
 end
+
+-- Service API handler
+function POST(uri, data)
+	return API(uri, "POST", data)
+end
+function PUT(uri, data)
+	return API(uri, "PUT", data)
+end
+function API(uri, method, data)
+	url = "http://api/" .. uri
+	-- Buildin JSON POST
+	local reqbody   = json.encode(data)
+	local respbody  = {}
+	-- Building Request
+	http.TIMEOUT=5
+	local body, code, headers, status = http.request{
+		method = method,
+		url = url,
+		protocol = "tlsv1",
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-length"] = reqbody:len(),
+			["X-Auth-OVH"] = uci.cursor():get("overthebox", "me", "token"),
+		},
+		source = ltn12.source.string(reqbody),
+		sink = ltn12.sink.table(respbody),
+	}
+	log('api '..reqbody..': '..code)
+	return code, json.decode(table.concat(respbody))
+end
+function sendQosToApi()
+	local mptcp = uci:get("network", shaper.interface, "multipath")
+	if shaper.interface == "tun0" then
+		local commitid = tostring(os.time())
+		uci:foreach("dscp", "classify",
+			function (dscp)
+				if dscp['direction'] == "download" or dscp['direction'] == "both" then
+					local rcode, res = POST("dscp/"..commitid, {
+						proto 		= dscp["proto"],
+						src_ip		= dscp["src_ip"],
+						src_port	= dscp["src_port"],
+						dest_ip		= dscp["dest_ip"],
+						dest_port	= dscp["dest_port"],
+						dpi		= dscp["dpi"],
+						class		= dscp["class"]
+					})
+				end
+			end
+		)
+		local rcode, res = POST("dscp/"..commitid.."/commit")
+	elseif mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
+		local rcode, res = PUT("qos", {
+			interface	= shaper.interface,
+			metric		= uci:get("network", shaper.interface, "metric"),
+			wan_ip		= get_public_ip(shaper.interface),
+			downlink	= tostring(shaper.download),
+			uplink		= tostring(shaper.upload)
+		})
+	end
+end
+sig.signal(sig.SIGUSR1, sendQosToApi)
+sig.signal(sig.SIGUSR2, function ()
+	if shaper.interface == "tun0" and shaper.qostimestamp == nil then
+		shaper.qostimestamp = os.time()
+	end
+end)
 
 -- Enable shaper only on multipath interface
 if uci:get("network", opts["i"], "multipath") == "on" then
