@@ -49,7 +49,7 @@ if [ $? -ne 0 ]; then
 EOF
 fi
 
-uci set network.tun0.auto='0'
+uci delete network.tun0.auto
 
 
 # be sure, ipv6 interface is here

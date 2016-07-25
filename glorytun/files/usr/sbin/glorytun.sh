@@ -39,9 +39,6 @@ initialized() {
     ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
     ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
 
-    # Workaround to make mwan3 update tun rule
-    /etc/init.d/sqm start ${GLORYTUN_DEV}
-
     multipath ${GLORYTUN_DEV} off
 }
 
@@ -56,8 +53,6 @@ started() {
     if [ -n "${GLORYTUN_METRIC}" ]; then
         ip route add default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
-
-    ubus call network.interface.${GLORYTUN_DEV} up
 
     if [ "${GLORYTUN_DEV}" == "tun0" ]; then
         [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start;
@@ -77,8 +72,6 @@ stopped() {
     if [ -n "${GLORYTUN_METRIC}" ]; then
         ip route del default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
-
-    ubus call network.interface.${GLORYTUN_DEV} down
 
     ip link set ${GLORYTUN_DEV} down
 }
