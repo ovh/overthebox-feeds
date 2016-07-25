@@ -711,8 +711,8 @@ function remoteAccessDisconnect(args)
 	uci:save("overthebox")
 	uci:commit("overthebox")
 
-	local ret, rcode = run("/etc/init.d/otb-remote stop")
-	if not status_code_ok(rcode) then return false, "error on stop otb-remote daemon" end
+	local ret, rcode = run("/etc/init.d/otb-remote restart")
+	if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
 	return true, "ok"
 end
 
