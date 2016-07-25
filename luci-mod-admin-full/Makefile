@@ -11,7 +11,7 @@ LUCI_DEPENDS:=+luci-base +libubus-lua
 
 PKG_BUILD_DEPENDS:=iwinfo
 
-include ../../luci/luci.mk
+include ../luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
 
