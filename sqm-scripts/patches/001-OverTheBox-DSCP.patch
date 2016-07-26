@@ -2,7 +2,7 @@ diff --git a/src/run-openwrt.sh b/src/run-openwrt.sh
 index e2a494a..c5624ff 100644
 --- a/src/run-openwrt.sh
 +++ b/src/run-openwrt.sh
-@@ -23,9 +23,86 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
+@@ -23,9 +23,88 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
          # $SCRIPT variables saved in there.
          [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
      done
@@ -83,8 +83,10 @@ index e2a494a..c5624ff 100644
 +$IPT -D PREROUTING -j dscp 2>/dev/null
 +$IPT -A PREROUTING -j dscp
 +
-+config_foreach pushDscpToApi classify
-+curl -s --connect-timeout 3 -X POST api/dscp/$$/commit?auth_token=${TOKEN}
++if mwan3 interfaces | grep tun0 | grep online; then
++	config_foreach pushDscpToApi classify
++	curl -s --connect-timeout 3 -X POST api/dscp/$$/commit?auth_token=${TOKEN}
++fi
 +
  config_load sqm
  

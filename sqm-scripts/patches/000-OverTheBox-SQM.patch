@@ -156,7 +156,7 @@ new file mode 100644
 index 0000000..2384ace
 --- /dev/null
 +++ b/src/otb.qos
-@@ -0,0 +1,237 @@
+@@ -0,0 +1,239 @@
 +#!/bin/sh
 +
 +# This program is free software moded by Bash; you can redistribute it and/or modify
@@ -327,16 +327,18 @@ index 0000000..2384ace
 +}
 +
 +push_to_api() {
-+	local TOKEN METRIC WAN_IP API_IP
-+	
-+	TOKEN=$(uci -q get overthebox.me.token)
-+	METRIC=$(uci -q get network.${IFACE}.metric)
-+	if [ "$1" == "stop" ]; then
-+		curl -s --connect-timeout 3 -X DELETE api/qos/${METRIC}?auth_token=${TOKEN}
-+	elif [ "$1" == "start" ]; then
-+		WAN_IP=$(curl -s --connect-timeout 3 --interface ${IFACE} ifconfig.ovh)
-+		if [ -n "${WAN_IP}" ]; then
-+			curl -s --connect-timeout 3 -X PUT -H "Content-Type: application/json" --data "{ \"interface\": \"${IFACE}\", \"metric\": \"${METRIC}\", \"wan_ip\": \"${WAN_IP}\", \"downlink\": \"${DOWNLINK}\", \"uplink\": \"${UPLINK}\" }" api/qos?auth_token=${TOKEN}
++	if mwan3 interfaces | grep tun0 | grep online; then
++		local TOKEN METRIC WAN_IP API_IP
++
++		TOKEN=$(uci -q get overthebox.me.token)
++		METRIC=$(uci -q get network.${IFACE}.metric)
++		if [ "$1" == "stop" ]; then
++			curl -s --connect-timeout 3 -X DELETE api/qos/${METRIC}?auth_token=${TOKEN}
++		elif [ "$1" == "start" ]; then
++			WAN_IP=$(curl -s --connect-timeout 3 --interface ${IFACE} ifconfig.ovh)
++			if [ -n "${WAN_IP}" ]; then
++				curl -s --connect-timeout 3 -X PUT -H "Content-Type: application/json" --data "{ \"interface\": \"${IFACE}\", \"metric\": \"${METRIC}\", \"wan_ip\": \"${WAN_IP}\", \"downlink\": \"${DOWNLINK}\", \"uplink\": \"${UPLINK}\" }" api/qos?auth_token=${TOKEN}
++			fi
 +		fi
 +	fi
 +}
