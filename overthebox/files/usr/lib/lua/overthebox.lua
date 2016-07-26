@@ -588,15 +588,52 @@ function post_result_diagnostic(id, name, cmd, output, exit_code)
 	return (rcode == 200)
 end
 
+-- This function converts a remote access id to a name usable as key in uci.
+-- Uci doesn't support "-" in key names so we replace '-' by'_'.
+function remoteAccessIdToUci(remote_access_id)
+	return "remote_" .. string.gsub(remote_access_id, "-", "_")
+end
 
-
-function createKey(remoteId)
-	ret, key = create_ssh_key()
-	if ret and key then
-		local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..remoteId.."/keys",   {public_key=key})
-		return (rcode == 200), "ok"
+function remoteAccessPrepare(args)
+	if not args or not exists(args, 'remote_access_id') then
+		return false, "no arguments or remote_access_id arg is missing"
 	end
-	return false, "key not well created"
+
+	ret, key = create_ssh_key()
+
+	if not ret or not key then
+		return false, "key not well created"
+	end
+
+	local name = remoteAccessIdToUci(args.remote_access_id)
+	local uci = uci.cursor()
+	uci:set("overthebox", name, "remote")
+
+	-- create luci user if requested
+	if exists(args, 'luci_user', 'luci_password') and
+			args.luci_user ~= '' and args.luci_password ~= '' then
+
+		local ret, rcode = run("useradd -c "
+			.. args.remote_access_id
+			.. " -d /root -s /bin/false -u 0 -g root -MNo "
+			.. args.luci_user)
+
+		if not status_code_ok(rcode) then return false, "error creating luci user" end
+
+		rcode = sys.user.setpasswd(args.luci_user, args.luci_password)
+		if not status_code_ok(rcode) then
+			-- Rollback user creation
+			run("userdel -f " .. args.luci_user)
+			return false, "error when changing password for luci user"
+		end
+
+		uci:set("overthebox", name, "luci_user", args.luci_user)
+	end
+	uci:save("overthebox")
+	uci:commit("overthebox")
+
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..args.remote_access_id.."/keys",   {public_key=key})
+	return (rcode == 200), "ok"
 end
 
 function create_ssh_key()
@@ -625,17 +662,16 @@ function create_ssh_key()
 end
 
 function remoteAccessConnect(args)
-	if not args or not exists( args, 'forwarded_port', 'ip', 'port', 'server_public_key', 'remote_public_key')    then
+	if not args or not exists(args, 'remote_access_id', 'forwarded_port',
+			'ip', 'port', 'server_public_key', 'remote_public_key') then
 		return false, "no arguments or missing"
 	end
 
-	local name="remote"..args.port
-	-- set arguments to config
+	local name = remoteAccessIdToUci(args.remote_access_id)
 	local uci = uci.cursor()
-	uci:set("overthebox", name, "remote")
-	uci:set("overthebox", name, "forwarded_port", args.forwarded_port )
-	uci:set("overthebox", name, "ip", args.ip )
-	uci:set("overthebox", name, "port", args.port )
+	uci:set("overthebox", name, "forwarded_port", args.forwarded_port)
+	uci:set("overthebox", name, "ip", args.ip)
+	uci:set("overthebox", name, "port", args.port)
 	uci:set("overthebox", name, "server_public_key", args.server_public_key)
 	uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
 
@@ -643,24 +679,40 @@ function remoteAccessConnect(args)
 	uci:commit("overthebox")
 
 	local ret, rcode = run("/etc/init.d/otb-remote restart")
-	if not status_code_ok(rcode) then return false, "error on restart otb-remote daemon" end
+	if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
 	return true, "ok"
 end
 
 function remoteAccessDisconnect(args)
-	if not args then
-		return false, "no arguments"
+	if not args or not exists(args, 'remote_access_id', 'port') then
+		return false, "no arguments or missing"
 	end
 
-	local name="remote"..args.port
+	-- TODO: Remember to remove oldName and the requirement for 'port' to be in args
+	-- once all old remote accesses have been deleted or expired.
+	local oldName = "remote" .. args.port
+	local name = remoteAccessIdToUci(args.remote_access_id)
 
 	local uci = uci.cursor()
-	uci:delete("overthebox", name)
-	uci:commit("overthebox")
-	uci:save("overthebox")
 
-	local ret, rcode = run("/etc/init.d/otb-remote stop")
-	if not status_code_ok(rcode) then return false, "error on stop otb-remote daemon" end
+	local luci_user = uci:get("overthebox", oldName, "luci_user")
+	if luci_user == nil then
+		luci_user = uci:get("overthebox", name, "luci_user")
+	end
+
+	-- Delete luci user if we created one earlier
+	if luci_user ~= nil then
+		local ret, rcode = run("userdel -f " .. luci_user)
+		if not status_code_ok(rcode) then return false, "error when deleting user " .. luci_user end
+	end
+
+	uci:delete("overthebox", oldName)
+	uci:delete("overthebox", name)
+	uci:save("overthebox")
+	uci:commit("overthebox")
+
+	local ret, rcode = run("/etc/init.d/otb-remote restart")
+	if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
 	return true, "ok"
 end
 

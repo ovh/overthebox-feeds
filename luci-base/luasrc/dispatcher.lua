@@ -347,11 +347,11 @@ function dispatch(request)
 			end
 		end
 
-		if not util.contains(accs, user) then
+		if not user then
 			if authen then
 				local user, sess = authen(sys.user.checkpasswd, accs, def)
 				local token
-				if not user or not util.contains(accs, user) then
+				if not user then
 					return
 				else
 					if not sess then
