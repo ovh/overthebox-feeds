@@ -1442,7 +1442,7 @@ function update_confmwan()
 		uci:set("mwan3", "voip", "rule")
 		if uci:get("mwan3", "voip", "edited") ~= "1" then
 			uci:set("mwan3", "voip", "proto", "udp")
-			-- uci:set("mwan3", "voip", "dest_ip", '91.121.128.0/23')
+			uci:set("mwan3", "voip", "dest_ip", '91.121.128.0/23')
 			uci:set("mwan3", "voip", "use_policy", "failover")
 		end
 		uci:set("mwan3", "voip", "generated", "1")
