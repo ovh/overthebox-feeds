@@ -2,17 +2,9 @@
 
 touch /etc/config/ucitrack
 
-# Restore some ucitrack values
-if ! uci -q get ucitrack.@sqm[0]; then
-	uci add ucitrack sqm > /dev/null
-	uci set ucitrack.@sqm[0].init=sqm
-	uci add_list ucitrack.@firewall[0].affects=sqm
-	uci commit ucitrack
-fi
-
 if ! uci -q get ucitrack.@dscp[0]; then
         uci add ucitrack dscp
-        uci add_list ucitrack.@dscp[-1].affects="sqm"
+        uci add_list ucitrack.@dscp[-1].init="dscp"
         uci commit ucitrack
 fi
 

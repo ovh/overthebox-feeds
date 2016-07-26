@@ -1,0 +1,215 @@
+#!/bin/sh
+
+# This program is free software moded by Bash; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+. ${SQM_LIB_DIR}/defaults.sh
+
+egress() {
+
+    if [ "$(uci -q get vtund.tunnel.enable)" == "1" ]; then
+        TUN0_PORT=$(uci -q get vtund.tunnel.port || echo "5005")
+    fi
+    if [ "$(uci -q get vtund.xtun0.enable)" == "1" ]; then
+	 XTUN0_PORT=$(uci -q get vtund.xtun0.port || echo "5008")
+    fi
+    if [ "$(uci -q get glorytun.otb.enable)" == "1" ]; then
+        TUN0_PORT=$(uci -q get glorytun.otb.port || echo "5006")
+    fi
+    if [ "$(uci -q get glorytun.xtun0.enable)" == "1" ]; then
+        XTUN0_PORT=$(uci -q get glorytun.xtun0.port || echo "5009")
+    fi
+    SOCKS_PORT=$(uci -q get shadowsocks.proxy.port || echo "1090")
+
+    ipt -t mangle -F QOS_MARK_${IFACE}
+    ipt -t mangle -X QOS_MARK_${IFACE}
+    ipt -t mangle -N QOS_MARK_${IFACE}
+
+    ipt -t mangle -F QOS_RULES_${IFACE}
+    ipt -t mangle -X QOS_RULES_${IFACE}
+    ipt -t mangle -N QOS_RULES_${IFACE}
+
+# Marking dscp SS tagged packets
+    ipt -t mangle -D OUTPUT -o ${IFACE} -g QOS_MARK_${IFACE} 2>/dev/null
+    ipt -t mangle -I OUTPUT 2 -o ${IFACE} -g QOS_MARK_${IFACE}
+    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --restore-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
+    ipt -t mangle -A QOS_MARK_${IFACE} -m mark --mark 0x00${IPT_MASK_STRING} -j QOS_RULES_${IFACE}
+
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs1 -m comment --comment "Scavenger" -j MARK --set-mark 0x01${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs2 -m comment --comment "Normal" -j MARK --set-mark 0x02${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs3 -m comment --comment "Signaling" -j MARK --set-mark 0x03${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs4 -m comment --comment "Realtime" -j MARK --set-mark 0x04${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs5 -m comment --comment "BroadcastVideo" -j MARK --set-mark 0x05${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs6 -m comment --comment "NetworkControl" -j MARK --set-mark 0x06${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs7 -m comment --comment "Reserved" -j MARK --set-mark 0x07${IPT_MASK_STRING}
+
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 512: -m comment --comment "Heavy" -j MARK --set-mark 0x01${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 128:512 -m comment --comment "Interactive" --j MARK --set-mark 0x03${IPT_MASK_STRING}
+    ipt -t mangle -A QOS_RULES_${IFACE} -p tcp -m multiport --dports ${SOCKS_PORT} -m dscp --dscp-class cs0 -m length --length 0:128 -m comment --comment "Acknowledge" -j MARK --set-mark 0x06${IPT_MASK_STRING}
+
+    ipt -t mangle -A QOS_MARK_${IFACE} -j CONNMARK --save-mark --nfmask ${IPT_MASK} --ctmask ${IPT_MASK}
+
+########################
+
+# Delete existing queue
+    $TC qdisc del dev ${IFACE} root 2> /dev/null
+# Traffic classes:
+# 1:2 Interactive (SSH, DNS, ACK)
+# 1:3 Low latency (VoIP)
+# 1:4 Browsing (HTTP, HTTPs)
+# 1:5 Default
+# 1:6 Low priority (p2p, pop3, smtp, etc)
+
+# add HFSC root qdisc
+    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 5
+
+
+# add main rate limit class
+    $TC class add dev ${IFACE} parent 1: classid 1:1 hfsc \
+                sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
+
+# Interactive traffic: guarantee realtime full uplink for 100ms, then
+# 50% of the uplink
+
+    $TC class add dev ${IFACE} parent 1:1  classid 1:2 hfsc \
+    rt m1   ${UPLINK}kbit d  100ms m2 $((5*$UPLINK/10))kbit \
+    ls m1   ${UPLINK}kbit d  100ms m2 $((7*$UPLINK/10))kbit \
+    ul rate ${UPLINK}kbit
+
+# Interactive traffic2: guarantee realtime full uplink for 50ms, then
+# 30% of the uplink
+
+    $TC class add dev ${IFACE} parent 1:1  classid 1:3 hfsc \
+    rt m1   ${UPLINK}kbit d  50ms m2 $((3*$UPLINK/10))kbit \
+    ls m1   ${UPLINK}kbit d  50ms m2 $((5*$UPLINK/10))kbit \
+    ul rate ${UPLINK}kbit
+
+
+
+# VoIP: guarantee full uplink for 200ms, then 30%
+    $TC class add dev ${IFACE} parent 1:1  classid 1:4 hfsc \
+    sc m1 ${UPLINK}kbit d 200ms m2 $((3*$UPLINK/10))kbit \
+    ul rate ${UPLINK}kbit
+
+# Browsing: Don't guarantee anything for the first second, then
+# guarantee 10%
+
+    $TC class add dev ${IFACE} parent 1:1  classid 1:5 hfsc \
+    sc m1         0 d    1s m2 $((1*$UPLINK/10))kbit \
+    ul rate ${UPLINK}kbit
+
+# Default traffic: don't guarantee anything for the first two seconds,
+# then guarantee 5%
+
+    $TC class add dev ${IFACE} parent 1:1  classid 1:6 hfsc \
+    sc m1         0 d    2s m2 $((1*$UPLINK/20))kbit \
+    ul rate ${UPLINK}kbit
+
+# Default traffic: don't guarantee anything for the first 10 seconds,
+# then guarantee 5%
+
+    $TC class add dev ${IFACE} parent 1:1  classid 1:7 hfsc \
+    sc m1         0 d   10s m2 $((1*$UPLINK/20))kbit \
+    ul rate ${UPLINK}kbit
+
+################
+
+    $TC qdisc add dev ${IFACE} parent 1:2 handle 12: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${PRIO}` ${EQDISC_OPTS}
+    $TC qdisc add dev ${IFACE} parent 1:3 handle 13: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${NORMAL}` ${EQDISC_OPTS}
+    $TC qdisc add dev ${IFACE} parent 1:4 handle 14: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
+    $TC qdisc add dev ${IFACE} parent 1:5 handle 15: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
+    $TC qdisc add dev ${IFACE} parent 1:6 handle 16: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
+    $TC qdisc add dev ${IFACE} parent 1:7 handle 17: ${QDISC} \
+    `get_limit ${ELIMIT}` `get_target "${ETARGET}" ${UPLINK}` `get_ecn ${EECN}` \
+    `get_quantum  300` `get_flows ${BULK}` ${EQDISC_OPTS}
+
+
+# QoS for UDP ex:45aO 4=>ipv4 5=>20bytes & hexa a0=>c5
+    # cs1=20, cs2=40, cs3=60, cs4=80, cs5=a0, cs6=c0, & cs7=e0
+
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x4520 0xffff at 35  flowid 1:7
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x4540 0xffff at 35  flowid 1:6
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x4560 0xffff at 35  flowid 1:5
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x4580 0xffff at 35  flowid 1:5
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x45a0 0xffff at 35  flowid 1:4
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x45c0 0xffff at 35  flowid 1:3
+    $TC filter add dev ${IFACE} parent 1:0 protocol ip prio 1 u32 match u16 0x45e0 0xffff at 35  flowid 1:2
+
+    # QoS for xtun0
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 1 u32 match ip dport ${XTUN0_PORT} 0xffff  flowid 1:3
+
+# QoS for TCP
+
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x07 ${IPT_MASK} flowid 1:2
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x06 ${IPT_MASK} flowid 1:3
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x05 ${IPT_MASK} flowid 1:4
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x04 ${IPT_MASK} flowid 1:5
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x03 ${IPT_MASK} flowid 1:5
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x02 ${IPT_MASK} flowid 1:6
+    $TC filter add dev ${IFACE} parent 1:0 protocol all prio 2 u32 match mark 0x01 ${IPT_MASK} flowid 1:7
+
+}
+
+ingress() {
+      return
+}
+
+sqm_start() {
+    [ -n "${IFACE}" ] || return 1
+    [ -z "$DEV" ] && DEV=$( get_ifb_for_if ${IFACE} )
+    do_modules
+    verify_qdisc "hfsc" || return 1
+    verify_qdisc ${QDISC} || return 1
+    sqm_logger "Starting ${SCRIPT}"
+
+    eth_setup
+    #ipt_setup
+
+    if [ "${UPLINK}" -ne 0 ];
+    then
+        egress
+        sqm_logger "egress shaping activated"
+    else
+        sqm_logger "egress shaping deactivated"
+        $TC qdisc del dev ${IFACE} root 2> /dev/null
+    fi
+    if [ "${DOWNLINK}" -ne 0 ];
+    then
+        verify_qdisc ingress "ingress" || return 1
+        ingress
+        sqm_logger "ingress shaping activated"
+    else
+        sqm_logger "ingress shaping deactivated"
+        $TC qdisc del dev ${DEV} root 2> /dev/null
+        $TC qdisc del dev ${IFACE} ingress 2> /dev/null
+    fi
+    return 0
+}
+
+sqm_stop() {
+    $TC qdisc del dev ${IFACE} ingress 2> /dev/null
+    $TC qdisc del dev ${IFACE} root 2> /dev/null
+    [ -n "$CUR_IFB" ] && $TC qdisc del dev ${CUR_IFB} root 2> /dev/null
+    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} shaper deleted"
+
+
+    ipt -t mangle -D POSTROUTING -o ${IFACE} -g QOS_MARK_${IFACE}
+    ipt -t mangle -F QOS_MARK_${IFACE}
+    ipt -t mangle -X QOS_MARK_${IFACE}
+    ipt -t mangle -F QOS_RULES_${IFACE}
+    ipt -t mangle -X QOS_RULES_${IFACE}  [ -n "$CUR_IFB" ] && $IP link set dev ${CUR_IFB} down
+
+    [ -n "$CUR_IFB" ] && $IP link delete ${CUR_IFB} type ifb
+    [ -n "$CUR_IFB" ] && sqm_logger "${0}: ${CUR_IFB} interface deleted"
+}
