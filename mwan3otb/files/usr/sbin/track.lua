@@ -35,6 +35,17 @@ local dns	= require("org.conman.dns")
 
 local method -- ping function bindings
 
+sig.signal(sig.SIGUSR2,
+        function ()
+                log("Ignoring signal USR2 tracker not fully started yet")
+        end
+)
+sig.signal(sig.SIGUSR1,
+        function ()
+                log("Ignoring signal USR1 tracker not fully started yet")
+        end
+)
+
 local function handle_exit()
 	p.closelog()
 	os.exit();
@@ -736,7 +747,7 @@ function API(uri, method, data)
 		source = ltn12.source.string(reqbody),
 		sink = ltn12.sink.table(respbody),
 	}
-	log('api/'..uri..' '..reqbody..' '..code)
+	log(method..' api/'..uri..' '..reqbody..' '..code)
 	return code, json.decode(table.concat(respbody))
 end
 
@@ -803,7 +814,7 @@ function shaper:update()
 		-- Reload uci
 		uci = libuci.cursor()
 		local newMode = uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
-		-- QoS has been disabled
+		-- QoS mode has changed
 		if shaper.mode ~= newMode then
 			shaper.mode = newMode
 			shaper:disableQos()
