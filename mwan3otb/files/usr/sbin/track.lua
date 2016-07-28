@@ -714,6 +714,9 @@ end
 function PUT(uri, data)
 	return API(uri, "PUT", data)
 end
+function DELETE(uri, data)
+	return API(uri, "DELETE", data)
+end
 function API(uri, method, data)
 	url = "http://api/" .. uri
 	-- Buildin JSON POST
@@ -844,7 +847,16 @@ end
 function shaper:disableQos()
 	if shaper.qostimestamp then
 		log(string.format("Disabling QoS on interface %s", shaper.interface))
---		shaper:sendQosToApi() @todo: disable QoS on docker side
+		-- Disable Download QoS on docker side
+                local uci       = libuci.cursor()
+                local mptcp     = uci:get("network", shaper.interface, "multipath")
+                local metric    = uci:get("network", shaper.interface, "metric")
+                if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
+                        if metric then
+                                local rcode, res = DELETE("qos/"..metric, {})
+                        end
+                end
+		-- Disable Upload QoS on device side
 		run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		shaper.qostimestamp=nil
 		shaper.congestedtimestamp=nil
