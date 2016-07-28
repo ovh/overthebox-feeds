@@ -1,0 +1,22 @@
+#!/bin/sh /etc/rc.common
+START=60
+
+start()
+{
+        /usr/bin/pkill -USR2 -f "mwan3track -i"
+}
+
+reload()
+{
+        start
+}
+
+restart()
+{
+        start
+}
+
+stop()
+{
+        start
+}

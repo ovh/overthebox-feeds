@@ -156,7 +156,7 @@ s.addremove = false
 s:tab("general",  translate("General Setup"))
 s:tab("advanced", translate("Advanced Settings"))
 s:tab("physical", translate("Physical Settings"))
-s:tab("autoshape", translate("Adaptive Shaping"))
+s:tab("trafficcontrol", translate("Traffic Control"))
 
 if has_firewall then
 	s:tab("firewall", translate("Firewall Settings"))
@@ -324,56 +324,54 @@ if not net:is_virtual() then
 	ifname_multi.write = ifname_single.write
 end
 
-aushape = s:taboption("autoshape", ListValue, "autoshape", translate("Adaptive Shaping"))
+aushape = s:taboption("trafficcontrol", ListValue, "trafficcontrol", translate("Adaptive Shaping"))
 aushape:value("off", translate("Disabled"))
 aushape:value("static", translate("Static"))
-aushape:value("auto", translate("Adaptive (experimental)"))
+--aushape:value("auto", translate("Adaptive (experimental)"))
 aushape.default = "off"
 aushape:depends("multipath", "on")
 aushape:depends("multipath", "master")
 aushape:depends("multipath", "backup")
 aushape:depends("multipath", "handover")
 
-aushape:depends("qos", "basic")
-
-download = s:taboption("autoshape", Value, "download", translate("Download bandwidth in kbit/s"))
+download = s:taboption("trafficcontrol", Value, "download", translate("Download bandwidth in kbit/s"))
 download.rmempty = true
-download:depends("autoshape", "static")
+download:depends("trafficcontrol", "static")
 
-upload = s:taboption("autoshape", Value, "upload", translate("Upload bandwidth in kbit/s"))
+upload = s:taboption("trafficcontrol", Value, "upload", translate("Upload bandwidth in kbit/s"))
 upload.rmempty = true
-upload:depends("autoshape", "static")
-upload:depends("autoshape", "auto")
+upload:depends("trafficcontrol", "static")
+upload:depends("trafficcontrol", "auto")
 
-pingdeleta = s:taboption("autoshape", Value, "pingdelta", translate("Max ping increase in ms before consdering link as congested"))
+pingdeleta = s:taboption("trafficcontrol", Value, "pingdelta", translate("Max ping increase in ms before consdering link as congested"))
 pingdeleta.default = "100"
 pingdeleta.rmempty = true
-pingdeleta:depends("autoshape", "auto")
+pingdeleta:depends("trafficcontrol", "auto")
 
-mindownload = s:taboption("autoshape", Value, "mindownload", translate("Minimal download speed in kbit/s"))
+mindownload = s:taboption("trafficcontrol", Value, "mindownload", translate("Minimal download speed in kbit/s"))
 mindownload.default = "512"
 mindownload.rmempty = true
-mindownload:depends("autoshape", "auto")
+mindownload:depends("trafficcontrol", "auto")
 
-minupload = s:taboption("autoshape", Value, "minupload", translate("Minimal upload speed in kbit/s"))
+minupload = s:taboption("trafficcontrol", Value, "minupload", translate("Minimal upload speed in kbit/s"))
 minupload.default = "128"
 minupload.rmempty = true
-minupload:depends("autoshape", "auto")
+minupload:depends("trafficcontrol", "auto")
 
--- bandwidthdelta = s:taboption("autoshape", Value, "bandwidthdelta", translate("Minimum rate delta in kbit/s between mesures before reloading QoS"))
+-- bandwidthdelta = s:taboption("trafficcontrol", Value, "bandwidthdelta", translate("Minimum rate delta in kbit/s between mesures before reloading QoS"))
 -- bandwidthdelta.default = "100"
 -- bandwidthdelta.rmempty = true
--- bandwidthdelta:depends("autoshape", "auto")
+-- bandwidthdelta:depends("trafficcontrol", "auto")
 
-qostimeout = s:taboption("autoshape", Value, "qostimeout", translate("Time in min to keep detected rate"))
+qostimeout = s:taboption("trafficcontrol", Value, "qostimeout", translate("Time in min to keep detected rate"))
 qostimeout.default = "30"
 qostimeout.rmempty = true
-qostimeout:depends("autoshape", "auto")
+qostimeout:depends("trafficcontrol", "auto")
 
-ratefactor = s:taboption("autoshape", Value, "ratefactor", translate("Factor to apply on mesured rate"))
+ratefactor = s:taboption("trafficcontrol", Value, "ratefactor", translate("Factor to apply on mesured rate"))
 ratefactor.default = "1"
 ratefactor.rmempty = true
-ratefactor:depends("autoshape", "auto")
+ratefactor:depends("trafficcontrol", "auto")
 
 if has_firewall then
 	fwzone = s:taboption("firewall", Value, "_fwzone",

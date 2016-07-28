@@ -757,6 +757,7 @@ end
 
 -- all our packages, and the minimum version needed.
 local pkgs = { 
+    ["sqm-scripts"]='remove',
     ["overthebox"]='0.3-17',
     ["lua"]='5.1.5-3',
     ["liblua"]='5.1.5-3',
@@ -768,8 +769,6 @@ local pkgs = {
     ["shadowsocks-libev"]='2.4.5-5',
     ["luci-theme-ovh"]='v0.1-3',
     ["dnsmasq-full"]='2.75-8',
-    ["sqm-scripts"]='1.0.5-8',
-    ["luci-app-sqm"]='1.0.5-8',
     ["mptcp"]='1.0.0-6',
     ["netifd"]='2015-08-25-58',
     ["mwan3otb"]='1.7-22',
@@ -783,9 +782,9 @@ local pkgs = {
     ["libsodium"]='1.0.8-2',
     ["glorytun"]='0.0.32-1',
     ["glorytun-udp"]='0.0.51-mud-1',
-    ["sqm-scripts"]='1.0.5-15',
     ["bandwidth"]='0.6',
     ["rdisc6"]='1.0.3-1',
+    ["luci-app-sqm"]='remove',
     ['luci-app-qos']='remove',
     ['qos-scripts']='remove'
 }
@@ -1029,7 +1028,7 @@ function update_confmwan()
 	local uci = uci.cursor()
 	-- Check if we need to update mwan conf
 	local oldmd5 = uci:get("mwan3", "netconfchecksum")
-	local newmd5 = string.match(sys.exec("uci -q export network | md5sum"), "[0-9a-f]*")
+	local newmd5 = string.match(sys.exec("uci -q export network | egrep -v 'upload|download|trafficcontrol|label' | md5sum"), "[0-9a-f]*")
 	if oldmd5 and (oldmd5 == newmd5) then
 		log("update_confmwan: no changes !")
 		return false, nil
