@@ -53,7 +53,7 @@ run_sqm_scripts() {
     [ -z "$RUN_IFACE" -o "$RUN_IFACE" = "$IFACE" ] || return
 
     [ -z "$(config_get "$section" trafficcontrol)" ] && return
-    [ $(config_get "$section" trafficcontrol) == "off"] && {
+    [ $(config_get "$section" trafficcontrol) == "off" ] && {
         CUR_STATE_FILE="${SQM_STATE_DIR}/${IFACE}.state"
         if [ -f "${CUR_STATE_FILE}" ]; then
             "${SQM_LIB_DIR}/stop-sqm"
