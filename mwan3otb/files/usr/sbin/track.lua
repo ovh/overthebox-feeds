@@ -29,7 +29,7 @@ local http      = require("socket.http")
 local ltn12     = require("ltn12")
 
 local json	= require("luci.json")
-local uci	= require("luci.model.uci").cursor()
+local libuci	= require("luci.model.uci")
 local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
 
@@ -680,6 +680,7 @@ function bw_stats:maxupload()
 	return bw_stats.maxuploadvalue
 end
 
+local uci = libuci.cursor()
 if pingstats.whois and not uci:get("network", opts["i"], "label") then
 	uci:set("network", opts["i"], "label", pingstats.whois)
 	uci:save("network")
@@ -727,7 +728,7 @@ function API(uri, method, data)
 		headers = {
 			["Content-Type"] = "application/json",
 			["Content-length"] = reqbody:len(),
-			["X-Auth-OVH"] = uci.cursor():get("overthebox", "me", "token"),
+			["X-Auth-OVH"] = libuci.cursor():get("overthebox", "me", "token"),
 		},
 		source = ltn12.source.string(reqbody),
 		sink = ltn12.sink.table(respbody),
@@ -747,7 +748,7 @@ shaper.pingdelta = tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -
 shaper.bandwidthdelta = tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
 shaper.ratefactor = tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
 -- Shaper timers
-shaper.mwan3timestamp = nil	-- Time when mwan3 is fully loaded
+shaper.reloadtimestamp = 0	-- Time when signal to (re)load qos was received
 shaper.qostimestamp = nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
 shaper.losttimestamp = nil	-- Time when we lost the first ping
 shaper.congestedtimestamp = nil	-- Time when we detect a link congestion
@@ -760,19 +761,19 @@ function shaper:pushPing(lat)
 			shaper.losttimestamp = os.time()
 		end
 		bw_stats:collect()
-	end
-	pingstats:push(lat)
-	-- Notify other trackers that a new tracker as started
-	if shaper.mwan3timestamp == nil then
-		-- Notify trackers that a new tracker is ready
-		run('pkill -USR2 -f "mwan3track -i"')
-	end
-	-- When tun0 started (or notified about a new tracker), notify all trackers to start their QoS if needed
-	if shaper.interface == "tun0" then
-		if shaper.qostimestamp == nil or (shaper.mwan3timestamp > shaper.qostimestamp) then
-			run('pkill -USR1 -f "mwan3track -i"')
+	else
+		-- When tun0 started (or is notified about a new tracker), notify all trackers to start their QoS
+		if shaper.interface == "tun0" then
+			if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
+				shaper:enableQos()
+				run('pkill -USR1 -f "mwan3track -i"')
+			end
+		-- Notify tun0 that a new tracker as started pinging
+		elseif shaper.reloadtimestamp == 0 then
+			run('pkill -USR2 -f "mwan3track -i tun0"')
 		end
 	end
+	pingstats:push(lat)
 	-- QoS manager
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
@@ -793,6 +794,7 @@ end
 
 function shaper:update()
         if shaper.mode == "auto" then
+		local uci = libuci.cursor()
 		if uci:get("network", shaper.interface, "upload") then
 			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
 		end
@@ -820,17 +822,17 @@ function shaper:update()
 			end
 		end
 	elseif shaper.mode == "static" then
-		if shaper.qostimestamp == nil then
+		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
+			local uci = libuci.cursor()
 			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
 			shaper:enableQos()
 		end
 	end
-
 end
 
 function shaper:enableQos()
-	if shaper.qostimestamp == nil or (shaper.mwan3timestamp > shaper.qostimestamp) then
+	if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 		shaper.qostimestamp = os.time()
 		log(string.format("Enabling QoS on interface %s", shaper.interface))
 		run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
@@ -840,13 +842,9 @@ function shaper:enableQos()
 end
 
 function shaper:disableQos()
-	if shaper.mwan3timestamp == nil then
-		log("shaper:disableQos() mwan3 is not fully loaded")
-		return false
-	end
 	if shaper.qostimestamp then
 		log(string.format("Disabling QoS on interface %s", shaper.interface))
-		shaper:sendQosToApi()
+--		shaper:sendQosToApi() @todo: disable QoS on docker side
 		run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		shaper.qostimestamp=nil
 		shaper.congestedtimestamp=nil
@@ -871,6 +869,7 @@ function shaper:sendQosToApi()
 						dpi		= dscp["dpi"],
 						class		= dscp["class"]
 					})
+					-- @TODO: check rcode return and exit func then retry if rcode != 200
 				end
 			end
 		)
@@ -883,17 +882,19 @@ function shaper:sendQosToApi()
 			downlink	= tostring(shaper.download),
 			uplink		= tostring(shaper.upload)
 		})
+		-- @TODO: check rcode return and exit func then retry if rcode != 200
 	end
 end
 
-function startQos()
-	if shaper.mwan3timestamp then
-		shaper:enableQos()
+sig.signal(sig.SIGUSR1, function ()
+	if shaper.interface ~= "tun0" then
+		shaper.reloadtimestamp = os.time()
 	end
-end
-sig.signal(sig.SIGUSR1, startQos)
+end)
 sig.signal(sig.SIGUSR2, function ()
-	shaper.mwan3timestamp = os.time()
+	if shaper.interface == "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
 end)
 
 -- Enable shaper only on multipath interface
