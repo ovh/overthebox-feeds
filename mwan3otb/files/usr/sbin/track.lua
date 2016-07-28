@@ -736,24 +736,26 @@ function API(uri, method, data)
 		source = ltn12.source.string(reqbody),
 		sink = ltn12.sink.table(respbody),
 	}
-	log('api '..reqbody..': '..code)
+	log('api/'..uri..' '..reqbody..' '..code)
 	return code, json.decode(table.concat(respbody))
 end
 
 -- Initializing Shaping object
 local shaper  = {}
-shaper.interface = opts["i"]
-shaper.mode = uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
-shaper.mindownload = tonumber(uci:get("network", opts["i"], "mindownload")) or 512 -- kbit/s
-shaper.minupload = tonumber(uci:get("network", opts["i"], "minupload")) or 128 -- kbit/s
-shaper.qostimeout = tonumber(uci:get("network", opts["i"], "qostimeout")) or 30 -- min
-shaper.pingdelta = tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -- ms
-shaper.bandwidthdelta = tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
-shaper.ratefactor = tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
+local uci = libuci.cursor()
+
+shaper.interface	= opts["i"]
+shaper.mode		= uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
+shaper.mindownload 	= tonumber(uci:get("network", opts["i"], "mindownload")) or 512 -- kbit/s
+shaper.minupload 	= tonumber(uci:get("network", opts["i"], "minupload")) or 128 -- kbit/s
+shaper.qostimeout 	= tonumber(uci:get("network", opts["i"], "qostimeout")) or 30 -- min
+shaper.pingdelta	= tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -- ms
+shaper.bandwidthdelta 	= tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
+shaper.ratefactor 	= tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
 -- Shaper timers
-shaper.reloadtimestamp = 0	-- Time when signal to (re)load qos was received
-shaper.qostimestamp = nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
-shaper.losttimestamp = nil	-- Time when we lost the first ping
+shaper.reloadtimestamp	= 0	-- Time when signal to (re)load qos was received
+shaper.qostimestamp 	= nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
+shaper.losttimestamp 	= nil	-- Time when we lost the first ping
 shaper.congestedtimestamp = nil	-- Time when we detect a link congestion
 
 -- Shaper functions
@@ -796,6 +798,25 @@ function shaper:isCongested()
 end
 
 function shaper:update()
+	-- A reload of qos has been asked
+	if shaper.reloadtimestamp and ((shaper.qostimestamp == nil) or (shaper.reloadtimestamp > shaper.qostimestamp)) then
+		-- Reload uci
+		uci = libuci.cursor()
+		local newMode = uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
+		-- QoS has been disabled
+		if shaper.mode ~= newMode then
+			shaper.mode = newMode
+			shaper:disableQos()
+		end
+		-- Update values 
+		shaper.mindownload      = tonumber(uci:get("network", opts["i"], "mindownload")) or 512 -- kbit/s
+		shaper.minupload        = tonumber(uci:get("network", opts["i"], "minupload")) or 128 -- kbit/s
+		shaper.qostimeout       = tonumber(uci:get("network", opts["i"], "qostimeout")) or 30 -- min
+		shaper.pingdelta        = tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -- ms
+		shaper.bandwidthdelta   = tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
+		shaper.ratefactor       = tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
+	end
+	-- 
         if shaper.mode == "auto" then
 		local uci = libuci.cursor()
 		if uci:get("network", shaper.interface, "upload") then
@@ -826,8 +847,7 @@ function shaper:update()
 		end
 	elseif shaper.mode == "static" then
 		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
-			local uci = libuci.cursor()
-			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
+			shaper.upload	= tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
 			shaper:enableQos()
 		end
@@ -841,33 +861,29 @@ function shaper:enableQos()
 		run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
 		shaper:sendQosToApi()
 	end
-	return true
 end
 
 function shaper:disableQos()
 	if shaper.qostimestamp then
 		log(string.format("Disabling QoS on interface %s", shaper.interface))
-		-- Disable Download QoS on docker side
-                local uci       = libuci.cursor()
-                local mptcp     = uci:get("network", shaper.interface, "multipath")
-                local metric    = uci:get("network", shaper.interface, "metric")
-                if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
-                        if metric then
-                                local rcode, res = DELETE("qos/"..metric, {})
-                        end
-                end
-		-- Disable Upload QoS on device side
+		local uci	= libuci.cursor()
+		local mptcp	= uci:get("network", shaper.interface, "multipath")
+		local metric	= uci:get("network", shaper.interface, "metric")
+		if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
+			if metric then
+				local rcode, res = DELETE("qos/"..metric, {})
+			end
+		end
 		run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		shaper.qostimestamp=nil
 		shaper.congestedtimestamp=nil
 	end
-	return true
 end
 
 <<<<<<< HEAD
 =======
 function shaper:sendQosToApi()
-	local uci   = uci.cursor()
+	local uci   = libuci.cursor()
 	local mptcp = uci:get("network", shaper.interface, "multipath")
 	if shaper.interface == "tun0" then
 		local commitid = tostring(os.time())
@@ -943,7 +959,6 @@ function write_stats()
 	file:close()
 end
 
-shaper:disableQos()
 while true do
 
 	for i = 1, #servers do
