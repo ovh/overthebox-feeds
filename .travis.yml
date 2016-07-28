@@ -28,3 +28,6 @@ deploy:
   skip_cleanup: true
   file_glob: true
   file: sdk/bin/x86-glibc/packages/base/*
+  on:
+    all_branches: true
+    tags: true
