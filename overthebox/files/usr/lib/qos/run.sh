@@ -23,9 +23,6 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
         # $SCRIPT variables saved in there.
         [ -f "$f" ] && ( . $f; IFACE=$IFACE SCRIPT=$SCRIPT SQM_DEBUG=$SQM_DEBUG SQM_DEBUG_LOG=$SQM_DEBUG_LOG OUTPUT_TARGET=$OUTPUT_TARGET ${SQM_LIB_DIR}/stop-sqm )
     done
-    # Clear DSCP rules
-    /usr/sbin/iptables -t mangle -w -F dscp
-    curl -s --connect-timeout 5 -X DELETE api/qos
     exit 0
 fi
 

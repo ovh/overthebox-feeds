@@ -50,7 +50,9 @@ genrateDscp() {
 
 reload()
 {
+	# Flush DSCP table
         $IPT -F dscp 2>/dev/null
+	# Generate DSCP table
         config_load dscp
         config_foreach genrateDscp classify
         /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
@@ -66,10 +68,13 @@ start()
 	# Clear DSCP rules before recreate
 	$IPT -F dscp 2>/dev/null
 	$IPT -N dscp 2>/dev/null
+	# Generate DSCP table
 	config_load dscp
 	config_foreach genrateDscp classify
+	# Add it to PREROUTING
 	$IPT -D PREROUTING -j dscp 2>/dev/null
 	$IPT -A PREROUTING -j dscp
+	# Tell trackers to resend QoS
 	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
 

@@ -3,7 +3,7 @@ START=60
 
 start()
 {
-        /usr/bin/pkill -USR2 -f "mwan3track -i"
+        /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
 
 reload()
@@ -18,5 +18,7 @@ restart()
 
 stop()
 {
-        start
+	/etc/init.d/dscp stop
+	/usr/lib/qos/run.sh stop
+	curl -s --connect-timeout 5 -X DELETE api/qos
 }
