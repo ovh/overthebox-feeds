@@ -12,6 +12,7 @@ fi
 : ${GLORYTUN_TXQLEN:=1000}
 
 statefile=/tmp/glorytun.${GLORYTUN_DEV}.fifo
+[ -p ${statefile} ] || mkfifo ${statefile}
 
 GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 
@@ -75,22 +76,30 @@ stopped() {
     ip link set ${GLORYTUN_DEV} down
 }
 
+quit() {
+    stopped
+    rm -f ${statefile}
+}
+trap 'quit' EXIT
+
 while kill -0 ${GTPID}; do
     read STATE INFO || break
     logger -t $1 ${STATE} ${INFO}
     case ${STATE} in
     INITIALIZED)
+        logger "setting up ${GLORYTUN_DEV}"
         initialized
+        logger "${GLORYTUN_DEV} set up"
         ;;
     STARTED)
         started
+        logger "mud connected"
         ;;
     STOPPED)
         stopped
+        logger "mud disconnected"
         ;;
     esac
 done < ${statefile}
-
-stopped
 
 logger -t glorytun BYE
