@@ -25,13 +25,13 @@
 local p   = require 'posix'
 local sig = require "posix.signal"
 
+local http      = require("socket.http")
+local ltn12     = require("ltn12")
+
 local json	= require("luci.json")
 local libuci	= require("luci.model.uci")
 local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
--- sig.signal (sig.SIGQUIT, handle_exit)
--- sig.signal (sig.SIGTERM, handle_exit)
--- sig.signal (sig.SIGINT,  handle_exit)
 
 local method -- ping function bindings
 
@@ -898,8 +898,6 @@ function shaper:disableQos()
 	end
 end
 
-<<<<<<< HEAD
-=======
 function shaper:sendQosToApi()
 	local uci   = libuci.cursor()
 	local mptcp = uci:get("network", shaper.interface, "multipath")
@@ -945,7 +943,6 @@ sig.signal(sig.SIGUSR2, function ()
 	end
 end)
 
->>>>>>> 78fb4e1... Merge SQM in OverTheBox package
 -- Enable shaper only on multipath interface
 if uci:get("network", opts["i"], "multipath") == "on" then
 	shaper.mode = uci:get("network", opts["i"], "autoshape")
