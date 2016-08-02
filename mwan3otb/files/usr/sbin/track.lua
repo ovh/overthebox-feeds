@@ -868,24 +868,31 @@ end
 function shaper:enableQos()
 	if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 		shaper.qostimestamp = os.time()
-		log(string.format("Enabling QoS on interface %s", shaper.interface))
-		run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
+		if shaper.interface == "tun0" then
+			log(string.format("Reloading DSCP rules", shaper.interface))
+			run(string.format("/etc/init.d/dscp reload", shaper.interface))
+		else
+			log(string.format("Enabling QoS on interface %s", shaper.interface))
+			run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
+		end
 		shaper:sendQosToApi()
 	end
 end
 
 function shaper:disableQos()
 	if shaper.qostimestamp then
-		log(string.format("Disabling QoS on interface %s", shaper.interface))
-		local uci	= libuci.cursor()
-		local mptcp	= uci:get("network", shaper.interface, "multipath")
-		local metric	= uci:get("network", shaper.interface, "metric")
-		if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
-			if metric then
-				local rcode, res = DELETE("qos/"..metric, {})
+		if shaper.interface ~= "tun0" then
+			log(string.format("Disabling QoS on interface %s", shaper.interface))
+			local uci	= libuci.cursor()
+			local mptcp	= uci:get("network", shaper.interface, "multipath")
+			local metric	= uci:get("network", shaper.interface, "metric")
+			if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
+				if metric then
+					local rcode, res = DELETE("qos/"..metric, {})
+				end
 			end
+			run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		end
-		run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		shaper.qostimestamp=nil
 		shaper.congestedtimestamp=nil
 	end

@@ -324,10 +324,11 @@ if not net:is_virtual() then
 	ifname_multi.write = ifname_single.write
 end
 
-aushape = s:taboption("trafficcontrol", ListValue, "trafficcontrol", translate("Adaptive Shaping"))
+aushape = s:taboption("trafficcontrol", ListValue, "trafficcontrol", translate("Traffic Control"))
 aushape:value("off", translate("Disabled"))
 aushape:value("static", translate("Static"))
---aushape:value("auto", translate("Adaptive (experimental)"))
+--@TODO: aushape:value("discover", translate("Run speedtest at startup and apply value"))
+--@TODO: aushape:value("adaptive", translate("Detect congestion and apply a QoS based on bandwith values"))
 aushape.default = "off"
 aushape:depends("multipath", "on")
 aushape:depends("multipath", "master")

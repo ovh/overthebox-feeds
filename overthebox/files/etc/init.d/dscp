@@ -1,6 +1,7 @@
 #!/bin/sh /etc/rc.common
 
 START=60
+COMMID=$(date +%s)
 
 # Generate dscp tagging preferences
 IPT="/usr/sbin/iptables -t mangle -w"
@@ -27,22 +28,16 @@ genrateDscp() {
 	if [ "$direction" == "upload" -o "$direction" == "both" ]; then
 		case $proto in
 			tcp)
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
 			;;
 		udp)
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$1" -j RETURN
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
 			;;
 		*)
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN 2>/dev/null
-				$IPT -D dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class 2>/dev/null
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$1" -j RETURN
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
+				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j RETURN
 			;;
 		esac
 	fi
@@ -50,14 +45,19 @@ genrateDscp() {
 
 reload()
 {
-        $IPT -F dscp 2>/dev/null
+	# Generate DSCP table
         config_load dscp
         config_foreach genrateDscp classify
-        /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+	# Clean Old DSCP values
+	iptables-save | grep "A dscp" | grep "dscp_" | grep -v "dscp_$COMMID" | sed "s/-A/\/usr\/sbin\/iptables -t mangle -w -D/g" | sh
+	# Tell trackers to resend QoS to API
+	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
 
 restart()
 {
+	# Flush DSCP table
+	$IPT -F dscp 2>/dev/null
         reload
 }
 
@@ -66,10 +66,13 @@ start()
 	# Clear DSCP rules before recreate
 	$IPT -F dscp 2>/dev/null
 	$IPT -N dscp 2>/dev/null
+	# Generate DSCP table
 	config_load dscp
 	config_foreach genrateDscp classify
+	# Add it to PREROUTING
 	$IPT -D PREROUTING -j dscp 2>/dev/null
 	$IPT -A PREROUTING -j dscp
+	# Tell trackers to resend QoS to API
 	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
 
