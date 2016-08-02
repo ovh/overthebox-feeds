@@ -932,22 +932,6 @@ function shaper:sendQosToApi()
 	end
 end
 
-sig.signal(sig.SIGUSR1, function ()
-	if shaper.interface ~= "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
-sig.signal(sig.SIGUSR2, function ()
-	if shaper.interface == "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
-
--- Enable shaper only on multipath interface
-if uci:get("network", opts["i"], "multipath") == "on" then
-	shaper.mode = uci:get("network", opts["i"], "autoshape")
-end
-
 function write_stats()
 	local interface = opts["i"]
 	local result = {}
@@ -973,6 +957,17 @@ function write_stats()
 	file:write(json.encode(result))
 	file:close()
 end
+
+sig.signal(sig.SIGUSR1, function ()
+	if shaper.interface ~= "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
+sig.signal(sig.SIGUSR2, function ()
+	if shaper.interface == "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
 
 while true do
 
