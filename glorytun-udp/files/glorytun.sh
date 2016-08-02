@@ -24,7 +24,9 @@ if $1 version | grep mud ; then
         config_get multipath $1 multipath
         if [ "${multipath}" = "on" ]; then
             network_get_ipaddr ipaddr ${ifname}
-            GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
+            if [ -n "${ipaddr}" ]; then
+                GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
+            fi
         fi
     }
 
