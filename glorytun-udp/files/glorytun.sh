@@ -13,28 +13,21 @@ fi
 
 statefile=/tmp/glorytun.${GLORYTUN_DEV}.fifo
 
-rm -f "${statefile}"
-mkfifo "${statefile}"
+GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 
-if $1 version | grep mud ; then
-    GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
-
-    add_multipath () {
-        config_get ifname $1 ifname
-        config_get multipath $1 multipath
-        if [ "${multipath}" = "on" ]; then
-            network_get_ipaddr ipaddr ${ifname}
-            if [ -n "${ipaddr}" ]; then
-                GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
-            fi
+add_multipath () {
+    config_get ifname $1 ifname
+    config_get multipath $1 multipath
+    if [ "${multipath}" = "on" ]; then
+        network_get_ipaddr ipaddr ${ifname}
+        if [ -n "${ipaddr}" ]; then
+            GLORYTUN_ARGS="${GLORYTUN_ARGS}${ipaddr},"
         fi
-    }
+    fi
+}
 
-    config_load network
-    config_foreach add_multipath interface
-else
-    GLORYTUN_ARGS="retry count -1 const 5000000 timeout 5000 keepalive count 3 idle 10 interval 1 mptcp"
-fi
+config_load network
+config_foreach add_multipath interface
 
 trap "pkill -TERM -P $$" TERM
 $* host ${GLORYTUN_HOST} port ${GLORYTUN_PORT} dev ${GLORYTUN_DEV} statefile ${statefile} ${GLORYTUN_ARGS} &
