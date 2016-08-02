@@ -330,7 +330,7 @@ function whois(interface, ip)
 				end
 				p.close(fd)
 				data = table.concat(data)
-				return data:match("netname:%s+([%w%.%-]+)")
+				return data:match("netname:%s+([%w%.%-]+)"), data:match("country:%s+([%w%.%-]+)")
 			end
 		end
 	end
@@ -511,11 +511,11 @@ pingstats.pos		= 0
 
 pingstats.wanaddr	= get_public_ip(opts["i"])
 if pingstats.wanaddr then
-	pingstats.whois		= whois(opts["i"], pingstats.wanaddr)
+	pingstats.whois, pingstats.country = whois(opts["i"], pingstats.wanaddr)
 else
 	pingstats.wanaddr       = get_public_ip(opts["i"])
 	if pingstats.wanaddr then
-	        pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
+	        pingstats.whois, pingstats.country = whois(opts["i"], pingstats.wanaddr)
 	else
 		pingstats.whois	= false
 	end
@@ -692,10 +692,20 @@ function bw_stats:maxupload()
 end
 
 local uci = libuci.cursor()
-if pingstats.whois and not uci:get("network", opts["i"], "label") then
-	uci:set("network", opts["i"], "label", pingstats.whois)
-	uci:save("network")
-	uci:commit("network")
+if pingstats.whois then
+	if opts["i"] == "tun0" then
+		if pingstats.country then
+			uci:set("network", opts["i"], "label", string.format('%s-%s', pingstats.country, pingstats.whois))
+		else
+			uci:set("network", opts["i"], "label", pingstats.whois)
+		end
+		uci:save("network")
+		uci:commit("network")
+	elseif not uci:get("network", opts["i"], "label") then
+		uci:set("network", opts["i"], "label", pingstats.whois)
+		uci:save("network")
+		uci:commit("network")
+	end
 end
 
 -- used by conntrack bw stats
