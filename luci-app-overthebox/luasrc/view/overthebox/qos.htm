@@ -409,6 +409,7 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
 										for(var intf in dataarray[timestamps[i]]["upload"][qdisc])
 										{
 											if((typeof dataarray[timestamps[i]]["upload"][qdisc][intf] !== "undefined")
+												&& (typeof dataarray[timestamps[i-1]]["upload"][qdisc] !== "undefined")
 												&& (typeof dataarray[timestamps[i-1]]["upload"][qdisc][intf] !== "undefined")) {
 												upload += (Number(dataarray[timestamps[i]]["upload"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["upload"][qdisc][intf].bytes)) / time_delta;
 											}
@@ -422,6 +423,7 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
 										for(var intf in dataarray[timestamps[i]]["download"][qdisc])
 										{
 											if((typeof dataarray[timestamps[i]]["download"][qdisc][intf] !== "undefined")
+												&& (typeof dataarray[timestamps[i-1]]["download"][qdisc] !== "undefined")
 												&& (typeof dataarray[timestamps[i-1]]["download"][qdisc][intf] !== "undefined")) {
 												download += (Number(dataarray[timestamps[i]]["download"][qdisc][intf].bytes) - Number(dataarray[timestamps[i-1]]["download"][qdisc][intf].bytes)) / time_delta;
 											}
