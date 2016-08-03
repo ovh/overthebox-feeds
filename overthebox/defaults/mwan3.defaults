@@ -127,4 +127,11 @@ if ! uci -q get mwan3.tun0.track_ip &>/dev/null; then
 	uci delete mwan3.netconfchecksum
 fi
 
+if ! uci -q get mwan3.voip.dest_ip &>/dev/null; then
+	if uci -q get mwan3.voip &>/dev/null; then
+		uci delete mwan3.voip.edited
+		uci delete mwan3.netconfchecksum
+	fi
+fi
+
 exit 0
