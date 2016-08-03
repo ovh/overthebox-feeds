@@ -58,9 +58,10 @@ srch = s:option(Value, "src_ip", translate("Source host"))
 	wa.cbi_add_knownips(srch)
 
 sports = s:option(Value, "src_port", translate("Source ports"))
-	sports:depends("dpi", "")
 	sports.rmempty = true
 	sports:value("", translate("all"))
+	sports:depends("proto","tcp")
+	sports:depends("proto","udp")
 
 dsth = s:option(Value, "dest_ip", translate("Destination host"))
 	dsth.rmempty = true
@@ -74,7 +75,11 @@ dports = s:option(Value, "dest_port", translate("Destination ports"))
 	dports.rmempty = true
 	dports:value("", translate("all"))
 if mud then
-	dports:depends("direction", "upload")
+	dports:depends({proto="tcp", direction="upload"})
+	dports:depends({proto="udp", direction="upload"})
+else
+	dports:depends("proto","tcp")
+	dports:depends("proto","udp")
 end
 
 t = s:option(ListValue, "class", translate("Class"))
