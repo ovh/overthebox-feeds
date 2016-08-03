@@ -54,21 +54,6 @@ mwan_rule = m5:section(NamedSection, arg[1], "rule", "")
 	mwan_rule.addremove = false
 	mwan_rule.dynamic = false
 
-
-src_ip = mwan_rule:option(Value, "src_ip", translate("Source address"),
-	translate("Supports CIDR notation (eg \"192.168.100.0/24\") without quotes"))
-	src_ip.datatype = ipaddr
-
-src_port = mwan_rule:option(Value, "src_port", translate("Source port"),
-	translate("May be entered as a single or multiple port(s) (eg \"22\" or \"80,443\") or as a portrange (eg \"1024:2048\") without quotes"))
-
-dest_ip = mwan_rule:option(Value, "dest_ip", translate("Destination address"),
-	translate("Supports CIDR notation (eg \"192.168.100.0/24\") without quotes"))
-	dest_ip.datatype = ipaddr
-
-dest_port = mwan_rule:option(Value, "dest_port", translate("Destination port"),
-	translate("May be entered as a single or multiple port(s) (eg \"22\" or \"80,443\") or as a portrange (eg \"1024:2048\") without quotes"))
-
 proto = mwan_rule:option(Value, "proto", translate("Protocol"),
 	translate("View the contents of /etc/protocols for protocol descriptions"))
 	proto.default = "all"
@@ -80,6 +65,24 @@ proto = mwan_rule:option(Value, "proto", translate("Protocol"),
 	proto:value("icmp")
 	proto:value("esp")
 	cbiAddProtocol(proto)
+
+src_ip = mwan_rule:option(Value, "src_ip", translate("Source address"),
+	translate("Supports CIDR notation (eg \"192.168.100.0/24\") without quotes"))
+	src_ip.datatype = ipaddr
+
+src_port = mwan_rule:option(Value, "src_port", translate("Source port"),
+	translate("May be entered as a single or multiple port(s) (eg \"22\" or \"80,443\") or as a portrange (eg \"1024:2048\") without quotes"))
+src_port:depends("proto", "tcp")
+src_port:depends("proto", "udp")
+
+dest_ip = mwan_rule:option(Value, "dest_ip", translate("Destination address"),
+	translate("Supports CIDR notation (eg \"192.168.100.0/24\") without quotes"))
+	dest_ip.datatype = ipaddr
+
+dest_port = mwan_rule:option(Value, "dest_port", translate("Destination port"),
+	translate("May be entered as a single or multiple port(s) (eg \"22\" or \"80,443\") or as a portrange (eg \"1024:2048\") without quotes"))
+dest_port:depends("proto", "tcp")
+dest_port:depends("proto", "udp")
 
 dscp_class = mwan_rule:option(ListValue, "dscp_class", translate("DSCP Class match"),
         translate("DSCP class"))
