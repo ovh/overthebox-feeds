@@ -43,22 +43,42 @@ genrateDscp() {
 	fi
 }
 
+generateStaticRules() {
+	local COMMID=$1
+
+	# Speed up small ack packet
+	$IPT -I dscp 1 -p tcp -m tcp --tcp-flags ALL ACK -m length --length :89 -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs7
+	$IPT -I dscp 2 -p tcp -m tcp --tcp-flags ALL ACK -m length --length :89 -m comment --comment "dscp_$COMMID" -j RETURN
+	# Interactive traffic
+	$IPT -A dscp -p tcp -m length --length :89 -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs3
+	$IPT -A dscp -p tcp -m length --length :89 -m comment --comment "dscp_$COMMID" -j RETURN
+	# Light traffic
+	$IPT -A dscp -p tcp -m length --length 90:511 -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs2
+	$IPT -A dscp -p tcp -m length --length 90:511 -m comment --comment "dscp_$COMMID" -j RETURN
+	# Heavy traffic
+	$IPT -A dscp -p tcp -m length --length 512: -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs1
+	$IPT -A dscp -p tcp -m length --length 512: -m comment --comment "dscp_$COMMID" -j RETURN
+}
+
 reload()
 {
 	# Generate DSCP table
-        config_load dscp
-        config_foreach genrateDscp classify
+	config_load dscp
+	config_foreach genrateDscp classify
+	generateStaticRules $COMMID
 	# Clean Old DSCP values
 	iptables-save | grep "A dscp" | grep "dscp_" | grep -v "dscp_$COMMID" | sed "s/-A/\/usr\/sbin\/iptables -t mangle -w -D/g" | sh
 	# Tell trackers to resend QoS to API
-	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+	if [ -z $1 ]; then
+		/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+	fi
 }
 
 restart()
 {
 	# Flush DSCP table
 	$IPT -F dscp 2>/dev/null
-        reload
+	reload
 }
 
 start()
@@ -69,6 +89,7 @@ start()
 	# Generate DSCP table
 	config_load dscp
 	config_foreach genrateDscp classify
+	generateStaticRules $COMMID
 	# Add it to PREROUTING
 	$IPT -D PREROUTING -j dscp 2>/dev/null
 	$IPT -A PREROUTING -j dscp
@@ -78,7 +99,7 @@ start()
 
 stop()
 {
-        # Clear DSCP rules before recreate
-        $IPT -F dscp 2>/dev/null
-        $IPT -N dscp 2>/dev/null
+	# Clear DSCP rules before recreate
+	$IPT -F dscp 2>/dev/null
+	$IPT -N dscp 2>/dev/null
 }
