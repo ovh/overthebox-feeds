@@ -4,6 +4,8 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
+GLORYTUN_ROUTES_SETUP=0
+
 # Ensure that the env vars are set up
 if [ -z "${GLORYTUN_DEV}" -o -z "${GLORYTUN_IP_LOCAL}" -o -z "${GLORYTUN_IP_PEER}" -o -z "${GLORYTUN_HOST}" -o -z "${GLORYTUN_PORT}" ]; then
     echo "environnement variable is not set"
@@ -71,10 +73,16 @@ started() {
     if [ "${GLORYTUN_DEV}" == "tun0" ]; then
         [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start;
     fi
+
+    GLORYTUN_ROUTES_SETUP=1
 }
 
 # This fuction stops the tun interface
 stopped() {
+    if [ "${GLORYTUN_ROUTES_SETUP}" == "0" ]; then
+        return
+    fi
+
     if [ "${GLORYTUN_DEV}" == "tun0" ]; then
         [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop;
     fi
@@ -89,6 +97,8 @@ stopped() {
     fi
 
     ip link set ${GLORYTUN_DEV} down
+
+    GLORYTUN_ROUTES_SETUP=0
 }
 
 # This function does some cleanup on the interfaces, statefile and PID
