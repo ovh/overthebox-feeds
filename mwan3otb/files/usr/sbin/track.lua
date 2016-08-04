@@ -880,7 +880,7 @@ function shaper:enableQos()
 		shaper.qostimestamp = os.time()
 		if shaper.interface == "tun0" then
 			log(string.format("Reloading DSCP rules", shaper.interface))
-			run(string.format("/etc/init.d/dscp reload", shaper.interface))
+			run(string.format("/etc/init.d/dscp reload %s", shaper.interface))
 		else
 			log(string.format("Enabling QoS on interface %s", shaper.interface))
 			run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
