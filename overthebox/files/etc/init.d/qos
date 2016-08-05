@@ -1,19 +1,41 @@
 #!/bin/sh /etc/rc.common
 START=60
 
-start()
-{
-        /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+# Convert deprecated sqm section to network interfaces
+convert_sqm_to_network() {
+	local section="$1"
+	config_get interface "$section" interface
+	config_get_bool enabled "$section" enabled
+
+	if [ "$enabled" -eq 1 ]; then
+		if [ "$(uci -q get network.$interface)" == "interface" ]; then
+			uci set network.$interface.trafficcontrol=static
+			uci set network.$interface.upload=$(config_get "$section" upload)
+			uci set network.$interface.download=$(config_get "$section" download)
+			uci delete sqm.$section
+		fi
+	fi
 }
 
 reload()
 {
-        start
+	# Ask tun0 to load QoS
+	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+}
+
+start()
+{
+	. /lib/functions.sh
+	# Convert deprecated sqm section to network interfaces
+	config_load sqm
+	config_foreach convert_sqm_to_network
+	# start the qos
+	reload
 }
 
 restart()
 {
-        start
+	reload
 }
 
 stop()

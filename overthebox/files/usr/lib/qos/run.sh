@@ -13,6 +13,8 @@
 
 ACTION="${1:-start}"
 RUN_IFACE="$2"
+ACTION_UPLOAD="$3"
+ACTION_DOWNLOAD="$4"
 
 [ -d "${SQM_QDISC_STATE_DIR}" ] || ${SQM_LIB_DIR}/update-available-qdiscs
 
@@ -25,21 +27,6 @@ if [ "$ACTION" = "stop" -a -z "$RUN_IFACE" ]; then
     done
     exit 0
 fi
-
-# Convert deprecated sqm section to network interfaces
-config_load sqm
-convert_sqm_to_network() {
-	local section="$1"
-	config_get interface "$section" interface
-
-	if [ "$(uci -q get network.$interface)" == "interface" ]; then
-		uci set network.$interface.trafficcontrol=static
-		uci set network.$interface.upload=$(config_get "$section" upload)
-		uci set network.$interface.download=$(config_get "$section" download)
-		uci delete sqm.$section
-	fi
-}
-config_foreach convert_sqm_to_network
 
 # For each interface
 config_load network
@@ -57,8 +44,13 @@ run_sqm_scripts() {
         fi
     }
 
-    export UPLINK=$(config_get "$section" upload)
-    export DOWNLINK=$(config_get "$section" download)
+    if [ -n "$ACTION_UPLOAD" -a -n "$ACTION_DOWNLOAD" ]; then
+        export UPLINK="$ACTION_UPLOAD"
+        export DOWNLINK="$ACTION_DOWNLOAD"
+    else
+        export UPLINK=$(config_get "$section" upload)
+        export DOWNLINK=$(config_get "$section" download)
+    fi
 
     export LLAM=$(config_get "$section" linklayer_adaptation_mechanism)
     export LINKLAYER=$(config_get "$section" linklayer)
