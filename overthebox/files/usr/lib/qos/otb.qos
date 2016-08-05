@@ -121,8 +121,8 @@ sqm_start() {
     [ -n "${IFACE}" ] || return 1
     [ -z "$DEV" ] && DEV=$( get_ifb_for_if ${IFACE} )
     do_modules
-    verify_qdisc "hfsc" || return 1
-    verify_qdisc ${QDISC} || return 1
+    verify_qdisc "hfsc"
+    verify_qdisc ${QDISC}
     sqm_logger "Starting ${SCRIPT}"
 
     eth_setup
