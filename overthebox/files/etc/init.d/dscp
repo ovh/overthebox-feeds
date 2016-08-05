@@ -1,7 +1,7 @@
 #!/bin/sh /etc/rc.common
 
 START=60
-COMMID="$(date +%s%3N)"
+COMMID="$(date +%s)_$$"
 
 # Generate dscp tagging preferences
 IPT="/usr/sbin/iptables -t mangle -w"
@@ -46,9 +46,6 @@ genrateDscp() {
 generateStaticRules() {
 	local COMMID=$1
 
-	# Speed up small ack packet
-	$IPT -I dscp 1 -p tcp -m tcp --tcp-flags ALL ACK -m length --length :89 -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs7
-	$IPT -I dscp 2 -p tcp -m tcp --tcp-flags ALL ACK -m length --length :89 -m comment --comment "dscp_$COMMID" -j RETURN
 	# Interactive traffic
 	$IPT -A dscp -p tcp -m length --length :89 -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class cs3
 	$IPT -A dscp -p tcp -m length --length :89 -m comment --comment "dscp_$COMMID" -j RETURN
@@ -92,7 +89,7 @@ start()
 	generateStaticRules $COMMID
 	# Add it to PREROUTING
 	$IPT -D PREROUTING -j dscp 2>/dev/null
-	$IPT -A PREROUTING -j dscp
+	$IPT -I PREROUTING -j dscp
 	# Tell trackers to resend QoS to API
 	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
