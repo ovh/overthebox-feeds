@@ -22,25 +22,17 @@ validate_section() {
         'key:string'           \
         'server:string'        \
         'port:uinteger'        \
-        'congestion:string'    \
-        'delay:bool:0'         \
         'dev:string'           \
         'iplocal:string'       \
         'ippeer:string'        \
         'mtu:uinteger'         \
         'pref:uinteger'        \
         'table:uinteger'       \
-        'metric:uinteger'      \
-        'multiqueue:bool:0'    \
-        'txqlen:uinteger'      \
-        'buffer_size:uinteger' \
-        'noquickack:bool:0'
+        'metric:uinteger'
 }
 
 start_instance() {
-    local enable key server port congestion delay \
-          dev iplocal ippeer mtu pref table metric \
-          multiqueue txqlen buffer_size noquickack
+    local enable key server port dev iplocal ippeer mtu pref table metric
 
     validate_section "${1}" || {
         _err "validation failed"
@@ -77,11 +69,9 @@ start_instance() {
     procd_append_param env GLORYTUN_MTU="${mtu:-1450}"
     procd_append_param env GLORYTUN_TXQLEN="${txqlen:-1000}"
 
-    [ "$multiqueue" -eq 1 ] && procd_append_param command multiqueue
-
-# if process dies sooner than respawn_threshold, it is considered crashed and
-# after respawn_retry retries the service is stopped
-# procd_set_param respawn ${respawn_threshold:-3600} ${respawn_timeout:-5} ${respawn_retry:-5}
+    # if process dies sooner than respawn_threshold, it is considered crashed and
+    # after respawn_retry retries the service is stopped
+    # procd_set_param respawn ${respawn_threshold:-3600} ${respawn_timeout:-5} ${respawn_retry:-5}
     procd_set_param respawn 15 30 0
 
     procd_set_param stdout 1
@@ -90,12 +80,46 @@ start_instance() {
     procd_close_instance
 }
 
-start_service() {
+stop_service() {
+    # Get the PIDs, there should be only one PID but the pidof command returns
+    # an array of PIDs, let's handle this as if multiple values were returned
+    PIDs=$(pidof ${PROG_NAME}.sh)
+    [ -z "${PIDs}}" ] && return
+
+    # Send a term signal to the PIDs
+    for pid in ${PIDs}; do
+        /bin/kill -TERM "${pid}"
+    done
+
+    # Wait for the statefile
     config_load 'glorytun'
-    if [ "${PROG_NAME}" = "glorytun" ] ; then
-        config_foreach start_instance 'tunnel'
+    config_foreach wait_for_statefile 'mud'
+}
+
+wait_for_statefile() {
+    ifname=$1
+    statefile="/tmp/glorytun.${ifname}.fifo"
+
+    # Wait 3 seconds for the statefile to be removed
+    for i in 1 2 3; do
+        [ ! -p "${statefile}" ] && break
+        _log "statefile still present, let's wait"
+        sleep 1
+    done
+
+    # Check the statefile, it should not be here anymore
+    if [ -p "${statefile}" ];
+    then
+        _err "statefile should not be present"
+        rm -f "${statefile}"
     else
-        config_foreach start_instance 'mud'
+        _log "statefile removed"
     fi
 }
 
+start_service() {
+    _log "starting glorytun service"
+    config_load 'glorytun'
+    config_foreach start_instance 'mud'
+    _log "glorytun service started"
+}
