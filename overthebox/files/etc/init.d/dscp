@@ -1,7 +1,7 @@
 #!/bin/sh /etc/rc.common
 
 START=60
-COMMID=$(date +%s)
+COMMID="$(date +%s%3N)"
 
 # Generate dscp tagging preferences
 IPT="/usr/sbin/iptables -t mangle -w"
@@ -69,7 +69,7 @@ reload()
 	# Clean Old DSCP values
 	iptables-save | grep "A dscp" | grep "dscp_" | grep -v "dscp_$COMMID" | sed "s/-A/\/usr\/sbin\/iptables -t mangle -w -D/g" | sh
 	# Tell trackers to resend QoS to API
-	if [ -z $1 ]; then
+	if [ "$1" != "tun0" ]; then
 		/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 	fi
 }
