@@ -60,6 +60,29 @@ uci -q batch <<-EOF >/dev/null
     set network.if6rd.multipath='off'
 EOF
 
+# Convert deprecated sqm section to network interfaces
+convert_sqm_to_network() {
+        local section="$1"
+        config_get interface "$section" interface
+        config_get_bool enabled "$section" enabled
+
+        if [ "$enabled" -eq 1 ]; then
+                if [ "$(uci -q get network.$interface)" == "interface" ]; then
+                        uci set network.$interface.trafficcontrol=static
+                        uci set network.$interface.upload=$(config_get "$section" upload)
+                        uci set network.$interface.download=$(config_get "$section" download)
+                        uci delete sqm.$section
+			uci commit sqm
+                fi
+        fi
+}
+
+if uci get sqm >/dev/null 2>&1; then
+	. /lib/functions.sh
+	config_load sqm
+	config_foreach convert_sqm_to_network
+fi
+
 CHANGES=$(uci changes network)
 if [ -n "$CHANGES" ]
 then
@@ -68,4 +91,5 @@ then
 	/etc/init.d/network restart
 	[ -x /etc/init.d/vtund ] && /etc/init.d/vtund restart ;
 fi
+
 exit 0
