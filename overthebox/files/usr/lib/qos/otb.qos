@@ -17,21 +17,22 @@ egress() {
 # Delete existing queue
     $TC qdisc del dev ${IFACE} root 2> /dev/null
 # Traffic classes:
-# 1:2 Interactive (SSH, DNS, ACK)
-# 1:3 Low latency (VoIP)
-# 1:4 Browsing (HTTP, HTTPs)
-# 1:5 Default
-# 1:6 Low priority (p2p, pop3, smtp, etc)
+# 1:2 Reserved traffic
+# 1:3 Network control traffic
+# 1:4 Realtime traffic
+# 1:5 Signaling traffic
+# 1:6 Normal traffic
+# 1:7 Scavenger traffic
 
 # add HFSC root qdisc
-    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 5
+    $TC qdisc add dev ${IFACE} root handle 1: `get_stab_string` hfsc default 6
 
 
 # add main rate limit class
     $TC class add dev ${IFACE} parent 1: classid 1:1 hfsc \
                 sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
 
-# Interactive traffic: guarantee realtime full uplink for 100ms, then
+# Reserved traffic: guarantee realtime full uplink for 100ms, then
 # 50% of the uplink
 
     $TC class add dev ${IFACE} parent 1:1  classid 1:2 hfsc \
@@ -39,7 +40,7 @@ egress() {
     ls m1   ${UPLINK}kbit d  100ms m2 $((7*$UPLINK/10))kbit \
     ul rate ${UPLINK}kbit
 
-# Interactive traffic2: guarantee realtime full uplink for 50ms, then
+# Network control traffic: guarantee realtime full uplink for 50ms, then
 # 30% of the uplink
 
     $TC class add dev ${IFACE} parent 1:1  classid 1:3 hfsc \
@@ -49,26 +50,26 @@ egress() {
 
 
 
-# VoIP: guarantee full uplink for 200ms, then 30%
+# Realtime: guarantee full uplink for 200ms, then 30%
     $TC class add dev ${IFACE} parent 1:1  classid 1:4 hfsc \
     sc m1 ${UPLINK}kbit d 200ms m2 $((3*$UPLINK/10))kbit \
     ul rate ${UPLINK}kbit
 
-# Browsing: Don't guarantee anything for the first second, then
+# Signalling: Don't guarantee anything for the first second, then
 # guarantee 10%
 
     $TC class add dev ${IFACE} parent 1:1  classid 1:5 hfsc \
     sc m1         0 d    1s m2 $((1*$UPLINK/10))kbit \
     ul rate ${UPLINK}kbit
 
-# Default traffic: don't guarantee anything for the first two seconds,
+# Normal traffic: don't guarantee anything for the first two seconds,
 # then guarantee 5%
 
     $TC class add dev ${IFACE} parent 1:1  classid 1:6 hfsc \
     sc m1         0 d    2s m2 $((1*$UPLINK/20))kbit \
     ul rate ${UPLINK}kbit
 
-# Default traffic: don't guarantee anything for the first 10 seconds,
+# Scavenger traffic: don't guarantee anything for the first 10 seconds,
 # then guarantee 5%
 
     $TC class add dev ${IFACE} parent 1:1  classid 1:7 hfsc \
