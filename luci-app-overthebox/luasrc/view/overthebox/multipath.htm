@@ -283,7 +283,10 @@
 								createStatsFooter("upload", itf, color);
 							}
 						}
-
+						if(!document.getElementById('overall_upload_peak'))
+							createStatsFooter("upload", "overall", "LightGrey");
+						if(!document.getElementById('overall_download_peak'))
+							createStatsFooter("download", "overall", "LightGrey");
 						var dnsma = {};
 						var upsma = {};
 						for (var itf in data)
@@ -333,6 +336,12 @@
                                                 var downlineUpl = { };
 						// fetch upline and downline datas
 						var toadditf = [ ];
+						var overall_tx_cur  = 0;
+						var overall_rx_cur  = 0;
+						var overall_tx_avg  = 0;
+						var overall_rx_avg  = 0;
+						var overall_tx_peak = 0;
+						var overall_rx_peak = 0;
 						for (var itf in data)
 						{
 							uplineDnl[itf] 	= [ ];
@@ -379,6 +388,12 @@
 								}
 							}
 							toadditf.push(itf);
+							overall_rx_cur += dndata[itf][dndata[itf].length-1];
+							overall_tx_cur += updata[itf][updata[itf].length-1];
+							overall_rx_avg += data_rx_avg;
+							overall_tx_avg += data_tx_avg;
+							overall_rx_peak+= data_rx_peak;
+							overall_tx_peak+= data_tx_peak;
 							// Update stats labels
 							if(document.getElementById(itf + '_download_cur'))
 							{
@@ -408,6 +423,34 @@
 								var label = document.getElementById(itf + '_upload_peak');
 								label.innerHTML = bandwidth_label(data_tx_peak);
 							}
+						}
+						if(document.getElementById('overall_download_cur'))
+						{
+							var label = document.getElementById('overall_download_cur');
+							label.innerHTML = bandwidth_label(overall_rx_cur);
+						}
+						if(document.getElementById('overall_upload_cur'))
+						{
+							var label = document.getElementById('overall_upload_cur');
+							label.innerHTML = bandwidth_label(overall_tx_cur);
+						}
+						if(label = document.getElementById('overall_download_avg'))
+						{
+							label.innerHTML = bandwidth_label(overall_rx_avg);
+						}
+						if(label = document.getElementById('overall_upload_avg'))
+						{
+							label.innerHTML = bandwidth_label(overall_tx_avg);
+						}
+						if(document.getElementById('overall_download_peak'))
+						{
+							var label = document.getElementById('overall_download_peak');
+							label.innerHTML = bandwidth_label(overall_rx_peak);
+						}
+						if(document.getElementById('overall_upload_peak'))
+						{
+							var label = document.getElementById('overall_upload_peak');
+							label.innerHTML = bandwidth_label(overall_tx_peak);
 						}
 						data_scale_upl = height / (data_max_upl * 1.1);
 						data_scale_dnl = height / (data_max_dnl * 1.1);
