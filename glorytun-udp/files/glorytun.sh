@@ -4,11 +4,16 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
+PROG_NAME=$(basename $0)
 GLORYTUN_ROUTES_SETUP=0
+
+_log() {
+    logger -p daemon.info -t ${PROG_NAME} "$@"
+}
 
 # Ensure that the env vars are set up
 if [ -z "${GLORYTUN_DEV}" -o -z "${GLORYTUN_IP_LOCAL}" -o -z "${GLORYTUN_IP_PEER}" -o -z "${GLORYTUN_HOST}" -o -z "${GLORYTUN_PORT}" ]; then
-    echo "environnement variable is not set"
+    _log "environnement variable is not set"
     exit 1
 fi
 
@@ -40,9 +45,6 @@ add_multipath () {
 # Run the add_multipath function for each interface
 config_load network
 config_foreach add_multipath interface
-
-# Catch the term signal and kill all the childrens of this script
-trap "pkill -TERM -P $$" TERM
 
 # Launch glorytun and keep its PID in a a var
 $* host ${GLORYTUN_HOST} port ${GLORYTUN_PORT} dev ${GLORYTUN_DEV} statefile ${statefile} ${GLORYTUN_ARGS} &
@@ -79,9 +81,7 @@ started() {
 
 # This fuction stops the tun interface
 stopped() {
-    if [ "${GLORYTUN_ROUTES_SETUP}" == "0" ]; then
-        return
-    fi
+    [ "${GLORYTUN_ROUTES_SETUP}" -eq 0 ] && return
 
     if [ "${GLORYTUN_DEV}" == "tun0" ]; then
         [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop;
@@ -101,6 +101,12 @@ stopped() {
     GLORYTUN_ROUTES_SETUP=0
 }
 
+# This function removes the routes and kill the childs of this proccess
+kill_child() {
+    stopped
+    pkill -TERM -P $$
+}
+
 # This function does some cleanup on the interfaces, statefile and PID
 quit() {
     stopped
@@ -109,28 +115,31 @@ quit() {
 # Call the quit function when this script exits
 trap 'quit' EXIT
 
+# Catch the term signal and kill all the childrens of this script
+trap "kill_child" TERM
+
 # Run a loop while glorytun-udp is running
 while kill -0 ${GTPID}; do
     # If the statefile is closed, break the loop
     read STATE INFO || break
     # Log each input from the statefile for easy debugging
-    logger -t $1 ${STATE} ${INFO}
+    _log -t $1 ${STATE} ${INFO}
     # Run the functions above according to the statefile input
     case ${STATE} in
     INITIALIZED)
-        logger "setting up ${GLORYTUN_DEV}"
+        _log "setting up ${GLORYTUN_DEV}"
         initialized
-        logger "${GLORYTUN_DEV} set up"
+        _log "${GLORYTUN_DEV} set up"
         ;;
     STARTED)
         started
-        logger "glorytun-udp connected"
+        _log "glorytun-udp connected"
         ;;
     STOPPED)
         stopped
-        logger "glorytun-udp disconnected"
+        _log "glorytun-udp disconnected"
         ;;
     esac
 done < ${statefile}
 
-logger -t glorytun BYE
+_log -t glorytun BYE
