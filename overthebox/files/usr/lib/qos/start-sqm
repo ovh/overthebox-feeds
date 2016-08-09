@@ -23,8 +23,8 @@ fi
 [ -d "${SQM_STATE_DIR}" ] || mkdir -p "${SQM_STATE_DIR}"
 
 if [ -f "${STATE_FILE}" ]; then
-    sqm_error "SQM already activated on ${IFACE}."
-    exit 1
+    # if a state file already exists, clear qos and reload (old behaviour was "exit 1")
+    sqm_stop
 fi
 
 # in case of spurious hotplug events, try double check whether the interface is really up

@@ -739,7 +739,8 @@ function DELETE(uri, data)
 	return API(uri, "DELETE", data)
 end
 function API(uri, method, data)
-	url = "http://api/" .. uri
+	-- url = "http://api/" .. uri : we do not use the dns "api" beacause of the dnsmasq reloading race condition
+	url = "http://169.254.254.1/" .. uri
 	-- Buildin JSON POST
 	local reqbody   = json.encode(data)
 	local respbody  = {}
@@ -916,20 +917,34 @@ function shaper:sendQosToApi()
 		uci:foreach("dscp", "classify",
 			function (dscp)
 				if dscp['direction'] == "download" or dscp['direction'] == "both" then
-					local rcode, res = POST("dscp/"..commitid, {
-						proto 		= dscp["proto"],
-						src_ip		= dscp["src_ip"],
-						src_port	= dscp["src_port"],
-						dest_ip		= dscp["dest_ip"],
-						dest_port	= dscp["dest_port"],
-						dpi		= dscp["dpi"],
-						class		= dscp["class"]
-					})
-					-- @TODO: check rcode return and exit func then retry if rcode != 200
+					if commitid then
+						local rcode, res = POST("dscp/"..commitid, {
+							proto 		= dscp["proto"],
+							src_ip		= dscp["src_ip"],
+							src_port	= dscp["src_port"],
+							dest_ip		= dscp["dest_ip"],
+							dest_port	= dscp["dest_port"],
+							dpi		= dscp["dpi"],
+							class		= dscp["class"]
+						})
+						-- On error, nil commid to kill dscp transaction
+						if tostring(rcode):gmatch("200") == nil then
+							commitid = nil;
+						end
+					end
 				end
 			end
 		)
-		local rcode, res = POST("dscp/"..commitid.."/commit")
+		if commitid then
+			local rcode, res = POST("dscp/"..commitid.."/commit")
+			if tostring(rcode):gmatch("200") == nil then
+				shaper.qostimestamp = os.time()
+			else
+				shaper.reloadtimestamp = os.time()
+			end
+		else
+			shaper.reloadtimestamp = os.time()
+		end
 	elseif mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
 		local rcode, res = PUT("qos", {
 			interface	= shaper.interface,
@@ -938,7 +953,11 @@ function shaper:sendQosToApi()
 			downlink	= tostring(shaper.download),
 			uplink		= tostring(shaper.upload)
 		})
-		-- @TODO: check rcode return and exit func then retry if rcode != 200
+		if tostring(rcode):gmatch("200") then
+			shaper.qostimestamp = os.time()
+		else
+			shaper.reloadtimestamp = os.time()
+		end
 	end
 end
 
