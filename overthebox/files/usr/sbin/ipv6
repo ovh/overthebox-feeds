@@ -20,7 +20,13 @@ start()
 		stop
 		exit 0
 	fi
-
+	
+	MUD=$(uci -q get glorytun.tun0.enable)
+	if [ "$MUD" -eq 1 ]; then
+		IPLOCAL=$(uci -q get glorytun.tun0.iplocal)
+	else
+		IPLOCAL=$(uci -q get glorytun.otb.iplocal)
+	fi
 
 	uci set dhcp.@dnsmasq[0].filter_aaaa='0'
 	uci set dhcp.lan.ra='server'
@@ -35,7 +41,7 @@ start()
 	ip link delete ipv6 > /dev/null 2>&1
 	sleep 1
 	logger mwan3 creating 6rd
-	ip tunnel add ipv6 mode sit local $(uci -q get glorytun.otb.iplocal)  ttl 64 > /dev/null 2>&1
+	ip tunnel add ipv6 mode sit local $IPLOCAL ttl 64 tclass inherit > /dev/null 2>&1
 	ip tunnel 6rd dev ipv6 6rd-prefix $(uci -q get ipv6.ipv6rd.6rd_prefix) 6rd-relay_prefix $(uci -q get ipv6.ipv6rd.6rd_br_server)
 	ip link set dev ipv6 up
 
