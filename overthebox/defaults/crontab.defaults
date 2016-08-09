@@ -1,49 +1,48 @@
 #!/bin/sh
 
 FILE="/etc/crontabs/root"
-
-CMD="/usr/bin/overthebox_download_recovery"
-if [ "$(grep "$CMD" $FILE -c )" != "1" ]
-then
-	TMP=$(mktemp)
-	# cleanup
-	grep -v "$CMD" $FILE > $TMP
-	# fix
-	echo '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null' >>$TMP
-	mv $TMP $FILE
+if [ ! -f "$FILE" ]; then
+    touch $FILE
 fi
 
-CMD="/usr/bin/overtheboxd"
-if [ "$(grep "$CMD" $FILE -c )" != "0" ]
-then
-        TMP=$(mktemp)
-        # cleanup
-        grep -v "$CMD" $FILE > $TMP
-        mv $TMP $FILE
-fi
+_crontab_clean(){
+    TMP=$(mktemp)
+    grep -v "$1" $FILE > $TMP
+    mv $TMP $FILE
+}
 
-CMD="/usr/bin/overthebox_checkup"
-if [ "$(grep "$CMD" $FILE -c )" != "1" ]
-then
-        TMP=$(mktemp)
-        # cleanup
-        grep -v "$CMD" $FILE > $TMP
-        # fix
-        echo '00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null' >> $TMP
-        mv $TMP $FILE
-fi
+_crontab_add(){
+    echo "$1" >> $FILE
+}
+
+_crontab_add_if_not_exists(){
+    grep -q "$1" $FILE && return
+
+    #first clean, just in case
+    _crontab_clean "$1"
+    _crontab_add "$2"
+}
+
+_crontab_del_if_exists(){
+    grep -q "$1" $FILE ||  return
+
+    _crontab_clean "$1"
+}
 
 
-CMD="/usr/bin/overthebox_emergency_action"
-if [ "$(grep "$CMD" $FILE -c )" != "1" ]
-then
-        TMP=$(mktemp)
-        # cleanup
-        grep -v "$CMD" $FILE > $TMP
-        # fix
-        echo '00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null' >>$TMP
-        mv $TMP $FILE
-fi
+_crontab_add_if_not_exists "/usr/bin/overthebox_download_recovery" \
+    '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null'
+
+_crontab_del_if_exists "/usr/bin/overtheboxd"
+
+_crontab_add_if_not_exists "/usr/bin/overthebox_checkup" \
+    '00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null'
+
+_crontab_add_if_not_exists "/usr/bin/overthebox_emergency_action" \
+    '00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null'
+
+_crontab_del_if_exists "No such file or directory"
+
 
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
