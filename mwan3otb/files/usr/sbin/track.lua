@@ -739,6 +739,7 @@ function DELETE(uri, data)
 	return API(uri, "DELETE", data)
 end
 function API(uri, method, data)
+	-- url = "http://api/" .. uri : we do not use the dns "api" beacause of the dnsmasq reloading race condition
 	url = "http://169.254.254.1/" .. uri
 	-- Buildin JSON POST
 	local reqbody   = json.encode(data)
