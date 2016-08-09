@@ -43,6 +43,7 @@ start()
 	logger mwan3 creating 6rd
 	ip tunnel add ipv6 mode sit local $IPLOCAL ttl 64 tclass inherit > /dev/null 2>&1
 	ip tunnel 6rd dev ipv6 6rd-prefix $(uci -q get ipv6.ipv6rd.6rd_prefix) 6rd-relay_prefix $(uci -q get ipv6.ipv6rd.6rd_br_server)
+	ip link set dev ipv6 mtu 1400
 	ip link set dev ipv6 up
 
 	ip -6 addr add  $(uci -q get ipv6.ipv6rd.6rd_wan_prefix) dev ipv6
