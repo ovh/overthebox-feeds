@@ -937,7 +937,7 @@ function shaper:sendQosToApi()
 		)
 		if commitid then
 			local rcode, res = POST("dscp/"..commitid.."/commit")
-			if tostring(rcode):gmatch("200") == nil then
+			if tostring(rcode):gmatch("200") then
 				shaper.qostimestamp = os.time()
 			else
 				shaper.reloadtimestamp = os.time()
