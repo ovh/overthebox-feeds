@@ -1,0 +1,16 @@
+diff --git a/src/rfc2131.c b/src/rfc2131.c
+index 8b99d4b..4927665 100644
+--- a/src/rfc2131.c
++++ b/src/rfc2131.c
+@@ -928,6 +928,11 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
+   if ((context->flags & CONTEXT_PROXY) || pxe)
+     return 0;
+   
++  if ((context->flags & CONTEXT_STATIC) && (!config)){
++    log_packet("static lease not found", NULL, emac, emac_len, iface_name, NULL, NULL, mess->xid);
++    return 0;
++  }
++
+   if ((opt = option_find(mess, sz, OPTION_REQUESTED_OPTIONS, 0)))
+     {
+       req_options = (unsigned char *)daemon->dhcp_buff2;
