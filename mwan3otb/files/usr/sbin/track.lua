@@ -84,9 +84,9 @@ function ping ( host, interface, timeout)
 		  else
 		    if err == 11 then
 		      cnt=cnt-1
-		      debug("JLB ping:"..cnt.." "..sa)
+		      debug("ping:"..cnt.." "..sa)
 		    else
-		      debug("JLB ping:"..sa)
+		      debug("ping:"..sa)
 		      break
 		    end
 		  end
@@ -151,9 +151,9 @@ function dns_request( host, interface, timeout, domain)
 	  else
 	    if err == 11 then
 	      cnt=cnt-1
-	      debug("JLB nslookup:"..cnt.." "..sa)
+	      debug("nslookup:"..cnt.." "..sa)
             else
-	      debug("JLB nslookup:"..sa)
+	      debug("nslookup:"..sa)
 	      break;
 	    end
 	  end
