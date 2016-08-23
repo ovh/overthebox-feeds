@@ -75,7 +75,22 @@ function ping ( host, interface, timeout)
 		if not ok then return ok, err end
 
 		-- Read reply
-		local data, sa = p.recvfrom(fd, 1024)
+		local cnt=3
+		local data,sa,err
+		while cnt > 0  do
+		  data, sa, err = p.recvfrom(fd, 1024)
+		  if data then
+		    break
+		  else
+		    if err == 11 then
+		      cnt=cnt-1
+		      debug("JLB ping:"..cnt.." "..sa)
+		    else
+		      debug("JLB ping:"..sa)
+		      break
+		    end
+		  end
+		end
 		local t2 = p.clock_gettime(p.CLOCK_REALTIME) 
 		if fd then p.close(fd) end
 		if data then
@@ -85,6 +100,7 @@ function ping ( host, interface, timeout)
 			elseif r==11  then return false, "timeout error"
 			else
 				-- hex_dump(data)
+
                                 return false, "other error : "..r
 			end
 		else
@@ -126,7 +142,23 @@ function dns_request( host, interface, timeout, domain)
 	local ok, err = p.sendto (fd, data, { family = p.AF_INET, addr = host, port = 53 })
 	if not ok then return ok, err end
 
-	local data, sa = p.recvfrom(fd, 1024)
+	local cnt=3
+	local data,sa,err
+	while cnt > 0  do
+	  data, sa, err = p.recvfrom(fd, 1024)
+	  if data then
+	    break
+	  else
+	    if err == 11 then
+	      cnt=cnt-1
+	      debug("JLB nslookup:"..cnt.." "..sa)
+            else
+	      debug("JLB nslookup:"..sa)
+	      break;
+	    end
+	  end
+	end
+
 	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
 	if fd then p.close(fd) end
 	if data then
