@@ -367,8 +367,10 @@ function whois(interface, ip)
 				end
 				p.close(fd)
 				data = table.concat(data)
-				return data:match("netname:%s+([%w%.%-]+)"), data:match("country:%s+([%w%.%-]+)")
+				return true, data:match("netname:%s+([%w%.%-]+)"), data:match("country:%s+([%w%.%-]+)")
 			end
+		else
+			return false, "can not find refere for this ip"
 		end
 	end
 end
@@ -540,23 +542,58 @@ function run(command)
 --	handle:close()
 end
 
+-- Interface info structure
+local interface		= {}
+interface.name		= opts["i"]
+interface.device	= opts["d"]
+interface.wanaddr	= false
+interface.whois		= false
+interface.country	= false
+interface.timestamp	= nil
+
+function updateInterfaceInfos()
+	local wanaddr = get_public_ip(interface.name)
+	if wanaddr then
+		debug("wan address is: " .. wanaddr)
+		interface.timestamp = os.time()
+		if interface.wanaddr ~= wanaddr then
+			interface.wanaddr = wanaddr
+			res, interface.whois, interface.country = whois(interface.name, interface.wanaddr)
+			if res then
+				if interface.whois and interface.country then
+					debug("whois of " .. wanaddr .. " is " .. interface.whois .. " and country is ".. interface.country)
+				elseif interface.whois then
+					debug("whois of " .. wanaddr .. " is " .. interface.whois)
+				end
+				-- Update uci infos
+				local uci = libuci.cursor()
+				if interface.name == "tun0" or interface.name == "xtun0" then
+					if interface.whois and interface.country then
+						uci:set("network", interface.name, "label", string.format('%s-%s', interface.country, interface.whois))
+						uci:save("network")
+						uci:commit("network")
+					elseif interface.whois then
+						uci:set("network", interface.name, "label", interface.whois)
+						uci:save("network")
+						uci:commit("network")
+					end
+				elseif not uci:get("network", interface.name, "label") then
+					uci:set("network", interface.name, "label", interface.whois)
+					uci:save("network")
+					uci:commit("network")
+				end
+			end
+			return true
+		end
+	end
+	return false
+end
+
 -- Circular buffer for ping stats collection
 local pingstats 	= {}
 pingstats.numvalue 	= 60
 pingstats.entries	= 0
 pingstats.pos		= 0
-
-pingstats.wanaddr	= get_public_ip(opts["i"])
-if pingstats.wanaddr then
-	pingstats.whois, pingstats.country = whois(opts["i"], pingstats.wanaddr)
-else
-	pingstats.wanaddr       = get_public_ip(opts["i"])
-	if pingstats.wanaddr then
-	        pingstats.whois, pingstats.country = whois(opts["i"], pingstats.wanaddr)
-	else
-		pingstats.whois	= false
-	end
-end
 
 function pingstats:push(value)
 	pingstats[pingstats.pos] = value
@@ -627,7 +664,7 @@ bw_stats.values = {}
 bw_stats.command= "/usr/bin/luci-bwc"
 function bw_stats:collect()
 	-- run bandwidth monitor
-	local handle = io.popen(string.format("%s -i %s", bw_stats.command, opts["i"]))
+	local handle = io.popen(string.format("%s -i %s", bw_stats.command, interface.name))
 	if not handle then return 0 end
 	local result = handle:read("*a")
 	handle:close()
@@ -728,39 +765,6 @@ function bw_stats:maxupload()
 	return bw_stats.maxuploadvalue
 end
 
-local uci = libuci.cursor()
-if pingstats.whois then
-	if opts["i"] == "tun0" then
-		if pingstats.country then
-			uci:set("network", opts["i"], "label", string.format('%s-%s', pingstats.country, pingstats.whois))
-		else
-			uci:set("network", opts["i"], "label", pingstats.whois)
-		end
-		uci:save("network")
-		uci:commit("network")
-	elseif not uci:get("network", opts["i"], "label") then
-		uci:set("network", opts["i"], "label", pingstats.whois)
-		uci:save("network")
-		uci:commit("network")
-	end
-end
-
--- used by conntrack bw stats
-local ipsrc     = uci:get("network", opts["i"], "ipaddr")
-local dports    = { uci:get("shadowsocks","proxy","port"), uci:get("vtund","tunnel","port") }
-function bw_stats:conntrack(ipsrc, dports)
-        local counter=0
-        for _, stats in pairs(sys.net.conntrack())
-        do
-                if stats["layer4"] == "tcp" and stats["src"] == ipsrc then
-                        if dports[ stats["dport"] ] then
-                            counter = counter + stats["bytes"]
-                        end
-                end
-        end
-        return math.floor((counter * 8)/ 1024)
-end
-
 --------------------------
 --      QoS section     --
 --------------------------
@@ -804,13 +808,13 @@ local shaper  = {}
 local uci = libuci.cursor()
 
 shaper.interface	= opts["i"]
-shaper.mode		= uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
-shaper.mindownload 	= tonumber(uci:get("network", opts["i"], "mindownload")) or 512 -- kbit/s
-shaper.minupload 	= tonumber(uci:get("network", opts["i"], "minupload")) or 128 -- kbit/s
-shaper.qostimeout 	= tonumber(uci:get("network", opts["i"], "qostimeout")) or 30 -- min
-shaper.pingdelta	= tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -- ms
-shaper.bandwidthdelta 	= tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
-shaper.ratefactor 	= tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
+shaper.mode		= uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
+shaper.mindownload 	= tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+shaper.minupload 	= tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+shaper.qostimeout 	= tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+shaper.pingdelta	= tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+shaper.bandwidthdelta 	= tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+shaper.ratefactor 	= tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 -- Shaper timers
 shaper.reloadtimestamp	= 0	-- Time when signal to (re)load qos was received
 shaper.qostimestamp 	= nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
@@ -841,7 +845,7 @@ function shaper:pushPing(lat)
 	-- QoS manager
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
-			debug("Starting bandwidth stats collector on " .. opts["i"])
+			debug("Starting bandwidth stats collector on " .. shaper.interface)
 			shaper.congestedtimestamp = os.time()
 		end
 	        bw_stats:collect()
@@ -861,19 +865,19 @@ function shaper:update()
 	if shaper.reloadtimestamp and ((shaper.qostimestamp == nil) or (shaper.reloadtimestamp > shaper.qostimestamp)) then
 		-- Reload uci
 		uci = libuci.cursor()
-		local newMode = uci:get("network", opts["i"], "trafficcontrol") or "off" -- auto, static
+		local newMode = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
 		-- QoS mode has changed
 		if shaper.mode ~= newMode then
 			shaper.mode = newMode
 			shaper:disableQos()
 		end
 		-- Update values 
-		shaper.mindownload      = tonumber(uci:get("network", opts["i"], "mindownload")) or 512 -- kbit/s
-		shaper.minupload        = tonumber(uci:get("network", opts["i"], "minupload")) or 128 -- kbit/s
-		shaper.qostimeout       = tonumber(uci:get("network", opts["i"], "qostimeout")) or 30 -- min
-		shaper.pingdelta        = tonumber(uci:get("network", opts["i"], "pingdelta")) or 100 -- ms
-		shaper.bandwidthdelta   = tonumber(uci:get("network", opts["i"], "bandwidthdelta")) or 100 -- kbit/s
-		shaper.ratefactor       = tonumber(uci:get("network", opts["i"], "ratefactor")) or 1 -- 0.9 mean 90%
+		shaper.mindownload      = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+		shaper.minupload        = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+		shaper.qostimeout       = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+		shaper.pingdelta        = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+		shaper.bandwidthdelta   = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+		shaper.ratefactor       = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
 	-- 
         if shaper.mode == "auto" then
@@ -986,7 +990,7 @@ function shaper:sendQosToApi()
 		local rcode, res = PUT("qos", {
 			interface	= shaper.interface,
 			metric		= uci:get("network", shaper.interface, "metric"),
-			wan_ip		= get_public_ip(shaper.interface),
+			wan_ip		= interface.wanaddr or get_public_ip(shaper.interface),
 			downlink	= tostring(shaper.download),
 			uplink		= tostring(shaper.upload)
 		})
@@ -999,27 +1003,27 @@ function shaper:sendQosToApi()
 end
 
 function write_stats()
-	local interface = opts["i"]
 	local result = {}
-	result[interface] = {}
-	-- Ping status
+	result[interface.name] = {}
+	result[interface.name].wanaddr = interface.wanaddr
+	result[interface.name].whois = interface.whois
+	result[interface.name].country = interface.country
+	-- Ping stats
 	if pingstats then
-		result[interface].minping = pingstats:min()
-		result[interface].curping = pingstats:getn(0)
-		result[interface].avgping = pingstats:avg()
-		result[interface].wanaddr = pingstats.wanaddr
-		result[interface].whois = pingstats.whois
+		result[interface.name].minping = pingstats:min()
+		result[interface.name].curping = pingstats:getn(0)
+		result[interface.name].avgping = pingstats:avg()
 	end
 	-- QoS status
 	if shaper then
-		result[interface].congestedtimestamp	= shaper.congestedtimestamp
-		result[interface].qostimestamp		= shaper.qostimestamp 
-		result[interface].losttimestamp		= shaper.losttimestamp
-		result[interface].upload		= shaper.upload
-		result[interface].download		= shaper.download
+		result[interface.name].congestedtimestamp	= shaper.congestedtimestamp
+		result[interface.name].qostimestamp		= shaper.qostimestamp 
+		result[interface.name].losttimestamp		= shaper.losttimestamp
+		result[interface.name].upload		= shaper.upload
+		result[interface.name].download		= shaper.download
 	end
 	-- write file
-	local file = io.open( string.format("/tmp/tracker/if/%s", interface), "w" )
+	local file = io.open( string.format("/tmp/tracker/if/%s", interface.name), "w" )
 	file:write(json.encode(result))
 	file:close()
 end
@@ -1035,6 +1039,9 @@ sig.signal(sig.SIGUSR2, function ()
 	end
 end)
 
+--
+-- Main loop
+--
 while true do
 
 	for i = 1, #servers do
@@ -1043,6 +1050,13 @@ while true do
 			host_up_count = host_up_count + 1
 
 			lat = tonumber(msg)
+			-- Check public ip every 900 sec and reload QoS if public ip change
+			if interface.timestamp == nil or (os.time() > interface.timestamp + 900) then
+				if updateInterfaceInfos() and shaper.qostimestamp then
+					shaper.reloadtimestamp = os.time()
+				end
+			end
+			-- Update shaper
 			shaper:pushPing(lat)
 			local min = pingstats:min()
 			debug("check: "..servers[i].. " OK " .. lat .. "ms" .. " was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3) .. " (" .. tostring(min) .. " min)")
@@ -1064,11 +1078,12 @@ while true do
 	    			log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
 	   			-- exec hotplug iface
 				run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
+				-- Set interface info as obsolet
+				interface.timestamp = nil
 				-- clear QoS on interface down
 				if shaper.mode ~= "off" then
 					shaper:disableQos()
 				end
-
 				score = 0
 			else
 			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
@@ -1111,17 +1126,6 @@ while true do
 			log(string.format("Interface %s (%s) is online", opts["i"],    opts["d"]))
 			-- exec hotplug iface	
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
-			-- When interface is back check that public ip has not changed
-			local wanaddr = get_public_ip(opts["i"])
-			if wanaddr and pingstats.wanaddr ~= wanaddr then
-				pingstats.wanaddr = wanaddr
-				if pingstats.wanaddr then
-					pingstats.whois         = whois(opts["i"], pingstats.wanaddr)
-				else
-					pingstats.whois = false
-				end
-			end
-			shaper:enableQos()
 		end
 	end
 
