@@ -80,7 +80,12 @@ function ping ( host, interface, timeout)
 		while cnt > 0  do
 		  data, sa, err = p.recvfrom(fd, 1024)
 		  if data then
-		    break
+                    local r = string.byte(data, 21, 22) -- byte of the first char
+                    if r == 8 then
+                      debug("ping: skip ECHO-request")
+                    else
+                      break
+                    end
 		  else
 		    if err == 11 then
 		      cnt=cnt-1
