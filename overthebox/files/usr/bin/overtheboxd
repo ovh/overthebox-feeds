@@ -112,7 +112,14 @@ while run do
 			actionreturn, msg = overthebox.send_properties(ret.arguments)
 		elseif ret.action == "diagnostic" then
 			actionreturn, msg = overthebox.send_diagnostic(ret.id, ret.arguments)
-
+		elseif ret.action == "backup" then
+			actionreturn, msg = overthebox.send_backup(ret.id, ret.arguments)
+		elseif ret.action == "restore" then
+			actionreturn, msg = overthebox.restore_backup(ret.id, ret.arguments)
+			if actionreturn then
+				overthebox.backup_last_action(ret.id)
+				overthebox.reboot()
+			end
 		-- TODO: Remember to remove the old name "createKey" after action has been renamed on infra side.
 		-- This is for backward compatibility during the rename of the action
 		elseif ret.action == "createKey" or ret.action == "remoteAccessPrepare" then

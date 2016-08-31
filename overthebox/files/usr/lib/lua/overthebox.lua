@@ -588,6 +588,103 @@ function post_result_diagnostic(id, name, cmd, output, exit_code)
 	return (rcode == 200)
 end
 
+--
+-- Begin of backup config section
+--
+function list_config_files()
+	local files = {}
+	local list = io.popen(
+		"( find $(sed -ne '/^[[:space:]]*$/d; /^#/d; p' /etc/sysupgrade.conf " ..
+		"/lib/upgrade/keep.d/* 2>/dev/null) -type f 2>/dev/null; " ..
+		"opkg list-changed-conffiles ) | sort -u"
+	)
+	if list then
+		while true do
+			local ln = list:read("*l")
+			if not ln then
+				break
+			else
+				files[#files+1] = ln
+			end
+		end
+		list:close()
+	end
+	return files
+end
+
+function post_result_backup(id, file, content)
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
+				'/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
+				"/backups/"..id , { filename=file, content=content })
+	return (rcode == 200)
+end
+
+function run_backup(id, file)
+	local fd = io.open(file, "rb")
+	if fd then
+		content = fd:read("*all")
+		local ret_api = post_result_backup(id, file, content)
+	end
+	return rcode==0
+end
+
+function create_backup(action_id)
+	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
+				'/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
+				'/backups',  {device_action_id=action_id or "" })
+	return (rcode == 200), res.backup_id or ""
+end
+
+function send_backup(id, info)
+	local api_ok, backup_id = create_backup(id or "")
+	if backup_id == "" then
+		return false, "no backup id found"
+	end
+
+	local ret = true
+	for _, file in pairs(list_config_files()) do
+		ret = run_backup(backup_id, file)
+	end
+
+	return ret, "ok"
+end
+
+function retrieve_backup(id)
+	local rcode, res = GET('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
+				'/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
+				'/backups/'.. id ..
+				'/tar')
+	return (rcode == 200), res
+end
+
+function restore_backup(id, info)
+	local backup_id = id
+	if info and info.backup_id then
+		backup_id = info.backup_id
+	end
+	-- do 
+	local ret, content = retrieve_backup(backup_id)
+	if ret then
+		fp = io.popen("/sbin/sysupgrade --restore-backup -", "w")
+		if fp then
+			fp:write(content)
+			local rc = {fp:close()}
+			if rc[4] == 0 then
+				return true, "ok"
+			else
+				return false, "sysupgrade has returned an error"
+			end
+		else
+			return false, "can not run /sbin/sysupgrade"
+		end
+	else
+		return ret, content
+	end
+end
+--
+-- End of backup config section
+--
+
 -- This function converts a remote access id to a name usable as key in uci.
 -- Uci doesn't support "-" in key names so we replace '-' by'_'.
 function remoteAccessIdToUci(remote_access_id)
@@ -1004,7 +1101,7 @@ function API(uri, method, data)
 		end
 	end
 
-	return code, json.decode(table.concat(respbody))
+	return code, (json.decode(table.concat(respbody)) or table.concat(respbody))
 end
 
 -- Remove any final \n from a string.
