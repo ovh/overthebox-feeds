@@ -20,7 +20,7 @@ before_script:
 - rm -fr sdk/bin/*
 script:
 - make -C sdk defconfig
-- for I in */Makefile; do make -C sdk package/$(dirname $I)/install; done
+- for I in */Makefile; do make -j1 V=s -C sdk package/$(dirname $I)/install; done
 deploy:
   provider: releases
   api_key:

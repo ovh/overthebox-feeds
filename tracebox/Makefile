@@ -1,16 +1,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tracebox
-PKG_VERSION:=0.2
+PKG_VERSION:=0.3.1
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+PKG_SOURCE:=v$(PKG_VERSION).tar.gz
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_URL:=git@github.com:tracebox/tracebox.git
+PKG_SOURCE_URL:=https://github.com/tracebox/tracebox/archive
 PKG_MAINTAINER:=Gregory Detal <gregory.detal@uclouvain.be>
-
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=v0.2
 
 include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
@@ -47,7 +44,6 @@ define Build/Configure
 	(cd $(PKG_BUILD_DIR); AUTOHEADER=true autoreconf --install)
 	$(call Build/Configure/Default)
 endef
-
 
 define Package/tracebox/install
 	$(INSTALL_DIR) $(1)/usr/sbin
