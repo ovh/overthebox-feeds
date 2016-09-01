@@ -21,7 +21,7 @@ define Package/overthebox
         SECTION:=utils
         CATEGORY:=OVH
         TITLE:=overthebox tool
-        DEPENDS:= +bosun +mwan3otb +shadowsocks-libev +vtund +mptcp +rdisc6
+        DEPENDS:= +bosun +mwan3otb +shadowsocks-libev +mptcp +rdisc6
 endef
 
 define Package/overthebox/description
