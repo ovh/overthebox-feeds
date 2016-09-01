@@ -20,21 +20,5 @@ if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci commit dhcp
 fi
 
-if uci -q get vtund.tunnel.6rd_ipv6_enable 1>/dev/null 2>/dev/null; then
-	uci set dhcp.@dnsmasq[0].filter_aaaa='0'
-	uci set dhcp.lan.ra='server'
-	uci set dhcp.lan.ra_preference='high'
-	uci set dhcp.lan.ra_management='0'
-	uci commit dhcp
-else
-	uci set dhcp.@dnsmasq[0].filter_aaaa='1'
-	uci delete dhcp.lan.ra
-	uci delete dhcp.lan.ra_default
-	uci delete dhcp.lan.dhcpv6
-	uci delete dhcp.lan.ra_management
-	uci set dhcp.lan.ra_preference='high'
-	uci commit dhcp
-fi
-
 exit 0
 

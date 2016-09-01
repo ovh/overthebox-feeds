@@ -123,67 +123,6 @@ function config()
 	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
 	local ret = {}
 
-	if res.vtun_conf and exists( res.vtun_conf, 'server', 'port', 'cipher', 'psk', 'dev', 'ip_peer', 'ip_local', 'metric' ) then
-		uci:set('vtund', 'tunnel', 'client')
-		uci:set('vtund', 'tunnel', 'server', res.vtun_conf.server )
-		uci:set('vtund', 'tunnel', 'port',   res.vtun_conf.port )
-		uci:set('vtund', 'tunnel', 'cipher', res.vtun_conf.cipher )
-		uci:set('vtund', 'tunnel', 'psk',    res.vtun_conf.psk )
-		uci:set('vtund', 'tunnel', 'localip', res.vtun_conf.ip_local)
-		uci:set('vtund', 'tunnel', 'remoteip', res.vtun_conf.ip_peer)
-
-		uci:set('vtund', 'tunnel', 'table', res.vtun_conf.table)
-		uci:set('vtund', 'tunnel', 'pref', res.vtun_conf.pref)
-		uci:set('vtund', 'tunnel', 'metric', res.vtun_conf.metric)
-
-		uci:set('network', res.vtun_conf.dev, 'interface')
-		uci:set('network', res.vtun_conf.dev, 'ifname', res.vtun_conf.dev)
-		uci:set('network', res.vtun_conf.dev, 'proto', 'none')
-		uci:set('network', res.vtun_conf.dev, 'multipath', 'off')
-		uci:set('network', res.vtun_conf.dev, 'delegate', '0')
-		uci:set('network', res.vtun_conf.dev, 'metric', res.vtun_conf.metric)
-		uci:delete('network', res.vtun_conf.dev, 'auto')
-		uci:set('network', res.vtun_conf.dev, 'type', 'tunnel')
-
-		addInterfaceInZone("wan", res.vtun_conf.dev)
-
-		if exists( res.vtun_conf, 'additional_interfaces') and type(res.vtun_conf.additional_interfaces) == 'table' then
-			for _, conf in pairs(res.vtun_conf.additional_interfaces) do
-				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
-
-					uci:set('vtund', conf.dev, 'interface')
-					uci:set('vtund', conf.dev, 'remoteip', conf.ip_peer)
-					uci:set('vtund', conf.dev, 'localip', conf.ip_local)
-					uci:set('vtund', conf.dev, 'port', conf.port)
-					uci:set('vtund', conf.dev, 'mtu', conf.mtu)
-
-					uci:set('vtund', conf.dev, 'table', conf.table)
-					uci:set('vtund', conf.dev, 'pref', conf.pref)
-					uci:set('vtund', conf.dev, 'metric', conf.metric)
-
-					uci:set('network', conf.dev, 'interface')
-					uci:set('network', conf.dev, 'ifname', conf.dev)
-					uci:set('network', conf.dev, 'proto', 'none')
-					uci:set('network', conf.dev, 'multipath', 'off')
-					uci:set('network', conf.dev, 'delegate', '0')
-					uci:set('network', conf.dev, 'metric', conf.metric)
-					uci:delete('network', conf.dev, 'auto')
-					uci:set('network', conf.dev, 'type', 'tunnel')
-
-					addInterfaceInZone("wan", conf.dev)
-
-				end
-			end
-		end
-		uci:save('network')
-		uci:commit('network')
-		
-		uci:save('vtund')
-		uci:commit('vtund')
-		table.insert(ret, "vtund")
-
-	end
-
 	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', 'otb', 'tunnel')
 
@@ -346,25 +285,6 @@ function config()
 	end
 	uci:save('glorytun')
 	uci:commit('glorytun')
-
-	if res.tun_conf.app == 'vtun' then
-		uci:set('vtund', 'tunnel', 'enable', '1')
-		uci:foreach("vtund", "interface",
-			function (e)
-				uci:set('vtund', e[".name"], 'enable', '1' )
-			end
-		)
-		uci:set('mwan3', 'socks', 'dest_ip', res.vtun_conf.server)
-	else
-		uci:set('vtund', 'tunnel', 'enable', '0')
-		uci:foreach("vtund", "interface",
-			function (e)
-				uci:set('vtund', e[".name"], 'enable', '0' )
-			end
-		)
-	end
-	uci:save('vtund')
-	uci:commit('vtund')
 
 	uci:delete('mwan3', 'socks', 'dest_port')
 	uci:save('mwan3')
@@ -853,7 +773,7 @@ end
 
 
 -- all our packages, and the minimum version needed.
-local pkgs = { 
+local pkgs = {
     ["sqm-scripts"]='remove',
     ["overthebox"]='0.3-17',
     ["lua"]='5.1.5-3',
@@ -870,7 +790,7 @@ local pkgs = {
     ["netifd"]='2015-08-25-58',
     ["mwan3otb"]='1.7-22',
     ["bosun"]='0.4.0-0.8',
-    ["vtund"]='3.0.3-12',
+    ["vtund"]='remove',
     ["e2fsprogs"]='1.42.12-1',
     ["e2freefrag"]='1.42.12-1',
     ["dumpe2fs"]='1.42.12-1',
@@ -1707,7 +1627,6 @@ function update_confmwan()
 		os.execute("/etc/init.d/network reload")
 		os.execute("/etc/init.d/firewall reload")
 		os.execute("nohup /usr/sbin/mwan3 restart &")
-		os.execute("nohup /etc/init.d/vtund restart &")
 	end
 	l:close()
 	return result, interfaces

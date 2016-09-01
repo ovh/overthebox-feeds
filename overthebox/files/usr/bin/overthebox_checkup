@@ -12,14 +12,14 @@ for _, v in ipairs(o.getzombieppid()) do
     o.warning( cmdline .. " has a zombie")
     local excepted = false
     for _, e in ipairs(exceptions) do
-	if string.find( cmdline, e, 1, true) ~= nil then
-	    excepted = true
-	    break
-	end
+        if string.find( cmdline, e, 1, true) ~= nil then
+            excepted = true
+            break
+        end
     end
     if not excepted then
-	o.warning("killing it")
-	o.sigkill(v)
+        o.warning("killing it")
+        o.sigkill(v)
     end
 end
 
@@ -40,12 +40,8 @@ if not o.test_if_running( "/usr/bin/ss-redir") then
     o.run("/etc/init.d/shadowsocks restart")
 end
 
-
--- if neither glorytun and vtund are stopped, relaunch both. only one will start if configured
-if not o.test_if_running("glorytun") and not overthebox.test_if_running("vtund") then
-    o.warning("vtund and glorytun are stopped, relaunch its")
-    o.run("/etc/init.d/vtund restart")
+if not o.test_if_running("glorytun") then
+    o.warning("glorytun starting")
     o.run("/etc/init.d/glorytun restart")
+    o.run("/etc/init.d/glorytun-udp restart")
 end
-
-
