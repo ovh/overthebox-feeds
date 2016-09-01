@@ -20,7 +20,7 @@ before_script:
 - rm -fr sdk/bin/*
 script:
 - make -C sdk defconfig
-- for I in */Makefile; do make -C sdk package/$(dirname $I)/install; done
+- make -C sdk world
 deploy:
   provider: releases
   api_key:
