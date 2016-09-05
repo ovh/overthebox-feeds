@@ -33,7 +33,10 @@ local libuci	= require("luci.model.uci")
 local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
 
+local libping	= require("ping")
+
 local method -- ping function bindings
+local fallback_method -- fall
 
 sig.signal(sig.SIGUSR2,
         function ()
@@ -49,50 +52,6 @@ sig.signal(sig.SIGUSR1,
 local function handle_exit()
 	p.closelog()
 	os.exit();
-end
-
-function ping ( host, interface, timeout)
-	if p.SOCK_RAW and p.SO_BINDTODEVICE then
-		-- Open raw socket
-		local fd, err = p.socket(p.AF_INET, p.SOCK_RAW, p.IPPROTO_ICMP)
-		if not fd then return fd, err end
-
-		-- timeout on socket
-		local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, timeout )
-		if not ok then return ok, err end
-
-		-- bind to specific device
-		local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-		if not ok then return ok, err end
-
-		-- Create raw ICMP echo (ping) message
-		-- https://fr.wikipedia.org/wiki/Internet_Control_Message_Protocol
-		local data = string.char(0x08, 0x00, 0x7a, 0xa7, 0x6e, 0x63, 0x00, 0x04, 0x0F, 0xF0, 0xFF)
-
-		local t1 = p.clock_gettime(p.CLOCK_REALTIME)
-		-- Send message
-		local ok, err = p.sendto(fd, data, { family = p.AF_INET, addr = host, port = 0 })
-		if not ok then return ok, err end
-
-		-- Read reply
-		local data, sa = p.recvfrom(fd, 1024)
-		local t2 = p.clock_gettime(p.CLOCK_REALTIME) 
-		if fd then p.close(fd) end
-		if data then
-			local r = string.byte(data, 21, 22) -- byte of the first char
-			if     r == 0 then return true, (diff_nsec(t1, t2)/1000000)
-			elseif r==3   then return false, "network error"
-			elseif r==11  then return false, "timeout error"
-			else
-				-- hex_dump(data)
-                                return false, "other error : "..r
-			end
-		else
-			return false, sa
-		end	
-		return data, sa
-	end
-	return false, "not raw socket"
 end
 
 function dns_request( host, interface, timeout, domain)
@@ -126,7 +85,23 @@ function dns_request( host, interface, timeout, domain)
 	local ok, err = p.sendto (fd, data, { family = p.AF_INET, addr = host, port = 53 })
 	if not ok then return ok, err end
 
-	local data, sa = p.recvfrom(fd, 1024)
+	local cnt=3
+	local data,sa,err
+	while cnt > 0  do
+	  data, sa, err = p.recvfrom(fd, 1024)
+	  if data then
+	    break
+	  else
+	    if err == 11 then
+	      cnt=cnt-1
+	      debug("nslookup:"..cnt.." "..sa)
+            else
+	      debug("nslookup:"..sa)
+	      break;
+	    end
+	  end
+	end
+
 	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
 	if fd then p.close(fd) end
 	if data then
@@ -139,7 +114,7 @@ function dns_request( host, interface, timeout, domain)
 				else
 					log("lying dns proxy server detected, falling back to ICMP ping method")
 					tlog(reply.answers)
-					method = function(s) return ping(s , opts["i"], opts["t"]) end
+					method = fallback_method
 					return false, "dns lying proxy detected"
 				end
 			else
@@ -152,7 +127,7 @@ function dns_request( host, interface, timeout, domain)
 			end
 		else
 			log("dns proxy/cache detected, falling back to ICMP ping method")
-			method = function(s) return ping(s , opts["i"], opts["t"]) end
+			method = fallback_method
 			return false, "dns proxy/cache detected"
 		end
 	else
@@ -460,17 +435,15 @@ if table.getn(servers) == 0 then
         arguments:usage()
 end
 
-
-
+method = function(s) return libping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
 if opts["m"] == "dns" then
 	debug("test dns method")
+	fallback_method = method
 	method = function(s) return dns_request( s, opts["i"], opts["t"], "localhost.") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
+	fallback_method = method
 	method = function(s) return socks_request(s, opts["i"], opts["t"], "1090") end
-else
-	debug("test icmp method")
-	method = function(s) return ping(s , opts["i"], opts["t"]) end
 end
 
 local fn = "/var/run/mwan3track-"..opts["i"]..".pid"
