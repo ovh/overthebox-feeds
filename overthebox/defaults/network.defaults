@@ -51,15 +51,6 @@ fi
 
 uci delete network.tun0.auto
 
-
-# be sure, ipv6 interface is here
-uci -q batch <<-EOF >/dev/null
-    set network.if6rd=interface
-    set network.if6rd.proto='none'
-    set network.if6rd.ifname=‘6rd’
-    set network.if6rd.multipath='off'
-EOF
-
 # Convert deprecated sqm section to network interfaces
 convert_sqm_to_network() {
         local section="$1"

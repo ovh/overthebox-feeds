@@ -84,6 +84,14 @@ do
 done
 uci del_list $ZWAN.network='tun0 if6rd'
 
+ZIPV6=$(search_uci_section zone name=ipv6)
+if [ -z "$ZIPV6" ]
+then
+	echo ipv6 not found
+	ZIPV6=$(add_uci_section zone name=ipv6)
+fi
+update_uci_section $ZIPV6 input=DROP output=ACCEPT forward=ACCEPT masq=1
+
 ZMPTCP=$(search_uci_section zone name=mptcp)
 if [ -z "$ZMPTCP" ]
 then
@@ -92,11 +100,13 @@ then
 fi
 update_uci_section $ZMPTCP input=ACCEPT output=ACCEPT forward=ACCEPT masq=1
 
-
 find_or_new_uci_section forwarding src=wan dest=lan > /dev/null
 find_or_new_uci_section forwarding src=lan dest=wan > /dev/null
 find_or_new_uci_section forwarding src=lan dest=mptcp > /dev/null
 find_or_new_uci_section forwarding src=mptcp dest=lan > /dev/null
+find_or_new_uci_section forwarding src=ipv6 dest=lan > /dev/null
+find_or_new_uci_section forwarding src=lan dest=ipv6 > /dev/null
+find_or_new_uci_section forwarding src=ipv6 dest=mptcp > /dev/null
 
 RVPN=$(search_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
 if [ -z "$RVPN" ]

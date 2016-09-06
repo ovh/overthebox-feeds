@@ -303,6 +303,31 @@ function config()
 		table.insert(ret, "shadowsocks")
 	end
 
+	if res.ipv6_conf and exists(res.ipv6_conf, "br_server", "lan_prefix", "network", "routed_prefix", "wan_prefix") then
+		uci:set('network', 'ipv6', 'interface')
+		uci:set('network', 'ipv6', 'ifname', 'ipv6')
+		uci:set('network', 'ipv6', 'proto', 'none')
+		uci:set('network', 'ipv6', 'multipath', 'off')
+
+		uci:set('ipv6', 'ipv6rd', 'client')
+		uci:set('ipv6', 'ipv6rd', '6rd_prefix', res.ipv6_conf.network)
+		uci:set('ipv6', 'ipv6rd', '6rd_routed_prefix', res.ipv6_conf.routed_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_wan_prefix', res.ipv6_conf.wan_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_lan_prefix', res.ipv6_conf.lan_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_br_server', res.ipv6_conf.br_server)
+		if res.ipv6_conf.dns then
+			uci:set_list('ipv6', 'ipv6rd', '6rd_dns', res.ipv6_conf.dns)
+		end
+		uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "1")
+		
+		addInterfaceInZone("ipv6", 'ipv6')
+
+		uci:commit('network')
+		uci:commit('ipv6')
+	else
+		uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "0")
+	end
+
 	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
 		uci:set('scollector','opentsdb', 'client')
 		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
