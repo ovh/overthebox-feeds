@@ -25,6 +25,7 @@ local base = _G
 local posix = require('posix')
 local bit = require('bit')
 local fs = require("nixio.fs")
+local math = require("math")
 
 local _M = {}
 
@@ -116,10 +117,12 @@ local function receive_ping(fd, packet_id, time_sent, timeout)
 					end
 				end
 			end
-		elseif err ~= 11 then
+		elseif err and err ~= 11 then
+			if fd then posix.close(fd) end
 			return false, sa
 		end
-	end        
+	end
+	if fd then posix.close(fd) end
 	return false, "timeout"
 end
 
@@ -130,7 +133,7 @@ function _M.send_ping(host, interface, timeout, size)
 		if not fd then return fd, err end
 
 		-- timeout on socket
-		local ok, err = posix.setsockopt(fd, posix.SOL_SOCKET, posix.SO_RCVTIMEO, 1, timeout)
+		local ok, err = posix.setsockopt(fd, posix.SOL_SOCKET, posix.SO_RCVTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000)
 		if not ok then return ok, err end
 
 		-- bind to specific device
