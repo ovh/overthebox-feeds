@@ -32,6 +32,7 @@ local json	= require("luci.json")
 local libuci	= require("luci.model.uci")
 local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
+local math	= require("math")
 
 local libping	= require("ping")
 
@@ -61,7 +62,7 @@ function dns_request( host, interface, timeout, domain)
 	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
 
 	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, timeout )
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
 	if not ok then return ok, err end
 
 	-- bind to specific device
@@ -85,54 +86,43 @@ function dns_request( host, interface, timeout, domain)
 	local ok, err = p.sendto (fd, data, { family = p.AF_INET, addr = host, port = 53 })
 	if not ok then return ok, err end
 
-	local cnt=3
-	local data,sa,err
-	while cnt > 0  do
-	  data, sa, err = p.recvfrom(fd, 1024)
-	  if data then
-	    break
-	  else
-	    if err == 11 then
-	      cnt=cnt-1
-	      debug("nslookup:"..cnt.." "..sa)
-            else
-	      debug("nslookup:"..sa)
-	      break;
-	    end
-	  end
-	end
-
-	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
-	if fd then p.close(fd) end
-	if data then
-		local t = (diff_nsec(t1, t2)/1000000)
-		if t > 1 then
-			local reply = dns.decode(data)
-			if reply and type(reply.answers) == "table" then
-				if #reply.answers > 0 and reply.answers[1].address == "127.0.0.1" then
-					return true, t
+	local data, sa, err
+	while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < timeout do
+		data, sa, err = p.recvfrom(fd, 1024)
+		if data then
+			if fd then p.close(fd) end
+			local t = (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME))/1000000)
+			if t > 1 then
+				local reply = dns.decode(data)
+				if reply and type(reply.answers) == "table" then
+					if #reply.answers > 0 and reply.answers[1].address == "127.0.0.1" then
+						return true, t
+					else
+						log("lying dns proxy server detected, falling back to ICMP ping method")
+						tlog(reply.answers)
+						method = fallback_method
+						return false, "dns lying proxy detected"
+					end
 				else
-					log("lying dns proxy server detected, falling back to ICMP ping method")
-					tlog(reply.answers)
-					method = fallback_method
-					return false, "dns lying proxy detected"
+					local r = string.byte(data, 3, 4) -- byte of the first char
+					if r > 127 then 
+						return true, t
+					else
+						return false, "other error : "..r
+					end
 				end
 			else
-				local r = string.byte(data, 3, 4) -- byte of the first char
-				if r > 127 then 
-					return true, (diff_nsec(t1, t2)/1000000)
-				else
-					return false, "other error : "..r
-				end
+				log("dns proxy/cache detected, falling back to ICMP ping method")
+				method = fallback_method
+				return false, "dns proxy/cache detected"
 			end
-		else
-			log("dns proxy/cache detected, falling back to ICMP ping method")
-			method = fallback_method
-			return false, "dns proxy/cache detected"
+		elseif err and err ~= 11 then
+			if fd then p.close(fd) end
+			return false, sa
 		end
-	else
-		return false, sa
 	end
+	if fd then p.close(fd) end
+	return false, "timeout"
 end
 
 function tlog (tbl, indent)
@@ -439,7 +429,7 @@ method = function(s) return libping.send_ping(s , opts["i"], tonumber(opts["t"])
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
-	method = function(s) return dns_request( s, opts["i"], opts["t"], "localhost.") end
+	method = function(s) return dns_request( s, opts["i"], tonumber(opts["t"]) * 1000, "localhost.") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	fallback_method = method
