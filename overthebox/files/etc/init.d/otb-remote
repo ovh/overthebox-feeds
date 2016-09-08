@@ -84,7 +84,14 @@ start_instance() {
     [ ! -e "$sshkey" ] && return
 
     if [ -n "$remote_public_key" ]; then
-        grep -q "$remote_public_key" $authkeys 2>/dev/null || echo "$remote_public_key" >> $authkeys
+        if ! grep -q "$remote_public_key" $authkeys 2> /dev/null ; then
+            # Add LF if last character is not LF
+            last=$(tail -c 1 $authkeys)
+            if [ "$last" != "" ]; then
+                echo >> $authkeys
+            fi
+            echo "$remote_public_key" >> $authkeys
+        fi
     fi
 
     hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
