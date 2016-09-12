@@ -1003,6 +1003,7 @@ end
 
 
 function API(uri, method, data)
+	local uci = uci.cursor()
 	url = api_url .. uri
 
 	-- Buildin JSON POST
@@ -1018,7 +1019,7 @@ function API(uri, method, data)
 		{
 			["Content-Type"] = "application/json",
 			["Content-length"] = reqbody:len(),
-			["X-Auth-OVH"] = uci.cursor():get("overthebox", "me", "token"),
+			["X-Auth-OVH"] = uci:get("overthebox", "me", "token"),
 			["X-Overthebox-Version"] = VERSION
 		},
 		source = ltn12.source.string(reqbody),
@@ -1046,9 +1047,9 @@ function API(uri, method, data)
 		end
 		-- update miupnp uci value # upnpd.config.external_ip
 		if uci:get('upnpd', 'config') then
-			if ! (uci:get('upnpd', 'config', 'external_ip') == headers["x-otb-client-ip"]) then
-				uci:set('upnpd', 'config', 'external_ip', headers["x-otb-client-ip"]);
-				uci:commit('upnpd');
+			if not (uci:get('upnpd', 'config', 'external_ip') == headers["x-otb-client-ip"]) then
+				uci:set('upnpd', 'config', 'external_ip', headers["x-otb-client-ip"])
+				uci:commit('upnpd')
 			end
 		end
 	end
