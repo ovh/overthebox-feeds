@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI Support for the OverTheBox project
-LUCI_DEPENDS:=+overthebox +mptcp +luci-mod-admin-full +bandwidth
+LUCI_DEPENDS:=+mwan3otb-luci +bandwidth
 
 include ../luci/luci.mk
 
