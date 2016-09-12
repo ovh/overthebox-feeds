@@ -55,7 +55,6 @@ function subscribe()
 
 	local rcode, res = POST('subscribe', {private_ips = {ip4}})
 
-	-- tprint(res)
 	if rcode == 200 then
 		local configfile = "/etc/config/overthebox"
 		if not file_exists(configfile) then
@@ -401,8 +400,6 @@ function send_properties( props )
 	if props.mounts then
 		body.mounts = get_mounts()
 	end
-
---	tprint(body)
 
 	local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
 	tprint(res)
@@ -1727,7 +1724,6 @@ function ipv6_discover(interface)
 		end
 		table.insert(ra6_result, entry)
 	end
---	tprint(ra6_result)
 	return ra6_result
 end
 
@@ -2137,13 +2133,21 @@ end
 function tprint (tbl, indent)
 	if not indent then indent = 0 end
 	if not tbl then return end
+
+	if type(tbl) == "string" then
+		print(tbl)
+		return
+	elseif type(tbl) ~= "table" then
+		return
+	end
+
 	for k, v in pairs(tbl) do
 		formatting = string.rep("  ", indent) .. k .. ": "
 		if type(v) == "table" then
 			print(formatting)
 			tprint(v, indent+1)
 		elseif type(v) == 'boolean' then
-			print(formatting .. tostring(v))      
+			print(formatting .. tostring(v))
 		else
 			print(formatting .. v)
 		end
