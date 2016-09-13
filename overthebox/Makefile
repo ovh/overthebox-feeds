@@ -18,10 +18,10 @@ PKG_MAINTAINER:=Simon Lelievre <simon.lelievre@corp.ovh.com>
 include $(INCLUDE_DIR)/package.mk
 
 define Package/overthebox
-        SECTION:=utils
-        CATEGORY:=OVH
-        TITLE:=overthebox tool
-        DEPENDS:= +bosun +mwan3otb +shadowsocks-libev +mptcp +rdisc6
+	SECTION:=utils
+	CATEGORY:=OVH
+	TITLE:=overthebox tool
+	DEPENDS:= +bosun +dnsmasq +glorytun +glorytun-udp +luci-app-overthebox +mptcp +shadowsocks-libev
 endef
 
 define Package/overthebox/description
