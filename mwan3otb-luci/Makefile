@@ -20,7 +20,7 @@ define Package/luci-app-mwan3otb
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=LuCI support for the MWAN3 multiwan hotplug script
-  DEPENDS:=+mwan3otb +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio
+  DEPENDS:=+mwan3otb +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-ovh
   PKGARCH:=all
   MAINTAINER:=Aedan Renner <chipdankly@gmail.com>
 endef

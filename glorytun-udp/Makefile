@@ -19,7 +19,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
 	SECTION:=net
 	CATEGORY:=Network
-	DEPENDS:=+kmod-tun +libsodium
+	DEPENDS:=+kmod-tun +libsodium +ip +iptables +@BUSYBOX_DEFAULT_PKILL
 	TITLE:=Glorytun
 	URL:=https://github.com/angt/glorytun
 	SUBMENU:=VPN
