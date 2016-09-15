@@ -19,16 +19,14 @@ More information is available here :
 
 ## Install from pre-compiled images
 
-Guide to install the image is available on (french) :
-[https://docs.ovh.com/pages/releaseview.action?pageId=18121070](https://docs.ovh.com/pages/releaseview.action?pageId=18121070)
+Guide to install the image is available on (french):
+[https://www.ovhtelecom.fr/overthebox/guides.xml](https://www.ovhtelecom.fr/overthebox/guides.xml)
+
+You can download all supported images here:
+[http://downloads.overthebox.ovh/trunk/x86/64/](http://downloads.overthebox.ovh/trunk/x86/64/)
 
 
-### image :
-[http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-embedded-ext4.img.gz](http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-embedded-ext4.img.gz)
-
-
-### virtualbox image :
-[http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.vdi](http://downloads.overthebox.ovh/trunk/x86/64/openwrt-x86-64-combined-ext4.vdi)
+## Install from source
 
 
 ### Prepare
