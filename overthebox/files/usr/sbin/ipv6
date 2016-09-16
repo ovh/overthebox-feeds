@@ -31,8 +31,8 @@ start()
 	uci set dhcp.@dnsmasq[0].filter_aaaa='0'
 	uci set dhcp.lan.ra='server'
 	uci set dhcp.lan.ra_preference='high'
-	for i in `uci -q get ipv6.ipv6rd.dns` do
-		uci add_list dhcp.lan.dns=$i
+	for i in `uci -q get ipv6.ipv6rd.6rd_dns`
+	do uci add_list dhcp.lan.dns=$i
 	done
 	uci commit dhcp
 	sysctl -w net.ipv6.conf.all.disable_ipv6=0 > /dev/null 2>&1
