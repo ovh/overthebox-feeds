@@ -73,10 +73,10 @@ while run do
 					overthebox.update_release_channel()
 				end
 			end
-			actionreturn, msg = overthebox.opkg_update()
-
-			actionreturn, tmsg = overthebox.upgrade()
-			msg = msg .. "\n" .. tmsg
+			return_update, msg_update = overthebox.opkg_update()
+			return_upgrade, msg_upgrade = overthebox.upgrade()
+			actionreturn = return_update and return_upgrade
+			msg = msg_update .. "\n" .. msg_upgrade
 		elseif ret.action == "updateReleaseChannel" then
 			actionreturn, msg = overthebox.update_release_channel()
 		elseif ret.action == "sysupgrade" then
