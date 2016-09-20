@@ -232,7 +232,7 @@ function config()
 	end
 
 	if res.tun_conf.app == 'glorytun_mud' then
-		-- Activate MUD 
+		-- Activate MUD
 		uci:foreach("glorytun", "mud",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '1')
@@ -318,7 +318,7 @@ function config()
 			uci:set_list('ipv6', 'ipv6rd', '6rd_dns', res.ipv6_conf.dns)
 		end
 		uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "1")
-		
+
 		addInterfaceInZone("ipv6", 'ipv6')
 
 		uci:commit('network')
@@ -355,7 +355,7 @@ function config()
 		table.insert(ret, 'log')
 	end
 
-	return true, ret 
+	return true, ret
 end
 
 function send_properties( props )
@@ -513,7 +513,7 @@ end
 
 function run_diagnostic( id, name, arg )
 	cmd = string.gsub( diags[name].cmd, "{{(%w+)}}", function(w)
-		return (arg and arg[w]) or diags[name].default[w] or "" 
+		return (arg and arg[w]) or diags[name].default[w] or ""
 	end )
 	local ret, rcode = run(cmd)
 	local ret_api = post_result_diagnostic(id, name, cmd, ret, rcode)
@@ -604,7 +604,7 @@ function restore_backup(id, info)
 	if info and info.backup_id then
 		backup_id = info.backup_id
 	end
-	-- do 
+	-- do
 	local ret, content = retrieve_backup(backup_id)
 	if ret then
 		fp = io.popen("/sbin/sysupgrade --restore-backup -", "w")
@@ -1012,7 +1012,7 @@ function API(uri, method, data)
 		method = method,
 		url = url,
 		protocol = "tlsv1",
-		headers = 
+		headers =
 		{
 			["Content-Type"] = "application/json",
 			["Content-length"] = reqbody:len(),
@@ -1126,7 +1126,7 @@ function update_confmwan()
 	table.insert( tracking_servers, "51.254.49.133" )
 	local tracking_tunnels = {}
 	table.insert( tracking_tunnels, "169.254.254.1" )
-	-- 
+	--
 	local interfaces={}
 	local size_interfaces = 0 -- table.getn( does not work....
 
@@ -1225,7 +1225,7 @@ function update_confmwan()
 		for key in pairs(t) do
 			table.insert( orderedIndex, key )
 		end
-		table.sort( orderedIndex, function (a, b) 
+		table.sort( orderedIndex, function (a, b)
 			return tonumber(interfaces[a].metric or 0) < tonumber(interfaces[b].metric or 0)
 		end )
 		return orderedIndex
@@ -1401,11 +1401,11 @@ function update_confmwan()
 	end
 
 	function table_copy(obj, seen)
-		if type(obj) ~= 'table' then 
-			return obj 
+		if type(obj) ~= 'table' then
+			return obj
 		end
-		if seen and seen[obj] then 
-			return seen[obj] 
+		if seen and seen[obj] then
+			return seen[obj]
 		end
 		local s = seen or {}
 		local res = setmetatable({}, getmetatable(obj))
@@ -1440,7 +1440,7 @@ function update_confmwan()
 
 	-- Setting rule to forward all non tcp traffic to tun0
 	if not uci:get("mwan3", "all") then
-		uci:set("mwan3", "all", "rule") 
+		uci:set("mwan3", "all", "rule")
 		uci:set("mwan3", "all", "proto", "all")
 		uci:set("mwan3", "all", "sticky", "0")
 	end
@@ -1733,7 +1733,7 @@ function create_dhcp_server()
 	-- Setup a dhcp server if needed
 	local dhcpd_configured = 0
 	local dhcpd = list_running_dhcp()
-	for i, _ in pairs(dhcpd) do    
+	for i, _ in pairs(dhcpd) do
 		dhcpd_configured = dhcpd_configured + 1
 	end
 	log( "Count of dhcp configured : " .. dhcpd_configured )
@@ -1842,7 +1842,7 @@ end
 
 function restart_daemon()
 	local ret, rcode = run("/etc/init.d/overtheboxd restart")
-	return status_code_ok(rcode), ret 
+	return status_code_ok(rcode), ret
 end
 
 
@@ -2043,7 +2043,7 @@ function iface_info(iface)
 			end
 		end
 	end
-	
+
 	return result
 end
 
@@ -2084,7 +2084,7 @@ function tc_stats()
 	result["download"] = {}
 	local json = json.decode(sys.exec("curl -s --connect-timeout 1 api/qos/tcstats"))
 	if json and json.raw_output then
-		
+
 		for line in string.gmatch(json.raw_output, '[^\r\n]+') do
 			table.insert(output, line)
 		end
