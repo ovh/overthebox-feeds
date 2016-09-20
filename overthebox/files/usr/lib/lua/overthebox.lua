@@ -118,9 +118,13 @@ function addInterfaceInZone(name, ifname)
 end
 
 function config()
+	local ret = {}
 	local uci = uci.cursor()
 	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
-	local ret = {}
+	if rcode ~= 200 then
+		table.insert(ret, "Error getting config : ".. rcode)
+		return false, ret
+	end
 
 	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', 'otb', 'tunnel')
