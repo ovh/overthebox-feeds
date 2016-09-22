@@ -14,13 +14,11 @@ cache:
 before_script:
 - apt-cache show libc6
 - eval "$(gimme 1.5)"
-- if [ ! "$(ls -A sdk)" ]; then curl http://downloads.overthebox.ovh/trunk/x86/64/OpenWrt-SDK-x86-64_gcc-4.8-linaro_glibc-2.21.Linux-x86_64.tar.bz2
-  | tar jx && mv OpenWrt-SDK-x86-64_gcc-4.8-linaro_glibc-2.21.Linux-x86_64/* sdk/;
-  ln -s $(pwd) sdk/package/overthebox;  fi
-- rm -fr sdk/bin/*
+- wget https://plik.root.gg/clients/linux-amd64/plik && chmod +x ./plik
+- echo 'URL = "https://plik.root.gg"' > ~/.plikrc
 script:
-- make -C sdk defconfig
-- make -C sdk world
+- ./build-packages.sh
+- find sdk -name '*.ipk' | xargs ./plik
 deploy:
   provider: releases
   api_key:
