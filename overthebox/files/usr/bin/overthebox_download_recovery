@@ -1,40 +1,88 @@
 #!/bin/sh
 
-MD5ONLINE=`curl --silent http://downloads.overthebox.ovh/stable/x86/64/md5sums | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}'`
+PROG_NAME=$(basename $0)
+_log() {
+    echo $@
+    logger -p daemon.info -t ${PROG_NAME} "$@"
+}
+
+VERSION=openwrt-x86-64-combined-squashfs.img.gz
+
+RECOVERY_DIR=/recovery
+RECOVERY_PATH=${RECOVERY_DIR}/recovery.img.gz
+
+BASE_URL=http://downloads.overthebox.ovh/stable/x86/64
+URL=${BASE_URL}/${VERSION}
+MD5_URL=${BASE_URL}/md5sums
+
+DOWNLOAD_MAX_RETRY=3
+DOWNLOAD_MAX_RATE=125k
+
+# TODO: remove
+RECOVERY_DIR=/tmp/recovery
+RECOVERY_PATH=${RECOVERY_DIR}/recovery.img.gz
+DOWNLOAD_MAX_RATE=20M
+# TODO: rsquashfse
 
 download() {
-    logger "RECOVERY: Downloading the latest stable rom"
-        wget http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-ext4.img.gz -O /recovery/openwrt-x86-64-combined-ext4.img.gz --limit-rate=125k > /dev/null 2>&1
-    logger "RECOVERY: Finshed Downloading the lastest rom"
+    _log "Downloading the latest stable rom"
+    curl --limit-rate ${DOWNLOAD_MAX_RATE} --silent -o ${RECOVERY_PATH} ${URL}
+    _log "Finshed Downloading the lastest rom"
 }
 
-checksum() {
-	for i in `seq 1 3` ; do
-		MD5LOCAL=$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')
-		if [ "$MD5LOCAL" == "$MD5ONLINE"  ] ; then
-			logger "RECOVERY: Download verified successfuly"
-			exit 0
-		else
-			sleep 20
-			logger "RECOVERY: Problem getting the file, tried $i time(s)"
-			download
-		fi
-	done
+clean_recovery_images() {
+    _log "Cleaning recovery images"
+    rm ${RECOVERY_DIR}/*.img.gz
 }
 
-if [ ! -f /recovery/openwrt-x86-64-combined-ext4.img.gz ]
-    then
-    mkdir /recovery/  > /dev/null 2>&1
-    logger "RECOVERY: No local rom available, getting one for you!"
-    download
-    checksum
+valid_checksum() {
+    # Get the MD5 from the online repo
+    MD5_ONLINE=$(curl --silent ${MD5_URL} | grep ${VERSION} | awk '{print $1}')
+    if [ -z $MD5_ONLINE ]; then
+        _log "Empty online MD5"
+        return 0
+    fi
 
-elif [ -f /recovery/openwrt-x86-64-combined-ext4.img.gz ] && [ "$MD5ONLINE" == "$(md5sum /recovery/openwrt-x86-64-combined-ext4.img.gz | grep openwrt-x86-64-combined-ext4.img.gz | awk '{print $1}')" ]
-        then
-    logger "RECOVERY: You have the latest Built, No need to upgrade!"
+    # Get the local MD5 of the file
+    MD5_LOCAL=$(md5sum $RECOVERY_PATH | awk '{ print $1 }')
+    if [ -z $MD5_ONLINE ]; then
+        _log "Empty local MD5"
+        return 0
+    fi
 
-else
-    logger "RECOVERY: New stable rom is available online!"
-    download
-    checksum
+    _log "Online MD5: ${MD5_ONLINE} / Local MD5: ${MD5_LOCAL}"
+
+    if [ "${MD5_ONLINE}" == "${MD5_LOCAL}" ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# Create the recovery dir
+[ -d ${RECOVERY_DIR} ] || mkdir -p ${RECOVERY_DIR}
+
+# If the device uses SquashFS no need to go further
+IS_SQUASHFS=$(mount | grep squashfs | wc -l)
+if [ "${IS_SQUASHFS}" -ge 1 ]; then
+    _log "SquashFS does not require a recovery image"
+    clean_recovery_images
+    exit 1
 fi
+
+# Download the image if it's not already downloaded
+if [ ! -f ${RECOVERY_PATH} ]
+then
+    _log "No local rom available, getting one for you!"
+    download
+fi
+
+for i in `seq 1 ${DOWNLOAD_MAX_RETRY}` ; do
+    valid_checksum
+    VALID=$?
+    if [ "${VALID}" == 1 ] ; then
+        _log "Download verified successfuly"
+        exit 0
+    fi
+    download
+done
