@@ -19,7 +19,7 @@ define Package/yara
   CATEGORY:=Network
   TITLE:=The VirusTotal/YARA utility
   URL:=http://virustotal.github.io/yara/
-	DEPENDS=+libopenssl #+libmagic
+  DEPENDS=+libopenssl #+libmagic
 endef
 
 define Package/yara/description
@@ -27,10 +27,10 @@ define Package/yara/description
 endef
 
 define Build/Prepare
-	$(Build/Prepare/Default)
-	wget -O rules.zip https://github.com/Yara-Rules/rules/archive/master.zip
-	unzip -f -o rules.zip
-	rm rules.zip
+  $(Build/Prepare/Default)
+  wget -O rules.zip https://github.com/Yara-Rules/rules/archive/master.zip
+  unzip -f -o rules.zip
+  rm rules.zip
 endef
 
 CONFIGURE_ARGS += --with-crypto \
@@ -38,10 +38,10 @@ CONFIGURE_ARGS += --with-crypto \
 		  # --enable-magic
 
 define Package/yara/install
-        $(CP) -r $(PKG_INSTALL_DIR)/. $(1)/
-	libtool --finish /usr/lib
-	mkdir -p $(1)/usr/share/yara-rules/
-	$(CP) -r rules-master/. $(1)/usr/share/yara-rules/
+  $(CP) -r $(PKG_INSTALL_DIR)/. $(1)/
+  libtool --finish /usr/lib
+  mkdir -p $(1)/usr/share/yara-rules/
+  $(CP) -r rules-master/. $(1)/usr/share/yara-rules/
 endef
 
 $(eval $(call BuildPackage,yara))
