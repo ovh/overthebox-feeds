@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=svfs
 PKG_VERSION:=0.8.2
-PKG_RELEASE:=1
+PKG_RELEASE:=1.0.1
 
 PKG_SOURCE:=svfs-linux-amd64
 PKG_SOURCE_URL:=https://github.com/ovh/svfs/releases/download/v$(PKG_VERSION)
