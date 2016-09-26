@@ -22,7 +22,7 @@ define Package/svfs
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=add svfs
-	DEPENDS:= +fuse
+	DEPENDS:= +fuse-utils +kmod-fuse
 endef
 
 define Package/svfs/description
