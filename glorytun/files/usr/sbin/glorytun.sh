@@ -57,6 +57,10 @@ started() {
     if [ "${GLORYTUN_DEV}" == "tun0" ]; then
         [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start;
     fi
+
+    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
+    #ee9db958 and db1ae604
+    ubus call network.interface.${GLORYTUN_DEV} up
 }
 
 stopped() {
@@ -74,6 +78,10 @@ stopped() {
     fi
 
     ip link set ${GLORYTUN_DEV} down
+
+    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
+    #ee9db958 and db1ae604
+    ubus call network.interface.${GLORYTUN_DEV} down
 }
 
 while kill -0 ${GTPID}; do
