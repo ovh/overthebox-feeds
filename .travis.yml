@@ -6,11 +6,6 @@ addons:
   apt:
     packages:
     - libxml-parser-perl
-cache:
-  timeout: 3600
-  apt: true
-  directories:
-  - sdk
 before_script:
 - apt-cache show libc6
 - eval "$(gimme 1.5)"
