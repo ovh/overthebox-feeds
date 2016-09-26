@@ -21,7 +21,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/svfs
 	SECTION:=utils
 	CATEGORY:=OVH
-	TITLE:=add svfs
+	TITLE:=add svfs mount
 	DEPENDS:= +fuse-utils +kmod-fuse
 endef
 
