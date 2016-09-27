@@ -8,14 +8,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=2.4.7
-PKG_RELEASE:=3
-
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/ovh/overthebox-shadowsocks-libev.git
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=6b55660f39b57bdbb84780d0b3566bff796dfc71
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+PKG_VERSION:=2.5.0-1-ovh-1
+PKG_RELEASE:=1
+PKG_SOURCE:=v$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=https://github.com/ovh/overthebox-shadowsocks-libev/archive
 
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
@@ -27,6 +23,7 @@ PKG_INSTALL:=1
 PKG_FIXUP:=autoreconf
 PKG_USE_MIPS16:=0
 PKG_BUILD_PARALLEL:=1
+UNPACK_CMD=mkdir -p $(1) && tar xf "$(DL_DIR)/$(PKG_SOURCE)" -C $(1) --strip-components=1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -85,6 +82,8 @@ Package/shadowsocks-libev-spec-polarssl/postinst = $(Package/shadowsocks-libev-s
 ifeq ($(BUILD_VARIANT),polarssl)
 	CONFIGURE_ARGS += --with-crypto-library=polarssl
 endif
+
+CONFIGURE_ARGS += --disable-documentation
 
 define Package/shadowsocks-libev/install
 	$(INSTALL_DIR) $(1)/usr/bin

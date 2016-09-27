@@ -77,6 +77,10 @@ started() {
     fi
 
     GLORYTUN_ROUTES_SETUP=1
+
+    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
+    #ee9db958 and db1ae604
+    ubus call network.interface.${GLORYTUN_DEV} up
 }
 
 # This fuction stops the tun interface
@@ -99,6 +103,10 @@ stopped() {
     ip link set ${GLORYTUN_DEV} down
 
     GLORYTUN_ROUTES_SETUP=0
+
+    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
+    #ee9db958 and db1ae604
+    ubus call network.interface.${GLORYTUN_DEV} down
 }
 
 # This function removes the routes and kill the childs of this proccess
