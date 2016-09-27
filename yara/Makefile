@@ -36,8 +36,7 @@ define Build/Prepare
 	
 	mkdir -p $(PKG_INSTALL_DIR)/usr/share/
 	mv rules-master $(PKG_INSTALL_DIR)/usr/share/yara-rules
-	ls $(PKG_INSTALL_DIR)/usr/share/yara-rules/
-	sed -i -n '/Android/d' $(PKG_INSTALL_DIR)/usr/share/yara-rules/index.yar
+	rm $(PKG_INSTALL_DIR)/usr/share/yara-rules/index.yar
 endef
 
 CONFIGURE_ARGS += --with-crypto \
