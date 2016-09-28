@@ -21,7 +21,7 @@ if glorytun version | grep mud ; then
     add_multipath () {
         config_get ifname $1 ifname
         config_get multipath $1 multipath
-        [ "${multipath}" = "on" ] && GLORYTUN_ARGS="${GLORYTUN_ARGS}${ifname},"
+        [ "${multipath}" = "on" -o "${multipath}" = "master" ] && GLORYTUN_ARGS="${GLORYTUN_ARGS}${ifname},"
     }
 
     config_load network

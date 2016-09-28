@@ -32,7 +32,7 @@ GLORYTUN_ARGS="bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind "
 add_multipath () {
     config_get ifname $1 ifname
     config_get multipath $1 multipath
-    if [ "${multipath}" = "on" ]; then
+    if [ "${multipath}" = "on" -o "${multipath}" = "master" ]; then
         network_get_ipaddr ipaddr ${ifname}
 
         # Only add the interface to glorytun-udp if the IP is defined
