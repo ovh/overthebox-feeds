@@ -3,8 +3,13 @@
 START=95
 STOP=10
 
+EXTRA_COMMANDS="ifup ifdown"
+EXTRA_HELP="    ifup    Setup redirect hook on interfaces
+        ifdown  Disable redirect hook on interfaces"
+
 USE_PROCD=1
 PROG=/usr/bin/ss-redir
+TRACK=/usr/bin/ss-redir-track
 CPUCOUNT=$(cat /proc/cpuinfo | egrep "core id|physical id" | tr -d "\n" | sed s/physical/\\nphysical/g | grep -v ^$ | sort | uniq | wc -l)
 if [ "$CPUCOUNT" -lt "1" ]; then
 	CPUCOUNT="1"
@@ -34,6 +39,40 @@ shadowsocks_add_instance() {
 	done
 }
 
+shadowsocks_enable_interfaces_hook() {
+	if [ -n "$1" ]; then
+		for i in $1
+		do
+			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
+			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
+		done
+	else
+		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS 2>/dev/null
+		$IPTN -A PREROUTING  -i lan -p tcp -j SOCKS
+		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
+		do
+			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
+			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
+		done
+	fi
+}
+
+shadowsocks_disable_interfaces_hook() {
+	if [ -n "$1" ]; then
+		for i in $1
+		do
+			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
+			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
+		done
+	else
+		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS
+		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
+		do
+			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS
+		done
+	fi
+}
+
 generateConfig() {
 	local conf
 	local server
@@ -43,6 +82,14 @@ generateConfig() {
 	local timeout
 	local method
 
+	local trackip
+	local reliability
+	local count
+	local tracktimeout
+	local interval
+	local down
+	local up
+
 	config_get conf $1 conf "/etc/shadowsocks.json"
 	config_get server $1 server "127.0.0.1"
 	config_get port $1 port ""
@@ -51,15 +98,23 @@ generateConfig() {
 	config_get timeout $1 timeout ""
 	config_get method $1 method ""
 
+	config_get trackip $1 trackip ""
+	config_get reliability $1 trackreliability "1"
+	config_get count $1 trackcount "1"
+	config_get tracktimeout $1 tracktimeout "2"
+	config_get interval $1 trackinterval "5"
+	config_get down $1 trackdown "3"
+	config_get up $1 trackup "3"
+
 	cat <<BOF >$conf
 {
-        "server": "$server",
-        "server_port": $port,
-        "local_port": $lport,
-        "password": "$password",
-        "timeout": $timeout,
-        "method": "$method",
-        "dscp": {
+	"server": "$server",
+	"server_port": $port,
+	"local_port": $lport,
+	"password": "$password",
+	"timeout": $timeout,
+	"method": "$method",
+	"dscp": {
 		"$(( $lport + 1 ))": "CS7",
 		"$(( $lport + 2 ))": "CS6",
 		"$(( $lport + 3 ))": "CS5",
@@ -124,13 +179,19 @@ BOF
 		$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $lport 2>/dev/null
 		$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $lport
 
-		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS 2>/dev/null
-		$IPTN -A PREROUTING  -i lan -p tcp -j SOCKS
-		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
-		do
-			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
-			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
-		done
+	fi
+
+	if [ -n "$trackip" -a -x "$TRACK" ]; then
+		$IPTN -D OUTPUT -d $trackip/32 -p tcp -j SOCKS 2>/dev/null
+		$IPTN -A OUTPUT -d $trackip/32 -p tcp -j SOCKS
+		procd_open_instance
+		procd_set_param command "$TRACK" -r $reliability -c $count -t $tracktimeout -v $interval -o $down -u $up $trackip
+		procd_set_param file "$conf"
+		procd_set_param respawn
+		procd_set_param stderr 1
+		procd_close_instance
+	else
+		shadowsocks_enable_interfaces_hook
 	fi
 }
 
@@ -213,10 +274,15 @@ reload_service() {
 }
 
 stop_service() {
+	shadowsocks_disable_interfaces_hook
 	$IPTN -F SOCKS
-	for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
-	do
-		$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS
-	done
 	$IPTN -X SOCKS
+}
+
+ifup() {
+	shadowsocks_enable_interfaces_hook "$@"
+}
+
+ifdown() {
+	shadowsocks_disable_interfaces_hook "$@"
 }
