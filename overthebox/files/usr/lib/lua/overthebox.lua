@@ -301,6 +301,13 @@ function config()
 		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
 		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
 		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+
+		if exists( res.shadow_conf, 'trackip' ) then
+			uci:set('shadowsocks','proxy','trackip', res.shadow_conf.trackip)
+		else
+			uci:delete('shadowsocks','proxy','trackip')
+		end
+
 		uci:save('shadowsocks')
 		uci:commit('shadowsocks')
 		table.insert(ret, "shadowsocks")
