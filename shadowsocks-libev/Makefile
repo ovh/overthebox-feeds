@@ -122,8 +122,8 @@ define Package/shadowsocks-libev-spec/install
 	$(INSTALL_BIN) ./files/shadowsocks.spec $(1)/etc/init.d/shadowsocks
 	$(INSTALL_DIR) $(1)/usr/share/shadowsocks
 	$(INSTALL_DATA) ./files/shadowsocks.include $(1)/usr/share/shadowsocks/firewall.include
+	$(INSTALL_BIN) ./files/shadowsocks.track $(1)/usr/bin/ss-redir-track
 endef
-
 
 Package/shadowsocks-libev-polarssl/install = $(Package/shadowsocks-libev/install)
 Package/shadowsocks-libev-spec-polarssl/install = $(Package/shadowsocks-libev-spec/install)

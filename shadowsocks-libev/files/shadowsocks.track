@@ -1,0 +1,366 @@
+#! /usr/bin/env lua
+-- Copyright 2015 OVH <OverTheBox@ovh.net>
+-- Simon Lelievre <simon.lelievre@corp.ovh.com>
+-- Sebastien Duponcheel <sebastien.duponcheel@ovh.net>
+--
+-- This file is part of OverTheBox for OpenWrt.
+--
+--    OverTheBox is free software: you can redistribute it and/or modify
+--    it under the terms of the GNU General Public License as published by
+--    the Free Software Foundation, either version 3 of the License, or
+--    (at your option) any later version.
+--
+--    OverTheBox is distributed in the hope that it will be useful,
+--    but WITHOUT ANY WARRANTY; without even the implied warranty of
+--    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--    GNU General Public License for more details.
+--
+--    You should have received a copy of the GNU General Public License
+--    along with OverTheBox.  If not, see <http://www.gnu.org/licenses/>
+--
+--	Contributor : Jean Labrousse <jlabrous@github.com>
+--
+
+
+local p   = require 'posix'
+local sig = require "posix.signal"
+
+local sys	= require("luci.sys")
+local json      = require("luci.json")
+local math      = require("math")
+
+local method -- ping function bindings
+local fallback_method -- fall
+
+local function handle_exit()
+	p.closelog()
+	os.exit();
+end
+
+function tlog (tbl, indent)
+  if not indent then indent = 0 end
+  if not tbl then return end
+  for k, v in pairs(tbl) do
+    formatting = string.rep("  ", indent) .. k .. ": "
+    if type(v) == "table" then
+      log(formatting)
+      tlog(v, indent+1)
+    elseif type(v) == 'boolean' then
+      log(formatting .. tostring(v))
+    else
+      log(formatting .. v)
+    end
+  end
+end
+
+function socks_request( host, interface, timeout, port )
+	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+	if not fd then return fd, err end
+
+	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
+
+	-- timeout on socket
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
+	if not ok then return ok, err end
+
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
+	if not ok then return ok, err end
+
+	local r, err = p.getaddrinfo (host, port, { family = p.AF_INET, socktype = p.SOCK_STREAM })
+	if not r then return false, err end
+
+	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
+
+	local ok, err, e = p.connect (fd, r[1])
+	if not ok then return ok, err end
+
+	if fd then
+		local data, sa, err
+		while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < timeout do
+			data, sa, err = p.recvfrom(fd, 1024)
+			if data then
+				if fd then p.close(fd) end
+				local res = json.decode(data)
+				if res and res.ok == true then
+					return true, (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME))/1000000)
+				end
+			elseif err and err ~= 11 then
+				if fd then p.close(fd) end
+				return false, sa
+			end
+		end
+	end
+	if fd then p.close(fd) end
+	return false, "timeout"
+end
+
+function diff_nsec(t1, t2)
+	local ret = ( t2.tv_sec * 1000000000 + t2.tv_nsec) - (t1.tv_sec * 1000000000 + t1.tv_nsec)
+	if ret < 0 then
+		print("euhh :", t2.tv_sec, t1.tv_sec, t2.tv_nsec, t1.tv_nsec)
+		print(( t2.tv_sec * 1000000000 + t2.tv_nsec), (t1.tv_sec * 1000000000 + t1.tv_nsec))
+		print(ret)
+		os.exit(-1)
+	end
+	return ret
+end
+
+function log(str)
+	p.syslog( p.LOG_NOTICE, str)
+end
+function debug(str)
+	p.syslog( p.LOG_DEBUG, str)
+end
+
+function hex_dump(buf)
+      for byte=1, #buf, 16 do
+         local chunk = buf:sub(byte, byte+15)
+         log(string.format('%08X  ',byte-1))
+         chunk:gsub('.', function (c) log(string.format('%02X ',string.byte(c))) end)
+         log(string.rep(' ',3*(16-#chunk)))
+         log(' ',chunk:gsub('%c','.'),"\n")
+      end
+end
+
+local arguments = {
+	{"help",        "none",     'h', "bool",   "this help message" },
+	{"reliability", "required", 'r', "number", "how many success we have to consider the interface up"},
+	{"count",       "required", 'c', "number", "count number of test we make"},
+	{"timeout",     "required", 't', "number", "request timeout"},
+	{"interval",    "required", 'v', "number", "interval between 2 requests"},
+	{"down",        "required", 'o', "number", "how many test we failed before consider it's down"},
+	{"up",          "required", 'u', "number", "how many test we succeed before consider it's up"}
+}
+
+function arguments:usage()
+	print("Usage : track.lua arguments host")
+	print("Arguments:")
+	for k, v in pairs(arguments) do
+                if type(v) == "table" then
+			print(string.format("  -%s or --%-20s %-6s %s", v[3], v[1], v[4], v[5]))
+		end
+	end
+	os.exit()
+end
+
+function arguments:short() 
+	local s = ""
+	for k, v in pairs(arguments) do
+		if type(v) == "table" then
+			if v[4] == "bool" then
+				s = s .. v[3]
+			else
+				s = s .. v[3] .. ':'
+			end
+		end
+	end
+	return s
+end
+
+function arguments:long()
+        local s = {}
+        for k, v in pairs(arguments) do
+                if type(v) == "table" then
+			table.insert(s, {v[1], v[2], v[3] })
+                end
+        end
+        return s
+end
+
+function arguments:all_required_are_not_here(opt)
+	for k, v in pairs(arguments) do
+                if type(v) == "table" then
+			if v[2] == "required" and  opt[ v[3] ] == nil then
+				return false, v[1].." is missing"
+			end
+                end
+        end
+        return true
+end
+
+p.openlog("ss-redir-track")
+
+opts={}
+local last_index = 1
+for r, optarg, optind, li in p.getopt (arg, arguments:short(), arguments:long()) do
+  if r == '?' then return print  'unrecognized option' end
+  last_index = optind
+  opts[ r ] = optarg or true
+end
+
+servers={}
+for i = last_index, #arg do
+	if string.find(arg[i], "%d+.%d+.%d+.%d+") then
+		table.insert(servers, arg[i])
+	else
+		print("not reconize : "..arg[i])
+	end
+end
+
+if opts["h"] then
+	arguments:usage()
+end
+
+local ok, err = arguments:all_required_are_not_here(opts) 
+if not ok then
+        arguments:usage()
+end
+
+if table.getn(servers) == 0 then
+	print("no server found")
+        arguments:usage()
+end
+
+method = function(s) return socks_request(s, opts["i"], tonumber(opts["t"]) * 1000, "23") end
+
+local nb_up = tonumber(opts["u"])
+local nb_down = tonumber(opts["o"])
+
+local score=nb_up + nb_down
+local init_score = score
+local host_up_count=0
+local lost=0
+
+function run(command)
+	debug("execute : " .. command)
+	os.execute(command)
+end
+
+-- Circular buffer for ping stats collection
+local pingstats 	= {}
+pingstats.numvalue 	= 60
+pingstats.entries	= 0
+pingstats.pos		= 0
+
+function pingstats:push(value)
+	if value == false then
+		value = 1000
+	end
+	pingstats[pingstats.pos] = value
+	pingstats.pos = pingstats.pos + 1
+	-- 
+	if pingstats.pos < pingstats.numvalue then
+		pingstats.entries = pingstats.entries + 1
+	else
+		pingstats.pos = pingstats.pos - pingstats.numvalue
+	end
+end
+
+function pingstats:avg()
+	sum = 0
+	if pingstats.entries == 0 then
+		return sum
+	end
+	for index = #pingstats, 1, -1 do
+		local item = pingstats[index]
+		sum = sum + item
+	end
+	return sum / #pingstats
+end
+
+function pingstats:min()
+	min = 10000
+        if pingstats.entries == 0 then
+                return min
+        end
+        for index = #pingstats, 1, -1 do
+		min = math.min(pingstats[index], min)
+        end
+        return min
+end
+
+function pingstats:getn(index)
+	index = math.abs(index)
+
+	if index >= pingstats.numvalue then 
+		return 0
+	end
+
+	local pos = pingstats.pos - 1 - index
+	if pos < 1 then 
+		pos = pingstats.numvalue + pos
+	end
+
+        return pingstats[pos] or 10000
+end
+
+function pingstats:setn(index, value)
+        index = math.abs(index)
+
+        if index >= pingstats.numvalue then
+                return 0
+        end
+
+        local pos = pingstats.pos - 1 - index
+        if pos < 1 then
+                pos = pingstats.numvalue + pos
+        end
+	pingstats[pos] = value
+end
+
+--
+-- Main loop
+--
+pingstats.uptimestamp	= nil
+while true do
+
+	for i = 1, #servers do
+		local ok, msg = method( servers[i] )
+		if ok then
+			host_up_count = host_up_count + 1
+
+			lat = tonumber(msg)
+			if lat then
+				if pingstats.uptimestamp == nil then
+					pingstats.uptimestamp = os.time()
+					log(string.format("Shadowsocks is online"))
+					run(string.format("/etc/init.d/shadowsocks ifup"))
+				end
+			end
+
+			pingstats:push(lat)
+
+			local min = pingstats:min()
+			debug("check: "..servers[i].. " OK " .. lat .. "ms" .. " was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3) .. " (" .. tostring(min) .. " min)")
+		else
+			lost = lost + 1
+
+			pingstats:push(false)
+			debug("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
+		end
+	end
+
+	if host_up_count < tonumber( opts["r"]) then
+
+		score = score - 1
+
+		if score < nb_up then score = 0 end 
+		if score == nb_up then
+    			log(string.format("Shadowsocks is offline"))
+   			-- exec hotplug iface
+			run(string.format("/etc/init.d/shadowsocks ifdown"))
+			score = 0
+		end
+
+	else
+
+		if score < init_score and lost > 0 then
+			log(string.format("Shadowsocks lost %d ping(s)", (lost * opts["c"])))
+		end
+
+		score = score + 1
+		lost = 0
+
+		if score > nb_up then score = init_score end
+		if score == nb_up then
+			log(string.format("Shadowsocks is online"))
+			-- exec hotplug iface	
+			run(string.format("/etc/init.d/shadowsocks ifup"))
+		end
+
+	end
+
+	host_up_count=0
+	-- sleep interval asked
+	p.sleep( opts["v"] )
+end
