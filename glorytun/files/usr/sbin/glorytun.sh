@@ -54,20 +54,12 @@ started() {
         ip route add default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    if [ "${GLORYTUN_DEV}" == "tun0" ]; then
-        [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start;
-    fi
-
     #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
     #ee9db958 and db1ae604
     ubus call network.interface.${GLORYTUN_DEV} up
 }
 
 stopped() {
-    if [ "${GLORYTUN_DEV}" == "tun0" ]; then
-        [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop;
-    fi
-
     if [ -n "${GLORYTUN_TABLE}" ]; then
         ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
         ip route del default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
