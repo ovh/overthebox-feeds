@@ -72,10 +72,6 @@ started() {
         ip route add default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    if [ "${GLORYTUN_DEV}" == "tun0" ]; then
-        [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks start;
-    fi
-
     GLORYTUN_ROUTES_SETUP=1
 
     #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
@@ -86,10 +82,6 @@ started() {
 # This fuction stops the tun interface
 stopped() {
     [ "${GLORYTUN_ROUTES_SETUP}" -eq 0 ] && return
-
-    if [ "${GLORYTUN_DEV}" == "tun0" ]; then
-        [ -x /etc/init.d/shadowsocks ] && /etc/init.d/shadowsocks stop;
-    fi
 
     if [ -n "${GLORYTUN_TABLE}" ]; then
         ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
