@@ -1041,7 +1041,7 @@ while true do
 	else
 		if score < init_score and lost > 0 then
 			shaper.losttimestamp = nil
-			log(string.format("Lost %d ping(s) ont interface %s (%s)", (lost * opts["c"]), opts["i"], opts["d"]))
+			log(string.format("Lost %d ping(s) on interface %s (%s)", (lost * opts["c"]), opts["i"], opts["d"]))
 		end
 
 		score = score + 1
