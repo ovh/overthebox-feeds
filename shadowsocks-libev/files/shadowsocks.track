@@ -61,36 +61,56 @@ function socks_request( host, interface, timeout, port )
 
 	-- timeout on socket
 	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
-	if not ok then return ok, err end
+	if not ok then
+		if fd then p.close(fd) end
+		return ok, err
+	end
 
 	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
-	if not ok then return ok, err end
+	if not ok then
+		if fd then p.close(fd) end
+		return ok, err
+	end
 
 	local r, err = p.getaddrinfo (host, port, { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
+	if not r then
+		if fd then p.close(fd) end
+		return false, err
+	end
 
 	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
 
 	local ok, err, e = p.connect (fd, r[1])
-	if not ok then return ok, err end
+	if not ok then
+		if fd then p.close(fd) end
+		return ok, err
+	end
 
 	if fd then
 		local data, sa, err
 		while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < timeout do
 			data, sa, err = p.recvfrom(fd, 1024)
 			if data then
-				if fd then p.close(fd) end
 				local res = json.decode(data)
-				if res and res.ok == true then
-					return true, (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME))/1000000)
+				if res then
+					if res.ok == true then
+						if fd then p.close(fd) end
+						return true, (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME))/1000000)
+					else
+						if fd then p.close(fd) end
+						return false, "Server not ready"
+					end
+				else
+					if fd then p.close(fd) end
+					return false, "Bad answer"
 				end
 			elseif err and err ~= 11 then
 				if fd then p.close(fd) end
 				return false, sa
 			end
 		end
+		p.close(fd)
 	end
-	if fd then p.close(fd) end
 	return false, "timeout"
 end
 
