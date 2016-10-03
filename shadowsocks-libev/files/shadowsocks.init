@@ -63,7 +63,6 @@ shadowsocks_disable_interfaces_hook() {
 		for i in $1
 		do
 			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
-			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
 		done
 	else
 		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS
@@ -83,7 +82,7 @@ generateConfig() {
 	local timeout
 	local method
 
-	local trackip
+	local monitoring_ip
 	local reliability
 	local count
 	local tracktimeout
@@ -99,7 +98,7 @@ generateConfig() {
 	config_get timeout $1 timeout ""
 	config_get method $1 method ""
 
-	config_get trackip $1 trackip ""
+	config_get monitoring_ip $1 monitoring_ip ""
 	config_get reliability $1 trackreliability "1"
 	config_get count $1 trackcount "1"
 	config_get tracktimeout $1 tracktimeout "2"
@@ -182,11 +181,12 @@ BOF
 
 	fi
 
-	if [ -n "$trackip" -a -x "$TRACK" ]; then
-		$IPTN -D OUTPUT -d $trackip/32 -p tcp -j SOCKS 2>/dev/null
-		$IPTN -A OUTPUT -d $trackip/32 -p tcp -j SOCKS
+	if [ -n "$monitoring_ip" -a -x "$TRACK" ]; then
+		if ! $IPTN -C OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "ss_monitoring" -j REDIRECT --to-ports $(( $lport + 2 )) 2>/dev/null; then
+			$IPTN -A OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "ss_monitoring" -j REDIRECT --to-ports $(( $lport + 2 ))
+		fi
 		procd_open_instance
-		procd_set_param command "$TRACK" -r $reliability -c $count -t $tracktimeout -v $interval -o $down -u $up $trackip
+		procd_set_param command "$TRACK" -r $reliability -c $count -t $tracktimeout -v $interval -o $down -u $up $monitoring_ip
 		procd_set_param file "$conf"
 		procd_set_param respawn
 		procd_set_param stderr 1
@@ -294,6 +294,10 @@ stop_service() {
 	shadowsocks_disable_interfaces_hook
 	$IPTN -F SOCKS
 	$IPTN -X SOCKS
+        # Clean up monitoring_ip rules
+        iptables-save | grep "ss_monitoring" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
+            $IPTN -D $LINE | sh
+        done
 }
 
 ifup() {
