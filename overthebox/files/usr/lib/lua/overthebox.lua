@@ -558,20 +558,37 @@ function list_config_files()
 	return files
 end
 
-function post_result_backup(id, file, content)
+function post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
 	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
 				'/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
-				"/backups/"..id , { filename=file, content=content })
+				"/backups/"..id , { filename=file, mode=mode, uid=uid, gid=gid, is_symlink=is_symlink, symlink=symlink, content=content })
 	return (rcode == 200)
 end
 
 function run_backup(id, file)
-	local fd = io.open(file, "rb")
-	if fd then
-		content = fd:read("*all")
-		local ret_api = post_result_backup(id, file, content)
+	local uid, gid, mode, is_symlink, symlink, content = nil
+	local pstat = sys_stat.lstat(file)
+	if pstat then
+		mode = string.sub(string.format("%o", pstat.st_mode), -4)
+		uid = pstat.st_uid
+		gid = pstat.st_gid
+		is_symlink = sys_stat.S_ISLNK(pstat.st_mode)
+		if is_symlink ~= 0 then
+			is_symlink = true
+			symlink = require("posix.unistd").readlink(file)
+		else
+			is_symlink = false
+			local fd = io.open(file, "rb")
+			if fd then
+				content = fd:read("*all")
+				fd:close()
+			else
+				return false, "can not read file"
+			end
+		end
+		return post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
 	end
-	return rcode==0
+	return false, "can not stat file"
 end
 
 function create_backup(action_id)
@@ -588,8 +605,10 @@ function send_backup(id, info)
 	end
 
 	local ret = true
+	local err
 	for _, file in pairs(list_config_files()) do
-		ret = run_backup(backup_id, file)
+		ret, err = run_backup(backup_id, file)
+		if not ret then return ret, err end
 	end
 
 	return ret, "ok"
