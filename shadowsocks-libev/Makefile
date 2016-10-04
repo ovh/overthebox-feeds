@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
 PKG_VERSION:=2.5.0-1-ovh-2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_SOURCE:=v$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/ovh/overthebox-shadowsocks-libev/archive
 
@@ -122,8 +122,8 @@ define Package/shadowsocks-libev-spec/install
 	$(INSTALL_BIN) ./files/shadowsocks.spec $(1)/etc/init.d/shadowsocks
 	$(INSTALL_DIR) $(1)/usr/share/shadowsocks
 	$(INSTALL_DATA) ./files/shadowsocks.include $(1)/usr/share/shadowsocks/firewall.include
+	$(INSTALL_BIN) ./files/shadowsocks.track $(1)/usr/bin/ss-redir-track
 endef
-
 
 Package/shadowsocks-libev-polarssl/install = $(Package/shadowsocks-libev/install)
 Package/shadowsocks-libev-spec-polarssl/install = $(Package/shadowsocks-libev-spec/install)
