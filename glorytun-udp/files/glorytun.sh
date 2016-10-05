@@ -53,7 +53,6 @@ GTPID=$!
 # This function sets up the tun interface
 initialized() {
     ip addr add ${GLORYTUN_IP_LOCAL} peer ${GLORYTUN_IP_PEER} dev ${GLORYTUN_DEV}
-    ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
     ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
 
     multipath ${GLORYTUN_DEV} off
