@@ -43,8 +43,6 @@ initialized() {
 }
 
 started() {
-    ip link set ${GLORYTUN_DEV} up
-
     if [ -n "${GLORYTUN_TABLE}" ]; then
         ip rule add from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE} pref ${GLORYTUN_PREF}
         ip route add default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
@@ -54,26 +52,20 @@ started() {
         ip route add default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
-    #ee9db958 and db1ae604
-    ubus call network.interface.${GLORYTUN_DEV} up
+    ip link set ${GLORYTUN_DEV} up
 }
 
 stopped() {
-    if [ -n "${GLORYTUN_TABLE}" ]; then
-        ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
-        ip route del default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
-    fi
+    ip link set ${GLORYTUN_DEV} down
 
     if [ -n "${GLORYTUN_METRIC}" ]; then
         ip route del default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    ip link set ${GLORYTUN_DEV} down
-
-    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
-    #ee9db958 and db1ae604
-    ubus call network.interface.${GLORYTUN_DEV} down
+    if [ -n "${GLORYTUN_TABLE}" ]; then
+        ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
+        ip route del default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
+    fi
 }
 
 while kill -0 ${GTPID}; do
@@ -82,12 +74,7 @@ while kill -0 ${GTPID}; do
     case ${STATE} in
     INITIALIZED)
         initialized
-        ;;
-    STARTED)
         started
-        ;;
-    STOPPED)
-        stopped
         ;;
     esac
 done < ${statefile}
