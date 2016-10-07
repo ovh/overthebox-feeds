@@ -5,7 +5,6 @@
 . /lib/functions/network.sh
 
 PROG_NAME=$(basename $0)
-GLORYTUN_ROUTES_SETUP=0
 
 _log() {
     logger -p daemon.info -t ${PROG_NAME} "$@"
@@ -60,8 +59,6 @@ initialized() {
 
 # This function starts the tun interface
 started() {
-    ip link set ${GLORYTUN_DEV} up
-
     if [ -n "${GLORYTUN_TABLE}" ]; then
         ip rule add from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE} pref ${GLORYTUN_PREF}
         ip route add default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
@@ -71,38 +68,25 @@ started() {
         ip route add default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    GLORYTUN_ROUTES_SETUP=1
-
-    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
-    #ee9db958 and db1ae604
-    ubus call network.interface.${GLORYTUN_DEV} up
+    ip link set ${GLORYTUN_DEV} up
 }
 
 # This fuction stops the tun interface
 stopped() {
-    [ "${GLORYTUN_ROUTES_SETUP}" -eq 0 ] && return
-
-    if [ -n "${GLORYTUN_TABLE}" ]; then
-        ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
-        ip route del default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
-    fi
+    ip link set ${GLORYTUN_DEV} down
 
     if [ -n "${GLORYTUN_METRIC}" ]; then
         ip route del default via ${GLORYTUN_IP_PEER} metric ${GLORYTUN_METRIC}
     fi
 
-    ip link set ${GLORYTUN_DEV} down
-
-    GLORYTUN_ROUTES_SETUP=0
-
-    #With auto=0 in /etc/config/network for tun0 and xtun0, we need to notify netifd manually
-    #ee9db958 and db1ae604
-    ubus call network.interface.${GLORYTUN_DEV} down
+    if [ -n "${GLORYTUN_TABLE}" ]; then
+        ip rule del from ${GLORYTUN_IP_LOCAL} table ${GLORYTUN_TABLE}
+        ip route del default via ${GLORYTUN_IP_PEER} table ${GLORYTUN_TABLE}
+    fi
 }
 
 # This function removes the routes and kill the childs of this proccess
 kill_child() {
-    stopped
     pkill -TERM -P $$
 }
 
@@ -110,7 +94,9 @@ kill_child() {
 quit() {
     stopped
     rm -f "${statefile}"
+    _log -t glorytun BYE
 }
+
 # Call the quit function when this script exits
 trap 'quit' EXIT
 
@@ -128,17 +114,7 @@ while kill -0 ${GTPID}; do
     INITIALIZED)
         _log "setting up ${GLORYTUN_DEV}"
         initialized
-        _log "${GLORYTUN_DEV} set up"
-        ;;
-    STARTED)
         started
-        _log "glorytun-udp connected"
-        ;;
-    STOPPED)
-        stopped
-        _log "glorytun-udp disconnected"
         ;;
     esac
 done < ${statefile}
-
-_log -t glorytun BYE
