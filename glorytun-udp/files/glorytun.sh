@@ -7,7 +7,7 @@
 PROG_NAME=$(basename $0)
 
 _log() {
-    logger -p daemon.info -t ${PROG_NAME} "$@"
+    logger -p daemon.info -t "${PROG_NAME}" "$@"
 }
 
 # Ensure that the env vars are set up
@@ -94,7 +94,7 @@ kill_child() {
 quit() {
     stopped
     rm -f "${statefile}"
-    _log -t glorytun BYE
+    _log BYE
 }
 
 # Call the quit function when this script exits
@@ -108,13 +108,19 @@ while kill -0 ${GTPID}; do
     # If the statefile is closed, break the loop
     read STATE INFO || break
     # Log each input from the statefile for easy debugging
-    _log -t $1 ${STATE} ${INFO}
+    _log "${STATE} ${INFO}"
     # Run the functions above according to the statefile input
     case ${STATE} in
     INITIALIZED)
         _log "setting up ${GLORYTUN_DEV}"
         initialized
         started
+        ;;
+    STARTED)
+        /usr/sbin/track.sh ifup ${GLORYTUN_DEV} ${GLORYTUN_DEV}
+        ;;
+    STOPPED)
+        /usr/sbin/track.sh ifdown ${GLORYTUN_DEV} ${GLORYTUN_DEV}
         ;;
     esac
 done < ${statefile}
