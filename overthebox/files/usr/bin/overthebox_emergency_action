@@ -188,6 +188,13 @@ function tprint (tbl, indent)
     end
 end
 
+function backup_last_action(id)
+    local uci = uci.cursor()
+    uci:set("overthebox", "me", "last_action_id", id)
+    uci:save("overthebox")
+    uci:commit("overthebox")
+end
+
 -- base API helpers
 function GET(uri)
     return API(uri, "GET", nil)
