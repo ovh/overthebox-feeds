@@ -85,7 +85,7 @@ local function receive_ping(fd, packet_id, time_sent, timeout)
 	local data, sa, err
 
 	local time = 0
-	while (diff_nsec(time_sent, posix.clock_gettime(posix.CLOCK_REALTIME) )/1000) < timeout do
+	while (diff_nsec(time_sent, posix.clock_gettime(posix.CLOCK_REALTIME) )/1000) < (timeout*1000) do
 		data, sa, err = posix.recvfrom(fd, 1024)
 		if data then
 			-- In raw socket we receive ip header in data

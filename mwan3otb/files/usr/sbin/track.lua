@@ -87,7 +87,7 @@ function dns_request( host, interface, timeout, domain)
 	if not ok then return ok, err end
 
 	local data, sa, err
-	while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < timeout do
+	while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < (timeout*1000) do
 		data, sa, err = p.recvfrom(fd, 1024)
 		if data then
 			if fd then p.close(fd) end
@@ -950,8 +950,10 @@ function write_stats()
 	end
 	-- write file
 	local file = io.open( string.format("/tmp/tracker/if/%s", interface.name), "w" )
-	file:write(json.encode(result))
-	file:close()
+	if file then
+		file:write(json.encode(result))
+		file:close()
+	end
 end
 
 sig.signal(sig.SIGUSR1, function ()
