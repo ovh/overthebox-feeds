@@ -90,7 +90,7 @@ function socks_request( host, interface, timeout, port )
 		local b, sa, err
 		local data = {}
 
-		while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < timeout do
+		while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < (timeout*1000) do
 			b, sa, err = p.recvfrom(fd, 1024)
 			if b then
 				if #b == 0 then
