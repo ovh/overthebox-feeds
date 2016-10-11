@@ -86,6 +86,7 @@ function restart(service)
     local ret = run("/etc/init.d/"..service.." restart")
     return true, ret
 end
+
 function restartmwan3()
     local ret = os.execute("/usr/sbin/mwan3 restart")
     return true, ret
@@ -188,6 +189,315 @@ function tprint (tbl, indent)
     end
 end
 
+function backup_last_action(id)
+    local uci = uci.cursor()
+    uci:set("overthebox", "me", "last_action_id", id)
+    uci:save("overthebox")
+    uci:commit("overthebox")
+end
+
+function restart(service)
+	local ret, rcode = run("/etc/init.d/"..service.." restart")
+	return status_code_ok(rcode), ret
+end
+
+function exists(obj, ...)
+	for i,v in ipairs(arg) do
+		if obj[v] == nil then
+			return false
+		end
+	end
+	return true
+end
+
+function status_code_ok(rcode)
+	return rcode ~= nil and rcode == 0
+end
+
+function addInterfaceInZone(name, ifname)
+	local uci = uci.cursor()
+	uci:foreach("firewall", "zone",
+		function (zone)
+			if zone["name"] == name then
+				local list = uci:get_list("firewall", zone[".name"], "network")
+				if list then
+					local zones = {}
+					list = table.concat(list, " "):gmatch("%S+")
+					for itf in list do
+						if itf == ifname then
+							return false;
+						end
+						table.insert(zones, itf)
+					end
+					table.insert(zones, ifname)
+					uci:set_list("firewall", zone[".name"], "network", zones)
+					uci:save('firewall')
+					uci:commit('firewall')
+					return true
+				else
+					uci:set_list("firewall", zone[".name"], "network", { ifname })
+					uci:save('firewall')
+					uci:commit('firewall')
+					return true
+				end
+			end
+		end
+	)
+	return false
+end
+
+function config()
+	local ret = {}
+	local uci = uci.cursor()
+	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
+	if rcode ~= 200 then
+		table.insert(ret, "Error getting config : ".. rcode)
+		return false, ret
+	end
+
+	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
+		uci:set('glorytun', 'otb', 'tunnel')
+
+		uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
+
+		uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
+		uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
+		uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+
+		uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
+		uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
+		uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
+
+		uci:set('glorytun', 'otb', 'table',   res.glorytun_conf.table )
+		uci:set('glorytun', 'otb', 'pref',    res.glorytun_conf.pref )
+		uci:set('glorytun', 'otb', 'metric',  res.glorytun_conf.metric )
+
+		uci:set('network', res.glorytun_conf.dev, 'interface')
+		uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
+		uci:set('network', res.glorytun_conf.dev, 'proto', 'none')
+		uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
+		uci:set('network', res.glorytun_conf.dev, 'delegate', '0')
+		uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
+		uci:set('network', res.glorytun_conf.dev, 'auto', '0')
+		uci:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
+
+		addInterfaceInZone("wan", res.glorytun_conf.dev)
+
+		if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
+			for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
+				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
+
+					uci:set('glorytun', conf.dev, 'tunnel')
+
+					uci:set('glorytun', conf.dev, 'dev', conf.dev)
+
+					uci:set('glorytun', conf.dev, 'server', conf.server or res.glorytun_conf.server)
+					uci:set('glorytun', conf.dev, 'port', conf.port)
+					uci:set('glorytun', conf.dev, 'key', conf.key or res.glorytun_conf.key)
+
+					uci:set('glorytun', conf.dev, 'iplocal', conf.ip_local)
+					uci:set('glorytun', conf.dev, 'ippeer', conf.ip_peer)
+					uci:set('glorytun', conf.dev, 'mtu', conf.mtu)
+
+					uci:set('glorytun', conf.dev, 'table', conf.table)
+					uci:set('glorytun', conf.dev, 'pref', conf.pref)
+					uci:set('glorytun', conf.dev, 'metric', conf.metric)
+
+					uci:set('network', conf.dev, 'interface')
+					uci:set('network', conf.dev, 'ifname', conf.dev)
+					uci:set('network', conf.dev, 'proto', 'none')
+					uci:set('network', conf.dev, 'multipath', 'off')
+					uci:set('network', conf.dev, 'delegate', '0')
+					uci:set('network', conf.dev, 'metric', conf.metric)
+					uci:set('network', conf.dev, 'auto', '0')
+					uci:set('network', conf.dev, 'type', 'tunnel')
+
+					addInterfaceInZone("wan", conf.dev)
+
+				end
+			end
+		end
+
+		uci:save('glorytun')
+		uci:commit('glorytun')
+
+		table.insert(ret, 'glorytun')
+	end
+
+	if res.glorytun_mud_conf and exists( res.glorytun_mud_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mud')
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev )
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'server',  res.glorytun_mud_conf.server)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'port',    res.glorytun_mud_conf.port)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'key',     res.glorytun_mud_conf.key)
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'iplocal', res.glorytun_mud_conf.ip_local)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'ippeer',  res.glorytun_mud_conf.ip_peer)
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu )
+
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'table',   res.glorytun_mud_conf.table )
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'pref',    res.glorytun_mud_conf.pref )
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'metric',  res.glorytun_mud_conf.metric )
+
+		uci:set('network', res.glorytun_mud_conf.dev, 'interface')
+		uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
+		uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'none')
+		uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
+		uci:set('network', res.glorytun_mud_conf.dev, 'delegate', '0')
+		uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
+		uci:set('network', res.glorytun_mud_conf.dev, 'auto', '0')
+		uci:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
+
+		addInterfaceInZone("wan", res.glorytun_mud_conf.dev)
+		uci:save('glorytun')
+		uci:commit('glorytun')
+
+		table.insert(ret, 'glorytun-udp')
+	end
+
+	if not res.tun_conf then
+		res.tun_conf = {}
+	end
+	if not res.tun_conf.app then
+		res.tun_conf.app = "none"
+	end
+
+	if res.tun_conf.app == 'glorytun_mud' then
+		-- Activate MUD
+		uci:foreach("glorytun", "mud",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '1')
+			end
+		)
+		-- Deactivate Glorytun
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0')
+			end
+		)
+		-- Delete glorytun additionnal interface when using mud
+                if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
+			for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
+				if conf and exists('dev') then
+					uci:delete('network', conf.dev)
+				end
+			end
+			uci:commit('network')
+		end
+		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_mud_conf.server)
+	elseif res.tun_conf.app == 'glorytun' then
+		-- Activate Glorytun
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '1' )
+			end
+		)
+		-- Deactivate MUD
+                uci:foreach("glorytun", "mud",
+                        function (e)
+                                uci:set('glorytun', e[".name"], 'enable', '0' )
+                        end
+		)
+		uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+	else
+		-- Deactivate MUD
+		uci:foreach("glorytun", "mud",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0' )
+			end
+		)
+		-- Deactivate Glorytun
+		uci:foreach("glorytun", "tunnel",
+			function (e)
+				uci:set('glorytun', e[".name"], 'enable', '0' )
+			end
+		)
+	end
+	uci:save('glorytun')
+	uci:commit('glorytun')
+
+	uci:delete('mwan3', 'socks', 'dest_port')
+	uci:save('mwan3')
+	uci:commit('mwan3')
+
+	if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
+		uci:set('shadowsocks','proxy','client')
+		uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+		uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+		uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
+		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+
+		if exists( res.shadow_conf, 'monitoring_ip' ) then
+			uci:set('shadowsocks','proxy','monitoring_ip', res.shadow_conf.monitoring_ip)
+		else
+			uci:delete('shadowsocks','proxy','monitoring_ip')
+		end
+
+		uci:save('shadowsocks')
+		uci:commit('shadowsocks')
+		table.insert(ret, "shadowsocks")
+	end
+
+	if res.ipv6_conf and exists(res.ipv6_conf, "br_server", "lan_prefix", "network", "routed_prefix", "wan_prefix") then
+		uci:set('network', 'ipv6', 'interface')
+		uci:set('network', 'ipv6', 'ifname', 'ipv6')
+		uci:set('network', 'ipv6', 'proto', 'none')
+		uci:set('network', 'ipv6', 'multipath', 'off')
+
+		uci:set('ipv6', 'ipv6rd', 'client')
+		uci:set('ipv6', 'ipv6rd', '6rd_prefix', res.ipv6_conf.network)
+		uci:set('ipv6', 'ipv6rd', '6rd_routed_prefix', res.ipv6_conf.routed_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_wan_prefix', res.ipv6_conf.wan_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_lan_prefix', res.ipv6_conf.lan_prefix)
+		uci:set('ipv6', 'ipv6rd', '6rd_br_server', res.ipv6_conf.br_server)
+		if res.ipv6_conf.dns then
+			uci:set_list('ipv6', 'ipv6rd', '6rd_dns', res.ipv6_conf.dns)
+		end
+		uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "1")
+
+		addInterfaceInZone("ipv6", 'ipv6')
+
+		uci:commit('network')
+		uci:commit('ipv6')
+	else
+		uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "0")
+	end
+
+	if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
+		uci:set('scollector','opentsdb', 'client')
+		uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+		uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
+		uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+
+		uci:save('scollector')
+		uci:commit('scollector')
+		table.insert(ret, 'scollector')
+	end
+
+	if res.log_conf and exists( res.log_conf, 'host', 'port') then
+
+		uci:foreach("system", "system",
+			function (e)
+				uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
+				uci:set('system', e[".name"], 'log_port', res.log_conf.port )
+				uci:set('system', e[".name"], 'log_proto', res.log_conf.protocol )
+				uci:set('system', e[".name"], 'log_prefix', res.log_conf.key )
+			end
+		)
+
+		uci:save('system')
+		uci:commit('system')
+
+		table.insert(ret, 'log')
+	end
+
+	return true, ret
+end
+
 -- base API helpers
 function GET(uri)
     return API(uri, "GET", nil)
@@ -261,8 +571,18 @@ while running do
 		elseif ret.action == "updateReleaseChannel" then
 			actionreturn, msg = update_release_channel()
 		elseif ret.action == "sysupgrade" then
+			backup_last_action(ret.id)
 			sysupgrade()
 			running = false
+		elseif ret.action == "configure" then
+			actionreturn, services = config()
+			for i = 1, #services do
+			    restart(services[i])
+			end
+			if #services > 1 then
+				restartmwan3()
+			end
+			msg = table.concat(services, ", ")
 		elseif ret.action == "reboot" then
 			backup_last_action(ret.id)
 			reboot()
