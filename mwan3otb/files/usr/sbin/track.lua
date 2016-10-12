@@ -57,6 +57,18 @@ local function handle_exit()
 	os.exit();
 end
 
+function create_tcp(interface)
+	local tcp = socket.tcp()
+	local fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+	if not ok then
+		log("create_tcp: "..err)
+		return nil
+	end
+	tcp:setfd(fd)
+	return tcp
+end
+
 function dns_request( host, interface, timeout, domain)
 	local fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
 	if not fd then return fd, err end
@@ -181,17 +193,7 @@ function get_public_ip(interface)
 	local data = {}
 	local status, code, headers = http.request{
 		url = "http://ifconfig.ovh",
-		create = function()
-			local tcp = socket.tcp()
-			local fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-			if not ok then
-				log("get_public_ip: "..err)
-				return nil
-			end
-			tcp:setfd(fd);
-			return tcp
-		end,
+		create = function() return create_tcp(interface) end,
 		sink = ltn12.sink.table(data)
 	}
 	if status == 1 and code == 200 then
