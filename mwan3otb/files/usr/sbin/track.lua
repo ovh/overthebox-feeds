@@ -34,6 +34,8 @@ local sys	= require("luci.sys")
 local dns	= require("org.conman.dns")
 local math	= require("math")
 
+math.randomseed(os.time())
+
 local libping	= require("ping")
 
 local method -- ping function bindings
@@ -70,7 +72,7 @@ function dns_request( host, interface, timeout, domain)
 	if not ok then return ok, err end
 
 	local data = dns.encode {
-		id       = math.randomseed( os.time() ),
+		id       = math.random(0xFFFF),
 		query    = true,
 		rd       = true,	-- recursion desired
 		opcode   = 'query',
