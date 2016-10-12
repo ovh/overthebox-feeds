@@ -184,15 +184,6 @@ function get_public_ip(interface)
 		create = function()
 			local tcp = socket.tcp()
 			local fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-			local ok, err = p.bind (fd, {
-				family = p.AF_INET,
-				addr = "0.0.0.0",
-				port = 0
-			})
-			if not ok then
-				print(err)
-				return nil
-			end
 			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 			if not ok then
 				print(err)
