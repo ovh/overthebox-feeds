@@ -186,7 +186,7 @@ function get_public_ip(interface)
 			local fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 			if not ok then
-				print(err)
+				log("get_public_ip: "..err)
 				return nil
 			end
 			tcp:setfd(fd);
