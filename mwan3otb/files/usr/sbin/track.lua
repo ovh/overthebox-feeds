@@ -157,37 +157,16 @@ function tlog (tbl, indent)
   end
 end
 
-function socks_request( host, interface, timeout, port )
-	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-	if not fd then return fd, err end
-
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, timeout )
-	if not ok then return ok, err end
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, timeout )
-	if not ok then return ok, err end
-
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-
-	local r, err = p.getaddrinfo (host, port, { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
-
+function socks_request(host, interface, timeout, port)
+	local tcp = create_tcp(interface)
+	tcp:settimeout(timeout)
 	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
-
-	local ok, err, e = p.connect (fd, r[1] )
-
+	local ok, err = tcp:connect(host, port)
 	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
-
---	local sa = p.getsockname(fd)
---	print("Local socket bound to " .. sa.addr .. ":" .. tostring(sa.port))
-	if fd then p.close(fd) end
-
-	if err then return false, err end
-
+	tcp:close()
+	if not ok then
+		return false, err
+	end
 	return true, (diff_nsec(t1, t2)/1000000)
 end
 
