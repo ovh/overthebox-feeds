@@ -41,6 +41,8 @@ local libping	= require("ping")
 local method -- ping function bindings
 local fallback_method -- fall
 
+http.TIMEOUT = 5
+
 sig.signal(sig.SIGUSR2,
         function ()
                 log("Ignoring signal USR2 tracker not fully started yet")
@@ -55,6 +57,18 @@ sig.signal(sig.SIGUSR1,
 local function handle_exit()
 	p.closelog()
 	os.exit();
+end
+
+function create_tcp(interface)
+	local tcp = socket.tcp()
+	local fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+	if not ok then
+		log("create_tcp: "..err)
+		return nil
+	end
+	tcp:setfd(fd)
+	return tcp
 end
 
 function dns_request( host, interface, timeout, domain)
@@ -178,45 +192,14 @@ function socks_request( host, interface, timeout, port )
 end
 
 function get_public_ip(interface)
-	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-	if not fd then return fd, err end
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-	-- Get host address
-	local r, err = p.getaddrinfo('ifconfig.ovh', '80', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
-	-- Connect to host
-	local ok, err, e = p.connect (fd, r[1] )
-	if fd then
-		p.send(fd, "GET / HTTP/1.0\r\nHost: ifconfig.ovh\r\n\r\n")
-		local data = {}
-		local cnt=3
-		while cnt > 0  do
-			local b,str,err= p.recv (fd, 1024)
-			if not b then
-				if err == 11 then
-					cnt=cnt-1
-				else
-					debug("get_public_ip:"..str)
-					break
-				end
-			else
-				if #b == 0 then
-					break
-				end
-				table.insert (data, b)
-			end
-		end
-		p.close(fd)
-		data = table.concat(data)
-		return data:match("\r\n\r\n(%d+%.%d+%.%d+%.%d+)")
+	local data = {}
+	local status, code, headers = http.request{
+		url = "http://ifconfig.ovh",
+		create = function() return create_tcp(interface) end,
+		sink = ltn12.sink.table(data)
+	}
+	if status == 1 and code == 200 then
+		return table.concat(data):match("(%d+%.%d+%.%d+%.%d+)")
 	end
 end
 
@@ -714,7 +697,6 @@ function API(uri, method, data)
 	local reqbody   = json.encode(data)
 	local respbody  = {}
 	-- Building Request
-	http.TIMEOUT=5
 	local body, code, headers, status = http.request{
 		method = method,
 		url = url,
