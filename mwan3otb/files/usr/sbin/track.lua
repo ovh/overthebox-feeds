@@ -782,15 +782,15 @@ function shaper:update()
 			shaper:disableQos()
 		end
 		-- Update values 
-		shaper.mindownload      = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
-		shaper.minupload        = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
-		shaper.qostimeout       = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-		shaper.pingdelta        = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-		shaper.bandwidthdelta   = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
-		shaper.ratefactor       = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
+		shaper.mindownload	= tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+		shaper.minupload	= tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+		shaper.qostimeout	= tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+		shaper.pingdelta	= tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+		shaper.bandwidthdelta	= tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+		shaper.ratefactor	= tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
 	-- 
-        if shaper.mode == "auto" then
+	if shaper.mode == "auto" then
 		local uci = libuci.cursor()
 		if uci:get("network", shaper.interface, "upload") then
 			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
@@ -927,10 +927,12 @@ function write_stats()
 	-- QoS status
 	if shaper then
 		result[interface.name].congestedtimestamp	= shaper.congestedtimestamp
-		result[interface.name].qostimestamp		= shaper.qostimestamp 
+		result[interface.name].qostimestamp		= shaper.qostimestamp
+		result[interface.name].reloadtimestamp		= shaper.reloadtimestamp
 		result[interface.name].losttimestamp		= shaper.losttimestamp
-		result[interface.name].upload		= shaper.upload
-		result[interface.name].download		= shaper.download
+		result[interface.name].upload			= shaper.upload
+		result[interface.name].download			= shaper.download
+		result[interface.name].qosmode			= shaper.mode
 	end
 	-- write file
 	local file = io.open( string.format("/tmp/tracker/if/%s", interface.name), "w" )
@@ -987,8 +989,8 @@ while true do
 		if score < nb_up then score = 0 end 
 		if score == nb_up then
 			if shaper.losttimestamp == nil then
-	    			log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
-	   			-- exec hotplug iface
+				log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
+				-- exec hotplug iface
 				run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 				-- Set interface info as obsolet
 				interface.timestamp = nil
@@ -998,11 +1000,11 @@ while true do
 				end
 				score = 0
 			else
-			        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
+				local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
 				local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
 				if (dlspeed ~= nil and dlspeed < shaper.mindownload) and (upspeed ~= nil and upspeed < shaper.minupload) then
-		    			log(string.format("Interface %s (%s) is offline (unsuficient bandwith to keep alive)", opts["i"], opts["d"]))
-		   			-- exec hotplug iface
+					log(string.format("Interface %s (%s) is offline (unsuficient bandwith to keep alive)", opts["i"], opts["d"]))
+					-- exec hotplug iface
 					run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
 					-- clear QoS on interface down
 					if shaper.mode ~= "off" then

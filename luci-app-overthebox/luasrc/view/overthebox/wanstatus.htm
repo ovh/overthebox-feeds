@@ -122,9 +122,9 @@
 					temp += String.format('Socks service is not running');
 				}
 				if (mArray.overthebox.tun_service == false)
-                                {
-                                        temp += String.format('TUN service is not running');
-                                }
+				{
+					temp += String.format('TUN service is not running');
+				}
 
 				if(statusMessage !== "")
 				{
@@ -193,7 +193,7 @@
 					var wanip   = mArray.wans[i].wanip;
 					var whois   = mArray.wans[i].whois;
 					var multipath = mArray.wans[i].multipath;
-                                        // Generate template
+					// Generate template
 					if(mArray.overthebox.remote_from_lease == true && mArray.wans.length == 1)
 					{
 						temp += String.format('<li class="subnode-only-child"><a href="%q">', mArray.wans[i].link);
@@ -203,10 +203,18 @@
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />Multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
+					if(mArray.wans[i].qos)
+					{
+						content += String.format('<br />traffic control: %s/%s kbps (%s)',
+										mArray.wans[i].download == 0 ? "off" : mArray.wans[i].download,
+										mArray.wans[i].upload == 0 ? "off" : mArray.wans[i].upload,
+										mArray.wans[i].qos
+						)
+					}
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
-                                        temp += '</a></li>';
+					temp += '</a></li>';
 				}
 
 				// Check
@@ -245,21 +253,21 @@
 		}
 	);
 
-        function setColorSVG(embed_id, color)
-        {
+	function setColorSVG(embed_id, color)
+	{
 		var embed = document.getElementById(embed_id);
 		try {
 			svg = embed.getSVGDocument ? embed.getSVGDocument() : embed.contentDocument;
 		}
 		catch(e) {
 			svg = document.embeds[embed_id].getSVGDocument();
-                }
+		}
 		if(svg)
 		{
 			var back = svg.getElementById('backgound_modem');
 			back.setAttribute('style', 'fill: ' + color + ';fill-opacity:0.6;');
 		}
-        }
+	}
 
 	function getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass, statusMessage, content)
 	{
