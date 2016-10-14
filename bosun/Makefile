@@ -8,11 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bosun
-PKG_VERSION:=0.5.0
+PKG_VERSION:=0.5.0-otb.1
 PKG_RELEASE:=1
 
-PKG_SOURCE:=scollector-linux-amd64
-PKG_SOURCE_URL:=https://github.com/bosun-monitor/bosun/releases/download/$(PKG_VERSION)
+
+PKG_SOURCE:=scollector.gz
+PKG_SOURCE_URL:=https://github.com/ovh/overthebox-bosun/releases/download/v$(PKG_VERSION)
 
 PKG_MAINTAINER:=Sébastien Duponcheel <sebastien.duponcheel@ovh.net>
 
@@ -34,8 +35,7 @@ define Package/bosun/conffiles
 endef
 
 define Build/Prepare
-	cp $(DL_DIR)/$(PKG_SOURCE) $(PKG_BUILD_DIR)/scollector
-	strip -s $(PKG_BUILD_DIR)/scollector
+	gunzip -c $(DL_DIR)/$(PKG_SOURCE) > $(PKG_BUILD_DIR)/scollector
 endef
 
 define Build/Configure
