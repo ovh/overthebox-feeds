@@ -203,89 +203,37 @@ function get_public_ip(interface)
 	end
 end
 
-function whois(interface, ip)
-	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-	if not fd then return fd, err end
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-	-- Get host address
-	local r, err = p.getaddrinfo('whois.iana.org', '43', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
-	-- Connect to host
-	local ok, err, e = p.connect (fd, r[1] )
-	if fd then
-		p.send(fd, ip .. "\n")
-		local data = {}
-		local cnt=3
-		while cnt>0 do
-			local b,str,err = p.recv (fd, 1024)
-			if not b then
-				if err == 11 then
-					cnt = cnt - 1
-				else
-					debug("whois:"..str)
-					break
-				end
-			else
-				if #b == 0 then
-					break
-				end
-				table.insert (data, b)
-			end
-		end
-		p.close(fd)
-		data = table.concat(data)
-		local refer = data:match("whois:%s+([%w%.]+)")
-		if refer then
-			local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-			if not fd then return fd, err end
-			-- timeout on socket
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-			if not ok then return ok, err end
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-			if not ok then return ok, err end
-			-- bind to specific device
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-			if not ok then return ok, err end
-			-- Get host address
-			local r, err = p.getaddrinfo(refer, '43', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-			if not r then return false, err end
-			-- Connect to host
-			local ok, err, e = p.connect (fd, r[1] )
-			if fd then
-				p.send(fd, ip .. "\n")
-				local data = {}
-				cnt=3
-				while cnt>0 do
-					local b,str,err = p.recv (fd, 1024)
-					if not b then
-						if err == 11 then
-							cnt=cnt-1
-						else
-							debug("whois:"..str)
-						end
-					else
-						if #b == 0 then
-							break
-						end
-						table.insert (data, b)
-					end
-				end
-				p.close(fd)
-				data = table.concat(data)
-				return true, data:match("netname:%s+([%w%.%-]+)"), data:match("country:%s+([%w%.%-]+)")
-			end
+function whois_host(interface, host, ip)
+	local tcp = create_tcp(interface)
+	tcp:settimeout(5)
+	local ok, err = tcp:connect(host, "43")
+	if ok then
+		if host == "whois.arin.net" then
+			tcp:send("n + "..ip.."\r\n")
 		else
-			return false, "can not find refere for this ip"
+			tcp:send(ip.."\r\n")
 		end
+		local data, err = tcp:receive("*a")
+		tcp:close()
+		if data then
+			local refer = data:match("refer:%s+([%w%.]+)")
+			if refer then
+				return whois_host(interface, refer, ip)
+			end
+			local netname = data:match("[Nn]et[Nn]ame:%s+([%w%.%-]+)")
+			local country = data:match("[Cc]ountry:%s+([%w%.%-]+)")
+			if netname and country then
+				return true, netname, country
+			end
+		end
+		return false, "whois_host: failed"
 	end
+	tcp:close()
+	return false, err
+end
+
+function whois(interface, ip)
+	return whois_host(interface, 'whois.iana.org', ip)
 end
 
 function diff_nsec(t1, t2)
