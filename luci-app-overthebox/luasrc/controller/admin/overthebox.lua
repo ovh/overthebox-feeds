@@ -30,27 +30,27 @@ function index()
 
 	entry({"admin", "overthebox", "dscp"}, cbi("dscp/dscp"), _("DSCP Settings"), 2)
 
-    local e = entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 3)
-    e.leaf = true
+	local e = entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 3)
+	 e.leaf = true
 
 	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 4)
 	e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 5)
-        e.leaf = true
+	e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 6)
-        e.leaf = true
+	e.leaf = true
 	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data"))
 	e.leaf = true
 	e.sysauth = false
 
-    local e = entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data"))
-    e.leaf = true
+	local e = entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data"))
+	e.leaf = true
 
 	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
 	e.leaf = true
@@ -60,27 +60,27 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
-        local e = entry({"admin", "overthebox", "lease_overview"}, call("lease_overview"))
-        e.leaf = true
-        e.sysauth = false
+	local e = entry({"admin", "overthebox", "lease_overview"}, call("lease_overview"))
+	e.leaf = true
+	e.sysauth = false
 
 	local e = entry({"admin", "overthebox", "ipv6_discover"},  call("ipv6_discover"))
 	e.leaf = true
 	e.sysauth = false
 
-        local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
-	e.leaf = true
-        e.sysauth = false
-
-        local e = entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
+	local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
 	e.leaf = true
 	e.sysauth = false
 
-        local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
+	local e = entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
 	e.leaf = true
 	e.sysauth = false
 
-        local e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
+	local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
+	e.leaf = true
+	e.sysauth = false
+
+	local e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
 	e.leaf = true
 	e.sysauth = false
 
@@ -92,7 +92,7 @@ function index()
 	e.leaf = true
 	e.sysauth = false
 
-        entry({"admin", "overthebox", "update_conf"},  call("action_update_conf")).leaf = true
+	entry({"admin", "overthebox", "update_conf"},  call("action_update_conf")).leaf = true
 
 end
 
@@ -112,7 +112,7 @@ function interfaces_status()
 	mArray.overthebox["version"] = require('overthebox')._VERSION
 	-- Check that requester is in same network
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
-	mArray.overthebox["wan_addr"]           = "0.0.0.0"
+	mArray.overthebox["wan_addr"]		= "0.0.0.0"
 	local wanaddr = ut.trim(sys.exec("cat /tmp/wanip"))
 	if string.match(wanaddr, "^%d+\.%d+\.%d+\.%d+$") then
 		if logged then
@@ -121,7 +121,7 @@ function interfaces_status()
 			mArray.overthebox["wan_addr"] = wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
 		end
 	end
-	mArray.overthebox["remote_addr"]        = luci.http.getenv("REMOTE_ADDR") or ""
+	mArray.overthebox["remote_addr"]	= luci.http.getenv("REMOTE_ADDR") or ""
 	mArray.overthebox["remote_from_lease"]	= false
 	 local leases=tools.dhcp_leases()
 	for _, value in pairs(leases) do
@@ -223,6 +223,9 @@ function interfaces_status()
 				local curping = "NaN"
 				local wanip   = "0.0.0.0"
 				local whois   = "Unknown provider"
+				local qos     = false
+				local download
+				local upload
 				if data and data[wanName] then
 					minping = data[wanName].minping
 					avgping = data[wanName].avgping
@@ -236,8 +239,20 @@ function interfaces_status()
 							wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
 						end
 					end
+					-- append qos current state infos
+					if data[wanName].qostimestamp and data[wanName].reloadtimestamp and data[wanName].qostimestamp > data[wanName].reloadtimestamp then
+						if data[wanName].qosmode then
+							qos = data[wanName].qosmode
+						end
+						if data[wanName].upload then
+							upload = data[wanName].upload
+						end
+						if data[wanName].download then
+							download = data[wanName].download
+						end
+					end
 				end
-				mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois }
+				mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois, download = download, upload = upload, qos = qos }
 			end
 		end
 	end
