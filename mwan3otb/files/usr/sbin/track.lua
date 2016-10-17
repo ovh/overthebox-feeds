@@ -44,16 +44,19 @@ local fallback_method -- fall
 
 http.TIMEOUT = 5
 
-sig.signal(sig.SIGUSR2,
-        function ()
-                log("Ignoring signal USR2 tracker not fully started yet")
-        end
-)
-sig.signal(sig.SIGUSR1,
-        function ()
-                log("Ignoring signal USR1 tracker not fully started yet")
-        end
-)
+local shaper = {}
+
+sig.signal(sig.SIGUSR1, function ()
+	if shaper.interface and shaper.interface ~= "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
+
+sig.signal(sig.SIGUSR2, function ()
+	if shaper.interface and shaper.interface == "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
 
 local function handle_exit()
 	p.closelog()
@@ -642,22 +645,23 @@ function API(uri, method, data)
 end
 
 -- Initializing Shaping object
-local shaper  = {}
-local uci = libuci.cursor()
 
-shaper.interface	= opts["i"]
-shaper.mode		= uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
-shaper.mindownload 	= tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
-shaper.minupload 	= tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
-shaper.qostimeout 	= tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-shaper.pingdelta	= tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-shaper.bandwidthdelta 	= tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
-shaper.ratefactor 	= tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
--- Shaper timers
-shaper.reloadtimestamp	= 0	-- Time when signal to (re)load qos was received
-shaper.qostimestamp 	= nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
-shaper.losttimestamp 	= nil	-- Time when we lost the first ping
-shaper.congestedtimestamp = nil	-- Time when we detect a link congestion
+(function ()
+	local uci = libuci.cursor()
+	shaper.interface      = opts["i"]
+	shaper.mode           = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
+	shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+	shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+	shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+	shaper.pingdelta      = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+	shaper.bandwidthdelta = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+	shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
+	-- Shaper timers
+	shaper.reloadtimestamp    = 0   -- Time when signal to (re)load qos was received
+	shaper.qostimestam        = nil -- Time of when QoS was enabled, nil mean that QoS is disabled
+	shaper.losttimestamp      = nil -- Time when we lost the first ping
+	shaper.congestedtimestamp = nil -- Time when we detect a link congestion
+end)()
 
 -- Shaper functions
 function shaper:pushPing(lat)
@@ -702,7 +706,7 @@ function shaper:update()
 	-- A reload of qos has been asked
 	if shaper.reloadtimestamp and ((shaper.qostimestamp == nil) or (shaper.reloadtimestamp > shaper.qostimestamp)) then
 		-- Reload uci
-		uci = libuci.cursor()
+		local uci = libuci.cursor()
 		local newMode = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
 		-- QoS mode has changed
 		if shaper.mode ~= newMode then
@@ -747,6 +751,7 @@ function shaper:update()
 			end
 		end
 	elseif shaper.mode == "static" then
+		local uci = libuci.cursor()
 		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 			shaper.upload	= tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
@@ -869,17 +874,6 @@ function write_stats()
 		file:close()
 	end
 end
-
-sig.signal(sig.SIGUSR1, function ()
-	if shaper.interface ~= "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
-sig.signal(sig.SIGUSR2, function ()
-	if shaper.interface == "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
 
 --
 -- Main loop
