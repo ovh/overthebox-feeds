@@ -41,16 +41,21 @@ local libping	= require("ping")
 local method -- ping function bindings
 local fallback_method -- fall
 
-sig.signal(sig.SIGUSR2,
-        function ()
-                log("Ignoring signal USR2 tracker not fully started yet")
-        end
-)
-sig.signal(sig.SIGUSR1,
-        function ()
-                log("Ignoring signal USR1 tracker not fully started yet")
-        end
-)
+http.TIMEOUT = 5
+
+local shaper = {}
+
+sig.signal(sig.SIGUSR1, function ()
+	if shaper.interface and shaper.interface ~= "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
+
+sig.signal(sig.SIGUSR2, function ()
+	if shaper.interface and shaper.interface == "tun0" then
+		shaper.reloadtimestamp = os.time()
+	end
+end)
 
 local function handle_exit()
 	p.closelog()
@@ -107,7 +112,7 @@ function dns_request( host, interface, timeout, domain)
 					end
 				else
 					local r = string.byte(data, 3, 4) -- byte of the first char
-					if r > 127 then 
+					if r > 127 then
 						return true, t
 					else
 						return false, "other error : "..r
@@ -358,7 +363,7 @@ function arguments:usage()
 	os.exit()
 end
 
-function arguments:short() 
+function arguments:short()
 	local s = ""
 	for k, v in pairs(arguments) do
 		if type(v) == "table" then
@@ -417,7 +422,7 @@ if opts["h"] then
 	arguments:usage()
 end
 
-local ok, err = arguments:all_required_are_not_here(opts) 
+local ok, err = arguments:all_required_are_not_here(opts)
 if not ok then
         arguments:usage()
 end
@@ -526,7 +531,7 @@ pingstats.pos		= 0
 function pingstats:push(value)
 	pingstats[pingstats.pos] = value
 	pingstats.pos = pingstats.pos + 1
-	-- 
+	--
 	if pingstats.pos < pingstats.numvalue then
 		pingstats.entries = pingstats.entries + 1
 	else
@@ -560,12 +565,12 @@ end
 function pingstats:getn(index)
 	index = math.abs(index)
 
-	if index >= pingstats.numvalue then 
+	if index >= pingstats.numvalue then
 		return 0
 	end
 
 	local pos = pingstats.pos - 1 - index
-	if pos < 1 then 
+	if pos < 1 then
 		pos = pingstats.numvalue + pos
 	end
 
@@ -734,22 +739,23 @@ function API(uri, method, data)
 end
 
 -- Initializing Shaping object
-local shaper  = {}
-local uci = libuci.cursor()
 
-shaper.interface	= opts["i"]
-shaper.mode		= uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
-shaper.mindownload 	= tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
-shaper.minupload 	= tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
-shaper.qostimeout 	= tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-shaper.pingdelta	= tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-shaper.bandwidthdelta 	= tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
-shaper.ratefactor 	= tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
--- Shaper timers
-shaper.reloadtimestamp	= 0	-- Time when signal to (re)load qos was received
-shaper.qostimestamp 	= nil	-- Time of when QoS was enabled, nil mean that QoS is disabled
-shaper.losttimestamp 	= nil	-- Time when we lost the first ping
-shaper.congestedtimestamp = nil	-- Time when we detect a link congestion
+(function ()
+	local uci = libuci.cursor()
+	shaper.interface      = opts["i"]
+	shaper.mode           = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
+	shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+	shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+	shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+	shaper.pingdelta      = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+	shaper.bandwidthdelta = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+	shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
+	-- Shaper timers
+	shaper.reloadtimestamp    = 0   -- Time when signal to (re)load qos was received
+	shaper.qostimestam        = nil -- Time of when QoS was enabled, nil mean that QoS is disabled
+	shaper.losttimestamp      = nil -- Time when we lost the first ping
+	shaper.congestedtimestamp = nil -- Time when we detect a link congestion
+end)()
 
 -- Shaper functions
 function shaper:pushPing(lat)
@@ -796,14 +802,14 @@ function shaper:update()
 	-- A reload of qos has been asked
 	if shaper.reloadtimestamp and ((shaper.qostimestamp == nil) or (shaper.reloadtimestamp > shaper.qostimestamp)) then
 		-- Reload uci
-		uci = libuci.cursor()
+		local uci = libuci.cursor()
 		local newMode = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
 		-- QoS mode has changed
 		if shaper.mode ~= newMode then
 			shaper.mode = newMode
 			shaper:disableQos()
 		end
-		-- Update values 
+		-- Update values
 		shaper.mindownload      = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
 		shaper.minupload        = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
 		shaper.qostimeout       = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
@@ -811,7 +817,7 @@ function shaper:update()
 		shaper.bandwidthdelta   = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
 		shaper.ratefactor       = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
-	-- 
+	--
         if shaper.mode == "auto" then
 		local uci = libuci.cursor()
 		if uci:get("network", shaper.interface, "upload") then
@@ -841,6 +847,7 @@ function shaper:update()
 			end
 		end
 	elseif shaper.mode == "static" then
+		local uci = libuci.cursor()
 		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 			shaper.upload	= tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
@@ -949,7 +956,7 @@ function write_stats()
 	-- QoS status
 	if shaper then
 		result[interface.name].congestedtimestamp	= shaper.congestedtimestamp
-		result[interface.name].qostimestamp		= shaper.qostimestamp 
+		result[interface.name].qostimestamp		= shaper.qostimestamp
 		result[interface.name].losttimestamp		= shaper.losttimestamp
 		result[interface.name].upload		= shaper.upload
 		result[interface.name].download		= shaper.download
@@ -961,17 +968,6 @@ function write_stats()
 		file:close()
 	end
 end
-
-sig.signal(sig.SIGUSR1, function ()
-	if shaper.interface ~= "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
-sig.signal(sig.SIGUSR2, function ()
-	if shaper.interface == "tun0" then
-		shaper.reloadtimestamp = os.time()
-	end
-end)
 
 --
 -- Main loop
@@ -1006,7 +1002,7 @@ while true do
 
 	if host_up_count < tonumber( opts["r"]) then
 		score = score - 1
-		if score < nb_up then score = 0 end 
+		if score < nb_up then score = 0 end
 		if score == nb_up then
 			if shaper.losttimestamp == nil then
 	    			log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
@@ -1058,7 +1054,7 @@ while true do
 		if score > nb_up then score = init_score end
 		if score == nb_up then
 			log(string.format("Interface %s (%s) is online", opts["i"],    opts["d"]))
-			-- exec hotplug iface	
+			-- exec hotplug iface
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
 		end
 	end
