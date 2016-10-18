@@ -635,6 +635,7 @@ end
 	local uci = libuci.cursor()
 	shaper.interface      = opts["i"]
 	shaper.mode           = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
+	shaper.mptcp          = uci:get("network", shaper.interface, "mptcp") or "off"
 	shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
 	shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
 	shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
@@ -652,7 +653,7 @@ end)()
 function shaper:pushPing(lat)
 	if lat == false then
 		lat = 1000
-		if shaper.interface ~= "tun0" then
+		if shaper.mptcp ~= "off" then
 			if shaper.losttimestamp == nil then
 				shaper.losttimestamp = os.time()
 			end
@@ -671,14 +672,6 @@ function shaper:pushPing(lat)
 		end
 	end
 	pingstats:push(lat)
-	-- QoS manager
-	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
-		if shaper.congestedtimestamp == nil then
-			debug("Starting bandwidth stats collector on " .. shaper.interface)
-			shaper.congestedtimestamp = os.time()
-		end
-	        bw_stats:collect()
-	end
 end
 
 function shaper:isCongested()
@@ -701,6 +694,7 @@ function shaper:update()
 			shaper:disableQos()
 		end
 		-- Update values 
+		shaper.mptcp		= uci:get("network", shaper.interface, "mptcp") or "off"
 		shaper.mindownload	= tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
 		shaper.minupload	= tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
 		shaper.qostimeout	= tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
@@ -708,37 +702,7 @@ function shaper:update()
 		shaper.bandwidthdelta	= tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
 		shaper.ratefactor	= tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
-	-- 
-	if shaper.mode == "auto" then
-		local uci = libuci.cursor()
-		if uci:get("network", shaper.interface, "upload") then
-			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
-		end
-		if shaper.qostimestamp and shaper.qostimeout and (os.time() > (shaper.qostimestamp + shaper.qostimeout * 60)) then
-			log(string.format("disabling download QoS after %s min", shaper.qostimeout))
-			shaper:disableQos()
-		end
-		if shaper:isCongested() then
-			local download = bw_stats:avgdownload(shaper.congestedtimestamp - 2)
-			local upload   = bw_stats:avgupload(shaper.congestedtimestamp - 2)
-			log("avg rate since ".. shaper.congestedtimestamp .." is " .. download .. " kbit/s down and " .. upload .." kbit/s up")
-			-- upload congestion detected
-			if upload > download then
-				if uci:get("network", shaper.interface, "upload") then
-					shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
-				else
-					shaper.upload = math.floor(upload * shaper.ratefactor)
-					if shaper.download ~= nil then
-						shaper:enableQos()
-					end
-				end
-			else
-				shaper.download = math.floor(download * shaper.ratefactor)
-				shaper:enableQos()
-			end
-		end
-	elseif shaper.mode == "static" then
-		local uci = libuci.cursor()
+	if shaper.mode == "static" then
 		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 			shaper.upload	= tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
@@ -753,25 +717,23 @@ function shaper:enableQos()
 		if shaper.interface == "tun0" then
 			log(string.format("Reloading DSCP rules", shaper.interface))
 			run(string.format("/etc/init.d/dscp reload %s", shaper.interface))
-		else
+			shaper:sendQosToApi()
+		elseif shaper.mptcp ~= "off" then
 			log(string.format("Enabling QoS on interface %s", shaper.interface))
 			run(string.format("/usr/lib/qos/run.sh start %s", shaper.interface))
+			shaper:sendQosToApi()
 		end
-		shaper:sendQosToApi()
 	end
 end
 
 function shaper:disableQos()
 	if shaper.qostimestamp then
-		if shaper.interface ~= "tun0" then
+		if shaper.mptcp ~= "off" then
 			log(string.format("Disabling QoS on interface %s", shaper.interface))
 			local uci	= libuci.cursor()
-			local mptcp	= uci:get("network", shaper.interface, "multipath")
 			local metric	= uci:get("network", shaper.interface, "metric")
-			if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
-				if metric then
-					local rcode, res = DELETE("qos/"..metric, {})
-				end
+			if metric then
+				local rcode, res = DELETE("qos/"..metric, {})
 			end
 			run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		end
@@ -782,7 +744,7 @@ end
 
 function shaper:sendQosToApi()
 	local uci   = libuci.cursor()
-	local mptcp = uci:get("network", shaper.interface, "multipath")
+	shaper.mptcp = uci:get("network", shaper.interface, "multipath")
 	if shaper.interface == "tun0" then
 		local commitid = tostring(os.time())
 		uci:foreach("dscp", "classify",
@@ -816,18 +778,30 @@ function shaper:sendQosToApi()
 		else
 			shaper.reloadtimestamp = os.time()
 		end
-	elseif mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
-		local rcode, res = PUT("qos", {
-			interface	= shaper.interface,
-			metric		= uci:get("network", shaper.interface, "metric"),
-			wan_ip		= interface.wanaddr or get_public_ip(shaper.interface),
-			downlink	= tostring(shaper.download),
-			uplink		= tostring(shaper.upload)
-		})
-		if tostring(rcode):gmatch("200") then
-			shaper.qostimestamp = os.time()
+	elseif shaper.mptcp =~ "off" then
+		if shaper.mode == "off" then
+			local metric    = uci:get("network", shaper.interface, "metric")
+			if metric then
+				local rcode, res = DELETE("qos/"..metric, {})
+				if tostring(rcode):gmatch("200") then
+					shaper.qostimestamp = os.time()
+				else
+					shaper.reloadtimestamp = os.time()
+				end
+			end
 		else
-			shaper.reloadtimestamp = os.time()
+			local rcode, res = PUT("qos", {
+				interface	= shaper.interface,
+				metric		= uci:get("network", shaper.interface, "metric"),
+				wan_ip		= interface.wanaddr or get_public_ip(shaper.interface),
+				downlink	= tostring(shaper.download),
+				uplink		= tostring(shaper.upload)
+			})
+			if tostring(rcode):gmatch("200") then
+				shaper.qostimestamp = os.time()
+			else
+				shaper.reloadtimestamp = os.time()
+			end
 		end
 	end
 end
