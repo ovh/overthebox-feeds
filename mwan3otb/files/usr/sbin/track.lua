@@ -87,12 +87,18 @@ end
 function dns_query(id, domain)
 	local query = {}
 	table.insert(query, id)
-	table.insert(query, "\1 \0\1\0\0\0\0\0\1")
+	table.insert(query, "\1\0") -- Query, RD
+	table.insert(query, "\0\1") -- QDCOUNT
+	table.insert(query, "\0\0") -- ANCOUNT
+	table.insert(query, "\0\0") -- NSCOUNT
+	table.insert(query, "\0\0") -- ARCOUNT
 	for word in string.gmatch(domain, '([^.]+)') do
 		table.insert(query, string.char(#word))
 		table.insert(query, word)
 	end
-	table.insert(query, "\0\0\1\0\1\0\0)\20\0\0\0\0\0\0\0")
+	table.insert(query, "\0")   -- end of QNAME
+	table.insert(query, "\0\1") -- QTYPE  = A RECORD
+	table.insert(query, "\0\1") -- QCLASS = IN
 	return table.concat(query)
 end
 
