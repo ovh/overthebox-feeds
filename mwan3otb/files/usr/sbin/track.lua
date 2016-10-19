@@ -84,7 +84,19 @@ function create_socket(interface, kind)
 	return s
 end
 
-function dns_request(host, interface, timeout)
+function dns_query(id, domain)
+	local query = {}
+	table.insert(query, id)
+	table.insert(query, "\1 \0\1\0\0\0\0\0\1")
+	for word in string.gmatch(domain, '([^.]+)') do
+		table.insert(query, string.char(#word))
+		table.insert(query, word)
+	end
+	table.insert(query, "\0\0\1\0\1\0\0)\20\0\0\0\0\0\0\0")
+	return table.concat(query)
+end
+
+function dns_request(host, interface, timeout, domain, match)
 	local s = create_socket(interface, "datagram")
 	if not s then
 		return false, "dns_request: no socket"
@@ -96,7 +108,7 @@ function dns_request(host, interface, timeout)
 		return false, "dns_request: "..err
 	end
 	local id = string.char(math.random(0xFF), math.random(0xFF))
-	local ok, err = s:send(id.."\1 \0\1\0\0\0\0\0\1\tlocalhost\0\0\1\0\1\0\0)\20\0\0\0\0\0\0\0")
+	local ok, err = s:send(dns_query(id, domain))
 	if not ok then
 		s:close()
 		return false, "dns_request: "..err
@@ -108,7 +120,7 @@ function dns_request(host, interface, timeout)
 	if not data then
 		return false, "dns_request: "..err
 	end
-	if id >= data then
+	if id >= data or not string.match(data, match) then
 		return false, "dns_request: bad answer"
 	end
 	local dt = diff_nsec(t1, t2)/1000000
@@ -310,7 +322,7 @@ method = function(s) return libping.send_ping(s , opts["i"], tonumber(opts["t"])
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
-	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"])) end
+	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", "\127\6\8\4") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	fallback_method = method
