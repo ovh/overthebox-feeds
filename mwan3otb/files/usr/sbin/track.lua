@@ -131,7 +131,7 @@ function dns_request(host, interface, timeout, domain, match)
 	end
 	local dt = diff_nsec(t1, t2)/1000000
 	if dt <= 1 then
-		print("dns proxy/cache detected, falling back to ICMP ping method")
+		log("dns proxy/cache detected, falling back to ICMP ping method")
 		method = fallback_method
 		return false, "dns_request: proxy/cache detected"
 	end
