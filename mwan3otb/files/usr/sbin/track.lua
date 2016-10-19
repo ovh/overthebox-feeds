@@ -32,7 +32,6 @@ local ltn12     = require("ltn12")
 local json	= require("luci.json")
 local libuci	= require("luci.model.uci")
 local sys	= require("luci.sys")
-local dns	= require("org.conman.dns")
 local math	= require("math")
 
 math.randomseed(os.time())
@@ -63,231 +62,145 @@ local function handle_exit()
 	os.exit();
 end
 
-function dns_request( host, interface, timeout, domain)
-	local fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
-	if not fd then return fd, err end
-
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, math.floor(timeout/1000), (timeout % 1000) * 1000 )
-	if not ok then return ok, err end
-
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-
-	local data = dns.encode {
-		id       = math.random(0xFFFF),
-		query    = true,
-		rd       = true,	-- recursion desired
-		opcode   = 'query',
-		question = {
-			name  = domain,	-- FQDN required
-			type  = "A",	-- LOC rr
-			class = "IN"
-		}
-	}
-
-	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
-        -- Send message
-	local ok, err = p.sendto (fd, data, { family = p.AF_INET, addr = host, port = 53 })
-	if not ok then return ok, err end
-
-	local data, sa, err
-	while (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME) )/1000) < (timeout*1000) do
-		data, sa, err = p.recvfrom(fd, 1024)
-		if data then
-			if fd then p.close(fd) end
-			local t = (diff_nsec(t1, p.clock_gettime(p.CLOCK_REALTIME))/1000000)
-			if t > 1 then
-				local reply = dns.decode(data)
-				if reply and type(reply.answers) == "table" then
-					if #reply.answers > 0 and reply.answers[1].address == "127.0.0.1" then
-						return true, t
-					else
-						log("lying dns proxy server detected, falling back to ICMP ping method")
-						tlog(reply.answers)
-						method = fallback_method
-						return false, "dns lying proxy detected"
-					end
-				else
-					local r = string.byte(data, 3, 4) -- byte of the first char
-					if r > 127 then
-						return true, t
-					else
-						return false, "other error : "..r
-					end
-				end
-			else
-				log("dns proxy/cache detected, falling back to ICMP ping method")
-				method = fallback_method
-				return false, "dns proxy/cache detected"
-			end
-		elseif err and err ~= 11 then
-			if fd then p.close(fd) end
-			return false, sa
-		end
+function create_socket(interface, kind)
+	local s, fd
+	if kind == "stream" then
+		s = socket.tcp()
+		fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+	elseif kind == "datagram" then
+		s = socket.udp()
+		fd = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
+	else
+		log("create_socket: unknown kind")
+		return nil
 	end
-	if fd then p.close(fd) end
-	return false, "timeout"
+	-- TODO: s:bind with ip
+	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
+	if not ok then
+		log("create_socket: "..err)
+		return nil
+	end
+	s:setfd(fd)
+	return s
 end
 
-function tlog (tbl, indent)
-  if not indent then indent = 0 end
-  if not tbl then return end
-  for k, v in pairs(tbl) do
-    formatting = string.rep("  ", indent) .. k .. ": "
-    if type(v) == "table" then
-      log(formatting)
-      tlog(v, indent+1)
-    elseif type(v) == 'boolean' then
-      log(formatting .. tostring(v))
-    else
-      log(formatting .. v)
-    end
-  end
+function dns_query(id, domain)
+	local query = {}
+	table.insert(query, id)
+	table.insert(query, "\1\0") -- Query, RD
+	table.insert(query, "\0\1") -- QDCOUNT
+	table.insert(query, "\0\0") -- ANCOUNT
+	table.insert(query, "\0\0") -- NSCOUNT
+	table.insert(query, "\0\0") -- ARCOUNT
+	for word in string.gmatch(domain, '([^.]+)') do
+		table.insert(query, string.char(#word))
+		table.insert(query, word)
+	end
+	table.insert(query, "\0")   -- end of QNAME
+	table.insert(query, "\0\1") -- QTYPE  = A RECORD
+	table.insert(query, "\0\1") -- QCLASS = IN
+	return table.concat(query)
+end
+
+function dns_request(host, interface, timeout, domain, match)
+	local s = create_socket(interface, "datagram")
+	if not s then
+		return false, "dns_request: no socket"
+	end
+	s:settimeout(timeout)
+	local ok, err = s:setpeername(host, "53")
+	if not ok then
+		s:close()
+		return false, "dns_request: "..err
+	end
+	local id = string.char(math.random(0xFF), math.random(0xFF))
+	local ok, err = s:send(dns_query(id, domain))
+	if not ok then
+		s:close()
+		return false, "dns_request: "..err
+	end
+	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
+	local data, err = s:receive()
+	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
+	s:close()
+	if not data then
+		return false, "dns_request: "..err
+	end
+	if id >= data or not string.match(data, match) then
+		return false, "dns_request: bad answer"
+	end
+	local dt = diff_nsec(t1, t2)/1000000
+	if dt <= 1 then
+		log("dns proxy/cache detected, falling back to ICMP ping method")
+		method = fallback_method
+		return false, "dns_request: proxy/cache detected"
+	end
+	return true, dt
 end
 
 function socks_request(host, interface, timeout, port)
-	local tcp = create_tcp(interface)
-	tcp:settimeout(timeout)
+	local s = create_socket(interface, "stream")
+	if not s then
+		return false, "socks_request: no socket"
+	end
+	s:settimeout(timeout)
 	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
-	local ok, err = tcp:connect(host, port)
+	local ok, err = s:connect(host, port)
 	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
-	tcp:close()
+	s:close()
 	if not ok then
-		return false, err
+		return false, "socks_request: "..err
 	end
 	return true, (diff_nsec(t1, t2)/1000000)
 end
 
 function get_public_ip(interface)
-	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-	if not fd then return fd, err end
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-	-- Get host address
-	local r, err = p.getaddrinfo('ifconfig.ovh', '80', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
-	-- Connect to host
-	local ok, err, e = p.connect (fd, r[1] )
-	if fd then
-		p.send(fd, "GET / HTTP/1.0\r\nHost: ifconfig.ovh\r\n\r\n")
-		local data = {}
-		local cnt=3
-		while cnt > 0  do
-			local b,str,err= p.recv (fd, 1024)
-			if not b then
-				if err == 11 then
-					cnt=cnt-1
-				else
-					debug("get_public_ip:"..str)
-					break
-				end
-			else
-				if #b == 0 then
-					break
-				end
-				table.insert (data, b)
-			end
-		end
-		p.close(fd)
-		data = table.concat(data)
-		return data:match("\r\n\r\n(%d+%.%d+%.%d+%.%d+)")
+	local data = {}
+	local status, code, headers = http.request{
+		url = "http://ifconfig.ovh",
+		create = function() return create_socket(interface, "stream") end,
+		sink = ltn12.sink.table(data)
+	}
+	if status == 1 and code == 200 then
+		return table.concat(data):match("(%d+%.%d+%.%d+%.%d+)")
 	end
 end
 
-function whois(interface, ip)
-	local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-	if not fd then return fd, err end
-	p.bind (fd, { family = p.AF_INET, addr = "0.0.0.0", port = 0 })
-	-- timeout on socket
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-	if not ok then return ok, err end
-	-- bind to specific device
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-	if not ok then return ok, err end
-	-- Get host address
-	local r, err = p.getaddrinfo('whois.iana.org', '43', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-	if not r then return false, err end
-	-- Connect to host
-	local ok, err, e = p.connect (fd, r[1] )
-	if fd then
-		p.send(fd, ip .. "\n")
-		local data = {}
-		local cnt=3
-		while cnt>0 do
-			local b,str,err = p.recv (fd, 1024)
-			if not b then
-				if err == 11 then
-					cnt = cnt - 1
-				else
-					debug("whois:"..str)
-					break
-				end
-			else
-				if #b == 0 then
-					break
-				end
-				table.insert (data, b)
-			end
-		end
-		p.close(fd)
-		data = table.concat(data)
-		local refer = data:match("whois:%s+([%w%.]+)")
-		if refer then
-			local fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
-			if not fd then return fd, err end
-			-- timeout on socket
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_RCVTIMEO, 1, '1000' )
-			if not ok then return ok, err end
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_SNDTIMEO, 1, '1000' )
-			if not ok then return ok, err end
-			-- bind to specific device
-			local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
-			if not ok then return ok, err end
-			-- Get host address
-			local r, err = p.getaddrinfo(refer, '43', { family = p.AF_INET, socktype = p.SOCK_STREAM })
-			if not r then return false, err end
-			-- Connect to host
-			local ok, err, e = p.connect (fd, r[1] )
-			if fd then
-				p.send(fd, ip .. "\n")
-				local data = {}
-				cnt=3
-				while cnt>0 do
-					local b,str,err = p.recv (fd, 1024)
-					if not b then
-						if err == 11 then
-							cnt=cnt-1
-						else
-							debug("whois:"..str)
-						end
-					else
-						if #b == 0 then
-							break
-						end
-						table.insert (data, b)
-					end
-				end
-				p.close(fd)
-				data = table.concat(data)
-				return true, data:match("netname:%s+([%w%.%-]+)"), data:match("country:%s+([%w%.%-]+)")
-			end
-		else
-			return false, "can not find refere for this ip"
-		end
+
+function whois_host(interface, host, ip)
+	local s = create_socket(interface, "stream")
+	if not s then
+		return false, "whois_host: no socket"
 	end
+	s:settimeout(5)
+	local ok, err = s:connect(host, "43")
+	if ok then
+		if host == "whois.arin.net" then
+			s:send("n + "..ip.."\r\n")
+		else
+			s:send(ip.."\r\n")
+		end
+		local data, err = s:receive("*a")
+		s:close()
+		if data then
+			local refer = data:match("refer:%s+([%w%.]+)")
+			if refer then
+				return whois_host(interface, refer, ip)
+			end
+			local netname = data:match("[Nn]et[Nn]ame:%s+([%w%.%-]+)")
+			local country = data:match("[Cc]ountry:%s+([%w%.%-]+)")
+			if netname and country then
+				return true, netname, country
+			end
+		end
+		return false, "whois_host: failed"
+	end
+	s:close()
+	return false, "whois_host: "..err
+end
+
+function whois(interface, ip)
+	return whois_host(interface, 'whois.iana.org', ip)
 end
 
 function diff_nsec(t1, t2)
@@ -416,11 +329,11 @@ method = function(s) return libping.send_ping(s , opts["i"], tonumber(opts["t"])
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
-	method = function(s) return dns_request( s, opts["i"], tonumber(opts["t"]) * 1000, "localhost.") end
+	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", "\127\6\8\4") end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	fallback_method = method
-	method = function(s) return socks_request(s, opts["i"], opts["t"], "1090") end
+	method = function(s) return socks_request(s, opts["i"], tonumber(opts["t"]), "1090") end
 end
 
 local fn = "/var/run/mwan3track-"..opts["i"]..".pid"
