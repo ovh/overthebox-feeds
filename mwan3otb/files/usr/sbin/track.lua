@@ -57,21 +57,20 @@ sig.signal(sig.SIGUSR2, function ()
 	end
 end)
 
-local function handle_exit()
-	p.closelog()
-	os.exit();
-end
-
 function create_socket(interface, kind)
 	local s, fd
 	if kind == "stream" then
 		s = socket.tcp()
-		fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+		fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 	elseif kind == "datagram" then
 		s = socket.udp()
-		fd = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
+		fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
 	else
 		log("create_socket: unknown kind")
+		return nil
+	end
+	if not fd then
+		log("create_socket: "..err)
 		return nil
 	end
 	-- TODO: s:bind with ip
@@ -126,7 +125,7 @@ function dns_request(host, interface, timeout, domain, match)
 	if not data then
 		return false, "dns_request: "..err
 	end
-	if id >= data or not string.match(data, match) then
+	if id >= data or not string.find(data, match, 1, true) then
 		return false, "dns_request: bad answer"
 	end
 	local dt = diff_nsec(t1, t2)/1000000
@@ -214,22 +213,12 @@ function diff_nsec(t1, t2)
 end
 
 function log(str)
-	p.syslog( p.LOG_NOTICE, opts["i"] .. '.' .. str)
+	p.syslog(p.LOG_NOTICE, opts["i"] .. '.' .. str)
 end
+
 function debug(str)
-	p.syslog( p.LOG_DEBUG, opts["i"] .. '.' .. str)
+	p.syslog(p.LOG_DEBUG, opts["i"] .. '.' .. str)
 end
-
-function hex_dump(buf)
-      for byte=1, #buf, 16 do
-         local chunk = buf:sub(byte, byte+15)
-         log(string.format('%08X  ',byte-1))
-         chunk:gsub('.', function (c) log(string.format('%02X ',string.byte(c))) end)
-         log(string.rep(' ',3*(16-#chunk)))
-         log(' ',chunk:gsub('%c','.'),"\n")
-      end
-end
-
 
 local arguments = {
 	{"help",        "none",     'h', "bool",   "this help message" },
