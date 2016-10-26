@@ -18,25 +18,22 @@
 --    You should have received a copy of the GNU General Public License
 --    along with OverTheBox.  If not, see <http://www.gnu.org/licenses/>
 --
---	Contributor : Jean Labrousse <jlabrous@github.com>
+-- Contributor : Jean Labrousse <jlabrous@github.com>
 --
 
 
-local p   = require 'posix'
-local sig = require "posix.signal"
-
-local socket    = require("socket")
-local http      = require("socket.http")
-local ltn12     = require("ltn12")
-
-local json	= require("luci.json")
-local libuci	= require("luci.model.uci")
-local sys	= require("luci.sys")
-local math	= require("math")
+local p      = require "posix"
+local sig    = require "posix.signal"
+local socket = require "socket"
+local http   = require "socket.http"
+local ltn12  = require "ltn12"
+local json   = require "luci.json"
+local libuci = require "luci.model.uci"
+local sys    = require "luci.sys"
+local math   = require "math"
+local ping   = require "ping"
 
 math.randomseed(os.time())
-
-local libping	= require("ping")
 
 local method -- ping function bindings
 local fallback_method -- fall
@@ -57,21 +54,20 @@ sig.signal(sig.SIGUSR2, function ()
 	end
 end)
 
-local function handle_exit()
-	p.closelog()
-	os.exit();
-end
-
 function create_socket(interface, kind)
 	local s, fd
 	if kind == "stream" then
 		s = socket.tcp()
-		fd = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+		fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
 	elseif kind == "datagram" then
 		s = socket.udp()
-		fd = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
+		fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
 	else
 		log("create_socket: unknown kind")
+		return nil
+	end
+	if not fd then
+		log("create_socket: "..err)
 		return nil
 	end
 	-- TODO: s:bind with ip
@@ -126,7 +122,7 @@ function dns_request(host, interface, timeout, domain, match)
 	if not data then
 		return false, "dns_request: "..err
 	end
-	if id >= data or not string.match(data, match) then
+	if id >= data or not string.find(data, match, 1, true) then
 		return false, "dns_request: bad answer"
 	end
 	local dt = diff_nsec(t1, t2)/1000000
@@ -215,22 +211,12 @@ function diff_nsec(t1, t2)
 end
 
 function log(str)
-	p.syslog( p.LOG_NOTICE, opts["i"] .. '.' .. str)
+	p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str)
 end
+
 function debug(str)
-	p.syslog( p.LOG_DEBUG, opts["i"] .. '.' .. str)
+	p.syslog(p.LOG_DEBUG, opts["i"]..'.'..str)
 end
-
-function hex_dump(buf)
-      for byte=1, #buf, 16 do
-         local chunk = buf:sub(byte, byte+15)
-         log(string.format('%08X  ',byte-1))
-         chunk:gsub('.', function (c) log(string.format('%02X ',string.byte(c))) end)
-         log(string.rep(' ',3*(16-#chunk)))
-         log(' ',chunk:gsub('%c','.'),"\n")
-      end
-end
-
 
 local arguments = {
 	{"help",        "none",     'h', "bool",   "this help message" },
@@ -249,7 +235,7 @@ function arguments:usage()
 	print("Usage : track.lua arguments host")
 	print("Arguments:")
 	for k, v in pairs(arguments) do
-                if type(v) == "table" then
+		if type(v) == "table" then
 			print(string.format("  -%s or --%-20s %-6s %s", v[3], v[1], v[4], v[5]))
 		end
 	end
@@ -261,9 +247,9 @@ function arguments:short()
 	for k, v in pairs(arguments) do
 		if type(v) == "table" then
 			if v[4] == "bool" then
-				s = s .. v[3]
+				s = s..v[3]
 			else
-				s = s .. v[3] .. ':'
+				s = s..v[3]..':'
 			end
 		end
 	end
@@ -271,40 +257,40 @@ function arguments:short()
 end
 
 function arguments:long()
-        local s = {}
-        for k, v in pairs(arguments) do
-                if type(v) == "table" then
+	local s = {}
+	for k, v in pairs(arguments) do
+		if type(v) == "table" then
 			table.insert(s, {v[1], v[2], v[3] })
-                end
-        end
-        return s
+		end
+	end
+	return s
 end
 
 function arguments:all_required_are_not_here(opt)
 	for k, v in pairs(arguments) do
-                if type(v) == "table" then
+		if type(v) == "table" then
 			if v[2] == "required" and  opt[ v[3] ] == nil then
 				return false, v[1].." is missing"
 			end
-                end
-        end
-        return true
+		end
+	end
+	return true
 end
 
 p.openlog("track")
 
-opts={}
+opts = {}
 local last_index = 1
-for r, optarg, optind, li in p.getopt (arg, arguments:short(), arguments:long()) do
-  if r == '?' then return print  'unrecognized option' end
-  last_index = optind
-  opts[ r ] = optarg or true
+for r, optarg, optind, li in p.getopt(arg, arguments:short(), arguments:long()) do
+	if r == '?' then return print  'unrecognized option' end
+	last_index = optind
+	opts[ r ] = optarg or true
 end
 
-servers={}
+servers = {}
 for i = last_index, #arg do
 	if string.find(arg[i], "%d+.%d+.%d+.%d+") then
---		print("track : "..arg[i])
+		--		print("track : "..arg[i])
 		table.insert(servers, arg[i])
 	else
 		print("not reconize : "..arg[i])
@@ -317,15 +303,15 @@ end
 
 local ok, err = arguments:all_required_are_not_here(opts)
 if not ok then
-        arguments:usage()
+	arguments:usage()
 end
 
 if table.getn(servers) == 0 then
 	print("no server found")
-        arguments:usage()
+	arguments:usage()
 end
 
-method = function(s) return libping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
+method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
@@ -355,41 +341,38 @@ os.execute("mkdir -p /tmp/tracker/if")
 local nb_up = tonumber(opts["u"])
 local nb_down = tonumber(opts["o"])
 
-local score=nb_up + nb_down
+local score = nb_up + nb_down
 local init_score = score
-local host_up_count=0
-local lost=0
+local host_up_count = 0
+local lost = 0
 
 function run(command)
-	debug("execute : " .. command)
+	debug("execute: "..command)
 	os.execute(command)
---	local handle = io.popen(command)
---	local result = handle:read("*a")
---	handle:close()
 end
 
 -- Interface info structure
-local interface		= {}
-interface.name		= opts["i"]
-interface.device	= opts["d"]
-interface.wanaddr	= false
-interface.whois		= false
-interface.country	= false
-interface.timestamp	= nil
+local interface = {}
+interface.name      = opts["i"]
+interface.device    = opts["d"]
+interface.wanaddr   = false
+interface.whois     = false
+interface.country   = false
+interface.timestamp = nil
 
 function updateInterfaceInfos()
 	local wanaddr = get_public_ip(interface.name)
 	if wanaddr then
-		debug("wan address is: " .. wanaddr)
+		debug("wan address is: "..wanaddr)
 		interface.timestamp = os.time()
 		if interface.wanaddr ~= wanaddr then
 			interface.wanaddr = wanaddr
 			res, interface.whois, interface.country = whois(interface.name, interface.wanaddr)
 			if res then
 				if interface.whois and interface.country then
-					debug("whois of " .. wanaddr .. " is " .. interface.whois .. " and country is ".. interface.country)
+					debug("whois of "..wanaddr.." is "..interface.whois.." and country is "..interface.country)
 				elseif interface.whois then
-					debug("whois of " .. wanaddr .. " is " .. interface.whois)
+					debug("whois of "..wanaddr.." is "..interface.whois)
 				end
 				-- Update uci infos
 				local uci = libuci.cursor()
@@ -416,15 +399,14 @@ function updateInterfaceInfos()
 end
 
 -- Circular buffer for ping stats collection
-local pingstats 	= {}
-pingstats.numvalue 	= 60
-pingstats.entries	= 0
-pingstats.pos		= 0
+local pingstats    = {}
+pingstats.numvalue = 60
+pingstats.entries  = 0
+pingstats.pos      = 0
 
 function pingstats:push(value)
 	pingstats[pingstats.pos] = value
 	pingstats.pos = pingstats.pos + 1
-	--
 	if pingstats.pos < pingstats.numvalue then
 		pingstats.entries = pingstats.entries + 1
 	else
@@ -446,48 +428,43 @@ end
 
 function pingstats:min()
 	min = 10000
-        if pingstats.entries == 0 then
-                return min
-        end
-        for index = #pingstats, 1, -1 do
+	if pingstats.entries == 0 then
+		return min
+	end
+	for index = #pingstats, 1, -1 do
 		min = math.min(pingstats[index], min)
-        end
-        return min
+	end
+	return min
 end
 
 function pingstats:getn(index)
 	index = math.abs(index)
-
 	if index >= pingstats.numvalue then
 		return 0
 	end
-
 	local pos = pingstats.pos - 1 - index
 	if pos < 1 then
 		pos = pingstats.numvalue + pos
 	end
-
-        return pingstats[pos] or 10000
+	return pingstats[pos] or 10000
 end
 
 function pingstats:setn(index, value)
-        index = math.abs(index)
-
-        if index >= pingstats.numvalue then
-                return 0
-        end
-
-        local pos = pingstats.pos - 1 - index
-        if pos < 1 then
-                pos = pingstats.numvalue + pos
-        end
+	index = math.abs(index)
+	if index >= pingstats.numvalue then
+		return 0
+	end
+	local pos = pingstats.pos - 1 - index
+	if pos < 1 then
+		pos = pingstats.numvalue + pos
+	end
 	pingstats[pos] = value
 end
 
 -- Bandwith stats
-local bw_stats	= {}
+local bw_stats = {}
 bw_stats.values = {}
-bw_stats.command= "/usr/bin/luci-bwc"
+bw_stats.command = "/usr/bin/luci-bwc"
 function bw_stats:collect()
 	-- run bandwidth monitor
 	local handle = io.popen(string.format("%s -i %s", bw_stats.command, interface.name))
@@ -495,22 +472,20 @@ function bw_stats:collect()
 	local result = handle:read("*a")
 	handle:close()
 	-- store rsult in table
-	if result then
-		bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
-	end
+	bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
 	return bw_stats.values
 end
 
 function bw_stats:avgdownload(timestamp)
-        local sum=0
-	local count=0
+	local sum = 0
+	local count = 0
 
 	local mintimestamp
 	local maxtimestamp
 	local minvalue
 	local maxvalue
 
-        for index = #bw_stats.values, 1, -1 do
+	for index = #bw_stats.values, 1, -1 do
 		if bw_stats.values[index][1] >= timestamp then
 			if mintimestamp == nil then
 				mintimestamp = bw_stats.values[index][1]
@@ -533,10 +508,10 @@ function bw_stats:avgdownload(timestamp)
 			count = count + 1
 		end
 	end
-	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
+	if count > 0 then
 		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxdownloadvalue = math.max(bw_stats.maxdownloadvalue, value)
-	        return value
+		return value
 	else
 		return nil
 	end
@@ -574,13 +549,13 @@ function bw_stats:avgupload(timestamp)
 			count = count + 1
 		end
 	end
-	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
+	if count > 0 then
 		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxuploadvalue = math.max(bw_stats.maxuploadvalue, value)
 		return value
-    else
-        return nil
-    end
+	else
+		return nil
+	end
 end
 
 bw_stats.maxdownloadvalue = 512
@@ -593,23 +568,23 @@ function bw_stats:maxupload()
 	return bw_stats.maxuploadvalue
 end
 
---------------------------
---      QoS section     --
---------------------------
-
 -- Service API helpers
+
 function POST(uri, data)
 	return API(uri, "POST", data)
 end
+
 function PUT(uri, data)
 	return API(uri, "PUT", data)
 end
+
 function DELETE(uri, data)
 	return API(uri, "DELETE", data)
 end
+
 function API(uri, method, data)
-	-- url = "http://api/" .. uri : we do not use the dns "api" beacause of the dnsmasq reloading race condition
-	url = "http://169.254.254.1/" .. uri
+	-- url = "http://api/"..uri : we do not use the dns "api" beacause of the dnsmasq reloading race condition
+	url = "http://169.254.254.1/"..uri
 	-- Buildin JSON POST
 	local reqbody   = json.encode(data)
 	local respbody  = {}
@@ -651,6 +626,7 @@ end
 end)()
 
 -- Shaper functions
+
 function shaper:pushPing(lat)
 	if lat == false then
 		lat = 1000
@@ -676,10 +652,10 @@ function shaper:pushPing(lat)
 	-- QoS manager
 	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
 		if shaper.congestedtimestamp == nil then
-			debug("Starting bandwidth stats collector on " .. shaper.interface)
+			debug("Starting bandwidth stats collector on "..shaper.interface)
 			shaper.congestedtimestamp = os.time()
 		end
-	        bw_stats:collect()
+		bw_stats:collect()
 	end
 end
 
@@ -703,15 +679,15 @@ function shaper:update()
 			shaper:disableQos()
 		end
 		-- Update values
-		shaper.mindownload      = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
-		shaper.minupload        = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
-		shaper.qostimeout       = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-		shaper.pingdelta        = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-		shaper.bandwidthdelta   = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
-		shaper.ratefactor       = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
+		shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
+		shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
+		shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
+		shaper.pingdelta      = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
+		shaper.bandwidthdelta = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
+		shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
 	--
-        if shaper.mode == "auto" then
+	if shaper.mode == "auto" then
 		local uci = libuci.cursor()
 		if uci:get("network", shaper.interface, "upload") then
 			shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
@@ -723,7 +699,7 @@ function shaper:update()
 		if shaper:isCongested() then
 			local download = bw_stats:avgdownload(shaper.congestedtimestamp - 2)
 			local upload   = bw_stats:avgupload(shaper.congestedtimestamp - 2)
-			log("avg rate since ".. shaper.congestedtimestamp .." is " .. download .. " kbit/s down and " .. upload .." kbit/s up")
+			log("avg rate since "..shaper.congestedtimestamp.." is "..download.." kbit/s down and "..upload.." kbit/s up")
 			-- upload congestion detected
 			if upload > download then
 				if uci:get("network", shaper.interface, "upload") then
@@ -742,7 +718,7 @@ function shaper:update()
 	elseif shaper.mode == "static" then
 		local uci = libuci.cursor()
 		if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
-			shaper.upload	= tonumber(uci:get("network", shaper.interface, "upload"))
+			shaper.upload   = tonumber(uci:get("network", shaper.interface, "upload"))
 			shaper.download = tonumber(uci:get("network", shaper.interface, "download"))
 			shaper:enableQos()
 		end
@@ -767,9 +743,9 @@ function shaper:disableQos()
 	if shaper.qostimestamp then
 		if shaper.interface ~= "tun0" then
 			log(string.format("Disabling QoS on interface %s", shaper.interface))
-			local uci	= libuci.cursor()
-			local mptcp	= uci:get("network", shaper.interface, "multipath")
-			local metric	= uci:get("network", shaper.interface, "metric")
+			local uci = libuci.cursor()
+			local mptcp  = uci:get("network", shaper.interface, "multipath")
+			local metric = uci:get("network", shaper.interface, "metric")
 			if mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
 				if metric then
 					local rcode, res = DELETE("qos/"..metric, {})
@@ -777,8 +753,8 @@ function shaper:disableQos()
 			end
 			run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		end
-		shaper.qostimestamp=nil
-		shaper.congestedtimestamp=nil
+		shaper.qostimestamp = nil
+		shaper.congestedtimestamp = nil
 	end
 end
 
@@ -787,27 +763,25 @@ function shaper:sendQosToApi()
 	local mptcp = uci:get("network", shaper.interface, "multipath")
 	if shaper.interface == "tun0" then
 		local commitid = tostring(os.time())
-		uci:foreach("dscp", "classify",
-			function (dscp)
-				if dscp['direction'] == "download" or dscp['direction'] == "both" then
-					if commitid then
-						local rcode, res = POST("dscp/"..commitid, {
-							proto 		= dscp["proto"],
-							src_ip		= dscp["src_ip"],
-							src_port	= dscp["src_port"],
-							dest_ip		= dscp["dest_ip"],
-							dest_port	= dscp["dest_port"],
-							dpi		= dscp["dpi"],
-							class		= dscp["class"]
-						})
-						-- On error, nil commid to kill dscp transaction
-						if tostring(rcode):gmatch("200") == nil then
-							commitid = nil;
-						end
+		uci:foreach("dscp", "classify", function (dscp)
+			if dscp['direction'] == "download" or dscp['direction'] == "both" then
+				if commitid then
+					local rcode, res = POST("dscp/"..commitid, {
+						proto     = dscp["proto"],
+						src_ip    = dscp["src_ip"],
+						src_port  = dscp["src_port"],
+						dest_ip   = dscp["dest_ip"],
+						dest_port = dscp["dest_port"],
+						dpi       = dscp["dpi"],
+						class     = dscp["class"]
+					})
+					-- On error, nil commid to kill dscp transaction
+					if tostring(rcode):gmatch("200") == nil then
+						commitid = nil;
 					end
 				end
 			end
-		)
+		end)
 		if commitid then
 			local rcode, res = POST("dscp/"..commitid.."/commit")
 			if tostring(rcode):gmatch("200") then
@@ -820,11 +794,11 @@ function shaper:sendQosToApi()
 		end
 	elseif mptcp == "on" or mptcp == "master" or mptcp == "backup" or mptcp == "handover" then
 		local rcode, res = PUT("qos", {
-			interface	= shaper.interface,
-			metric		= uci:get("network", shaper.interface, "metric"),
-			wan_ip		= interface.wanaddr or get_public_ip(shaper.interface),
-			downlink	= tostring(shaper.download),
-			uplink		= tostring(shaper.upload)
+			interface = shaper.interface,
+			metric    = uci:get("network", shaper.interface, "metric"),
+			wan_ip    = interface.wanaddr or get_public_ip(shaper.interface),
+			downlink  = tostring(shaper.download),
+			uplink    = tostring(shaper.upload)
 		})
 		if tostring(rcode):gmatch("200") then
 			shaper.qostimestamp = os.time()
@@ -848,11 +822,13 @@ function write_stats()
 	end
 	-- QoS status
 	if shaper then
-		result[interface.name].congestedtimestamp	= shaper.congestedtimestamp
-		result[interface.name].qostimestamp		= shaper.qostimestamp
-		result[interface.name].losttimestamp		= shaper.losttimestamp
-		result[interface.name].upload		= shaper.upload
-		result[interface.name].download		= shaper.download
+		result[interface.name].congestedtimestamp = shaper.congestedtimestamp
+		result[interface.name].qostimestamp       = shaper.qostimestamp
+		result[interface.name].reloadtimestamp    = shaper.reloadtimestamp
+		result[interface.name].losttimestamp      = shaper.losttimestamp
+		result[interface.name].upload             = shaper.upload
+		result[interface.name].download           = shaper.download
+		result[interface.name].qosmode            = shaper.mode
 	end
 	-- write file
 	local file = io.open( string.format("/tmp/tracker/if/%s", interface.name), "w" )
@@ -862,11 +838,9 @@ function write_stats()
 	end
 end
 
---
 -- Main loop
---
-while true do
 
+while true do
 	for i = 1, #servers do
 		local ok, msg = method( servers[i] )
 		if ok then
@@ -882,12 +856,12 @@ while true do
 			-- Update shaper
 			shaper:pushPing(lat)
 			local min = pingstats:min()
-			debug("check: "..servers[i].. " OK " .. lat .. "ms" .. " was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3) .. " (" .. tostring(min) .. " min)")
+			debug("check: "..servers[i].." OK "..lat.."ms".." was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3).." ("..tostring(min).." min)")
 		else
 			lost = lost + 1
 
 			shaper:pushPing(false)
-			debug("check: "..servers[i].." failed was " .. pingstats:getn(-1) .. " " .. pingstats:getn(-2) .. " " .. pingstats:getn(-3))
+			debug("check: "..servers[i].." failed was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3))
 		end
 		write_stats()
 		shaper:update()
@@ -946,13 +920,13 @@ while true do
 
 		if score > nb_up then score = init_score end
 		if score == nb_up then
-			log(string.format("Interface %s (%s) is online", opts["i"],    opts["d"]))
+			log(string.format("Interface %s (%s) is online", opts["i"], opts["d"]))
 			-- exec hotplug iface
 			run(string.format("/usr/sbin/track.sh ifup %s %s", opts["i"], opts["d"]))
 		end
 	end
 
-	host_up_count=0
+	host_up_count = 0
 	-- sleep interval asked
-	p.sleep( opts["v"] )
+	p.sleep(opts["v"])
 end
