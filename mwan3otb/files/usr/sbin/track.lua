@@ -55,7 +55,7 @@ sig.signal(sig.SIGUSR2, function ()
 end)
 
 function create_socket(interface, kind)
-	local s, fd
+	local s, fd, err
 	if kind == "stream" then
 		s = socket.tcp()
 		fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
