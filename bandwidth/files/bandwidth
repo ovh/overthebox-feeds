@@ -40,13 +40,13 @@ arp_populate_iptables()
             continue
         fi
 
-        iptables -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
+        iptables -w -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
         if [ $? -ne 0 ]; then
-            iptables -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
+            iptables -w -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
         fi
-        iptables -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
+        iptables -w -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
         if [ $? -ne 0 ]; then
-            iptables -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
+            iptables -w -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
         fi
     done
 }
@@ -54,8 +54,8 @@ arp_populate_iptables()
 fetch_bytes()
 {
     #Fetches TX/RX by IP
-    iptables -t mangle -vxnL $txname > $tx_tmp
-    iptables -t mangle -vxnL $rxname > $rx_tmp
+    iptables -w -t mangle -vxnL $txname > $tx_tmp
+    iptables -w -t mangle -vxnL $rxname > $rx_tmp
 
     #Replaces IP by MAC, aggregates duplicate MAC into one row (sum of TXs and sum of RXs for that MAC)
     awk -f $awk_fetch \
@@ -73,34 +73,34 @@ case $1 in
     #Prepares the chains in PREROUTING and POSTROUTING
     #Populates it with first found devices on the LAN
     "setup")
-        iptables -t mangle -N $txname 2> /dev/null
-        iptables -t mangle -N $rxname 2> /dev/null
-        iptables -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
+        iptables -w -t mangle -N $txname 2> /dev/null
+        iptables -w -t mangle -N $rxname 2> /dev/null
+        iptables -w -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
         if [ $? -ne 0 ]; then
-            iptables -t mangle -I PREROUTING -i $iif -j $txname
+            iptables -w -t mangle -I PREROUTING -i $iif -j $txname
         fi
-        iptables -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
+        iptables -w -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
         if [ $? -ne 0 ]; then
-            iptables -t mangle -I POSTROUTING -o $iif -j $rxname
+            iptables -w -t mangle -I POSTROUTING -o $iif -j $rxname
         fi
         arp_populate_iptables
         ;;
 
     #Updates iptables with devices currently found on the LAN
     "ipt-update")
-        iptables -t mangle -F $txname
-        iptables -t mangle -F $rxname
+        iptables -w -t mangle -F $txname
+        iptables -w -t mangle -F $rxname
         arp_populate_iptables
         ;;
 
     #Cleans up everything in iptables
     "unsetup")
-        iptables -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
-        iptables -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
-        iptables -t mangle -F $txname 2> /dev/null
-        iptables -t mangle -F $rxname 2> /dev/null
-        iptables -t mangle -X $txname 2> /dev/null
-        iptables -t mangle -X $rxname 2> /dev/null
+        iptables -w -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
+        iptables -w -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
+        iptables -w -t mangle -F $txname 2> /dev/null
+        iptables -w -t mangle -F $rxname 2> /dev/null
+        iptables -w -t mangle -X $txname 2> /dev/null
+        iptables -w -t mangle -X $rxname 2> /dev/null
         rm -f $neigh_tmp
         ;;
 
