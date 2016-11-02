@@ -597,7 +597,9 @@ function bw_stats:collect()
 	local result = handle:read("*a")
 	handle:close()
 	-- store rsult in table
-	bw_stats.values = json.decode("[" .. string.gsub(result, '[\r\n]', '') .. "]")
+	if result then
+		bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
+	end
 	return bw_stats.values
 end
 
@@ -632,8 +634,8 @@ function bw_stats:avgdownload(timestamp)
 			sum = sum + bw_stats.values[index][2]
 			count = count + 1
 		end
-        end
-	if count > 0 then
+	end
+	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
 		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxdownloadvalue = math.max(bw_stats.maxdownloadvalue, value)
 	        return value
@@ -643,39 +645,39 @@ function bw_stats:avgdownload(timestamp)
 end
 
 function bw_stats:avgupload(timestamp)
-    local sum=0
-    local count=0
+	local sum = 0
+	local count = 0
 
-    local mintimestamp
-    local maxtimestamp
-    local minvalue
-    local maxvalue
+	local mintimestamp
+	local maxtimestamp
+	local minvalue
+	local maxvalue
 
-        for index = #bw_stats.values, 1, -1 do
-        if bw_stats.values[index][1] >= timestamp then
-            if mintimestamp == nil then
-                mintimestamp = bw_stats.values[index][1]
-            end
-            if maxtimestamp == nil then
-                maxtimestamp = bw_stats.values[index][1]
-            end
-            mintimestamp = math.min(mintimestamp, bw_stats.values[index][1])
-            maxtimestamp = math.max(maxtimestamp, bw_stats.values[index][1])
-            if minvalue == nil then
-                minvalue = bw_stats.values[index][4]
-            end
-            if maxvalue == nil then
-                maxvalue = bw_stats.values[index][4]
-            end
-            minvalue = math.min(minvalue, bw_stats.values[index][4])
-            maxvalue = math.max(maxvalue, bw_stats.values[index][4])
+	for index = #bw_stats.values, 1, -1 do
+		if bw_stats.values[index][1] >= timestamp then
+			if mintimestamp == nil then
+				mintimestamp = bw_stats.values[index][1]
+			end
+			if maxtimestamp == nil then
+				maxtimestamp = bw_stats.values[index][1]
+			end
+			mintimestamp = math.min(mintimestamp, bw_stats.values[index][1])
+			maxtimestamp = math.max(maxtimestamp, bw_stats.values[index][1])
+			if minvalue == nil then
+				minvalue = bw_stats.values[index][4]
+			end
+			if maxvalue == nil then
+				maxvalue = bw_stats.values[index][4]
+			end
+			minvalue = math.min(minvalue, bw_stats.values[index][4])
+			maxvalue = math.max(maxvalue, bw_stats.values[index][4])
 
-            sum = sum + bw_stats.values[index][4]
-            count = count + 1
-        end
-        end
-    if count > 0 then
-    		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
+			sum = sum + bw_stats.values[index][4]
+			count = count + 1
+		end
+	end
+	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
+		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxuploadvalue = math.max(bw_stats.maxuploadvalue, value)
 		return value
     else
@@ -753,10 +755,12 @@ shaper.congestedtimestamp = nil	-- Time when we detect a link congestion
 function shaper:pushPing(lat)
 	if lat == false then
 		lat = 1000
-		if shaper.losttimestamp == nil then
-			shaper.losttimestamp = os.time()
+		if shaper.interface ~= "tun0" then
+			if shaper.losttimestamp == nil then
+				shaper.losttimestamp = os.time()
+			end
+			bw_stats:collect()
 		end
-		bw_stats:collect()
 	else
 		-- When tun0 started (or is notified about a new tracker), notify all trackers to start their QoS
 		if shaper.interface == "tun0" then
