@@ -482,7 +482,9 @@ function bw_stats:collect()
 	local result = handle:read("*a")
 	handle:close()
 	-- store rsult in table
-	bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
+	if result then
+		bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
+	end
 	return bw_stats.values
 end
 
@@ -518,7 +520,7 @@ function bw_stats:avgdownload(timestamp)
 			count = count + 1
 		end
 	end
-	if count > 0 then
+	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
 		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxdownloadvalue = math.max(bw_stats.maxdownloadvalue, value)
 		return value
@@ -559,7 +561,7 @@ function bw_stats:avgupload(timestamp)
 			count = count + 1
 		end
 	end
-	if count > 0 then
+	if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
 		local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
 		bw_stats.maxuploadvalue = math.max(bw_stats.maxuploadvalue, value)
 		return value
