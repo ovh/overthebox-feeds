@@ -165,7 +165,8 @@ end
 function whois_host(interface, host, ip)
 	local s = create_socket(interface, "stream")
 	if not s then
-		return false, "whois_host: no socket"
+		log("whois_host: no socket");
+		return nil
 	end
 	s:settimeout(5)
 	local ok, err = s:connect(host, "43")
@@ -185,17 +186,35 @@ function whois_host(interface, host, ip)
 			local netname = data:match("[Nn]et[Nn]ame:%s+([%w%.%-]+)")
 			local country = data:match("[Cc]ountry:%s+([%w%.%-]+)")
 			if netname and country then
-				return true, netname, country
+				return {
+					["as_description"] = netname,
+					["as_country_code"] = country
+				}
 			end
 		end
-		return false, "whois_host: failed"
+		log("whois_host: failed")
+		return nil
 	end
 	s:close()
-	return false, "whois_host: "..err
+	log("whois_host: "..err)
+	return nil
 end
 
 function whois(interface, ip)
 	return whois_host(interface, 'whois.iana.org', ip)
+end
+
+function get_asn(interface, ip)
+	local data = {}
+	local status, code, headers = http.request{
+		url = "http://api.iptoasn.com/v1/as/ip/"..ip,
+		create = function() return create_socket(interface, "stream") end,
+		sink = ltn12.sink.table(data)
+	}
+	if status == 1 and code == 200 then
+		return json.decode(table.concat(data))
+	end
+	return whois(interface, ip)
 end
 
 function diff_nsec(t1, t2)
@@ -366,8 +385,12 @@ function updateInterfaceInfos()
 		interface.timestamp = os.time()
 		if interface.wanaddr ~= wanaddr then
 			interface.wanaddr = wanaddr
-			res, interface.whois, interface.country = whois(interface.name, interface.wanaddr)
+			res = get_asn(interface.name, interface.wanaddr)
 			if res then
+				if res.as_description ~= nil then
+					interface.whois = string.match(res.as_description, "[^%s]+")
+				end
+				interface.country = res.as_country_code
 				if interface.whois and interface.country then
 					debug("whois of "..wanaddr.." is "..interface.whois.." and country is "..interface.country)
 				elseif interface.whois then
