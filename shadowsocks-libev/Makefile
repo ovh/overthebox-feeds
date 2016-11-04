@@ -88,6 +88,7 @@ CONFIGURE_ARGS += --disable-documentation
 define Package/shadowsocks-libev/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/ss-{local,redir,tunnel} $(1)/usr/bin
+	$(INSTALL_BIN) ./files/shadowsocks.track $(1)/usr/bin/ss-redir-track
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_CONF) ./files/shadowsocks.conf $(1)/etc/shadowsocks.json
 	$(INSTALL_DIR) $(1)/etc/config
@@ -122,7 +123,6 @@ define Package/shadowsocks-libev-spec/install
 	$(INSTALL_BIN) ./files/shadowsocks.spec $(1)/etc/init.d/shadowsocks
 	$(INSTALL_DIR) $(1)/usr/share/shadowsocks
 	$(INSTALL_DATA) ./files/shadowsocks.include $(1)/usr/share/shadowsocks/firewall.include
-	$(INSTALL_BIN) ./files/shadowsocks.track $(1)/usr/bin/ss-redir-track
 endef
 
 Package/shadowsocks-libev-polarssl/install = $(Package/shadowsocks-libev/install)
