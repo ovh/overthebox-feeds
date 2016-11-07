@@ -1,0 +1,21 @@
+commit 94a8815892f538b334d640012eebcafc2c7fa284
+Author: Martin Wetterwald <martin.wetterwald@corp.ovh.com>
+Date:   Thu Oct 27 12:17:03 2016 +0200
+
+    Consider SERVFAIL as a non-successful response
+
+    See 4ace25c5d6c30949be9171ff1c524b2139b989d3 and 51967f9807665dae403f1497b827165c5fa1084b
+
+diff --git a/src/forward.c b/src/forward.c
+index 9b464d3..33800b5 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -853,7 +853,8 @@ void reply_query(int fd, int family, time_t now)
+      we get a good reply from another server. Kill it when we've
+      had replies from all to avoid filling the forwarding table when
+      everything is broken */
+-  if (forward->forwardall == 0 || --forward->forwardall == 1 || RCODE(header) != REFUSED)
++  if (forward->forwardall == 0 || --forward->forwardall == 1
++          || (RCODE(header) != REFUSED && RCODE(header) != SERVFAIL))
+     {
+       int check_rebind = 0, no_cache_dnssec = 0, cache_secure = 0, bogusanswer = 0;

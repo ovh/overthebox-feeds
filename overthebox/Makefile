@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.4
-PKG_RELEASE:=16
+PKG_RELEASE:=17
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -21,7 +21,7 @@ define Package/overthebox
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=overthebox tool
-	DEPENDS:= +bosun +dnsmasq +glorytun +glorytun-udp +luci-app-overthebox +mptcp +shadowsocks-libev
+	DEPENDS:= +bosun +dnsmasq-full +glorytun +glorytun-udp +luci-app-overthebox +mptcp +shadowsocks-libev
 endef
 
 define Package/overthebox/description
@@ -67,14 +67,14 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-network.defaults ) && rm -f /etc/uci-defaults/otb-network.defaults
         ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
         ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
-        ( . /etc/uci-defaults/otb-power.defaults ) 
+        ( . /etc/uci-defaults/otb-power.defaults ) && rm -f /etc/uci-defaults/otb-power.defaults
         ( . /etc/uci-defaults/otb-recovery.defaults ) 
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
 
-	sysctl -p /etc/sysctl.d/default.conf
+	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
