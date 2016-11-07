@@ -77,7 +77,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
 
-	for file in $(ls /etc/sysctl.d/*.conf); do sysctl -p $file; done
+	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
