@@ -43,6 +43,13 @@
 		input.focus();
 //]]></script>
 
+<%- if luci.sys.process.info("uid") == 0 and luci.sys.user.getuser("root") and not luci.sys.user.getpasswd("root") then -%>
+<!-- Do not ask for a password, if no one is set for root -->
+<script type="text/javascript">//<![CDATA[
+	document.forms[0].submit()
+//]]></script>
+<% end %>
+
 <%
 local uci  = require "luci.model.uci".cursor()
 local fs  = require "nixio.fs"
