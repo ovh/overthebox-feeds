@@ -949,7 +949,7 @@ filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#333333', endC
   padding: 0 5px;
 }
 header div > ul,
-.nav {
+.navigation {
   display: block;
   float: left;
   margin: 0 0px 0 0;
@@ -958,15 +958,15 @@ header div > ul,
   width: 93%;
 }
 header div > ul > li,
-.nav > li {
+.navigation > li {
   display: block;
   float: left;
 }
-.nav > li:last-child {
+.navigation > li:last-child {
   float: right;
 }
 header div > ul a,
-.nav a {
+.navigation a {
   display: block;
   float: none;
   padding: 8px 10px 3px;
@@ -974,77 +974,77 @@ header div > ul a,
   text-decoration: none;
 }
 header div > ul a:hover,
-.nav a:hover {
+.navigation a:hover {
   color: #ffffff;
   text-decoration: none;
 }
 header div > ul .active > a,
-.nav .active > a {
+.navigation .active > a {
   background-color: #3b4151;
   background-color: rgba(0, 0, 0, 0.5);
 }
 header div > ul.secondary-nav,
-.nav.secondary-nav {
+.nav.secondary-navigation {
   float: right;
   margin-left: 10px;
   margin-right: 0;
 }
-header div > ul.secondary-nav .menu-dropdown,
-.nav.secondary-nav .menu-dropdown,
-header div > ul.secondary-nav .dropdown-menu,
-.nav.secondary-nav .dropdown-menu {
+header div > ul.secondary-navigation .menu-dropdown,
+.nav.secondary-navigation .menu-dropdown,
+header div > ul.secondary-navigation .ovh-dropdpwn-menu,
+.nav.secondary-navigation .ovh-dropdpwn-menu {
   right: 0;
   border: 0;
 }
 header div > ul a.menu:hover,
-.nav a.menu:hover,
+.navigation a.menu:hover,
 header div > ul li.open .menu,
-.nav li.open .menu,
+.navigation li.open .menu,
 header div > ul .dropdown-toggle:hover,
-.nav .dropdown-toggle:hover,
+.navigation .dropdown-toggle:hover,
 header div > ul .dropdown.open .dropdown-toggle,
-.nav .dropdown.open .dropdown-toggle {
+.navigation .dropdown.open .dropdown-toggle {
   background: #444;
   background: rgba(255, 255, 255, 0.05);
 }
 header div > ul .menu-dropdown,
-.nav .menu-dropdown,
-header div > ul .dropdown-menu,
-.nav .dropdown-menu {
+.navigation .menu-dropdown,
+header div > ul .ovh-dropdpwn-menu,
+.navigation .ovh-dropdpwn-menu {
   background-color: #3b4151;
 }
 header div > ul .menu-dropdown a.menu,
-.nav .menu-dropdown a.menu,
-header div > ul .dropdown-menu a.menu,
-.nav .dropdown-menu a.menu,
+.navigation .menu-dropdown a.menu,
+header div > ul .ovh-dropdpwn-menu a.menu,
+.navigation .ovh-dropdpwn-menu a.menu,
 header div > ul .menu-dropdown .dropdown-toggle,
-.nav .menu-dropdown .dropdown-toggle,
-header div > ul .dropdown-menu .dropdown-toggle,
-.nav .dropdown-menu .dropdown-toggle {
+.navigation .menu-dropdown .dropdown-toggle,
+header div > ul .ovh-dropdpwn-menu .dropdown-toggle,
+.navigation .ovh-dropdpwn-menu .dropdown-toggle {
   color: #ffffff;
 }
 header div > ul .menu-dropdown a.menu.open,
-.nav .menu-dropdown a.menu.open,
-header div > ul .dropdown-menu a.menu.open,
-.nav .dropdown-menu a.menu.open,
+.navigation .menu-dropdown a.menu.open,
+header div > ul .ovh-dropdpwn-menu a.menu.open,
+.navigation .ovh-dropdpwn-menu a.menu.open,
 header div > ul .menu-dropdown .dropdown-toggle.open,
-.nav .menu-dropdown .dropdown-toggle.open,
-header div > ul .dropdown-menu .dropdown-toggle.open,
-.nav .dropdown-menu .dropdown-toggle.open {
+.navigation .menu-dropdown .dropdown-toggle.open,
+header div > ul .ovh-dropdpwn-menu .dropdown-toggle.open,
+.navigation .ovh-dropdpwn-menu .dropdown-toggle.open {
   background: #444;
   background: rgba(255, 255, 255, 0.05);
 }
 header div > ul .menu-dropdown li a,
-.nav .menu-dropdown li a,
-header div > ul .dropdown-menu li a,
-.nav .dropdown-menu li a {
+.navigation .menu-dropdown li a,
+header div > ul .ovh-dropdpwn-menu li a,
+.navigation .ovh-dropdpwn-menu li a {
   color: #999;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 header div > ul .menu-dropdown li a:hover,
-.nav .menu-dropdown li a:hover,
-header div > ul .dropdown-menu li a:hover,
-.nav .dropdown-menu li a:hover {
+.navigation .menu-dropdown li a:hover,
+header div > ul .ovh-dropdpwn-menu li a:hover,
+.navigation .ovh-dropdpwn-menu li a:hover {
   background-color: #191919;
   background-repeat: repeat-x;
   background-image: -khtml-gradient(linear, left top, left bottom, from(#292929), to(#191919));
@@ -1058,20 +1058,20 @@ header div > ul .dropdown-menu li a:hover,
   color: #ffffff;
 }
 header div > ul .menu-dropdown .active a,
-.nav .menu-dropdown .active a,
-header div > ul .dropdown-menu .active a,
-.nav .dropdown-menu .active a {
+.navigation .menu-dropdown .active a,
+header div > ul .ovh-dropdpwn-menu .active a,
+.navigation .ovh-dropdpwn-menu .active a {
   color: #ffffff;
 }
 header div > ul .menu-dropdown .divider,
-.nav .menu-dropdown .divider,
-header div > ul .dropdown-menu .divider,
-.nav .dropdown-menu .divider {
+.navigation .menu-dropdown .divider,
+header div > ul .ovh-dropdpwn-menu .divider,
+.navigation .ovh-dropdpwn-menu .divider {
   background-color: #222;
   border-color: #444;
 }
 header ul .menu-dropdown li a,
-header ul .dropdown-menu li a {
+header ul .ovh-dropdpwn-menu li a {
   padding: 4px 15px;
 }
 li.menu,
@@ -1094,7 +1094,7 @@ a.menu:after,
   color: white;
 }
 .menu-dropdown,
-.dropdown-menu {
+.ovh-dropdpwn-menu {
   background-color: #ffffff;
   float: left;
   position: absolute;
@@ -1123,21 +1123,21 @@ a.menu:after,
   background-clip: padding-box;
 }
 .menu-dropdown li,
-.dropdown-menu li {
+.ovh-dropdpwn-menu li {
   float: none;
   display: block;
   background-color: none;
 }
 .menu-dropdown .divider,
-.dropdown-menu .divider {
+.ovh-dropdpwn-menu .divider {
   height: 1px;
   margin: 5px 0;
   overflow: hidden;
   background-color: #eee;
   border-bottom: 1px solid #ffffff;
 }
-header .dropdown-menu a,
-.dropdown-menu a {
+header .ovh-dropdpwn-menu a,
+.ovh-dropdpwn-menu a {
   display: block;
   padding: 4px 15px;
   clear: both;
@@ -1146,10 +1146,10 @@ header .dropdown-menu a,
   color: #808080;
   text-shadow: 0 1px 0 #ffffff;
 }
-header .dropdown-menu a:hover,
-.dropdown-menu a:hover,
-header .dropdown-menu a.hover,
-.dropdown-menu a.hover {
+header .ovh-dropdpwn-menu a:hover,
+.ovh-dropdpwn-menu a:hover,
+header .ovh-dropdpwn-menu a.hover,
+.ovh-dropdpwn-menu a.hover {
   background-color: #dddddd;
   background-repeat: repeat-x;
   background-image: -khtml-gradient(linear, left top, left bottom, from(#eeeeee), to(#dddddd));
@@ -1176,18 +1176,18 @@ header .dropdown-menu a.hover,
 }
 .open .menu-dropdown,
 .dropdown.open .menu-dropdown,
-.open .dropdown-menu,
-.dropdown.open .dropdown-menu {
+.open .ovh-dropdpwn-menu,
+.dropdown.open .ovh-dropdpwn-menu {
   left: 0;
 }
-.dropdown:hover ul.dropdown-menu {
+.dropdown:hover ul.ovh-dropdpwn-menu {
   left: 0;
 }
-.dropdown-menu .dropdown-menu {
+.ovh-dropdpwn-menu .ovh-dropdpwn-menu {
   position: absolute;
   left: 159px;
 }
-.dropdown-menu li {
+.ovh-dropdpwn-menu li {
   position: relative;
 }
 .tabs,
@@ -1257,9 +1257,9 @@ header .dropdown-menu a.hover,
   cursor: default;
 }
 .tabs .menu-dropdown,
-.tabs .dropdown-menu,
+.tabs .ovh-dropdpwn-menu,
 .cbi-tabmenu .menu-dropdown,
-.cbi-tabmenu .dropdown-menu {
+.cbi-tabmenu .ovh-dropdpwn-menu {
   top: 35px;
   border-width: 1px;
   -webkit-border-radius: 0 6px 6px 6px;
@@ -2275,6 +2275,11 @@ div.register ol {
   margin-left: 30px;
 }
 
+div.register .btn.btn-mini {
+  padding: 0px;
+  width: 90px;
+}
+
 /* Spinner animation ==> */
 /* <div class="spinner-volume"><div class="volume"></div><div class="volume"></div><div class="volume"></div><div class="volume"></div></div> */
 @keyframes spinner-volume {
@@ -2288,7 +2293,7 @@ div.register ol {
 		transform: scale(1);
 	}
 }
-    
+
 .spinner-volume {
     display: inline-block;
 }

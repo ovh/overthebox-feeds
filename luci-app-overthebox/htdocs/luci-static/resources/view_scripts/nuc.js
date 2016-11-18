@@ -22,6 +22,7 @@
 
     /**
      * Get DHCP status
+<<<<<<< HEAD
      * @param  {Integer} timeout  Lead time to check that DHCP is off
      * @param {Function} callback Callback function
      */
@@ -29,6 +30,13 @@
         var callback = otb.getCallback(arguments);
         var self = this;
         var forceChecking = false;
+=======
+     * @param {Integer}  timeout  Lead time to check that DHCP is off
+     * @param {Function} callback Callback function
+     */
+    Nuc.prototype.dhcpStatus = function (timeout/*callback*/) {
+        var callback = otb.getCallback(arguments);
+>>>>>>> 313b157... Add new register device wizard
         $.ajax({
             url: otb.constants.dhcpStatusURL,
             success: function (data, status) {
@@ -38,6 +46,7 @@
                         var checking = false;
                         Object.keys(data.detected_dhcp_servers).forEach(function (index) {
                             var dhcp = data.detected_dhcp_servers[index];
+<<<<<<< HEAD
                             var lastlease = parseInt(dhcp.timestamp, 10);
                             var lastcheck = parseInt(dhcp.lastcheck, 10);
                             var timestamp = Math.round(Date.now() / 1000) + (self.tsOffset !== undefined ? self.tsOffset : 0);
@@ -48,6 +57,11 @@
                                 self.tsOffset = lastcheck - timestamp;
                             }
 
+=======
+                            var lastlease = parseInt(dhcp.lease, 10);
+                            var lastcheck = parseInt(dhcp.lastcheck, 10);
+                            var timestamp = Math.round(Date.now() / 1000);
+>>>>>>> 313b157... Add new register device wizard
                             if (lastlease && !lastcheck) {
                                 found = true;
                                 return;
@@ -62,6 +76,7 @@
                             }
 
                         });
+<<<<<<< HEAD
 
                         var dhcpStatus = "notFound";
                         if (forceChecking) {
@@ -73,6 +88,13 @@
                             } else if (checking) {
                                 dhcpStatus = "checking";
                             }
+=======
+                        var dhcpStatus = "notFound";
+                        if (found) {
+                            dhcpStatus = "found";
+                        } else if (checking) {
+                            dhcpStatus = "checking";
+>>>>>>> 313b157... Add new register device wizard
                         }
                         callback(false, { status: dhcpStatus });
                     } else {
@@ -89,7 +111,11 @@
 
     /**
      * Activate service
+<<<<<<< HEAD
      * @param   {String} service  Service identifier
+=======
+     * @param {String} service Service identifier
+>>>>>>> 313b157... Add new register device wizard
      * @param {Function} callback Callback function
      */
     Nuc.prototype.activateService = function (service/*, callback*/) {
@@ -113,6 +139,7 @@
      * Check if service need to be activated
      * @param {Function} callback Callback function
      */
+<<<<<<< HEAD
     Nuc.prototype.recievedActivationOrder = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         $.ajax({
@@ -120,6 +147,15 @@
             success: function (data, status) {
                 if (status === "success" && data) {
                     callback(null, data.active);
+=======
+    Nuc.prototype.needActivateService = function (/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        $.ajax({
+            url: otb.constants.needActivateServiceURL,
+            success: function (data, status) {
+                if (status === "success") {
+                    callback(null, data);
+>>>>>>> 313b157... Add new register device wizard
                 } else {
                     callback(status, false);
                 }
@@ -130,6 +166,7 @@
     };
 
     /**
+<<<<<<< HEAD
      * Check if serviceActivation is needed
      * @param {Function} callback Callback function
      * @return {Function} poller stoping function 
@@ -165,6 +202,8 @@
     }
 
     /**
+=======
+>>>>>>> 313b157... Add new register device wizard
      * Get the status of all interfaces
      * @param {Function} callback Callback function
      */
@@ -204,6 +243,7 @@
         });
     };
 
+<<<<<<< HEAD
 
     Nuc.prototype.askServiceActivation = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
@@ -221,6 +261,8 @@
         });
     };
 
+=======
+>>>>>>> 313b157... Add new register device wizard
     /**
      * Get public IP
      * @param {Function} callback Callback function

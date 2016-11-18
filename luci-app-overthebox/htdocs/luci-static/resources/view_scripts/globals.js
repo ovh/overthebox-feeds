@@ -35,10 +35,17 @@
 
     /**
      * Push a message in jqDest
+<<<<<<< HEAD
      * @param {jQuery} jqDest   Destination containers
      * @param {String} type     success|info|warning|error
      * @param {String} html     HTML representation of the message
      * @param {Number} duration duration of the message in seconds. if nothing specified, the message is permanent
+=======
+     * @param [jQuery] jqDest   Destination containers
+     * @param [String] type     success|info|warning|error
+     * @param [String] html     HTML representation of the message
+     * @param [Number] duration duration of the message in seconds. if nothing specified, the message is permanent
+>>>>>>> 313b157... Add new register device wizard
      */
     window.otb.pushMessage = function (jqDest, type, html, duration) {
         if (!otb.isJquery(jqDest)) {
@@ -64,9 +71,15 @@
 
     /**
      * Find the first element in an array with criteria
+<<<<<<< HEAD
      * @param  {Array} list      List to search in
      * @param {Object} predicate criteria
      * @return {Any} Found object or null
+=======
+     * @param [Array]  list      List to search in
+     * @param [Object] predicate criteria
+     * @return [Any] Found object or null
+>>>>>>> 313b157... Add new register device wizard
      */
     window.otb.arrayFind = function (list, predicate) {
         var filtered = (list || []).filter(function (elt) {
@@ -83,7 +96,11 @@
     /**
      * Check if obj is an array
      * @param {Any} Obj Variable to test
+<<<<<<< HEAD
      * @return {Boolean}
+=======
+     * @return Boolean
+>>>>>>> 313b157... Add new register device wizard
      */
     window.otb.isArray = function (obj) {
         return Object.prototype.toString.call(obj) === "[object Array]";
@@ -91,7 +108,11 @@
 
     /**
      * Add/Remove a spinner
+<<<<<<< HEAD
      * @param  {JQuery} jqDest Container for the spinner
+=======
+     * @param {JQuery}  jqDest Container for the spinner
+>>>>>>> 313b157... Add new register device wizard
      * @param {Boolean} enable On/Off
      */
     window.otb.spinner = function (jqDest, enable) {
@@ -143,6 +164,7 @@
         return window.otb;
     };
 
+<<<<<<< HEAD
     /**
      * Get js route
      * @return {String} js route
@@ -169,4 +191,6 @@
      */
     window.otb.noop = function() {};
 
+=======
+>>>>>>> 313b157... Add new register device wizard
 })();

@@ -31,7 +31,11 @@
 
     local function wizard(title, width, height, status, id)
         local arrowLen = height / 3
+<<<<<<< HEAD
         print("<svg class=\""..status.."\" style=\"left:"..wizardStack..";width:"..width.."\" id=\""..id.."\" data-container=\""..id.."Process\">")
+=======
+        print("<svg class=\""..status.."\" style=\"left:"..wizardStack..";width:"..width.."\" id=\""..id.."\">")
+>>>>>>> 313b157... Add new register device wizard
         if (wizardStack == 0) then
             print("<path d=\"M 0 0 L "..(width - arrowLen).." 0 L "..width.." "..(height / 2).." L "..(width - arrowLen).." "..height.." L 0 "..height.." L 0 0\"/>")
             print("<text x=\"10%\" y=\"50%\" class=\"title\">" .. title .. "</text>")
@@ -55,8 +59,11 @@
 <script src="<%=resource%>/view_scripts/globals.js"></script>
 <script src="<%=resource%>/view_scripts/api.js"></script>
 <script src="<%=resource%>/view_scripts/nuc.js"></script>
+<<<<<<< HEAD
 <script src="<%=resource%>/view_scripts/wizard.js"></script>
 <script src="<%=resource%>/view_scripts/translations.js"></script>
+=======
+>>>>>>> 313b157... Add new register device wizard
 <script src="<%=resource%>/view_scripts/overthebox/register_device.js"></script>
 
 <div id="registerWizard" class="register" style="display:none">
@@ -73,7 +80,11 @@
             <p><%:Installez facilement votre OverTheBox en 3 étapes%></p>
             <p><%:Vérifier qu'aucun autre modem ne soit branché à votre modem principal%>.</p>
             <svg version="1.1" class="jsFirstScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
+<<<<<<< HEAD
             <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>.
+=======
+            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%>.</p>
+>>>>>>> 313b157... Add new register device wizard
         </div>
         <div id="connectedMessage">
             <p><%:Installer facilement votre OverTheBox en 3 étapes%></p>
@@ -82,7 +93,11 @@
             <p><%:Votre OverTheBox est associée à un service %><strong id="serviceId"></strong>.</p>
             <p><%:Connectez-vous pour modifier la configuration matérielle%>.</p>
         </div>
+<<<<<<< HEAD
         <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span>.</strong></p>
+=======
+        <p><strong><%:Vous allez être redirigé vers une page d'authentification%>.</strong></p>
+>>>>>>> 313b157... Add new register device wizard
         <button id="registerButton" class="btn btn-primary"><%:S'authentifier%></button>
         <div style="margin-top:20px">
             <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
@@ -105,7 +120,11 @@
         <div id="process">
 
             <!-- Password -->
+<<<<<<< HEAD
             <!--<div id="passwordSetupProcess">
+=======
+            <div id="passwordSetupProcess">
+>>>>>>> 313b157... Add new register device wizard
                 <div class="alert alert-info config">
                     <p><%:Choisissez un mot de passe pour sécuriser l’accès à votre OverTheBox%>.</p>
                     <p><%:Votre mot de passe doit contenir, au minimum, 8 caractères alphanumériques et contenir au moins une majuscule et une minuscule%>.</p>
@@ -128,7 +147,11 @@
                         </div>
                     </div>
                 </div>
+<<<<<<< HEAD
             </div>-->
+=======
+            </div>
+>>>>>>> 313b157... Add new register device wizard
 
             <!-- Link service to Device -->
             <div id="serviceChoiceProcess">
@@ -155,6 +178,7 @@
                         <button id="serviceActivateSubmit" type="submit" class="btn btn-primary"><%:Associer%> <span id="associateServiceSpinner"></span></button>
                     </form>
                     <div id="releaseService">
+<<<<<<< HEAD
                             <p><%:Un appareil est déjà associé à ce service. Il s’agit peut-être de la même OverTheBox si cette dernière a été réinitialisée.
 Souhaitez-vous remplacer la précédente association ?%></p>
                             <button class="btn no" role="button"><%:Annuler%></button>
@@ -171,6 +195,16 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         <p class="progression"><%:Patientez%> <span></span></p>
                         <button id="serviceLinked" role="button" class="btn btn-primary" href="#"><%:Activer Le service%></a>
                     </div>
+=======
+                            <p><%:Ce service est déjà associé à un appareil. Vous devez d'abord le désassocier%>.</p>
+                            <button class="btn btn-primary yes" role="button"><%:Oui%></button>
+                            <button class="btn no" role="button"><%:Non%></button>
+                        </div>
+                </div>
+                <div class="alert alert-info done">
+                    <p class="skip"><%:Votre matériel est déjà lié au service%> <span></span>.</p>
+                    <button id="serviceLinked" role="button" class="btn btn-primary next" href="#"><%:Continuer%></a>
+>>>>>>> 313b157... Add new register device wizard
                 </div>
             </div>
 
@@ -216,8 +250,12 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 <div class="alert alert-info not-ready">
                     <p><%:Si vous souhaitez ajouter une connexion, branchez votre modem supplémentaire selon le schéma, sinon quittez l'assistant.%></p>
                     <p><%:Afin de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
+<<<<<<< HEAD
                     <button id="modemPlugged" role="button" class="btn btn-primary"><%:J'ai  branché mon modem%></button>
                     <a class="btn btn-primary pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
+=======
+                    <a class="btn btn-primary" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
+>>>>>>> 313b157... Add new register device wizard
                 </div>
                 <div class="alert alert-info config">
                     <p><%:Les étapes à suivre pour désactiver le DHCP%>:</p>
@@ -230,19 +268,41 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         <li>
                             <%:Vérifier que votre DHCP est désactivé%><br>
                             <span class="note"><%:Cette opération dure en moyenne 30 secondes.%></span><br>
+<<<<<<< HEAD
                             <button id="additionalDhcpCheck" role="button" class="btn btn-primary jsDhcpCheck">
                                 <%:Vérifier%>
                                 <span class="percent"></span>
+=======
+                            <button id="additionalDhcpCheck" role="button" class="btn btn-primary btn-mini">
+                                <%:Vérifier%>
+>>>>>>> 313b157... Add new register device wizard
                             </button>
                         </li>
                     </ol>
                 </div>
                 <div class="alert alert-info done">
                     <p><%:Le serveur DHCP de votre modem supplémentaire est bien désactivé%>.</p>
+<<<<<<< HEAD
                     <p><%:Afin de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
                     <button id="modemAdd" role="button" class="btn btn-primary"><%:Ajouter un modem%></button>
                     <a class="btn btn-primary pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
                     </ul>
+=======
+                    <p><%:Vous pouvez, maintenant %>:</p>
+                    <ul>
+                        <li>
+                            <%:Utiliser votre réseau%><br>
+                            <a class="btn btn-primary" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
+                        </li>
+                        <li>
+                            <%:Ajouter un autre modem%><br>
+                            <button id="modemAdd" role="button" class="btn btn-primary">
+                                <%:Ajouter un modem%>
+                            </button>
+                        </li>
+                    </ul>
+                    <p><%:Afin de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
+>>>>>>> 313b157... Add new register device wizard
                 </div>
             </div>
 
@@ -282,6 +342,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             dhcpCheckURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_recheck")%>",
             dhcpStatusURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "dhcp_status")%>",
             serviceActivateURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "activate_service")%>",
+<<<<<<< HEAD
             recievedActivationOrderURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "need_activate_service")%>",
             interfaceStatusURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "interfaces_status")%>",
             askServiceActivation: "<%=luci.dispatcher.build_url("overthebox", "me", "askserviceconfirmation")%>"
@@ -293,6 +354,11 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
         otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
         otb.translations.add("register-device@service_not_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:n'a pas pu être associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
+=======
+            needActivateServiceURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "need_activate_service")%>",
+            interfaceStatusURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "interfaces_status")%>"
+        };
+>>>>>>> 313b157... Add new register device wizard
         otb.dhcpCheckDelay = 30;
         otb.dhcpCheckInterval = 2;
 
@@ -302,6 +368,12 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
         /* === Initialize the display === */
         $("#serviceActivateSubmit").prop("disabled", true);
+<<<<<<< HEAD
+=======
+        $("#serviceChoiceProcess").hide();
+        $("#dhcpDesactivateProcess").hide();
+        $("#qosActivateProcess").hide();
+>>>>>>> 313b157... Add new register device wizard
         $("label.serviceList").hide();
         $("p.uniqueService").hide();
         $("div.noService").hide();
@@ -313,13 +385,17 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         $("#requireConnexion").hide();
         $("#releaseService").hide();
         $("#passwordWarning").hide();
+<<<<<<< HEAD
         $("#needActivate").hide();
         $("div.wizard").wizard();
+=======
+>>>>>>> 313b157... Add new register device wizard
 
         otb.connectionScheme($(".jsFirstScheme"));
         $(".jsFirstScheme .jsModem2,.jsFirstScheme .jsModem3,.jsFirstScheme .jsModem4").hide();
         otb.connectionScheme($("#firstModemScheme"));
         $("#firstModemScheme .jsModem2,#firstModemScheme .jsModem3,#firstModemScheme .jsModem4").hide();
+<<<<<<< HEAD
         otb.svgAddClass($("#firstModemScheme .jsModem1"), "to-be-plugged");
         otb.connectionScheme($("#additionalModemScheme"));
         $("#additionalModemScheme .jsModem2,#additionalModemScheme .jsModem3,#additionalModemScheme .jsModem4").hide();
@@ -329,6 +405,36 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 otb.cleanMessages();
             });
         }
+=======
+        otb.svgAddClass($("#firstModemScheme .jsModem1"), "current");
+        otb.connectionScheme($("#additionalModemScheme"));
+        $("#additionalModemScheme .jsModem2,#additionalModemScheme .jsModem3,#additionalModemScheme .jsModem4").hide();
+
+        /**
+        * Activate Service if needed
+        * @param {Function} callback Callback function
+        */
+        otb.activateService = function (/*, callback*/) {
+            var callback = otb.getCallback(arguments);
+            otb.nuc.needActivateService(function (err, data) {
+                if (!err && data) {
+                    if (!data.active) {
+                        otb.nuc.activateService(otb.serviceId, function (err) {
+                            if (err) {
+                                otb.pushMessage($("div#messageContainer"), "error", "<p><%:L'activation de votre service n'a pas abouti%></p>");
+                            }
+                            callback(null, false);
+                        });
+                    } else {
+                        callback(null, true);
+                    }
+                } else {
+                    otb.pushMessage($("div#messageContainer"), "error", "<p><%:L'activation de votre service n'a pas abouti%></p>");
+                    callback(err || "error", data);
+                }
+            });
+        };
+>>>>>>> 313b157... Add new register device wizard
         
         if (otb.serviceId) {
             $("#notConnectedMessage").hide();
@@ -342,8 +448,16 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             window.location.reload();
         });
         
+<<<<<<< HEAD
         // bind all "next" buttons
         $(".next").click(next);
+=======
+        $(".next").click(function() {
+            otb.wizardNext($("div.wizard"), function() {
+                $("div#messageContainer").html("");
+            });
+        });
+>>>>>>> 313b157... Add new register device wizard
 
         /* === Register to OVH === */
         $("#registerButton").click(function() {
@@ -395,7 +509,11 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             // if password is set, skip this wizard step
             if (otb.hasPassword) {
                 otb.wizardNext($("div.wizard"), function() {
+<<<<<<< HEAD
                     otb.cleanMessages();
+=======
+                    $("div#messageContainer").html("");
+>>>>>>> 313b157... Add new register device wizard
                 });
             }
 
@@ -442,12 +560,20 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             /**
             Submit password here and then 
                     otb.wizardNext($("div.wizard"), function() {
+<<<<<<< HEAD
                         otb.cleanMessages();
+=======
+                        $("div#messageContainer").html("");
+>>>>>>> 313b157... Add new register device wizard
                     });
             To go to next step
             */
        /*     otb.wizardNext($("div.wizard"), function() {
+<<<<<<< HEAD
                 otb.cleanMessages();
+=======
+                $("div#messageContainer").html("");
+>>>>>>> 313b157... Add new register device wizard
             });
         });*/
 
@@ -457,10 +583,15 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
         /* === Attach wizzard events === */
         $("#serviceActivateSubmit").prop("disabled", true);
+<<<<<<< HEAD
         var servicePoller = otb.noop;
         var activateServicePoller = otb.noop;
 
         $("div.wizard").wizard("attachEvent", "serviceChoice", "start", function() {
+=======
+        var servicePoller;
+        otb.wizardAttachEvent($("#serviceChoice"), "start", function () {
+>>>>>>> 313b157... Add new register device wizard
             otb.spinner($("#getServicesSpinner"), true);
             servicePoller = otb.api.startPoller({
                 delay: 5,
@@ -494,8 +625,12 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     });
                 }
             });
+<<<<<<< HEAD
         }).wizard("attachEvent", "serviceChoice" ,"stop", function() {
             activateServicePoller();
+=======
+        }).wizardAttachEvent($("#serviceChoice"), "stop", function () {
+>>>>>>> 313b157... Add new register device wizard
             servicePoller();
         });
 
@@ -510,32 +645,58 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
             if (!otb.tmpService.device || !otb.tmpService.device.deviceId) {
                 // service is available
+<<<<<<< HEAD
                 otb.attachService(serviceId, function (err) {
                     if (err) {
                         $("#serviceActivateSubmit").prop("disabled", false);
                     } else {
                         activateServicePoller();
                         activateServicePoller = window.otb.gotoServiceActivation(next);
+=======
+                otb.api.linkOtbDevice(serviceId, otb.deviceId, function (err) {
+                    $("#serviceActivateSubmit").prop("disabled", false);
+                    $("select#serviceList").prop("disabled", false);
+                    otb.spinner($("#associateServiceSpinner"), false);
+                    var name = otb.tmpService.customerDescription || otb.tmpService.serviceName;
+                    if (!err) {
+                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Le service OTB%> <strong>" + name + "</strong> <%:a bien été associé à votre OverTheBox%> <strong>" + otb.deviceId + "</strong></p>");
+                        $("div#serviceChoiceProcess .config").hide();
+                        $("div#serviceChoiceProcess .done").show();
+                        otb.serviceId = serviceId;
+                    } else {
+                        otb.pushMessage($("div#messageContainer"), "error", "<p><%:Le service OTB%> <strong>" + name + "</strong> <%:n'a pas pu être associé à votre OverTheBox%> <strong>" + otb.deviceId + "</strong></p>");
+>>>>>>> 313b157... Add new register device wizard
                     }
                 });
             } else {
                 // service must be unlinked first
                 $("#releaseService").show();
+<<<<<<< HEAD
                 $("#serviceActivateSubmit").hide();
+=======
+>>>>>>> 313b157... Add new register device wizard
             }
             
         });
 
+<<<<<<< HEAD
         // Service not available => cancel
+=======
+>>>>>>> 313b157... Add new register device wizard
         $("#releaseService button.no").click(function () {
             otb.spinner($("#associateServiceSpinner"), false);
             $("#serviceActivateSubmit").prop("disabled", false);
             $("select#serviceList").prop("disabled", false);
             $("#releaseService").hide();
+<<<<<<< HEAD
             $("#serviceActivateSubmit").show();
         });
 
         // Service not available => proceed
+=======
+        });
+
+>>>>>>> 313b157... Add new register device wizard
         $("#releaseService button.yes").click(function () {
             $("#releaseService button.no").prop("disabled", true);
             $("#releaseService button.yes").prop("disabled", true);
@@ -543,6 +704,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 if (!err) {
                     delete otb.tmpService.device;
                     $("select#serviceList option:selected").text((otb.tmpService.customerDescription || otb.tmpService.serviceName))
+<<<<<<< HEAD
                     var serviceId = $("#activateServiceForm").find("[name=serviceSelected]").first().val();
                     otb.tmpService = otb.arrayFind(otb.services, {serviceName: serviceId});
                     if (!otb.tmpService.device || !otb.tmpService.device.deviceId) {
@@ -578,10 +740,31 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         });
 
 
+=======
+                }
+                otb.spinner($("#associateServiceSpinner"), false);
+                $("#releaseService").hide();
+                $("#serviceActivateSubmit").prop("disabled", false);
+                $("#releaseService button.no").prop("disabled", false);
+                $("#releaseService button.yes").prop("disabled", false);
+                $("select#serviceList").prop("disabled", false);
+            });
+        });
+
+        $("#serviceLinked").click(function() {
+            otb.nuc.activateService(otb.deviceId, function(err) {
+                if (err) {
+                    otb.pushMessage($("div#messageContainer"), "error", "<p><%:L'activation de votre service n'a pas abouti%></p>");
+                }
+            });
+        });
+
+>>>>>>> 313b157... Add new register device wizard
         /* ======================== */
         /* == First modem Config == */
         /* ======================== */
 
+<<<<<<< HEAD
         $("#gotoAdditionalModem").hide();
         $("#testPublicIp").click(function() {
             $("#testPublicIp").prop("disabled", true);
@@ -595,11 +778,23 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
                 } else {
                     otb.pushMessage($("div#messageContainer"), "error", "<p><%:Veuillez déconnecter et reconnecter votre ordinateur au réseau%></p>");
+=======
+
+        $("#gotoAdditionalModem").hide();
+        $("#testPublicIp").click(function() {
+            $("#testPublicIp").prop("disabled", true);
+            otb.nuc.getPublicIp(function (err, ip) {
+                if (!err) {
+                    $("#gotoAdditionalModem").show();
+                    $("#testPublicIp").hide();
+                    otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
+>>>>>>> 313b157... Add new register device wizard
                 }
                 $("#testPublicIp").prop("disabled", false)
             });
         });
 
+<<<<<<< HEAD
         var waitForModem = otb.noop;
         var searchDhcp = otb.noop;
         $("div.wizard").wizard("attachEvent", "dhcpDesactivate", "start", function() {
@@ -626,10 +821,38 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         }).wizard("attachEvent", "dhcpDesactivate", "stop", function() {
             waitForModem();
             searchDhcp();
+=======
+        var waitForModem;
+        otb.wizardAttachEvent($("#dhcpDesactivate"), "start", function () {
+            $("div#dhcpDesactivateProcess .config").hide();
+            $("div#dhcpDesactivateProcess .done").hide();
+
+            // Check that almost one modem is connected
+            waitForModem = otb.api.startPoller({
+                caller: function (callback) {
+                    otb.nuc.connectedModems(function(err, modems) {
+                        if ((!err) && (otb.isArray(modems)) && (modems.length > 0)) {
+                            waitForModem();
+                            $("div#dhcpDesactivateProcess .config").show();
+                            $("div#dhcpDesactivateProcess .not-ready").hide();
+                        } else {
+                            $("div#dhcpDesactivateProcess .config").hide();
+                            $("div#dhcpDesactivateProcess .not-ready").show();
+                        }
+                        callback();
+                    });
+                },
+                delay: 5
+            });
+
+        }).wizardAttachEvent($("#dhcpDesactivate"), "stop", function () {
+            waitForModem();
+>>>>>>> 313b157... Add new register device wizard
         });
 
         var dhcpMainCheckButton = $("div#dhcpDesactivateProcess .jsDhcpCheck");
         dhcpMainCheckButton.click(function () {
+<<<<<<< HEAD
             otb.cleanMessages();
             searchDhcp();
             dhcpMainCheckButton.prop("disabled", true);
@@ -653,6 +876,58 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         dhcpMainCheckButton.find("span.percent").text("");
                         otb.setRoute("ip-check");
                 }
+=======
+            dhcpMainCheckButton.prop("disabled", true);
+            // Force request DHCP lease
+            otb.nuc.dhcpCheck(function(err) {
+                if (err) {
+                    dhcpMainCheckButton.prop("disabled", false);
+                    otb.pushMessage($("div#messageContainer"), "error", "<p><%:Le DHCP de votre modem est toujours actif%></p>");
+                    callback();
+                    return;
+                }
+                var counter = 0;
+                // check status of DHCP lease
+                var poller = otb.api.startPoller({
+                    delay: otb.dhcpCheckInterval,
+                    caller: function (callback) {
+                        otb.nuc.dhcpStatus(otb.dhcpCheckDelay, function (err, dhcp) {
+                            if (!err) {
+                                switch (dhcp.status) {
+                                    case "found":
+                                        // Stop polling
+                                        poller();
+                                        dhcpMainCheckButton.prop("disabled", false);
+                                        otb.pushMessage($("div#messageContainer"), "error", "<p><%:Le DHCP de votre modem est toujours actif%></p>");
+                                        break;
+                                    case "notFound":
+                                        // Stop polling
+                                        poller();
+                                        dhcpMainCheckButton.prop("disabled", false);
+                                        $("div#dhcpDesactivateProcess .config").hide();
+                                        $("#gotoAdditionalModem").prop("disabled", true);
+                                        $("div#dhcpDesactivateProcess .done").show();
+                                        $("#gotoAdditionalModem").prop("disabled", false);
+
+                                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Le DHCP de votre modem est désactivé%></p>");
+                                        break;
+                                    default: //checking
+                                        var steps = Math.ceil(otb.dhcpCheckDelay / otb.dhcpCheckInterval);
+                                        if (counter > steps + 1) {
+                                            dhcpMainCheckButton.find("span.percent").text("");
+                                            dhcpMainCheckButton.prop("disabled", false);
+                                            poller();
+                                        } else {
+                                            dhcpMainCheckButton.find("span.percent").text(Math.round((counter++) * 100 / steps) + "%");
+                                        }
+                                        break;
+                                }
+                            }
+                            callback();
+                        });
+                    }
+                });
+>>>>>>> 313b157... Add new register device wizard
             });
         });
 
@@ -660,6 +935,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* == Additional modem Config == */
         /* ============================= */
 
+<<<<<<< HEAD
         $("div.wizard").wizard("attachEvent", "dhcpDesactivateMore", "start", function() {
             $("div#dhcpDesactivateMoreProcess .config").hide();
             $("div#dhcpDesactivateMoreProcess .done").hide();
@@ -743,6 +1019,103 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             $("div.wizard").wizard("goto", "dhcpDesactivateMore", function() {
                 otb.cleanMessages();
             });
+=======
+        //var additionalModemPoller;
+        otb.wizardAttachEvent($("#dhcpDesactivateMore"), "start", function () {
+            $("div#dhcpDesactivateMoreProcess .config").hide();
+
+            // Check that almost two modems are connected
+            waitForModem = otb.api.startPoller({
+                delay: 5,
+                caller: function (callback) {
+                    otb.nuc.connectedModems(function(err, modems) {
+                        if ((!err) && (otb.isArray(modems)) && (modems.length > 1)) {
+                            waitForModem();
+                            $("div#dhcpDesactivateMoreProcess .config").show();
+                            $("div#dhcpDesactivateMoreProcess .not-ready").hide();
+                        } else {
+                            $("div#dhcpDesactivateMoreProcess .config").hide();
+                            $("div#dhcpDesactivateMoreProcess .not-ready").show();
+                        }
+                        for (var i = 1; i<=4; i++) {
+                            if (i <= (otb.isArray(modems) ? modems.length + 1 : 2)) {
+                                $("#additionalModemScheme .jsModem" + i).show();
+                            } else {
+                                $("#additionalModemScheme .jsModem" + i).hide();
+                            }
+                            if ((i === (otb.isArray(modems) ? modems.length + 1 : 2))) {
+                                otb.svgAddClass($("#additionalModemScheme .jsModem" + i), "current");
+                            } else {
+                                otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "current");
+                            }
+                        }
+                        
+                        callback();
+                    });
+                }
+            });
+
+        }).wizardAttachEvent($("#dhcpDesactivateMore"), "stop", function () {
+            waitForModem();
+        });
+
+        var dhcpAdditionalCheckButton = $("div#dhcpDesactivateMoreProcess .jsDhcpCheck");
+        dhcpAdditionalCheckButton.click(function () {
+            dhcpAdditionalCheckButton.prop("disabled", true);
+            // Force request DHCP lease
+            otb.nuc.dhcpCheck(function(err) {
+                if (err) {
+                    dhcpMainCheckButton.prop("disabled", false);
+                    otb.pushMessage($("div#messageContainer"), "error", "<p><%:Le DHCP de votre modem est toujours actif%></p>");
+                    callback();
+                    return;
+                }
+                var counter = 0;
+                // check status of DHCP lease
+                var poller = otb.api.startPoller({
+                    delay: otb.dhcpCheckInterval,
+                    caller: function (callback) {
+                        otb.nuc.dhcpStatus(otb.dhcpCheckDelay, function (err, dhcp) {
+                            if (!err) {
+                                switch (dhcp) {
+                                    case "found":
+                                        // Stop polling
+                                        poller();
+                                        dhcpAdditionalCheckButton.prop("disabled", false);
+                                        otb.pushMessage($("div#messageContainer"), "error", "<p><%:Le DHCP de votre modem est toujours actif%></p>");
+                                        break;
+                                    case "notFound":
+                                        // Stop polling
+                                        poller();
+                                        dhcpAdditionalCheckButton.prop("disabled", false);
+                                        $("div#dhcpDesactivateMoreProcess .config").hide();
+                                        $("#gotoAdditionalModem").prop("disabled", true);
+                                        $("div#dhcpDesactivateMoreProcess .done").show();
+                                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Le DHCP de votre modem est désactivé%></p>");
+                                        break;
+                                    default: //checking
+                                        var steps = Math.ceil(otb.dhcpCheckDelay / otb.dhcpCheckInterval);
+                                        if (counter > steps + 1) {
+                                            dhcpAdditionalCheckButton.find("span.percent").text("");
+                                            dhcpAdditionalCheckButton.prop("disabled", false);
+                                            poller();
+                                        } else {
+                                            dhcpAdditionalCheckButton.find("span.percent").text(Math.round((counter++) * 100 / steps) + "%");
+                                        }
+                                        break;
+                                }
+                            }
+                            callback();
+                        });
+                    }
+                });
+            });
+        });
+
+        $("#modemAdd").click(function () {
+            $("div#dhcpDesactivateMoreProcess .config").show();
+            $("div#dhcpDesactivateMoreProcess .done").hide();
+>>>>>>> 313b157... Add new register device wizard
         });
 
         /* ============ */
@@ -750,6 +1123,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* ============ */
 
         /* === Start wizard === */
+<<<<<<< HEAD
         var targetWizard = window.location.hash.replace(/^#/, "");
         if ($("div.wizard").wizard("has", targetWizard)) {
             $("div.wizard").wizard("goto", targetWizard, function() {
@@ -769,6 +1143,26 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 if ($("div.wizard").wizard("has", targetWizard) && targetWizard !== currentWizard) {
                     $("div.wizard").wizard("goto", targetWizard, function() {
                         otb.cleanMessages();
+=======
+        if (otb.wizardHas($("div.wizard"), window.location.hash.replace(/^#/, ""))) {
+            otb.wizardGoto($(window.location.hash), function() {
+                $("div#messageContainer").html("");
+            });
+        } else {
+            otb.wizardGoto($("#serviceChoice"), function() {
+                $("div#messageContainer").html("");
+            });
+        }
+        var hash = window.location.hash;
+        setInterval(function(){
+            if (window.location.hash != hash) {
+                hash = window.location.hash;
+                var currentWizard = $("div.wizard").find("svg.ongoing").first().attr("id");
+                var targetWizard = hash.replace(/^#/, "");
+                if (otb.wizardHas($("div.wizard"), targetWizard) && targetWizard !== currentWizard) {
+                    otb.wizardGoto($(hash), function() {
+                        $("div#messageContainer").html("");
+>>>>>>> 313b157... Add new register device wizard
                     });
                 }
             }

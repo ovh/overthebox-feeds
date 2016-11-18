@@ -23,6 +23,7 @@ local json      = require("luci.json")
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
+	-- main menu entry
 	entry({"admin", "overthebox"}, firstchild(), _("OverTheBox"), 19).index = true
 	-- submenu entries
 	entry({"admin", "overthebox", "overview"}, template("overthebox/index"), _("Overview"), 1).leaf = true
