@@ -79,9 +79,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
 
-	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq enable ;
-	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
-
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
 
