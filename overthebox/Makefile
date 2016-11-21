@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.4
-PKG_RELEASE:=19
+PKG_RELEASE:=20
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -78,9 +78,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
-
-	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq enable ;
-	[ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq restart ;
 
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
