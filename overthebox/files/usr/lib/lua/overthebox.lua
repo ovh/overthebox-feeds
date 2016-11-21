@@ -838,6 +838,8 @@ local pkgs = {
     ["shadowsocks-libev"]='2.4.5-5',
     ["luci-theme-ovh"]='v0.1-3',
     ["dnsmasq-full"]='2.75-8',
+    -- We do not want dnsmasq to fight with dnsmasq-full
+    ["dnsmasq"]='remove',
     ["mptcp"]='1.0.0-6',
     ["netifd"]='2015-08-25-58',
     ["mwan3otb"]='1.7-22',
@@ -859,6 +861,32 @@ local pkgs = {
     ['luci-app-qos']='remove',
     ['qos-scripts']='remove'
 }
+
+local services = {
+    ["dnsmasq"]='enable'
+}
+
+
+function ensure_service_state(service, status)
+    local initd = "/etc/init.d/" .. service
+    local ret, rcode = run(initd .. " enabled")
+    if not status_code_ok(rcode) and status == "enable" then
+        ret = service .. " needs to be enabled because it isn't yet. Enabling and restarting..."
+        local ret_initd, rcode = run(initd .. " enable; " .. initd .. " restart")
+        ret = ret_initd .. "\n" .. ret
+        return status_code_ok(rcode), ret
+    end
+
+    if status_code_ok(rcode) and status == "disable" then
+        ret = service .. " needs to be disabled because it isn't yet. Disabling and stopping..."
+        local ret_initd, rcode = run(initd .. " disable; " .. initd .. " stop")
+        ret = ret_initd .. "\n" .. ret
+        return status_code_ok(rcode), ret
+    end
+
+    return true, "We didn't need to change " .. service .. " state as it's already as expected"
+end
+
 
 -- function upgrade check if all package asked are up to date
 function upgrade()
@@ -904,6 +932,11 @@ function upgrade()
 		ret = ret .. "install "..pkg.."\n" ..  r .."\n"
 	    end
 	end
+    end
+
+    for service, status in pairs(services) do
+        local c, r = ensure_service_state(service, status)
+        ret = ret .. r .. "\n"
     end
 
     return retcode, ret
