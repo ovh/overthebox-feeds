@@ -47,29 +47,27 @@ function index()
 	entry({"admin", "overthebox", "activate_service"}, call("action_activate")).leaf = true
 	entry({"admin", "overthebox", "need_activate_service"},  call("need_activate")).leaf = true
 	entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
-	entry({"admin", "overthebox", "passwd"}, post("action_passwd(")).leaf = true
+	entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
 	entry({"admin", "overthebox", "update_conf"}, call("action_update_conf")).leaf = true
 end
-
-function action_passwd(args)
+	
+function action_passwd()
 	local result = {}
 	result["status"] = false
-	if args then
-		local p1 = args.p1
-		local p2 = args.p2
-		if p1 or p2 then
-			if p1 == p2 then
-				result["rcode"] = luci.sys.user.setpasswd("root", p1)
-				result["status"] = (result["rcode"] ~= nil and result["rcode"] == 0)
-				if result["status"] then
-					result["error"] = false
-				else
-					result["error"] = "Internal error"
-				end
+	local p1 = luci.http.formvalue("p1")
+	local p2 = luci.http.formvalue("p2")
+	if p1 and p2 then
+		if p1 == p2 then
+			result["rcode"] = luci.sys.user.setpasswd("root", p1)
+			result["status"] = (result["rcode"] ~= nil and result["rcode"] == 0)
+			if result["status"] then
+				result["error"] = false
 			else
-				result["status"] = false
-				result["error"] = "passwords are not the same"
+				result["error"] = "Internal error"
 			end
+		else
+			result["status"] = false
+			result["error"] = "passwords are not the same"
 		end
 	else
 		result["error"] = "missing arguments"
