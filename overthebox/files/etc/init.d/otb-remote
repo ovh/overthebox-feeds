@@ -64,6 +64,17 @@ validate_section() {
 		'server_public_key:string'
 }
 
+add_remote_public_key() {
+    if [  -f $authkeys ]; then
+        # Add LF if last character is not LF
+        last=$(tail -c 1 $authkeys)
+        if [ "$last" != "" ]; then
+            echo >> $authkeys
+        fi
+    fi
+    echo "$remote_public_key" >> $authkeys
+}
+
 start_instance() {
     local s="${1}"
     validate_section "${1}" || {
@@ -83,14 +94,14 @@ start_instance() {
     grep -q -s /etc/dropbear /proc/mounts || mount_ssh_dir
     [ ! -e "$sshkey" ] && return
 
+    # We check if we need to add the key to the authorized keys file
     if [ -n "$remote_public_key" ]; then
-        if ! grep -q "$remote_public_key" $authkeys 2> /dev/null ; then
-            # Add LF if last character is not LF
-            last=$(tail -c 1 $authkeys)
-            if [ "$last" != "" ]; then
-                echo >> $authkeys
-            fi
-            echo "$remote_public_key" >> $authkeys
+        # If the file doesn't exist, add the key
+        if [ ! -f $authkeys ]; then
+            add_remote_public_key
+        # If the file exists, but the key is not in it, add it
+        elif ! grep -q "$remote_public_key" $authkeys; then
+            add_remote_public_key
         fi
     fi
 
