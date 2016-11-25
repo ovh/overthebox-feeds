@@ -67,8 +67,12 @@ then
 	echo lan not found
 	ZLAN=$(add_uci_section zone name=lan)
 fi
-update_uci_section $ZLAN network='lan if0' input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
-
+update_uci_section $ZLAN input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
+for zone in "lan" "if0";
+do
+	uci del_list $ZLAN.network=$zone
+	uci add_list $ZLAN.network=$zone
+done
 
 ZWAN=$(search_uci_section zone name=wan)
 if [ -z "$ZWAN" ]
