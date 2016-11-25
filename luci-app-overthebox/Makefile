@@ -9,6 +9,9 @@ include $(TOPDIR)/rules.mk
 LUCI_TITLE:=LuCI Support for the OverTheBox project
 LUCI_DEPENDS:=+luci-app-mwan3otb +bandwidth
 
+PKG_VERSION:=v1.0
+PKG_RELEASE:=1
+
 include ../luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
