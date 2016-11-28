@@ -457,7 +457,7 @@ local diags = {
 	ifconfig = { cmd = 'ifconfig'},
 	df = { cmd = 'df'},
 	netstat = { cmd = 'netstat -natupe'},
-	lsof_network = { cmd = 'lsof -i'},
+	lsof_network = { cmd = 'lsof -i -n'},
 	dig = { cmd = 'dig {{domain}} @{{server}}', default = { domain = 'www.ovh.com', server = '127.0.0.1' }},
 	mtr = { cmd = 'mtr -rn -c {{count}} {{host}}', default = { host = 'www.ovh.com', count = 2 }},
 	iptables_save = { cmd = 'iptables-save'},
@@ -466,6 +466,7 @@ local diags = {
 	tc = { cmd = 'tc qdisc show' },
 	ping = { cmd = 'ping -c {{count}} {{ip}}', default = { ip = '213.186.33.99', count = 2 }},
 	dmidecode = { cmd = 'dmidecode -s baseboard-serial-number' },
+	uptime = { cmd = 'uptime' },
 }
 
 function send_diagnostic(id, info)
