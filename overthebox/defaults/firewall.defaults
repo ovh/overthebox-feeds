@@ -67,8 +67,16 @@ then
 	echo lan not found
 	ZLAN=$(add_uci_section zone name=lan)
 fi
-update_uci_section $ZLAN network='lan if0' input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
-
+update_uci_section $ZLAN input=ACCEPT output=ACCEPT forward=ACCEPT masq=0
+for zone in "lan" "if0";
+do
+	uci del_list $ZLAN.network=$zone
+	uci add_list $ZLAN.network=$zone
+done
+# Remove old style list entry like "'if0 lan'"
+uci get $ZLAN.network | grep -Po "'.*?'" | while read -r line ; do
+	echo "del_list $ZLAN.network=$line" | uci batch
+done
 
 ZWAN=$(search_uci_section zone name=wan)
 if [ -z "$ZWAN" ]
@@ -82,7 +90,10 @@ do
 	uci del_list $ZWAN.network=$zone
 	uci add_list $ZWAN.network=$zone
 done
-uci del_list $ZWAN.network='tun0 if6rd'
+# Remove old style list entry like "'xtun0 tun0 if6rd'"
+uci get $ZWAN.network | grep -Po "'.*?'" | while read -r line ; do
+	echo "uci del_list $ZWAN.network=$line" | uci batch
+done
 
 ZIPV6=$(search_uci_section zone name=ipv6)
 if [ -z "$ZIPV6" ]
