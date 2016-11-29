@@ -22,11 +22,13 @@
 
     /**
      * Get DHCP status
-     * @param {Integer}  timeout  Lead time to check that DHCP is off
+     * @param  {Integer} timeout  Lead time to check that DHCP is off
      * @param {Function} callback Callback function
      */
-    Nuc.prototype.dhcpStatus = function (timeout/*callback*/) {
+    Nuc.prototype.dhcpStatus = function (timeout /*, callback*/) {
         var callback = otb.getCallback(arguments);
+        var self = this;
+        var forceChecking = false;
         $.ajax({
             url: otb.constants.dhcpStatusURL,
             success: function (data, status) {
@@ -36,9 +38,16 @@
                         var checking = false;
                         Object.keys(data.detected_dhcp_servers).forEach(function (index) {
                             var dhcp = data.detected_dhcp_servers[index];
-                            var lastlease = parseInt(dhcp.lease, 10);
+                            var lastlease = parseInt(dhcp.timestamp, 10);
                             var lastcheck = parseInt(dhcp.lastcheck, 10);
-                            var timestamp = Math.round(Date.now() / 1000);
+                            var timestamp = Math.round(Date.now() / 1000) + (self.tsOffset !== undefined ? self.tsOffset : 0);
+                            //var leaseDuring = parseInt(dhcp.lease, 10);
+                            if (self.tsOffset === undefined) {
+                                forceChecking = true;
+                                // compute timestamp offset between client and server
+                                self.tsOffset = lastcheck - timestamp;
+                            }
+
                             if (lastlease && !lastcheck) {
                                 found = true;
                                 return;
@@ -53,11 +62,17 @@
                             }
 
                         });
+
                         var dhcpStatus = "notFound";
-                        if (found) {
-                            dhcpStatus = "found";
-                        } else if (checking) {
+                        if (forceChecking) {
+                            // this was a first call, we had to adjust timestamps between server and client
                             dhcpStatus = "checking";
+                        } else {
+                            if (found) {
+                                dhcpStatus = "found";
+                            } else if (checking) {
+                                dhcpStatus = "checking";
+                            }
                         }
                         callback(false, { status: dhcpStatus });
                     } else {
@@ -74,7 +89,7 @@
 
     /**
      * Activate service
-     * @param {String} service Service identifier
+     * @param   {String} service  Service identifier
      * @param {Function} callback Callback function
      */
     Nuc.prototype.activateService = function (service/*, callback*/) {
@@ -98,13 +113,13 @@
      * Check if service need to be activated
      * @param {Function} callback Callback function
      */
-    Nuc.prototype.needActivateService = function (/*callback*/) {
+    Nuc.prototype.recievedActivationOrder = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         $.ajax({
-            url: otb.constants.needActivateServiceURL,
+            url: otb.constants.recievedActivationOrderURL,
             success: function (data, status) {
-                if (status === "success") {
-                    callback(null, data);
+                if (status === "success" && data) {
+                    callback(null, data.active);
                 } else {
                     callback(status, false);
                 }
@@ -113,6 +128,41 @@
             callback(err, data);
         });
     };
+
+    /**
+     * Check if serviceActivation is needed
+     * @param {Function} callback Callback function
+     * @return {Function} poller stoping function 
+     */
+    Nuc.prototype.needServiceActivation = function(/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        var counter = 0
+        var poller = otb.api.startPoller({
+            delay: 2,
+            caller: function (cb) {
+                if (counter > 15) {
+                    poller();
+                    callback(null, {status: "done", needActivation: false});
+                } else {
+                    otb.nuc.recievedActivationOrder(function(err, status) {
+                        if (!err && status === false) {
+                            poller();
+                            callback(null, {status: "done", needActivation: true});
+                        } else {
+                            callback(null, {status: "pending", progress: Math.round(100*counter/15)});
+                        }
+                        cb();
+                    });
+                }
+                counter++;
+            }
+        });
+        callback(null, {status: "pending", progress: 0});
+
+        return function() {
+            poller();
+        }
+    }
 
     /**
      * Get the status of all interfaces
@@ -142,6 +192,23 @@
         var callback = otb.getCallback(arguments);
         $.ajax({
             url: otb.constants.interfaceStatusURL,
+            success: function (data, status) {
+                if ((status === "success") && (data.wans)) {
+                    callback(null, data.wans);
+                } else {
+                    callback(status, false);
+                }
+            }
+        }).fail(function (event, err, data) {
+            callback(err, data);
+        });
+    };
+
+
+    Nuc.prototype.askServiceActivation = function (/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        $.ajax({
+            url: otb.constants.askServiceActivation,
             success: function (data, status) {
                 if ((status === "success") && (data.wans)) {
                     callback(null, data.wans);

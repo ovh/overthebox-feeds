@@ -6,23 +6,6 @@
         window.otb = new Object();
     }
 
-    window.otb.wizardCallbacks = {};
-
-    /**
-     * Check if a wizard has an id
-     * @param {JQuery} jqWizard Wizard
-     * @param {String} id       Identifier
-     */
-    window.otb.wizardHas = function (jqWizard, id) {
-        if (!id) {
-            return false;
-        }
-        if (!otb.isJquery(jqWizard)) {
-            return false;
-        }
-        return !!jqWizard.has("#" + id).length;
-    };
-
     /**
      * Append a connection picture to jqDest
      * @param {JQuery} jqDest Target of the pic
@@ -36,98 +19,8 @@
     };
 
     /**
-     * Goto a wizard step
-     * @param {JQuery} jqWizardStep Step to activate
-     */
-    window.otb.wizardGoto = function (jqWizardStep/*, callback*/) {
-        var callback = otb.getCallback(arguments);
-        if (!otb.isJquery(jqWizardStep)) {
-            callback();
-            return window.otb;
-        }
-        var elt = jqWizardStep.get(0);
-        var events = otb.arrayFind(window.otb.wizard, { dom: elt });
-        var parent  = $(elt).parent();
-        var id = elt.id;
-        window.location.hash = id;
-        var currentStatus = "done";
-        var index = 0;
-        parent.children().each(function () {
-            var wasActive = $(this).attr("class").indexOf("ongoing") > -1;
-            var currentEvents = otb.arrayFind(window.otb.wizard, { dom: this });
-            if (currentStatus === "ongoing") {
-                currentStatus = "todo";
-            }
-            if (this.id === id) {
-                currentStatus = "ongoing";
-                parent.data("wizardIndex", index);
-            }
-            $(this).attr("class", currentStatus);
-            if (wasActive && currentEvents && currentEvents.stop) {
-                currentEvents.stop();
-            }
-            /*if (currentStatus === "done") {
-                $(this).click(function () {
-                    location.hash = "#" + $(this).attr("id");
-                });
-            } else {
-                $(this).unbind("click");
-            }*/
-            index++;
-        });
-        $("#process").children().hide();
-        $("#" + id + "Process").show();
-        if (events && events.start) {
-            events.start();
-        }
-        callback();
-        return window.otb;
-    };
-
-    /**
-     * Go to the next step of the wizard
-     * @param {JQuery} jqWizard Wizard
-     */
-    window.otb.wizardNext = function (jqWizard/*, callback*/) {
-        var callback = otb.getCallback(arguments);
-        if (!otb.isJquery(jqWizard)) {
-            callback();
-            return window.otb;
-        }
-        var index = jqWizard.data("wizardIndex") + 1;
-        if (index < jqWizard.children().length) {
-            var target =  jqWizard.children().eq(index);
-            window.otb.wizardGoto(target, callback);
-        }
-        return window.otb;
-    };
-
-    /**
-     * Attach events
-     * @param {JQuery}   jqWizardStep Wizard step
-     * @param {String}   name         Event name
-     * @param {Function} callback     event to attach
-     */
-    window.otb.wizardAttachEvent = function (jqWizardStep, name, callback) {
-        if (!otb.isJquery(jqWizardStep)) {
-            return callback();
-        }
-        window.otb.wizard = Object.prototype.toString.call(window.otb.wizard) === "[object Array]" ? window.otb.wizard : [];
-        var elt = jqWizardStep.get(0);
-        var events = otb.arrayFind(window.otb.wizard, { dom: elt });
-        if (events) {
-            events[name] = callback;
-        } else {
-            var newEvent = { dom: elt };
-            newEvent[name] = callback;
-            window.otb.wizard.push(newEvent);
-        }
-        return window.otb;
-    };
-
-    /**
      * Get all custommer services
-     * @param {JQuery}   jqDest   Select field to fill
+     * @param   {JQuery} jqDest   Select field to fill
      * @param {Function} callback Callback function invoked when done
      */
     window.otb.getServices = function (jqDest, serviceList/*, callback*/) {
@@ -171,7 +64,7 @@
                 selection.val($(this).find("option:selected").val());
             });
             serviceList.forEach(function (service) {
-                var device = service.device && service.device.deviceId ? ["(", service.device.deviceId, ")"].join("") : "";
+                var device = service.device && service.device.deviceId ? ["(", window.otb.translations.get("register-device@linked_device"), " ", service.device.deviceId, ")"].join("") : "";
                 jqElt.append("<option name=\"serviceId\" value=\"" + service.serviceName + "\">" + (service.customerDescription || service.serviceName) + " " + device + "</option>");
             });
             $("label.serviceList").show();
@@ -210,7 +103,7 @@
 
     /**
      * Set the submit function
-     * @param {JQuery}   jqForm   form
+     * @param   {JQuery} jqForm   form
      * @param {Function} callback Callback function to execute on submit
      */
     window.otb.attachSubmit = function (jqForm /*, callback*/) {
@@ -237,7 +130,7 @@
 
     /**
      * Check if a device is link to a service
-     * @param {Array}  serviceList List of services
+     * @param  {Array} serviceList List of services
      * @param {String} deviceId    Device identifier
      * @return null|service struct
      */
@@ -249,6 +142,185 @@
             }
         });
         return foundService;
+    };
+
+    /**
+     * Attach a service to the current nuc
+     * @param   {String} serviceId Identifier of the service
+     * @param {Function} callback Callback function to execute on submit
+     */
+    window.otb.attachService = function (serviceId /*, callback*/) {
+        var callback = otb.getCallback(arguments);
+        otb.api.linkOtbDevice(serviceId, otb.deviceId, function (err) {
+            $("#serviceActivateSubmit").prop("disabled", false);
+            $("select#serviceList").prop("disabled", false);
+            otb.spinner($("#associateServiceSpinner"), false);
+            var name = otb.tmpService.customerDescription || otb.tmpService.serviceName;
+            if (!err) {
+                otb.pushMessage($("div#messageContainer"), "success", ["<p>", otb.translations.get("register-device@service_associated", { name: name, deviceId: otb.deviceId}), "</p>"].join(""));
+                $("div#serviceChoiceProcess .config").hide();
+                otb.serviceId = serviceId;
+            } else {
+                otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@service_not_associated", { name: name, deviceId: otb.deviceId}), "</p>"].join(""));
+            }
+            callback(err);
+        });
+    };
+
+    /**
+    * Activate Service if needed
+    * @param   {String} serviceId Service to activate
+    * @param {Function} callback  Callback function
+    * @return {Function} poller stoping function 
+    */
+    window.otb.activateService = function (serviceId /*, callback*/) {
+        var callback = otb.getCallback(arguments);
+        var poller = otb.noop;
+        otb.nuc.activateService(serviceId, function (err) {
+            if (err) {
+                otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@service_activation_error"),"</p>"].join(""));
+                callback(err, { active: false });
+            } else {
+                otb.pushMessage($("div#messageContainer"), "success", ["<p>", otb.translations.get("register-device@service_activation_success"),"</p>"].join(""));
+                callback(null, { active: true });
+            }
+        });
+    };
+
+    /**
+     * Wait for n modems to be connected
+     * @param   {number} num Number of modems to check
+     * @param {Function} callback Callback function
+     * @return {Function} poller stoping function 
+     */
+    window.otb.waitForModem = function(num /*, callback*/) {
+        var callback = otb.getCallback(arguments);
+        var waitForModemHandler = otb.api.startPoller({
+            caller: function (cb) {
+                otb.nuc.connectedModems(function(err, modems) {
+                    if ((!err) && (otb.isArray(modems)) && (modems.length >= num)) {
+                        waitForModemHandler();
+                        callback(null, { found: true, modems: modems });
+                    } else {
+                        callback(null, { found: false, modems: modems });
+                    }
+                    cb();
+                });
+            },
+            delay: 5
+        });
+        return waitForModemHandler
+    };
+
+    /**
+     * Check if a DHCP server is active on the network
+     * @param   {number} dhcpCheckDelay    Delay for searching a DHCP server
+     * @param   {number} dhcpCheckInterval Time between each check
+     * @param {Function} callback Callback function
+     * @return {Function} poller stoping function 
+     */
+    window.otb.checkDHCP = function(dhcpCheckDelay, dhcpCheckInterval /*, callback*/) {
+        var callback = otb.getCallback(arguments);
+        var poller = otb.noop;
+        var offset = null;
+
+        otb.nuc.dhcpCheck(function(err) {
+                if (err) {
+                    callback(err, { status: "found" });
+                    return;
+                }
+                var counter = 0;
+
+                poller = otb.api.startPoller({
+                    delay: dhcpCheckInterval,
+                    caller: function (cb) {
+                        otb.nuc.dhcpStatus(dhcpCheckDelay, function (err, dhcp) {
+                            if (!err) {
+                                switch (dhcp.status) {
+                                    case "found":
+                                        // Stop polling
+                                        poller();
+                                        otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@dhcp_activated"), "</p>"].join(""));
+                                        callback(null, { status: "found" });
+                                        break;
+                                    case "notFound":
+                                        // Stop polling
+                                        poller();
+                                        otb.pushMessage($("div#messageContainer"), "success", ["<p>", otb.translations.get("register-device@dhcp_desactivated"), "</p>"].join(""));
+                                        callback(null, { status: "notFound" });
+                                        break;
+                                    default: //checking
+                                        var steps = Math.ceil(dhcpCheckDelay / dhcpCheckInterval);
+                                        if (counter > steps) {
+                                            callback(null, { status: "notFound" });
+                                            poller();
+                                        } else {
+                                            callback(null, { status: "checking", message: Math.round((counter++) * 100 / steps) + "%" });
+                                        }
+                                        break;
+                                }
+                            }
+                            cb();
+                        });
+                    }
+                });
+
+        });
+
+        return function() {
+            poller();
+        };
+    };
+
+    /**
+     * Test if the current network is using OTB
+     * @param {Function} callback Callback function
+     */
+    window.otb.usingOTB = function (/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        otb.nuc.getPublicIp(function(err, ip) {
+            otb.nuc.interfacesStatus(function (err, data) {
+                if (!err && data.overthebox && data.overthebox.service_addr && data.overthebox.service_addr === ip) {
+                    callback(err, true);
+                } else {
+                    callback(err, false);
+                }
+            });
+        });
+    }
+
+    /**
+     * Clean all messages
+     */
+    window.otb.cleanMessages = function() {
+        $("div#messageContainer").html("");
+    }
+
+    /**
+     * Display activation button if needed
+     * @param {Function} callback Callback function invoked only if no activation is needed
+     * @return {Function} poller stoping function 
+     */
+    window.otb.gotoServiceActivation = function(/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        $("div#serviceChoiceProcess .skip").hide();
+        $("#needActivate").show();
+        $("div#serviceChoiceProcess .done").show();
+        $("#serviceLinked").prop("disabled", true);
+        return otb.nuc.needServiceActivation(function (err, status) {
+            if (status) {
+                if (status.status === "done") {
+                    $("#needActivate .progression").hide();
+                    if (status.needActivation) {
+                        $("#serviceLinked").prop("disabled", false);
+                    } else {
+                        callback();
+                    }
+                } else {
+                    $("#needActivate .progression span").text(status.progress + "%");
+                }
+            }
+        });
     };
 
 })();

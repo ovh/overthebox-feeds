@@ -2185,7 +2185,7 @@ div.register .alert-info {
 
 div.register .btn {
   border-radius: 2px;
-  width: 180px;
+  min-width: 180px;
   padding-top: 10px;
   padding-bottom: 10px;
   margin-top: 10px;
@@ -2275,11 +2275,6 @@ div.register ol {
   margin-left: 30px;
 }
 
-div.register .btn.btn-mini {
-  padding: 0px;
-  width: 90px;
-}
-
 /* Spinner animation ==> */
 /* <div class="spinner-volume"><div class="volume"></div><div class="volume"></div><div class="volume"></div><div class="volume"></div></div> */
 @keyframes spinner-volume {
@@ -2293,11 +2288,11 @@ div.register .btn.btn-mini {
 		transform: scale(1);
 	}
 }
-
+    
 .spinner-volume {
     display: inline-block;
 }
-
+    
 .spinner-volume .volume {
 	display: inline-block;
 	width: 2px;
@@ -2350,8 +2345,10 @@ form#passwordSetForm{
 .connexion-scheme .st2{fill:none;stroke:#53504F;stroke-width:7.8401;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
 .connexion-scheme .st3{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
 .connexion-scheme .st4{fill:#51A2D9;}
-.connexion-scheme .current .st0,.connexion-scheme .current.st0{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
-.connexion-scheme .current .st1{fill:#51A2D9;}
+.connexion-scheme .to-be-plugged .st0,.connexion-scheme .to-be-plugged.st0{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
+.connexion-scheme .to-be-plugged .st1{fill:#51A2D9;}
+.connexion-scheme .current .st0,.connexion-scheme .current.st0{fill:none;stroke:#8ca643;stroke-width:9.1036;stroke-miterlimit:10;}
+.connexion-scheme .current .st1{fill:#8ca643;}
 
 [rel="tooltip"] {
   cursor: pointer;
