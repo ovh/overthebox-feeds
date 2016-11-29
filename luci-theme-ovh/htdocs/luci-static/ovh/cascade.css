@@ -2293,11 +2293,11 @@ div.register .btn.btn-mini {
 		transform: scale(1);
 	}
 }
-
+    
 .spinner-volume {
     display: inline-block;
 }
-
+    
 .spinner-volume .volume {
 	display: inline-block;
 	width: 2px;

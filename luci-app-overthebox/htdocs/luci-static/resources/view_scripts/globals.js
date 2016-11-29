@@ -35,10 +35,10 @@
 
     /**
      * Push a message in jqDest
-     * @param [jQuery] jqDest   Destination containers
-     * @param [String] type     success|info|warning|error
-     * @param [String] html     HTML representation of the message
-     * @param [Number] duration duration of the message in seconds. if nothing specified, the message is permanent
+     * @param {jQuery} jqDest   Destination containers
+     * @param {String} type     success|info|warning|error
+     * @param {String} html     HTML representation of the message
+     * @param {Number} duration duration of the message in seconds. if nothing specified, the message is permanent
      */
     window.otb.pushMessage = function (jqDest, type, html, duration) {
         if (!otb.isJquery(jqDest)) {
@@ -64,9 +64,9 @@
 
     /**
      * Find the first element in an array with criteria
-     * @param [Array]  list      List to search in
-     * @param [Object] predicate criteria
-     * @return [Any] Found object or null
+     * @param  {Array} list      List to search in
+     * @param {Object} predicate criteria
+     * @return {Any} Found object or null
      */
     window.otb.arrayFind = function (list, predicate) {
         var filtered = (list || []).filter(function (elt) {
@@ -83,7 +83,7 @@
     /**
      * Check if obj is an array
      * @param {Any} Obj Variable to test
-     * @return Boolean
+     * @return {Boolean}
      */
     window.otb.isArray = function (obj) {
         return Object.prototype.toString.call(obj) === "[object Array]";
@@ -91,7 +91,7 @@
 
     /**
      * Add/Remove a spinner
-     * @param {JQuery}  jqDest Container for the spinner
+     * @param  {JQuery} jqDest Container for the spinner
      * @param {Boolean} enable On/Off
      */
     window.otb.spinner = function (jqDest, enable) {
@@ -142,5 +142,10 @@
         });
         return window.otb;
     };
+
+    /**
+     * No operation function
+     */
+    window.otb.noop = function() {};
 
 })();
