@@ -61,6 +61,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults/mwan3.defaults
 	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults/dscp.defaults
 	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults/ucitrack.defaults
+	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
 endef
 
 define Package/overthebox/postinst
@@ -76,6 +77,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
+	( . /etc/uci-defaults/uhttpd.defaults ) && rm -f /etc/uci-defaults/uhttpd.defaults
 
 	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
