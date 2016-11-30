@@ -610,6 +610,8 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         otb.cleanMessages();
                     });
                     otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
+                } else {
+                    otb.pushMessage($("div#messageContainer"), "error", "<p><%:Veuillez déconnecter et reconnecter votre ordinateur au réseau%></p>");
                 }
                 $("#testPublicIp").prop("disabled", false)
             });
@@ -618,21 +620,26 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         var waitForModem = otb.noop;
         var searchDhcp = otb.noop;
         $("div.wizard").wizard("attachEvent", "dhcpDesactivate", "start", function() {
-            $("div#dhcpDesactivateProcess .config").hide();
-            $("div#dhcpDesactivateProcess .done").hide();
-
-            // Check that almost one modem is connected
-            waitForModem();
-            waitForModem = window.otb.waitForModem(1, function (err, data) {
-                if (data.found) {
-                    $("div#dhcpDesactivateProcess .config").show();
-                    $("div#dhcpDesactivateProcess .not-ready").hide();
-                } else {
-                    $("div#dhcpDesactivateProcess .config").hide();
-                    $("div#dhcpDesactivateProcess .not-ready").show();
-                }
-            });
-
+            if (otb.getRoute() === "/ip-check") {
+                $("div#dhcpDesactivateProcess .config").hide();
+                $("#gotoAdditionalModem").prop("disabled", true);
+                $("div#dhcpDesactivateProcess .done").show();
+                $("#gotoAdditionalModem").prop("disabled", false);
+            } else {
+                $("div#dhcpDesactivateProcess .config").hide();
+                $("div#dhcpDesactivateProcess .done").hide();
+                // Check that almost one modem is connected
+                waitForModem();
+                waitForModem = window.otb.waitForModem(1, function (err, data) {
+                    if (data.found) {
+                        $("div#dhcpDesactivateProcess .config").show();
+                        $("div#dhcpDesactivateProcess .not-ready").hide();
+                    } else {
+                        $("div#dhcpDesactivateProcess .config").hide();
+                        $("div#dhcpDesactivateProcess .not-ready").show();
+                    }
+                });
+            }
         }).wizard("attachEvent", "dhcpDesactivate", "stop", function() {
             waitForModem();
             searchDhcp();
@@ -661,6 +668,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         $("div#dhcpDesactivateProcess .done").show();
                         $("#gotoAdditionalModem").prop("disabled", false);
                         dhcpMainCheckButton.find("span.percent").text("");
+                        otb.setRoute("ip-check");
                 }
             });
         });
@@ -748,7 +756,9 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         });
 
         $("#modemAdd").click(function () {
-            $("div.wizard").wizard("goto", "dhcpDesactivateMore");
+            $("div.wizard").wizard("goto", "dhcpDesactivateMore", function() {
+                otb.cleanMessages();
+            });
         });
 
         /* ============ */

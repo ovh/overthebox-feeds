@@ -304,7 +304,13 @@
     window.otb.usingOTB = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         otb.nuc.getPublicIp(function(err, ip) {
-            callback(err, true);
+            otb.nuc.interfacesStatus(function (err, data) {
+                if (!err && data.overthebox && data.overthebox.service_addr && data.overthebox.service_addr === ip) {
+                    callback(err, true);
+                } else {
+                    callback(err, false);
+                }
+            });
         });
     }
 
