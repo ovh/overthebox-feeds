@@ -31,7 +31,7 @@
 
     local function wizard(title, width, height, status, id)
         local arrowLen = height / 3
-        print("<svg class=\""..status.."\" style=\"left:"..wizardStack..";width:"..width.."\" id=\""..id.."\">")
+        print("<svg class=\""..status.."\" style=\"left:"..wizardStack..";width:"..width.."\" id=\""..id.."\" data-container=\""..id.."Process\">")
         if (wizardStack == 0) then
             print("<path d=\"M 0 0 L "..(width - arrowLen).." 0 L "..width.." "..(height / 2).." L "..(width - arrowLen).." "..height.." L 0 "..height.." L 0 0\"/>")
             print("<text x=\"10%\" y=\"50%\" class=\"title\">" .. title .. "</text>")
@@ -228,8 +228,9 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                         <li>
                             <%:Vérifier que votre DHCP est désactivé%><br>
                             <span class="note"><%:Cette opération dure en moyenne 30 secondes.%></span><br>
-                            <button id="additionalDhcpCheck" role="button" class="btn btn-primary btn-mini">
+                            <button id="additionalDhcpCheck" role="button" class="btn btn-primary jsDhcpCheck">
                                 <%:Vérifier%>
+                                <span class="percent"></span>
                             </button>
                         </li>
                     </ol>
@@ -308,9 +309,6 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
         /* === Initialize the display === */
         $("#serviceActivateSubmit").prop("disabled", true);
-        $("#serviceChoiceProcess").hide();
-        $("#dhcpDesactivateProcess").hide();
-        $("#qosActivateProcess").hide();
         $("label.serviceList").hide();
         $("p.uniqueService").hide();
         $("div.noService").hide();
@@ -323,6 +321,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         $("#releaseService").hide();
         $("#passwordWarning").hide();
         $("#needActivate").hide();
+        $("div.wizard").wizard();
 
         otb.connectionScheme($(".jsFirstScheme"));
         $(".jsFirstScheme .jsModem2,.jsFirstScheme .jsModem3,.jsFirstScheme .jsModem4").hide();
@@ -333,7 +332,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         $("#additionalModemScheme .jsModem2,#additionalModemScheme .jsModem3,#additionalModemScheme .jsModem4").hide();
 
         function next() {
-            otb.wizardNext($("div.wizard"), function() {
+            $("div.wizard").wizard("next", function() {
                 $("div#messageContainer").html("");
             });
         }
@@ -465,10 +464,10 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
         /* === Attach wizzard events === */
         $("#serviceActivateSubmit").prop("disabled", true);
-        var servicePoller;
+        var servicePoller = otb.noop;
         var activateServicePoller = otb.noop;
 
-        otb.wizardAttachEvent($("#serviceChoice"), "start", function () {
+        $("div.wizard").wizard("attachEvent", "serviceChoice", "start", function() {
             otb.spinner($("#getServicesSpinner"), true);
             servicePoller = otb.api.startPoller({
                 delay: 5,
@@ -502,7 +501,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     });
                 }
             });
-        }).wizardAttachEvent($("#serviceChoice"), "stop", function () {
+        }).wizard("attachEvent", "serviceChoice" ,"stop", function() {
             servicePoller();
             activateServicePoller();
         });
@@ -614,7 +613,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
         var waitForModem = otb.noop;
         var searchDhcp = otb.noop;
-        otb.wizardAttachEvent($("#dhcpDesactivate"), "start", function () {
+        $("div.wizard").wizard("attachEvent", "dhcpDesactivate", "start", function() {
             $("div#dhcpDesactivateProcess .config").hide();
             $("div#dhcpDesactivateProcess .done").hide();
 
@@ -630,7 +629,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 }
             });
 
-        }).wizardAttachEvent($("#dhcpDesactivate"), "stop", function () {
+        }).wizard("attachEvent", "dhcpDesactivate", "stop", function() {
             waitForModem();
             searchDhcp();
         });
@@ -665,8 +664,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* == Additional modem Config == */
         /* ============================= */
 
-        //var additionalModemPoller;
-        otb.wizardAttachEvent($("#dhcpDesactivateMore"), "start", function () {
+        $("div.wizard").wizard("attachEvent", "dhcpDesactivateMore", "start", function() {
             $("div#dhcpDesactivateMoreProcess .config").hide();
 
             // Check that almost two modems are connected
@@ -679,21 +677,24 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     $("div#dhcpDesactivateMoreProcess .config").hide();
                     $("div#dhcpDesactivateMoreProcess .not-ready").show();
                 }
+                var numModems = data.modems.length + (/^\/modemPlugged$/.test(otb.getRoute()) ? 0 : 1);
+                $("#additionalModemScheme").css("height", 80 + 40 * numModems);
                 for (var i = 1; i<=4; i++) {
-                    if (i <= (otb.isArray(data.modems) ? data.modems.length + 1 : 2)) {
+                    if (i <= (otb.isArray(data.modems) ? numModems : 2)) {
                         $("#additionalModemScheme .jsModem" + i).show();
                     } else {
                         $("#additionalModemScheme .jsModem" + i).hide();
                     }
-                    if ((i === (otb.isArray(data.modems) ? data.modems.length + 1 : 2))) {
+                    if ((i === (otb.isArray(data.modems) ? numModems : 2))) {
                         otb.svgAddClass($("#additionalModemScheme .jsModem" + i), "current");
                     } else {
                         otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "current");
                     }
                 }
+                otb.setRoute("/modemPlugged");
             });
 
-        }).wizardAttachEvent($("#dhcpDesactivateMore"), "stop", function () {
+        }).wizard("attachEvent", "dhcpDesactivateMore", "stop", function() {
             waitForModem();
         });
 
@@ -731,23 +732,24 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* ============ */
 
         /* === Start wizard === */
-        if (otb.wizardHas($("div.wizard"), window.location.hash.replace(/^#/, ""))) {
-            otb.wizardGoto($(window.location.hash), function() {
+        var targetWizard = window.location.hash.replace(/^#/, "");
+        if ($("div.wizard").wizard("has", targetWizard)) {
+            $("div.wizard").wizard("goto", targetWizard, function() {
                 $("div#messageContainer").html("");
-            });
+            })
         } else {
-            otb.wizardGoto($("#serviceChoice"), function() {
+            $("div.wizard").wizard("first", function() {
                 $("div#messageContainer").html("");
             });
         }
-        var hash = window.location.hash;
+        var hash = window.location.hash.replace(/\/.*/, "");
         setInterval(function(){
-            if (window.location.hash != hash) {
-                hash = window.location.hash;
+            if (window.location.hash.replace(/\/.*/, "") != hash) {
+                hash = window.location.hash.replace(/\/.*/, "");
                 var currentWizard = $("div.wizard").find("svg.ongoing").first().attr("id");
-                var targetWizard = hash.replace(/^#/, "");
-                if (otb.wizardHas($("div.wizard"), targetWizard) && targetWizard !== currentWizard) {
-                    otb.wizardGoto($(hash), function() {
+                targetWizard = hash.replace(/^#/, "");
+                if ($("div.wizard").wizard("has", targetWizard) && targetWizard !== currentWizard) {
+                    $("div.wizard").wizard("goto", targetWizard, function() {
                         $("div#messageContainer").html("");
                     });
                 }
