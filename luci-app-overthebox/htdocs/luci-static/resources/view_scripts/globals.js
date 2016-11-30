@@ -144,6 +144,27 @@
     };
 
     /**
+     * Get js route
+     * @return {String} js route
+     */
+    window.otb.getRoute = function() {
+        return window.location.hash.replace(/^[^\/]*/, "");
+    }
+
+    /**
+     * set js route
+     * @param {String} route js route
+     */
+    window.otb.setRoute = function(route) {
+        var hash = window.location.hash.replace(/\/.*/, "");
+        if (route) {
+            window.location.hash = hash + "/" + route.replace(/^\//, "");
+        } else {
+            window.location.hash = hash;
+        }
+    }
+
+    /**
      * No operation function
      */
     window.otb.noop = function() {};
