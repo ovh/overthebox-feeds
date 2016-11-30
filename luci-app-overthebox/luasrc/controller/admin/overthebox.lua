@@ -90,6 +90,7 @@ function interfaces_status()
 	mArray.overthebox = {}
 	mArray.overthebox["version"] = require('overthebox')._VERSION
 	-- Check that requester is in same network
+	mArray.overthebox["service_addr"]	= uci:get("shadowsocks", "proxy", "server") or "0.0.0.0"
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["wan_addr"]		= "0.0.0.0"
 	local wanaddr = ut.trim(sys.exec("cat /tmp/wanip"))
