@@ -2350,8 +2350,10 @@ form#passwordSetForm{
 .connexion-scheme .st2{fill:none;stroke:#53504F;stroke-width:7.8401;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
 .connexion-scheme .st3{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
 .connexion-scheme .st4{fill:#51A2D9;}
-.connexion-scheme .current .st0,.connexion-scheme .current.st0{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
-.connexion-scheme .current .st1{fill:#51A2D9;}
+.connexion-scheme .to-be-plugged .st0,.connexion-scheme .to-be-plugged.st0{fill:none;stroke:#51A2D9;stroke-width:9.1036;stroke-miterlimit:10;}
+.connexion-scheme .to-be-plugged .st1{fill:#51A2D9;}
+.connexion-scheme .current .st0,.connexion-scheme .current.st0{fill:none;stroke:#8ca643;stroke-width:9.1036;stroke-miterlimit:10;}
+.connexion-scheme .current .st1{fill:#8ca643;}
 
 [rel="tooltip"] {
   cursor: pointer;

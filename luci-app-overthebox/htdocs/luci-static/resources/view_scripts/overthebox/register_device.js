@@ -308,4 +308,11 @@
         });
     }
 
+    /**
+     * Clean all messages
+     */
+    window.otb.cleanMessages = function() {
+        $("div#messageContainer").html("");
+    }
+
 })();
