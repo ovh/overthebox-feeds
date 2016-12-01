@@ -3,3 +3,4 @@
 # Do not redirect http to https, allow both
 # overthebox.ovh will redirect to http for easier configuration
 uci set uhttpd.main.redirect_https='0'
+uci commit uhttpd
