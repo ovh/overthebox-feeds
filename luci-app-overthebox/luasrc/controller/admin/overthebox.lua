@@ -375,6 +375,7 @@ function action_activate(service)
 end
 
 function need_activate()
+	-- TODO change response. Now, false, means "I recieved a request from server to answer". This request is sent 0 to 30sec after a device is linked to a service
 	local result = { };
 	local uci = luci.model.uci.cursor()
 	luci.http.prepare_content("application/json")
