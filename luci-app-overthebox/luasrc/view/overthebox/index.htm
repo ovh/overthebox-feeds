@@ -34,7 +34,9 @@
 <script type="text/javascript" src="<%=resource%>/seedrandom.js"></script>
 <script type="text/javascript" src="<%=resource%>/jquery-1.11.3.min.js"></script>
 <script type="text/javascript" src="<%=resource%>/bootstrap.min.js"></script>
+<script src="<%=resource%>/js-cookie.js"></script>
 <script type="text/javascript">
+	var serviceId = "<%=service_id%>";
 	$(document).ready(function(){
 		$('[data-toggle="popover"]').popover();
 	});
@@ -42,6 +44,10 @@
 	window.setInterval(function(){
 		document.location.reload(true);
 	}, 1000 * 60 * 60);
+
+	if (!serviceId && window.location.hash !== "#force") {
+		window.location.href = "<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>";
+	}
 </script>
 
 <script type="text/javascript">//<![CDATA[
@@ -160,7 +166,7 @@
 	<img src="<%=resource%>/ovh/images/doingBlack.png" alt="todo">
 	<span class="popover_text"></span>
 </div>
-
+<a class="btn btn-small" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>"><%:Configuration assistant%></a>
 <%
 if not service_id then
 	if luci.dispatcher.context.requestpath[#luci.dispatcher.context.requestpath] == "activate" then

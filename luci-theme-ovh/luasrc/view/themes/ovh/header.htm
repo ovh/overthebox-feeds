@@ -99,6 +99,8 @@
   <!--[if lt IE 9]><script src="<%=media%>/html5.js"></script><![endif]-->
   <meta name="viewport" content="initial-scale=1.0">
   <link rel="stylesheet" href="<%=media%>/cascade.css">
+  <link rel="stylesheet" href="<%=resource%>/uikit.min.css">
+  <link rel="stylesheet" type="text/css" href="<%=resource%>/bootstrap.min.css">
   <link rel="stylesheet" media="only screen and (max-device-width: 854px)" href="<%=media%>/mobile.css" type="text/css" />
   <link rel="shortcut icon" href="<%=media%>/favicon.ico">
 
@@ -116,13 +118,13 @@
    <div class="fill">
     <div class="container" style="position: relative;">
      <a class="brand" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>" alt="OVH"><img src="<%=resource%>/ovh/images/ovh-logo.png" alt="OVH" /></a>
-     <ul class="nav">
+     <ul class="navigation">
 	 <%-
 		local function submenu(prefix, node)
 			local childs = disp.node_childs(node)
 			if #childs > 0 then
 	 %>
-	 <ul class="dropdown-menu">
+	 <ul class="ovh-dropdpwn-menu">
 			<%-
 				for i, r in ipairs(childs) do
 					local nnode = node.nodes[r]
@@ -192,18 +194,26 @@
   </header>
 
 <%- if luci.sys.process.info("uid") == 0 and luci.sys.user.getuser("root") and not luci.sys.user.getpasswd("root") then -%>
-<div class="container">
+<!--<div class="container">
 	<div class="alert-message warning">
 		<h4><%:No password set!%></h4>
 		<%:There is no password set on this router. Please configure a root password to protect the web interface and enable SSH.%><br>
 	        <a href="<%=pcdata(luci.dispatcher.build_url("admin/system/admin"))%>"><%:Go to password configuration...%></a>
+	</div>
+</div>-->
+<div class="container">
+	<div role="alert" class="oui-message oui-message_warning" id="passwordWarning">
+		<p>
+			<a href="<%=pcdata(luci.dispatcher.build_url("admin/system/admin"))%>"><%:Change password%></a>
+			<span><%:to secure your access to your OverTheBox%></span>
+		</p>
 	</div>
 </div>
 <%- end -%>
 
 <%- if require('overthebox').checkReadOnly() then -%>
 <div class="container">
-	<div class="alert-message error">
+	<div role="alert" class="oui-message oui-message_warning">
 		<h4><%:File system is in read only !%></h4>
 		<%:Your file system is corrupted and has been remounted in read only. Please run "overthebox_last_upgrade" and wait for the system to reboot.%><br>
 	</div>
