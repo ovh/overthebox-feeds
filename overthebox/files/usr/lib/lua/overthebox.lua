@@ -741,7 +741,10 @@ end
 -- function upgrade check if all package asked are up to date
 function upgrade()
     -- first, we upgrade ourself
-    opkg_install("overthebox")
+    local c, r = opkg_install("overthebox")
+    if not c then
+        return c, "Failed to install overthebox: \n" .. r
+    end
 
     -- let's check others
     local listpkginstalled, _ = run("opkg list-installed")
@@ -757,35 +760,42 @@ function upgrade()
             local mversion = pkgs[pkg]
             if mversion == 'remove' then
                 local c, r = opkg_remove(pkg)
+                retcode = retcode and c
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
             elseif version:find(mversion,1, true) == 1  then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version < mversion then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version > mversion then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
             end
-	    checked[pkg] = 1
+            checked[pkg] = 1
         end
     end
 
     for pkg, version in pairs(pkgs) do
-	if checked[pkg] == nil then -- not seen
-	    if version == 'remove' then
-		local c, r = opkg_remove(pkg)
-		ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
-	    else
-		local c, r = opkg_install(pkg)
-		ret = ret .. "install "..pkg.."\n" ..  r .."\n"
-	    end
-	end
+        if checked[pkg] == nil then -- not seen
+            if version == 'remove' then
+                local c, r = opkg_remove(pkg)
+                retcode = retcode and c
+                ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
+            else
+                local c, r = opkg_install(pkg)
+                retcode = retcode and c
+                ret = ret .. "install "..pkg.."\n" ..  r .."\n"
+            end
+        end
     end
 
     for service, status in pairs(services) do
         local c, r = ensure_service_state(service, status)
+        retcode = retcode and c
         ret = ret .. r .. "\n"
     end
 
