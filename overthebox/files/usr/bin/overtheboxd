@@ -76,7 +76,7 @@ while run do
 			return_update, msg_update = overthebox.opkg_update()
 			return_upgrade, msg_upgrade = overthebox.upgrade()
 			actionreturn = return_update and return_upgrade
-			msg = msg_update .. "\n" .. msg_upgrade
+			msg = "Updating repos:\n" .. msg_update .. "\nUpgrading packages:\n" .. msg_upgrade
 		elseif ret.action == "updateReleaseChannel" then
 			actionreturn, msg = overthebox.update_release_channel()
 		elseif ret.action == "sysupgrade" then
@@ -136,8 +136,9 @@ while run do
 
 		if actionreturn ~= nil then
 			if actionreturn == true then
+				debug("Action " .. ret.action .. " was successful")
 				actionreturn = "done"
-			elseif actionreturn == false then
+			else
 				debug("Failed to do "..ret.action)
 				actionreturn = "error"
 				-- If there was an error, the message should be in the error field
@@ -149,6 +150,7 @@ while run do
 				end
 				debug("Got error: "..msg)
 			end
+
 			checkConfirm, errTab = overthebox.confirm_action(ret.id, actionreturn, msg)
 			if checkConfirm == false then
 				if errTab == nil or errTab.error == nil then
