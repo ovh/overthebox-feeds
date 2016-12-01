@@ -176,40 +176,15 @@
     window.otb.activateService = function (serviceId /*, callback*/) {
         var callback = otb.getCallback(arguments);
         var poller = otb.noop;
-        otb.nuc.needActivateService(function(err, status) {
-            if (!err && status) {
-                if (!status.active) {
-                    otb.nuc.activateService(serviceId, function (err) {
-                        if (err) {
-                            otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@service_activation_error"),"</p>"].join(""));
-                            callback(err, { active: false });
-                        } else {
-                            poller = otb.api.startPoller({
-                                caller: function (cb) {
-                                    otb.nuc.needActivateService(function(err, status) {
-                                        if ((!err) && status && status.active) {
-                                            waitForModemHandler();
-                                            callback(null, { active: true });
-                                        }
-                                        cb();
-                                    });
-                                },
-                                delay: 5
-                            });
-                        }
-
-                    });
-                } else {
-                    callback(null, { active: true });
-                }
+        otb.nuc.activateService(serviceId, function (err) {
+            if (err) {
+                otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@service_activation_error"),"</p>"].join(""));
+                callback(err, { active: false });
             } else {
-                callback(err || "fatal", status);
+                otb.pushMessage($("div#messageContainer"), "success", ["<p>", otb.translations.get("register-device@service_activation_success"),"</p>"].join(""));
+                callback(null, { active: true });
             }
-
         });
-        return function() {
-            poller();
-        }
     };
 
     /**
@@ -320,5 +295,32 @@
     window.otb.cleanMessages = function() {
         $("div#messageContainer").html("");
     }
+
+    /**
+     * Display activation button if needed
+     * @param {Function} callback Callback function invoked only if no activation is needed
+     * @return {Function} poller stoping function 
+     */
+    window.otb.gotoServiceActivation = function(/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        $("div#serviceChoiceProcess .skip").hide();
+        $("#needActivate").show();
+        $("div#serviceChoiceProcess .done").show();
+        $("#serviceLinked").prop("disabled", true);
+        return otb.nuc.needServiceActivation(function (err, status) {
+            if (status) {
+                if (status.status === "done") {
+                    $("#needActivate .progression").hide();
+                    if (status.needActivation) {
+                        $("#serviceLinked").prop("disabled", false);
+                    } else {
+                        callback();
+                    }
+                } else {
+                    $("#needActivate .progression span").text(status.progress + "%");
+                }
+            }
+        });
+    };
 
 })();
