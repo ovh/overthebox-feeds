@@ -388,6 +388,19 @@ function action_activate(service)
 	luci.http.write_json(result)
 end
 
+function need_activate()
+	-- TODO change response. Now, false, means "I recieved a request from server to answer". This request is sent 0 to 30sec after a device is linked to a service
+	local result = { };
+	local uci = luci.model.uci.cursor()
+	luci.http.prepare_content("application/json")
+	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
+		result["active"] = false
+	else
+		result["active"] = true
+	end
+	luci.http.write_json(result)
+end
+
 function action_dhcp_recheck()
 	sys.exec("uci set dhcpdiscovery.if0.lastcheck=`date +%s`")
 	sys.exec("uci delete dhcpdiscovery.if0.siaddr")

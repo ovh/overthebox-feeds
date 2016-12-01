@@ -113,13 +113,13 @@
      * Check if service need to be activated
      * @param {Function} callback Callback function
      */
-    Nuc.prototype.needActivateService = function (/*callback*/) {
+    Nuc.prototype.recievedActivationOrder = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         $.ajax({
-            url: otb.constants.needActivateServiceURL,
+            url: otb.constants.recievedActivationOrderURL,
             success: function (data, status) {
-                if (status === "success") {
-                    callback(null, data);
+                if (status === "success" && data) {
+                    callback(null, data.active);
                 } else {
                     callback(status, false);
                 }
@@ -128,6 +128,41 @@
             callback(err, data);
         });
     };
+
+    /**
+     * Check if serviceActivation is needed
+     * @param {Function} callback Callback function
+     * @return {Function} poller stoping function 
+     */
+    Nuc.prototype.needServiceActivation = function(/*callback*/) {
+        var callback = otb.getCallback(arguments);
+        var counter = 0
+        var poller = otb.api.startPoller({
+            delay: 2,
+            caller: function (cb) {
+                if (counter > 15) {
+                    poller();
+                    callback(null, {status: "done", needActivation: false});
+                } else {
+                    otb.nuc.recievedActivationOrder(function(err, status) {
+                        if (!err && status === false) {
+                            poller();
+                            callback(null, {status: "done", needActivation: true});
+                        } else {
+                            callback(null, {status: "pending", progress: Math.round(100*counter/15)});
+                        }
+                        cb();
+                    });
+                }
+                counter++;
+            }
+        });
+        callback(null, {status: "pending", progress: 0});
+
+        return function() {
+            poller();
+        }
+    }
 
     /**
      * Get the status of all interfaces

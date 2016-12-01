@@ -2185,7 +2185,7 @@ div.register .alert-info {
 
 div.register .btn {
   border-radius: 2px;
-  width: 180px;
+  min-width: 180px;
   padding-top: 10px;
   padding-bottom: 10px;
   margin-top: 10px;
@@ -2273,11 +2273,6 @@ div.register .note {
 
 div.register ol {
   margin-left: 30px;
-}
-
-div.register .btn.btn-mini {
-  padding: 0px;
-  width: 90px;
 }
 
 /* Spinner animation ==> */
