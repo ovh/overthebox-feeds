@@ -184,6 +184,8 @@ function config()
 				end
 			end
 		end
+		-- We do not commit network now because network will be restarted later
+		uci:save('network')
 
 		uci:save('glorytun')
 		uci:commit('glorytun')
