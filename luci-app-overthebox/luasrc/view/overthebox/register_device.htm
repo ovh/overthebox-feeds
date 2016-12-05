@@ -94,7 +94,7 @@
         <p><%:Bonjour%> <span class="fullName"></span> (<a id="disconnect" href="#"><%:Déconnexion%></a>),</p>
 
         <div class="wizard">
-            <% --[[ wizard(translate("Sécurité"), 130, 40, "todo", "passwordSetup") --]] %>
+            <% wizard(translate("Sécurité"), 130, 40, "todo", "passwordSetup") %>
             <% wizard(translate("Votre service"), 130, 40, "todo", "serviceChoice") %>
             <% wizard(translate("Désactiver le DHCP"), 180, 40, "todo", "dhcpDesactivate") %>
             <% wizard(translate("Modems supplémentaires"), 260, 40, "todo", "dhcpDesactivateMore") %>
@@ -105,7 +105,7 @@
         <div id="process">
 
             <!-- Password -->
-            <!--<div id="passwordSetupProcess">
+            <div id="passwordSetupProcess">
                 <div class="alert alert-info config">
                     <p><%:Choisissez un mot de passe pour sécuriser l’accès à votre OverTheBox%>.</p>
                     <p><%:Votre mot de passe doit contenir, au minimum, 8 caractères alphanumériques et contenir au moins une majuscule et une minuscule%>.</p>
@@ -128,7 +128,7 @@
                         </div>
                     </div>
                 </div>
-            </div>-->
+            </div>
 
             <!-- Link service to Device -->
             <div id="serviceChoiceProcess">
@@ -284,7 +284,8 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             serviceActivateURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "activate_service")%>",
             recievedActivationOrderURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "need_activate_service")%>",
             interfaceStatusURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "interfaces_status")%>",
-            askServiceActivation: "<%=luci.dispatcher.build_url("overthebox", "me", "askserviceconfirmation")%>"
+            askServiceActivationURL: "<%=luci.dispatcher.build_url("overthebox", "me", "askserviceconfirmation")%>",
+            changePasswordURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "passwd")%>"
         };
         otb.translations.add("register-device@linked_device", "<%:associé à%>");
         otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé%>");
@@ -293,6 +294,8 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
         otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
         otb.translations.add("register-device@service_not_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:n'a pas pu être associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
+        otb.translations.add("register-device@wrong_password", "<%:Erreur lors du changement de mot de passe. Veuillez recommencer.%>");
+        otb.translations.add("register-device@success_password", "<%:Votre nouveau mot de passe a bien été pris en compte.%>");
         otb.dhcpCheckDelay = 30;
         otb.dhcpCheckInterval = 2;
 
@@ -387,7 +390,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* ============== */
 
         /* === Attach wizzard events === */
-        /*otb.wizardAttachEvent($("#passwordSetup"), "start", function () {
+        $("div.wizard").wizard("attachEvent", "passwordSetup", "start", function() {
             $("#passErrorLong").hide();
             $("#passErrorComplex").hide();
             $("#passErrorSame").hide();
@@ -433,23 +436,25 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                 }
                 $("#passwordSetSubmit").prop("disabled", !isSame || !isLongEnough || !isComplexEnough);
             }); 
-        }).wizardAttachEvent($("#passwordSetup"), "stop", function () {
+        }).wizard("attachEvent", "passwordSetup", "stop", function() {
             $("#passwordSetupProcess input[type=password]").unbind();
-        });*/
+        });
 
         /* === Submit === */
-        //otb.attachSubmit($("#passwordSetForm"), function(form) {
-            /**
-            Submit password here and then 
-                    otb.wizardNext($("div.wizard"), function() {
-                        otb.cleanMessages();
-                    });
-            To go to next step
-            */
-       /*     otb.wizardNext($("div.wizard"), function() {
-                otb.cleanMessages();
+        otb.attachSubmit($("#passwordSetForm"), function(form) {
+            $("#passwordSetSubmit").prop("disabled", true);
+            otb.nuc.changePassword("<%=token%>", $("#passwordInput").val(), $("#passwordInput2").val(), function(err) {
+                $("#passwordSetSubmit").prop("disabled", false);
+                $("#passwordInput").val("");
+                $("#passwordInput2").val("");
+                if (!err) {
+                    next();
+                    otb.pushMessage($("div#messageContainer"), "success", ["<p>", otb.translations.get("register-device@success_password"), "</p>"].join(""));
+                } else {
+                    otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@wrong_password"), "</p>"].join(""));
+                }
             });
-        });*/
+        });
 
         /* ========================= */
         /* == Service association == */
