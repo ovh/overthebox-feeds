@@ -21,5 +21,5 @@ stop()
 {
 	/etc/init.d/dscp stop
 	/usr/lib/qos/run.sh stop
-	curl -s --connect-timeout 5 -X DELETE api/qos
+	curl -s --max-time 5 -X DELETE api/qos
 }
