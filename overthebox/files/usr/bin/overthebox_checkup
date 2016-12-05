@@ -1,45 +1,56 @@
 #!/usr/bin/env lua
+
+-- This script is here to do some basic checkups on the health of the OTB
+-- It will
+-- - Look for overtheboxd zombies and kill them
+-- - Restart the overthebox daemon if needed
+-- - Restart the shadowsocks process if needed
+-- - Restart the glorytuns process if needed
 local uci = require("luci.model.uci").cursor()
 local o = require("overthebox")
 local string = require("string")
 
 o.info("overthebox checkup")
 
-local exceptions = { "crond" }
+-- List of processes we're allowed to kill
+local processes_to_kill = { "overtheboxd" }
 
+-- We get the list of zombies on the otb
 for _, v in ipairs(o.getzombieppid()) do
-    local cmdline = o.get_cmdline(v)
-    o.warning( cmdline .. " has a zombie")
-    local excepted = false
-    for _, e in ipairs(exceptions) do
-        if string.find( cmdline, e, 1, true) ~= nil then
-            excepted = true
+    local parent_cmdline = o.get_cmdline(v.ppid)
+    local cmdline = o.get_cmdline(v.pid)
+    o.info( parent_cmdline .. " [" .. v.ppid .. "] has a zombie : " .. cmdline .. " [" .. v.pid .. "]")
+    -- We check if we're allowed to kill the ppid
+    for _, p in ipairs(processes_to_kill) do
+        if string.find( parent_cmdline, p, 1, true) ~= nil then
+            -- If we're allowed, we kill it
+            o.warning("killing " .. parent_cmdline .. " because it has a zombie : " .. cmdline)
+            o.sigkill(v.ppid)
             break
         end
-    end
-    if not excepted then
-        o.warning("killing it")
-        o.sigkill(v)
     end
 end
 
 
--- first check if overtheboxd is running, and not stalled
+-- Check if overtheboxd is running, and not stalled
+-- If stalled, restart it
 if o.restart_daemon_if_stalled() then
     o.warning("daemon restarted")
 end
 
+-- Don't try to do the last checks if the device is not linked to a service
 if not uci:get("overthebox", "me", "service", {}) then
     o.info("overthebox not linked")
     os.exit(0)
 end
 
--- check if ss run
+-- Check if shadowsocks is running
 if not o.test_if_running( "/usr/bin/ss-redir") then
     o.warning("shadowsocks starting")
     o.run("/etc/init.d/shadowsocks restart")
 end
 
+-- Check if glorytun or glorytun-udp is running
 if not o.test_if_running("glorytun") then
     o.warning("glorytun starting")
     o.run("/etc/init.d/glorytun restart")

@@ -1925,7 +1925,7 @@ end
 
 --
 -- function getzombieppid search zombie programs
--- return array of zombie's ppid
+-- return array of zombie's pid and ppid
 function getzombieppid()
 	local ret = {}
 	local files = posix.dir("/proc")
@@ -1936,7 +1936,7 @@ function getzombieppid()
 			for line in f:lines() do
 				local fis = split(line or "" )
 				if #fis > 4 and fis[3] == "Z" then
-					table.insert(ret, fis[4])
+					table.insert(ret, {pid=name, ppid=fis[4]})
 				end
 			end
 			f:close()
