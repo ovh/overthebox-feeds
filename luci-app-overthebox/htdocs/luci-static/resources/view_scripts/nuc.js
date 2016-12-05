@@ -204,11 +204,14 @@
         });
     };
 
-
+    /**
+     * Ask for a service activation
+     * @param {Function} callback Callback function
+     */
     Nuc.prototype.askServiceActivation = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         $.ajax({
-            url: otb.constants.askServiceActivation,
+            url: otb.constants.askServiceActivationURL,
             success: function (data, status) {
                 if ((status === "success") && (data.wans)) {
                     callback(null, data.wans);
@@ -220,6 +223,37 @@
             callback(err, data);
         });
     };
+
+    /**
+     * Change the password of root on the nuc
+     * @param {String} token     Token available in lua vat 'token'
+     * @param {String} password1 Password
+     * @param {String} password2 Repeat password
+     * @param {Function} callback Callback function
+     */
+    Nuc.prototype.changePassword = function(token, password1, password2 /*, callback*/) {
+        var callback = otb.getCallback(arguments);
+        $.ajax({
+            url: otb.constants.changePasswordURL,
+            method: "POST",
+            dataType: "json",
+            contentType: "application/json",
+            data: {
+                p1: password1,
+                p2: password2,
+                token: token
+            },
+            success: function (data, status) {
+                if ((status === "success") && (data.wans)) {
+                    callback(null, data);
+                } else {
+                    callback(status, false);
+                }
+            }
+        }).fail(function (event, err, data) {
+            callback(err, data);
+        });
+    }
 
     /**
      * Get public IP
