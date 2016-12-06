@@ -237,7 +237,7 @@
             url: otb.constants.changePasswordURL,
             method: "POST",
             dataType: "json",
-            contentType: "application/json",
+            contentType: "application/x-www-form-urlencoded",
             data: {
                 p1: password1,
                 p2: password2,
