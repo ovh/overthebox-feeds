@@ -403,7 +403,7 @@ function checkReadOnly()
 end
 
 function get_ip_public(interface)
-	local ret, _ = run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" )
+	local ret, _ = run("curl -s --max-time 1 --interface "..interface.." ifconfig.ovh" )
 	return ret:match("(%d+%.%d+%.%d+%.%d+)")
 end
 
@@ -1985,7 +1985,7 @@ function tc_stats()
 
 	output = {}
 	result["download"] = {}
-	local json = json.decode(sys.exec("curl -s --connect-timeout 1 api/qos/tcstats"))
+	local json = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
 	if json and json.raw_output then
 		
 		for line in string.gmatch(json.raw_output, '[^\r\n]+') do
