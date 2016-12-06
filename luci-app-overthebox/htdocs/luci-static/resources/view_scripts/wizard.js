@@ -91,19 +91,6 @@
     };
 
     /**
-     * Go to the next step of the wizard
-     * @param {JQuery} jqWizard Wizard
-     */
-    window.otb.wizardNext = function (jqWizard/*, callback*/) {
-        var callback = otb.getCallback(arguments);
-        var index = jqWizard.data("wizardIndex") + 1;
-        if (index < jqWizard.children().length) {
-            var target =  jqWizard.children().eq(index);
-            window.otb.wizardGoto(target, callback);
-        }
-    };
-
-    /**
      * Wizard manager
      * <ul>
      *    <li data-container="bob">
