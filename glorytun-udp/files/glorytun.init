@@ -84,7 +84,7 @@ stop_service() {
     # Get the PIDs, there should be only one PID but the pidof command returns
     # an array of PIDs, let's handle this as if multiple values were returned
     PIDs=$(pidof ${PROG_NAME}.sh)
-    [ -z "${PIDs}}" ] && return
+    [ -z "${PIDs}" ] && return
 
     # Send a term signal to the PIDs
     for pid in ${PIDs}; do
