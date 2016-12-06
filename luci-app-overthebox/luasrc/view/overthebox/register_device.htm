@@ -397,9 +397,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
 
             // if password is set, skip this wizard step
             if (otb.hasPassword) {
-                otb.wizardNext($("div.wizard"), function() {
-                    otb.cleanMessages();
-                });
+                $("div.wizard").wizard("next");
             }
 
             // check password validity
