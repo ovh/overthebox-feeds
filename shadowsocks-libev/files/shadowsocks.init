@@ -13,6 +13,7 @@ fi
 IPTN="$(which iptables) -t nat -w"
 
 . /lib/functions.sh
+. /lib/functions/network.sh
 
 service_triggers() {
 	procd_add_reload_trigger "shadowsocks"
@@ -173,7 +174,7 @@ genrateRules() {
 
 }
 
-genrateStaticRoutesRules() {
+generateStaticRoutesRules() {
 	local interface target netmask gateway metric mtu
 
 	config_get interface $1 interface 'lan'
@@ -193,6 +194,20 @@ genrateStaticRoutesRules() {
 	fi
 }
 
+generateWanAddress() {
+	local ifname ipaddr
+
+	config_get ifname $1 ifname
+	network_get_ipaddr ipaddr $ifname
+
+	if [ -n "$ipaddr" ]; then
+		$IPTN -D SOCKS -d "$ipaddr/32" -m comment --comment "ss_itf_$ifname" -j RETURN 2>/dev/null
+		$IPTN -A SOCKS -d "$ipaddr/32" -m comment --comment "ss_itf_$ifname" -j RETURN
+		setup_rules
+	fi
+}
+
+
 start_service() {
 	config_load shadowsocks
 	config_foreach generateConfig client
@@ -201,7 +216,8 @@ start_service() {
 	config_foreach genrateRules rule
 
 	config_load network
-	config_foreach genrateStaticRoutesRules route
+	config_foreach generateWanAddress interface
+	config_foreach generateStaticRoutesRules route
 }
 
 reload_service() {
@@ -209,7 +225,8 @@ reload_service() {
 	config_foreach genrateRules rule
 
 	config_load network
-	config_foreach genrateStaticRoutesRules route
+	config_foreach generateWanAddress interface
+	config_foreach generateStaticRoutesRules route
 }
 
 stop_service() {
