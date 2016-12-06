@@ -244,7 +244,7 @@
                 token: token
             },
             success: function (data, status) {
-                if ((status === "success") && (data.wans)) {
+                if ((status === "success")) {
                     callback(null, data);
                 } else {
                     callback(status, false);
