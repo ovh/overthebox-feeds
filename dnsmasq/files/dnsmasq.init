@@ -17,6 +17,8 @@ HOSTFILE="/tmp/hosts/dhcp"
 TRUSTANCHORSFILE="/usr/share/dnsmasq/trust-anchors.conf"
 TIMESTAMPFILE="/etc/dnsmasq.time"
 
+. /lib/functions/network.sh
+
 xappend() {
 	local value="$1"
 
@@ -300,6 +302,24 @@ dhcp_vendorclass_add() {
 	dhcp_option_add "$cfg" "$networkid" "$force"
 }
 
+count_dhcp_hosts() {
+	local cfg="$1"
+	config_get tag "$cfg" tag "lan"
+	# Count total number of hosts
+	count_total=$(($count_total+1))
+
+	# Count hosts for this interface
+	local var="count_$tag"
+	local value=${var}
+	value=$(($value+1))
+	eval $var=$value
+
+	# Update max count of all interfaces hosts
+	if [ "$value" -gt "0$count_max" ]; then
+		count_max="$value"
+	fi
+}
+
 dhcp_host_add() {
 	local cfg="$1"
 
@@ -335,7 +355,10 @@ dhcp_host_add() {
 	[ "$broadcast" = "0" ] && broadcast=
 
 	xappend "--dhcp-host=$macs${networkid:+,net:$networkid}${broadcast:+,set:needs-broadcast}${tag:+,set:$tag}${ip:+,$ip}${name:+,$name}"
-	xappend "--dhcp-mac=set:${tag}host,$macs"
+	if [ "$count_total" -gt "$count_max" ]; then
+		ipset add dnsmasq_${tag}_hosts $macs
+		ipset add dnsmasq_known_hosts $macs
+	fi
 }
 
 dhcp_tag_add() {
@@ -388,6 +411,14 @@ dhcp_boot_add() {
 	dhcp_option_add "$cfg" "$networkid" "$force"
 }
 
+cleanupIptables() {
+	# Clean iptables
+	iptables-save | grep "dnsmasq_" | grep "match-set" | sed 's/-A/iptables -w -D/' | sh
+	# Clean ipsets
+	for ipset in $(ipset -n list | grep dnsmasq_); do
+		ipset destroy $ipset
+	done
+}
 
 dhcp_add() {
 	local cfg="$1"
@@ -416,6 +447,15 @@ dhcp_add() {
 	# Override interface netmask with dhcp config if applicable
 	config_get netmask "$cfg" netmask "${subnet##*/}"
 
+	config_get_bool dynamicdhcp "$cfg" dynamicdhcp 1
+
+	local var="count_$net"
+	local value=$(($var))
+	if [ "$dynamicdhcp" = "0" -a "$value" = "0" ]; then
+		xappend "--no-dhcp-interface=$ifname"
+		return 0
+	fi
+
 	#check for an already active dhcp server on the interface, unless 'force' is set
 	config_get_bool force "$cfg" force 0
 	[ $force -gt 0 ] || dhcp_check "$ifname" || return 0
@@ -424,20 +464,58 @@ dhcp_add() {
 	config_get limit "$cfg" limit
 	config_get leasetime "$cfg" leasetime
 	config_get options "$cfg" options
-	config_get_bool dynamicdhcp "$cfg" dynamicdhcp 1
+
 
 	leasetime="${leasetime:-12h}"
 	start="$(dhcp_calc "${start:-100}")"
 	limit="${limit:-150}"
 	[ "$limit" -gt 0 ] && limit=$((limit-1))
 	eval "$(ipcalc.sh "${subnet%%/*}" $netmask $start $limit)"
-	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
+
+	if [ "$dynamicdhcp" = "0" ]; then 
+		if [ "$count_total" -gt "$value" ]; then
+			ipset create dnsmasq_${networkid}_hosts hash:mac
+			iptables -w -I INPUT -i $networkid -p udp -m set ! --match-set dnsmasq_${networkid}_hosts src --dport 67:68 --sport 67:68 -j DROP
+		fi
+		END="static"; 
+	else
+		if [ "$count_total" -gt "$value" ]; then
+			ipset create dnsmasq_${networkid}_hosts hash:mac
+			iptables -w -I INPUT -i $networkid -p udp -m set --match-set dnsmasq_known_hosts src --dport 67:68 --sport 67:68 -j DROP
+			iptables -w -I INPUT -i $networkid -p udp -m set --match-set dnsmasq_${networkid}_hosts src --dport 67:68 --sport 67:68 -j ACCEPT
+		fi
+	fi
 	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
 
-	xappend "--tag-if=set:customhost,tag:${net}host"
-	xappend "--tag-if=set:ignore,tag:!${net}host,tag:$net"
-
+	local has_router_option=0
+	local has_dns_option=0
 	dhcp_option_add "$cfg" "$networkid"
+
+	local ipaddr router
+	network_get_ipaddr ipaddr "$net"
+	network_get_gateway router "$net"
+	# Help dnsmasq to setup correct gateway for this interface
+	if [ "$has_router_option" = "0" ]; then
+		if [ -n "$router" ]; then
+			xappend "--dhcp-option=$net,option:router,$router"
+		else
+			xappend "--dhcp-option=$net,option:router,$ipaddr"
+		fi
+	fi
+	# Help dnsmasq to setup correct dns for this interface
+	if [ "$has_dns_option" = "0" ]; then
+		local dns=""
+		network_get_dnsserver dnsservers $net
+		for dnssserver in $dnsservers
+		do
+			dns="$dns,$dnssserver"
+		done
+		if [ -n "$dns" ]; then
+			xappend "--dhcp-option=$net,option:dns-server$dns"
+		else
+			xappend "--dhcp-option=$net,option:dns-server,$ipaddr"
+		fi
+	fi
 }
 
 dhcp_option_add() {
@@ -449,6 +527,26 @@ dhcp_option_add() {
 
 	config_get dhcp_option "$cfg" dhcp_option
 	for o in $dhcp_option; do
+		case $o in
+			3,*)
+				has_router_option=1
+				;;
+			option:3,*)
+				has_router_option=1
+				;;
+			option:router,*)
+				has_router_option=1
+				;;
+			6,*)
+				has_dns_option=1
+				;;
+			option:6,*)
+				has_dns_option=1
+				;;
+			option:dns-server,*)
+				has_dns_option=1
+				;;
+		esac
 		xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$o"
 	done
 
@@ -555,6 +653,7 @@ boot() {
 start_service() {
 	include /lib/functions
 
+	cleanupIptables
 	config_load dhcp
 
 	procd_open_instance
@@ -589,7 +688,6 @@ start_service() {
 
 	args=""
 	config_foreach dnsmasq dnsmasq
-	config_foreach dhcp_host_add host
 	echo >> $CONFIGFILE
 	config_foreach dhcp_boot_add boot
 	config_foreach dhcp_mac_add mac
@@ -616,9 +714,15 @@ start_service() {
 
 	config_get odhcpd_is_active odhcpd maindhcp
 	if [ "$odhcpd_is_active" != "1" ]; then
+		config_foreach count_dhcp_hosts host
+		# Flush known hosts of destroy it if not needed
+		if [ "$count_total" -gt "$count_max" ]; then
+			ipset create dnsmasq_known_hosts hash:mac;
+		fi
+		# Generate config
 		config_foreach dhcp_add dhcp
 	fi
-	xappend "--dhcp-ignore=tag:ignore,tag:customhost"
+	config_foreach dhcp_host_add host
 
 	echo >> $CONFIGFILE
 	config_foreach dhcp_cname_add cname
@@ -640,6 +744,7 @@ reload_service() {
 }
 
 stop_service() {
+	cleanupIptables
 	[ -f /tmp/resolv.conf ] && {
 		rm -f /tmp/resolv.conf
 		ln -s /tmp/resolv.conf.auto /tmp/resolv.conf

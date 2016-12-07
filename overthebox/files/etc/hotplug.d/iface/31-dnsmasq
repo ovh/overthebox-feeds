@@ -7,7 +7,6 @@
 [ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
 
 . /lib/functions.sh
-. /lib/functions/network.sh
 
 config_load network
 config_get mode $INTERFACE multipath
@@ -23,25 +22,6 @@ case "$mode" in
   *)
 	exit 1;;
 esac
-
-# Get lan subnet
-local lansubnet
-network_get_subnet lansubnet lan
-
-eval "$(ipcalc.sh $lansubnet)"
-local lannet=$NETWORK
-
-# Create option
-local if_ipaddr
-local if_gateway
-local if_network
-local if_netmask
-local if_dnservers
-
-network_get_ipaddr  if_ipaddr  $INTERFACE
-network_get_gateway if_gateway $INTERFACE
-network_get_subnet  if_network $INTERFACE
-network_get_dnsserver if_dnsservers $INTERFACE
 
 checktag() {
         [ "$1" == "$INTERFACE" ] && {
@@ -65,44 +45,14 @@ checkdhcpignore() {
 config_load dhcp
 config_foreach checktag tag
 config_foreach checkdhcpignore dhcp
-eval "$(ipcalc.sh $if_network)"
-if [ "$NETWORK" == "$lannet" ]; then
 
-	if [ -z $IGNOREFOUND ]; then
-	        # Tell dnsmasq to ignore this interface
-	        uci add dhcp dhcp
-	        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
-	        uci set dhcp.@dhcp[-1].ignore='1'
-	        uci commit dhcp
-	fi
-
-	[ ! -z $TAGFOUND ] && exit 0
-	if [ -n "$if_gateway" ]; then
-		uci set dhcp.$INTERFACE=tag
-	fi
-else
-	if [ -n "$IGNOREFOUND" ]; then
-		uci del dhcp.$IGNOREFOUND
-	fi
-	# Create static dhcp range
-	uci set dhcp.$INTERFACE=dhcp
-	uci set dhcp.$INTERFACE.dynamicdhcp=0
-	uci set dhcp.$INTERFACE.interface=$INTERFACE
-	uci set dhcp.$INTERFACE.start=0
+if [ -n "$IGNOREFOUND" ]; then
+	uci del dhcp.$IGNOREFOUND
 fi
-
-config_load network
-# Create dnsmasq tagged option for this interface
-if [ -n "$if_gateway" ]; then
-	OPTIONS="option:router,$if_gateway"
-	for dnsserver in $if_dnsservers
-	do
-		DNS="$DNS,$dnsserver"
-	done
-	if [ -n "$DNS" ]; then
-		OPTIONS="$OPTIONS option:dns-server$DNS"
-	fi
-	uci set dhcp.$INTERFACE.dhcp_option="$OPTIONS"
-fi
+# Create static dhcp range
+uci set dhcp.$INTERFACE=dhcp
+uci set dhcp.$INTERFACE.dynamicdhcp=0
+uci set dhcp.$INTERFACE.interface=$INTERFACE
+uci set dhcp.$INTERFACE.start=0
 
 uci commit
