@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.4
-PKG_RELEASE:=20
+PKG_RELEASE:=21
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -58,6 +58,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults/mwan3.defaults
 	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults/dscp.defaults
 	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults/ucitrack.defaults
+	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
 endef
 
 define Package/overthebox/postinst
@@ -73,11 +74,16 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
+	( . /etc/uci-defaults/uhttpd.defaults ) && rm -f /etc/uci-defaults/uhttpd.defaults
 
 	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
+
+	# Once all defaults are set, we use reload_config that will call
+	# /etc/init.d/{service} reload on all services that had some config changes
+	[ -x /sbin/reload_config ] && /sbin/reload_config ;
 
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
@@ -95,6 +101,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 		dropbearkey -t rsa -s 4096 -f /root/.ssh_otb_remote |grep ^ssh- > /root/.ssh_otb_remote.pub
 	fi
 	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
+
 	exit 0
 fi
 endef

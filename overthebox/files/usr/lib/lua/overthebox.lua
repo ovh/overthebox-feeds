@@ -118,9 +118,13 @@ function addInterfaceInZone(name, ifname)
 end
 
 function config()
+	local ret = {}
 	local uci = uci.cursor()
 	local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
-	local ret = {}
+	if rcode ~= 200 then
+		table.insert(ret, "Error getting config : ".. rcode)
+		return false, ret
+	end
 
 	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', 'otb', 'tunnel')
@@ -184,6 +188,8 @@ function config()
 				end
 			end
 		end
+		-- We do not commit network now because network will be restarted later
+		uci:save('network')
 
 		uci:save('glorytun')
 		uci:commit('glorytun')
@@ -232,7 +238,7 @@ function config()
 	end
 
 	if res.tun_conf.app == 'glorytun_mud' then
-		-- Activate MUD 
+		-- Activate MUD
 		uci:foreach("glorytun", "mud",
 			function (e)
 				uci:set('glorytun', e[".name"], 'enable', '1')
@@ -330,7 +336,7 @@ function config()
 		table.insert(ret, 'log')
 	end
 
-	return true, ret 
+	return true, ret
 end
 
 function send_properties( props )
@@ -403,7 +409,7 @@ function checkReadOnly()
 end
 
 function get_ip_public(interface)
-	local ret, _ = run("curl -s --connect-timeout 1 --interface "..interface.." ifconfig.ovh" )
+	local ret, _ = run("curl -s --max-time 1 --interface "..interface.." ifconfig.ovh" )
 	return ret:match("(%d+%.%d+%.%d+%.%d+)")
 end
 
@@ -455,7 +461,7 @@ local diags = {
 	ifconfig = { cmd = 'ifconfig'},
 	df = { cmd = 'df'},
 	netstat = { cmd = 'netstat -natupe'},
-	lsof_network = { cmd = 'lsof -i'},
+	lsof_network = { cmd = 'lsof -i -n'},
 	dig = { cmd = 'dig {{domain}} @{{server}}', default = { domain = 'www.ovh.com', server = '127.0.0.1' }},
 	mtr = { cmd = 'mtr -rn -c {{count}} {{host}}', default = { host = 'www.ovh.com', count = 2 }},
 	iptables_save = { cmd = 'iptables-save'},
@@ -464,6 +470,7 @@ local diags = {
 	tc = { cmd = 'tc qdisc show' },
 	ping = { cmd = 'ping -c {{count}} {{ip}}', default = { ip = '213.186.33.99', count = 2 }},
 	dmidecode = { cmd = 'dmidecode -s baseboard-serial-number' },
+	uptime = { cmd = 'uptime' },
 }
 
 function send_diagnostic(id, info)
@@ -488,7 +495,7 @@ end
 
 function run_diagnostic( id, name, arg )
 	cmd = string.gsub( diags[name].cmd, "{{(%w+)}}", function(w)
-		return (arg and arg[w]) or diags[name].default[w] or "" 
+		return (arg and arg[w]) or diags[name].default[w] or ""
 	end )
 	local ret, rcode = run(cmd)
 	local ret_api = post_result_diagnostic(id, name, cmd, ret, rcode)
@@ -739,7 +746,10 @@ end
 -- function upgrade check if all package asked are up to date
 function upgrade()
     -- first, we upgrade ourself
-    opkg_install("overthebox")
+    local c, r = opkg_install("overthebox")
+    if not c then
+        return c, "Failed to install overthebox: \n" .. r
+    end
 
     -- let's check others
     local listpkginstalled, _ = run("opkg list-installed")
@@ -755,35 +765,42 @@ function upgrade()
             local mversion = pkgs[pkg]
             if mversion == 'remove' then
                 local c, r = opkg_remove(pkg)
+                retcode = retcode and c
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
             elseif version:find(mversion,1, true) == 1  then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version < mversion then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
             elseif version > mversion then
                 local c, r = opkg_install(pkg)
+                retcode = retcode and c
                 ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
             end
-	    checked[pkg] = 1
+            checked[pkg] = 1
         end
     end
 
     for pkg, version in pairs(pkgs) do
-	if checked[pkg] == nil then -- not seen
-	    if version == 'remove' then
-		local c, r = opkg_remove(pkg)
-		ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
-	    else
-		local c, r = opkg_install(pkg)
-		ret = ret .. "install "..pkg.."\n" ..  r .."\n"
-	    end
-	end
+        if checked[pkg] == nil then -- not seen
+            if version == 'remove' then
+                local c, r = opkg_remove(pkg)
+                retcode = retcode and c
+                ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
+            else
+                local c, r = opkg_install(pkg)
+                retcode = retcode and c
+                ret = ret .. "install "..pkg.."\n" ..  r .."\n"
+            end
+        end
     end
 
     for service, status in pairs(services) do
         local c, r = ensure_service_state(service, status)
+        retcode = retcode and c
         ret = ret .. r .. "\n"
     end
 
@@ -922,7 +939,7 @@ function API(uri, method, data)
 		method = method,
 		url = url,
 		protocol = "tlsv1",
-		headers = 
+		headers =
 		{
 			["Content-Type"] = "application/json",
 			["Content-length"] = reqbody:len(),
@@ -1029,7 +1046,7 @@ function update_confmwan()
 	table.insert( tracking_servers, "51.254.49.133" )
 	local tracking_tunnels = {}
 	table.insert( tracking_tunnels, "169.254.254.1" )
-	-- 
+	--
 	local interfaces={}
 	local size_interfaces = 0 -- table.getn( does not work....
 
@@ -1128,7 +1145,7 @@ function update_confmwan()
 		for key in pairs(t) do
 			table.insert( orderedIndex, key )
 		end
-		table.sort( orderedIndex, function (a, b) 
+		table.sort( orderedIndex, function (a, b)
 			return tonumber(interfaces[a].metric or 0) < tonumber(interfaces[b].metric or 0)
 		end )
 		return orderedIndex
@@ -1304,11 +1321,11 @@ function update_confmwan()
 	end
 
 	function table_copy(obj, seen)
-		if type(obj) ~= 'table' then 
-			return obj 
+		if type(obj) ~= 'table' then
+			return obj
 		end
-		if seen and seen[obj] then 
-			return seen[obj] 
+		if seen and seen[obj] then
+			return seen[obj]
 		end
 		local s = seen or {}
 		local res = setmetatable({}, getmetatable(obj))
@@ -1343,7 +1360,7 @@ function update_confmwan()
 
 	-- Setting rule to forward all non tcp traffic to tun0
 	if not uci:get("mwan3", "all") then
-		uci:set("mwan3", "all", "rule") 
+		uci:set("mwan3", "all", "rule")
 		uci:set("mwan3", "all", "proto", "all")
 		uci:set("mwan3", "all", "sticky", "0")
 	end
@@ -1636,7 +1653,7 @@ function create_dhcp_server()
 	-- Setup a dhcp server if needed
 	local dhcpd_configured = 0
 	local dhcpd = list_running_dhcp()
-	for i, _ in pairs(dhcpd) do    
+	for i, _ in pairs(dhcpd) do
 		dhcpd_configured = dhcpd_configured + 1
 	end
 	log( "Count of dhcp configured : " .. dhcpd_configured )
@@ -1745,14 +1762,14 @@ end
 
 function restart_daemon()
 	local ret, rcode = run("/etc/init.d/overtheboxd restart")
-	return status_code_ok(rcode), ret 
+	return status_code_ok(rcode), ret
 end
 
 
 
 --
 -- function getzombieppid search zombie programs
--- return array of zombie's ppid
+-- return array of zombie's pid and ppid
 function getzombieppid()
 	local ret = {}
 	local files = posix.dir("/proc")
@@ -1763,7 +1780,7 @@ function getzombieppid()
 			for line in f:lines() do
 				local fis = split(line or "" )
 				if #fis > 4 and fis[3] == "Z" then
-					table.insert(ret, fis[4])
+					table.insert(ret, {pid=name, ppid=fis[4]})
 				end
 			end
 			f:close()
@@ -1946,7 +1963,7 @@ function iface_info(iface)
 			end
 		end
 	end
-	
+
 	return result
 end
 
@@ -1985,9 +2002,9 @@ function tc_stats()
 
 	output = {}
 	result["download"] = {}
-	local json = json.decode(sys.exec("curl -s --connect-timeout 1 api/qos/tcstats"))
+	local json = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
 	if json and json.raw_output then
-		
+
 		for line in string.gmatch(json.raw_output, '[^\r\n]+') do
 			table.insert(output, line)
 		end
@@ -2069,6 +2086,3 @@ end
 function err(msg)
 	posix.syslog( posix.LOG_ERR, msg)
 end
-
-
-
