@@ -3,7 +3,7 @@
 uci delete dhcp.@dnsmasq[0].nonegcache
 uci set dhcp.@dnsmasq[0].all_servers='1'
 uci set dhcp.@dnsmasq[0].cachesize='8192'
-uci set dhcp.@dnsmasq[0].authoritative='0'
+uci set dhcp.@dnsmasq[0].authoritative='1'
 uci commit dhcp
 
 if grep overthebox.ovh /etc/dnsmasq.conf 1>/dev/null 2>/dev/null; then
