@@ -81,6 +81,10 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
 	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
 
+	# Once all defaults are set, we use reload_config that will call
+	# /etc/init.d/{service} reload on all services that had some config changes
+	[ -x /sbin/reload_config ] && /sbin/reload_config ;
+
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
 
@@ -97,6 +101,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 		dropbearkey -t rsa -s 4096 -f /root/.ssh_otb_remote |grep ^ssh- > /root/.ssh_otb_remote.pub
 	fi
 	[ -x /etc/init.d/overtheboxd ] && /etc/init.d/overtheboxd restart ;
+
 	exit 0
 fi
 endef
