@@ -42,9 +42,23 @@ add_multipath () {
     fi
 }
 
+add_backup () {
+    config_get ifname $1 ifname
+    config_get multipath $1 multipath
+    if [ "${multipath}" = "backup" ]; then
+        network_get_ipaddr ipaddr ${ifname}
+
+        # Only add the interface to glorytun-udp if the IP is defined
+        if [ -n "${ipaddr}" ]; then
+            GLORYTUN_ARGS="${GLORYTUN_ARGS} bind-backup ${ipaddr}"
+        fi
+    fi
+}
+
 # Run the add_multipath function for each interface
 config_load network
 config_foreach add_multipath interface
+config_foreach add_backup interface
 
 # Launch glorytun and keep its PID in a a var
 $* host ${GLORYTUN_HOST} port ${GLORYTUN_PORT} dev ${GLORYTUN_DEV} statefile ${statefile} ${GLORYTUN_ARGS} &
@@ -122,23 +136,16 @@ while kill -0 ${GTPID}; do
     # If the statefile is closed, break the loop
     read STATE INFO || break
     # Log each input from the statefile for easy debugging
-    _log -t $1 ${STATE} ${INFO}
+    _log "${STATE} ${INFO}"
     # Run the functions above according to the statefile input
     case ${STATE} in
     INITIALIZED)
         _log "setting up ${GLORYTUN_DEV}"
         initialized
-        _log "${GLORYTUN_DEV} set up"
-        ;;
-    STARTED)
         started
-        _log "glorytun-udp connected"
-        ;;
-    STOPPED)
-        stopped
-        _log "glorytun-udp disconnected"
+        _log "${GLORYTUN_DEV} set up"
         ;;
     esac
 done < ${statefile}
 
-_log -t glorytun BYE
+_log "BYE"
