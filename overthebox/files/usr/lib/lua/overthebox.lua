@@ -145,11 +145,14 @@ function config()
 
 		uci:set('network', res.glorytun_conf.dev, 'interface')
 		uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
-		uci:set('network', res.glorytun_conf.dev, 'proto', 'none')
+		if res.tun_conf.app == 'glorytun' then
+			uci:set('network', res.glorytun_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
+			uci:set('network', res.glorytun_conf.dev, 'gateway', res.glorytun_conf.ip_peer)
+			uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
+		end
 		uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
-		uci:set('network', res.glorytun_conf.dev, 'delegate', '0')
-		uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
-		uci:set('network', res.glorytun_conf.dev, 'auto', '0')
+		uci:delete('network', res.glorytun_conf.dev, 'auto')
 		uci:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
 
 		addInterfaceInZone("wan", res.glorytun_conf.dev)
@@ -176,11 +179,14 @@ function config()
 
 					uci:set('network', conf.dev, 'interface')
 					uci:set('network', conf.dev, 'ifname', conf.dev)
-					uci:set('network', conf.dev, 'proto', 'none')
+					if res.tun_conf.app == 'glorytun' then
+						uci:set('network', conf.dev, 'proto', 'ptp')
+						uci:set('network', conf.dev, 'ipaddr', conf.ip_local)
+						uci:set('network', conf.dev, 'gateway', conf.ip_peer)
+						uci:set('network', conf.dev, 'metric', conf.metric)
+					end
 					uci:set('network', conf.dev, 'multipath', 'off')
-					uci:set('network', conf.dev, 'delegate', '0')
-					uci:set('network', conf.dev, 'metric', conf.metric)
-					uci:set('network', conf.dev, 'auto', '0')
+					uci:delete('network', conf.dev, 'auto')
 					uci:set('network', conf.dev, 'type', 'tunnel')
 
 					addInterfaceInZone("wan", conf.dev)
@@ -216,11 +222,14 @@ function config()
 
 		uci:set('network', res.glorytun_mud_conf.dev, 'interface')
 		uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
-		uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'none')
+		if res.tun_conf.app == 'glorytun_mud' then
+			uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_mud_conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
+			uci:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
+			uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
+		end
 		uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
-		uci:set('network', res.glorytun_mud_conf.dev, 'delegate', '0')
-		uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
-		uci:set('network', res.glorytun_mud_conf.dev, 'auto', '0')
+		uci:delete('network', res.glorytun_mud_conf.dev, 'auto')
 		uci:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
 
 		addInterfaceInZone("wan", res.glorytun_mud_conf.dev)
