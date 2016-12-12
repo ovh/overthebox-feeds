@@ -54,5 +54,6 @@ uci set dhcp.$INTERFACE=dhcp
 uci set dhcp.$INTERFACE.dynamicdhcp=0
 uci set dhcp.$INTERFACE.interface=$INTERFACE
 uci set dhcp.$INTERFACE.start=0
+uci set dhcp.$INTERFACE.force=1
 
 uci commit

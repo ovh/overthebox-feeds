@@ -4,7 +4,16 @@ uci delete dhcp.@dnsmasq[0].nonegcache
 uci set dhcp.@dnsmasq[0].all_servers='1'
 uci set dhcp.@dnsmasq[0].cachesize='8192'
 uci set dhcp.@dnsmasq[0].authoritative='1'
-uci commit dhcp
+
+# Disable DHCP on eth0 as we use macvlan subinterfaces
+uci set dhcp.eth0='dhcp'
+uci set dhcp.eth0.interface='eth0'
+uci set dhcp.eth0.ignore='1'
+
+# Disable if0 as it is dhcp adiscovering interface
+uci set dhcp.if0='dhcp'
+uci set dhcp.if0.interface='if0'
+uci set dhcp.if0.ignore='1'
 
 if grep overthebox.ovh /etc/dnsmasq.conf 1>/dev/null 2>/dev/null; then
 	sed -i.bak '/overthebox.ovh/d' /etc/dnsmasq.conf
@@ -17,8 +26,9 @@ if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci add dhcp cname
 	uci set dhcp.@cname[-1].cname='overthebox.ovh'
 	uci set dhcp.@cname[-1].target='lan'
-	uci commit dhcp
 fi
+
+uci commit dhcp
 
 exit 0
 

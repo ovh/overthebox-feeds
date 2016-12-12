@@ -431,8 +431,14 @@ dhcp_add() {
 	config_get networkid "$cfg" networkid
 	[ -n "$networkid" ] || networkid="$net"
 
+	network_get_device ifname "$net"
+	if [ -n "$ifname" ]; then
+		append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && return 0
+	else
+		append_bool "$cfg" ignore "--no-dhcp-interface=$net"
+		return 0
+	fi
 	network_get_subnet subnet "$net" || return 0
-	network_get_device ifname "$net" || return 0
 	network_get_protocol proto "$net" || return 0
 
 	[ "$cachelocal" = "0" ] && network_get_dnsserver dnsserver "$net" && {
