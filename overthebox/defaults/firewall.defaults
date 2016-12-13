@@ -27,7 +27,7 @@ search_uci_section() {
 }
 
 add_uci_section(){
-        Z=$1
+	Z=$1
 	shift
 
 	# not found, create new section
@@ -76,13 +76,17 @@ done
 # Remove old style list entry like "'if0 lan'"
 uci get $ZLAN.network | grep -Po "'.*?'" | while read -r line ; do
 	echo "del_list $ZLAN.network=$line" | uci batch
+	for itf in ${line//\'/}; do
+		uci del_list $ZLAN.network=$itf
+		uci add_list $ZLAN.network=$itf
+	done
 done
 
 ZWAN=$(search_uci_section zone name=wan)
 if [ -z "$ZWAN" ]
 then
-        echo wan not found
-        ZWAN=$(add_uci_section zone name=wan)
+	echo wan not found
+	ZWAN=$(add_uci_section zone name=wan)
 fi
 update_uci_section $ZWAN input=REJECT output=ACCEPT forward=REJECT masq=1
 for zone in "tun0" "xtun0" "if6rd";
@@ -93,6 +97,10 @@ done
 # Remove old style list entry like "'xtun0 tun0 if6rd'"
 uci get $ZWAN.network | grep -Po "'.*?'" | while read -r line ; do
 	echo "uci del_list $ZWAN.network=$line" | uci batch
+	for itf in ${line//\'/}; do
+		uci del_list $ZWAN.network=$itf
+		uci add_list $ZWAN.network=$itf
+	done
 done
 
 ZIPV6=$(search_uci_section zone name=ipv6)
@@ -106,8 +114,8 @@ update_uci_section $ZIPV6 input=DROP output=ACCEPT forward=ACCEPT masq=1
 ZMPTCP=$(search_uci_section zone name=mptcp)
 if [ -z "$ZMPTCP" ]
 then
-        echo mptcp not found
-        ZMPTCP=$(add_uci_section zone name=mptcp)
+	echo mptcp not found
+	ZMPTCP=$(add_uci_section zone name=mptcp)
 fi
 update_uci_section $ZMPTCP input=ACCEPT output=ACCEPT forward=ACCEPT masq=1
 
@@ -122,8 +130,8 @@ find_or_new_uci_section forwarding src=ipv6 dest=mptcp > /dev/null
 RVPN=$(search_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
 if [ -z "$RVPN" ]
 then
-        echo rule vpn not found
-        RVPN=$(add_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
+	echo rule vpn not found
+	RVPN=$(add_uci_section rule proto=udp src_port=4500 src=wan dest=lan)
 fi
 update_uci_section $RVPN target=ACCEPT name=vpn enabled=1
 
