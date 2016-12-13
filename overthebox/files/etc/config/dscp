@@ -3,58 +3,68 @@ config classify
 	option proto 'tcp'
 	option dest_ip '169.254.254.1'
 	option class 'cs6'
+	option generated '1'
 	option comment 'Service API'
 
 config classify
 	option proto 'icmp'
 	option class 'cs6'
+	option generated '1'
 	option comment 'ICMP'
 
 config classify
 	option proto 'udp'
 	option dest_ip '91.121.128.0/23'
 	option class 'cs5'
+	option generated '1'
 	option comment 'VoIP'
 
 config classify
 	option proto 'tcp'
 	option dest_port '22'
-	option comment 'SSH'
 	option class 'cs5'
+	option generated '1'
+	option comment 'SSH'
 
 config classify
 	option proto 'tcp'
 	option dest_port '23'
-	option comment 'Telnet'
 	option class 'cs5'
+	option generated '1'
+	option comment 'Telnet'
 
 config classify
 	option proto 'tcp'
 	option dest_port '80,443'
-	option comment 'Web'
 	option class 'cs3'
+	option generated '1'
+	option comment 'Web'
 
 config classify
 	option proto 'tcp'
 	option dest_port '110,143,465,995'
 	option class 'cs1'
+	option generated '1'
 	option comment 'Mails'
 
 config classify
 	option proto 'tcp'
 	option dest_port '25'
 	option class 'cs1'
+	option generated '1'
 	option comment 'SMTP'
 
 config classify
 	option proto 'tcp'
 	option dest_port '21'
 	option class 'cs1'
+	option generated '1'
 	option comment 'FTP'
 
 config classify
-        option proto 'udp'
-        option src_port '27000:27050'
-        option class 'cs4'
-        option comment 'Steam'
+	option proto 'udp'
+	option src_port '27000:27050'
+	option class 'cs4'
+	option generated '1'
+	option comment 'Steam'
 
