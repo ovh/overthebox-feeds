@@ -117,6 +117,191 @@ function addInterfaceInZone(name, ifname)
 	return false
 end
 
+function updateDscp(conf)
+	local uci = uci.cursor()
+	-- Clean up old rules
+	uci:foreach("dscp", "classify",
+		function (dscp)
+			if dscp["generated"] then
+				uci:delete("dscp", dscp[".name"])
+			-- Remove deprecated rules, this should be removed in next release
+			elseif dscp["comment"] == "Service API" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "ICMP" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "VoIP" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "SSH" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "Telnet" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "Web" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "Mails" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "SMTP" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "FTP" then
+				uci:delete("dscp", dscp[".name"])
+			elseif dscp["comment"] == "Steam" then
+				uci:delete("dscp", dscp[".name"])
+			end
+		end
+	)
+	-- Microsoft network
+	local ServicesNetwork = {
+		["Microsoft Windows Update"] = {
+			["40.80.0.0/12"]	= "cs1",
+			["40.74.0.0/15"]	= "cs1",
+			["40.96.0.0/12"]	= "cs1",
+			["40.125.0.0/17"]	= "cs1",
+			["40.120.0.0/14"]	= "cs1",
+			["40.124.0.0/16"]	= "cs1",
+			["40.112.0.0/13"]	= "cs1",
+			["40.76.0.0/14"]	= "cs1",
+			["132.245.0.0/16"]	= "cs1"
+		}
+	}
+	-- Handle glorytun mud QoS
+	if conf.tun_conf.app == 'glorytun_mud' then
+		--- Update OverTheBox service Rules ---
+		-- Add ICMP rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "both")
+		uci:set("dscp", dscp, "proto", "icmp")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "ICMP")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 0)
+		-- Add Service API rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "both")
+		uci:set("dscp", dscp, "proto", "tcp")
+		uci:set("dscp", dscp, "src_ip", "169.254.254.1")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "Service API")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 1)
+		-- Shadowsocks monitoring
+		if conf.shadow_conf and exists( conf.shadow_conf, 'monitoring_ip') then
+			local dscp = uci:add("dscp", "classify")
+			uci:set("dscp", dscp, "direction", "both")
+			uci:set("dscp", dscp, "proto", "tcp")
+			uci:set("dscp", dscp, "src_ip", conf.shadow_conf.monitoring_ip)
+			uci:set("dscp", dscp, "class", "cs4")
+			uci:set("dscp", dscp, "comment", "Shadowsocks tracker")
+			uci:set("dscp", dscp, "generated", "1")
+			uci:reorder("dscp", dscp, 2)
+		end
+		-- Add VoIP rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "both")
+		uci:set("dscp", dscp, "proto", "udp")
+		uci:set("dscp", dscp, "src_ip", '91.121.128.0/23')
+		uci:set("dscp", dscp, "class", "cs6")
+		uci:set("dscp", dscp, "comment", "VoIP")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 3)
+		--- Update other service Rules ---
+		for service, rules in pairs(ServicesNetwork) do
+			for net, class in pairs(rules) do
+				local dscp = uci:add("dscp", "classify")
+				uci:set("dscp", dscp, "direction", "both")
+				uci:set("dscp", dscp, "proto", "all")
+				uci:set("dscp", dscp, "class", class)
+				uci:set("dscp", dscp, "src_ip", net)
+				uci:set("dscp", dscp, "comment", service)
+				uci:set("dscp", dscp, "generated", "1")
+			end
+		end
+		-- Add Steam rule --
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "both")
+		uci:set("dscp", dscp, "proto", "udp")
+		uci:set("dscp", dscp, "src_port", "27000:27050")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "Steam")
+		uci:set("dscp", dscp, "generated", "1")
+        elseif conf.tun_conf.app == 'glorytun' then
+		--- Update OverTheBox service Rules ---
+		-- Add ICMP rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "upload")
+		uci:set("dscp", dscp, "proto", "icmp")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "ICMP")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 0)
+		-- Add Service API rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "upload")
+		uci:set("dscp", dscp, "proto", "tcp")
+		uci:set("dscp", dscp, "dest_ip", "169.254.254.1")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "Service API")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 1)
+		-- Shadowsocks monitoring
+		if conf.shadow_conf and exists( conf.shadow_conf, 'monitoring_ip') then
+			local dscp = uci:add("dscp", "classify")
+			uci:set("dscp", dscp, "direction", "upload")
+			uci:set("dscp", dscp, "proto", "tcp")
+			uci:set("dscp", dscp, "dest_ip", conf.shadow_conf.monitoring_ip)
+			uci:set("dscp", dscp, "class", "cs4")
+			uci:set("dscp", dscp, "comment", "Shadowsocks tracker")
+			uci:set("dscp", dscp, "generated", "1")
+			uci:reorder("dscp", dscp, 2)
+		end
+		-- Add VoIP rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "upload")
+		uci:set("dscp", dscp, "proto", "udp")
+		uci:set("dscp", dscp, "dest_ip", '91.121.128.0/23')
+		uci:set("dscp", dscp, "class", "cs6")
+		uci:set("dscp", dscp, "comment", "VoIP")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 3)
+		--- Update other service Rules ---
+		-- Add Steam rule
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "upload")
+		uci:set("dscp", dscp, "proto", "udp")
+		uci:set("dscp", dscp, "src_port", "27000:27050")
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "Steam")
+		uci:set("dscp", dscp, "generated", "1")
+	end
+	--- Update common OverTheBox service Rules ---
+	-- Add common rules
+	if conf.log_conf and exists(conf.log_conf, 'host', 'port', 'protocol') then
+		local dscp = uci:add("dscp", "classify")
+		uci:set("dscp", dscp, "direction", "upload")
+		uci:set("dscp", dscp, "proto", conf.log_conf.protocol)
+		uci:set("dscp", dscp, "dest_port", conf.log_conf.port)
+		uci:set("dscp", dscp, "dest_ip", conf.log_conf.host)
+		uci:set("dscp", dscp, "class", "cs4")
+		uci:set("dscp", dscp, "comment", "Syslog")
+		uci:set("dscp", dscp, "generated", "1")
+		uci:reorder("dscp", dscp, 4)
+	end
+	if conf.graph_conf and exists( conf.graph_conf, 'host') then
+		local url = require("socket.url")
+		local url_info = url.parse(conf.graph_conf.host)
+		if url_info and url_info.authority then
+			local dscp = uci:add("dscp", "classify")
+			uci:set("dscp", dscp, "direction", "upload")
+			uci:set("dscp", dscp, "proto", "tcp")
+			uci:set("dscp", dscp, "dest_ip", url_info.host)
+			uci:set("dscp", dscp, "class", "cs3")
+			uci:set("dscp", dscp, "comment", "Graph")
+			uci:set("dscp", dscp, "generated", "1")
+			uci:reorder("dscp", dscp, 4)
+		end
+	end
+
+	uci:commit('dscp')
+end
+
 function config()
 	local ret = {}
 	local uci = uci.cursor()
@@ -229,6 +414,7 @@ function config()
 
 		table.insert(ret, 'glorytun-udp')
 	end
+	updateDscp(res)
 
 	if not res.tun_conf then
 		res.tun_conf = {}
