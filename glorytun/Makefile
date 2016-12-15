@@ -9,14 +9,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
 PKG_VERSION:=0.0.34
-PKG_RELEASE=2
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_RELEASE=4
+PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
 PKG_MD5SUM:=94b26771867d45e00a766d6aa73fe942
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/glorytun
+define Package/$(PKG_NAME)
 	SECTION:=net
 	CATEGORY:=Network
 	DEPENDS:=+kmod-tun +libsodium +ip +iptables +@BUSYBOX_DEFAULT_PKILL
@@ -27,24 +27,25 @@ endef
 
 TARGET_CFLAGS += -std=c99 -D_GNU_SOURCE
 
-define Package/glorytun/conffiles
+define Package/$(PKG_NAME)/conffiles
 /etc/config/glorytun
 endef
 
-define Package/glorytun/install
-	$(CP) ./files/* $(1)/
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) files/glorytun.init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./defaults/glorytun.defaults $(1)/etc/uci-defaults/glorytun.defaults
+	$(INSTALL_BIN) files/glorytun.defaults $(1)/etc/uci-defaults/$(PKG_NAME).defaults
 endef
 
-define Package/glorytun/postinst
+define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 if [ -z $${IPKG_INSTROOT} ] ; then
-	( . /etc/uci-defaults/glorytun.defaults ) && rm -f /etc/uci-defaults/glorytun.defaults
-	[ -x /etc/init.d/glorytun ] && /etc/init.d/glorytun restart;
+	( . /etc/uci-defaults/$(PKG_NAME).defaults ) && rm -f /etc/uci-defaults/$(PKG_NAME).defaults
+	[ -x /etc/init.d/$(PKG_NAME) ] && /etc/init.d/$(PKG_NAME) restart;
 fi
 endef
 
-$(eval $(call BuildPackage,glorytun))
+$(eval $(call BuildPackage,$(PKG_NAME)))
