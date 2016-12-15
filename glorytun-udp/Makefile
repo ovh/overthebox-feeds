@@ -34,7 +34,6 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
-	$(INSTALL_BIN) files/glorytun.sh $(1)/usr/sbin/$(PKG_NAME).sh
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) files/glorytun.init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
@@ -44,8 +43,8 @@ endef
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 if [ -z $${IPKG_INSTROOT} ] ; then
-    ( . /etc/uci-defaults/$(PKG_NAME).defaults ) && rm -f /etc/uci-defaults/$(PKG_NAME).defaults
-    [ -x /etc/init.d/$(PKG_NAME) ] && /etc/init.d/$(PKG_NAME) restart;
+	( . /etc/uci-defaults/$(PKG_NAME).defaults ) && rm -f /etc/uci-defaults/$(PKG_NAME).defaults
+	[ -x /etc/init.d/$(PKG_NAME) ] && /etc/init.d/$(PKG_NAME) restart;
 fi
 endef
 
