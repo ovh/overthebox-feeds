@@ -96,7 +96,7 @@ do
 done
 # Remove old style list entry like "'xtun0 tun0 if6rd'"
 uci get $ZWAN.network | grep -Po "'.*?'" | while read -r line ; do
-	echo "uci del_list $ZWAN.network=$line" | uci batch
+	echo "del_list $ZWAN.network=$line" | uci batch
 	for itf in ${line//\'/}; do
 		uci del_list $ZWAN.network=$itf
 		uci add_list $ZWAN.network=$itf
