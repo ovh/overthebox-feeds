@@ -11,6 +11,17 @@ if [ $? -ne 0 ]; then
 	EOF
 fi
 
+MACPREFIX="42:42:42"
+if ! uci -q get network.lan.macaddr 2>/dev/null; then
+	MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+	uci set network.lan.macaddr="${MACPREFIX}${MACSUFFIX}"
+fi
+
+if ! uci -q get network.if0.macaddr 2>/dev/null; then
+	MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+	uci set network.if0.macaddr="${MACPREFIX}${MACSUFFIX}"
+fi
+
 uci get network.lan.multipath >/dev/null 2>&1
 if [ $? -ne 0 ]; then
 	uci -q batch <<-EOF >/dev/null
@@ -45,6 +56,15 @@ set network.if6rd.proto='none'
 set network.if6rd.ifname=‘6rd’
 set network.if6rd.multipath='off'
 EOF
+
+# Make sure to delete old macvlan management with the new netifd
+if [ -s /etc/hotplug.d/net/01-macvlan ]; then
+	rm -f /etc/hotplug.d/net/01-macvlan
+fi
+
+if [ -s /etc/hotplug.d/iface/01-macvlan ]; then
+	rm -f /etc/hotplug.d/iface/01-macvlan
+fi
 
 uci commit network
 
