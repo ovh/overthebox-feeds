@@ -665,10 +665,10 @@ function shaper:pushPing(lat)
 			if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
 				shaper:enableQos()
 				run('pkill -USR1 -f "mwan3track -i"')
+			-- Notify tun0 that a new tracker as started pinging
+			elseif shaper.reloadtimestamp == 0 then
+				run('pkill -USR2 -f "mwan3track -i tun0"')
 			end
-		-- Notify tun0 that a new tracker as started pinging
-		elseif shaper.reloadtimestamp == 0 then
-			run('pkill -USR2 -f "mwan3track -i tun0"')
 		end
 	end
 	pingstats:push(lat)
