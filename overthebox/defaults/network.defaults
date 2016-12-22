@@ -42,13 +42,14 @@ if [ $? -ne 0 ]; then
   uci -q batch <<-EOF >/dev/null
         set network.tun0='interface'
         set network.tun0.ifname='tun0'
-        set network.tun0.auto='0'
         set network.tun0.proto='none'
         set network.tun0.multipath='off'
         set network.tun0.delegate='0'
         set network.tun0.metric='100'
 EOF
 fi
+
+uci delete network.tun0.auto
 
 # Convert deprecated sqm section to network interfaces
 convert_sqm_to_network() {
