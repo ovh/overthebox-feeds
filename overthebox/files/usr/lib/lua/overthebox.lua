@@ -371,8 +371,51 @@ function config()
 	return true, ret
 end
 
+function get_kernel_build_info()
+	local file = io.open("/proc/version", "r")
+	if file then
+		local build_info = file:read("*line")
+		file:close()
+		if string.match(build_info, "Linux version") then
+			return build_info
+		end
+	end
+	return nil
+end
+
+function get_mptcp_version()
+	local file = io.open("/dev/kmsg", "r")
+	if file then
+		local readmax = 1000
+		while readmax > 0 do
+			local mptcp_info = file:read("*line")
+			if string.match(mptcp_info, ";MPTCP") then
+				file:close()
+				return mptcp_info:gsub(".*;","")
+			end
+			readmax = readmax - 1;
+		end
+		file:close()
+	end
+	return nil
+end
+
 function send_properties( props )
 	body = {}
+
+	if props.build_version then
+		local version = get_kernel_build_info()
+		if version then
+			body.build_version = version
+		end
+	end
+
+	if props.mptcp_version then
+		local version = get_mptcp_version()
+		if version then
+			body.mptcp_version = version
+		end
+	end
 
 	local uci = uci.cursor()
 	if props.interfaces then
