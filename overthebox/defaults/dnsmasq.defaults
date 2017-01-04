@@ -1,8 +1,12 @@
 #!/bin/sh
 
-uci delete dhcp.@dnsmasq[0].nonegcache
+# Disable caching of negative "no such domain" responses
+uci -q delete dhcp.@dnsmasq[0].nonegcache
+# Ask all servers for a response, take the fastest successful one
 uci set dhcp.@dnsmasq[0].all_servers='1'
+# Set the size of the cache
 uci set dhcp.@dnsmasq[0].cachesize='8192'
+
 uci set dhcp.@dnsmasq[0].authoritative='1'
 
 # Disable DHCP on eth0 as we use macvlan subinterfaces
@@ -14,6 +18,16 @@ uci set dhcp.eth0.ignore='1'
 uci set dhcp.if0='dhcp'
 uci set dhcp.if0.interface='if0'
 uci set dhcp.if0.ignore='1'
+
+# Custom option to filter AAAA responses as IPv6 is not yet enabled
+uci set dhcp.@dnsmasq[0].filter_aaaa='1'
+# Disable Router Advertisements
+uci -q delete dhcp.lan.ra
+uci -q delete dhcp.lan.ra_default
+uci -q delete dhcp.lan.ra_management
+uci -q delete dhcp.lan.ra_preference
+# Disable DHCPv6 server
+uci -q delete dhcp.lan.dhcpv6
 
 if grep overthebox.ovh /etc/dnsmasq.conf 1>/dev/null 2>/dev/null; then
 	sed -i.bak '/overthebox.ovh/d' /etc/dnsmasq.conf
@@ -31,4 +45,3 @@ fi
 uci commit dhcp
 
 exit 0
-
