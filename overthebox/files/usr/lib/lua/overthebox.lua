@@ -1916,6 +1916,9 @@ function is_daemon_stalled()
     return false
 end
 
+-- test_if_running tests if a process is running
+-- Take a command line
+-- Return true or false if a running PID as a cmdline matching the given name
 function test_if_running(cmdline)
     local nb_pid = 0
     for _, _ in pairs(pidof(cmdline)) do
@@ -1924,34 +1927,59 @@ function test_if_running(cmdline)
     return nb_pid ~= 0
 end
 
+-- restart_daemon restarts the overtheboxd daemon
 function restart_daemon()
-	local ret, rcode = run("/etc/init.d/overtheboxd restart")
-	return status_code_ok(rcode), ret
+  local ret, rcode = run("/etc/init.d/overtheboxd restart")
+  return status_code_ok(rcode), ret
 end
-
-
 
 --
 -- function getzombieppid search zombie programs
 -- return array of zombie's pid and ppid
 function getzombieppid()
-	local ret = {}
-	local files = posix.dir("/proc")
-	for _, name in ipairs(files) do
-		if string.match(name, '[0-9]+') then -- only pids
-			local f = io.open(string.format('/proc/%s/stat', name), "r")
-			if f == nil then return ret end
-			for line in f:lines() do
-				local fis = split(line or "" )
-				if #fis > 4 and fis[3] == "Z" then
-					table.insert(ret, {pid=name, ppid=fis[4]})
-				end
-			end
-			f:close()
+  local ret = {}
+  local pids = list_pids()
+  -- Iterate over pids
+  for _, name in ipairs(pids) do
+    -- Get process stats
+    local filename = string.format('/proc/%s/stat', name)
+    local f = io.open(filename, "r")
+    if f ~= nil then
+      -- Iterate over the lines of the stat files
+      for line in f:lines() do
+        -- Split the line and check if the process state is Z for Zombie
+        local fis = split(line or "" )
+        if #fis > 4 and fis[3] == "Z" then
+          table.insert(ret, {pid=name, ppid=fis[4]})
+        end
+      end
 
-		end
-	end
-	return ret
+      -- Close the file
+      f:close()
+    else
+      warning("getzombieppid : couldn't open file ".. filename)
+    end
+  end
+
+  return ret
+end
+
+--
+-- function list_pids lists pids
+-- returns array of pid
+function list_pids()
+  local ret = {}
+  -- List files in /proc
+  local files = posix.dir("/proc")
+
+  for _, name in ipairs(files) do
+    -- Append only files whose name is a number (PID)
+    if string.match(name, '^[0-9]+$') then
+      table.insert(ret, name)
+    end
+  end
+
+  return ret
 end
 
 --
@@ -1966,10 +1994,9 @@ end
 -- return the command line which start the PID process
 function get_cmdline(pid)
     local f = io.open(string.format('/proc/%s/cmdline', pid), "rb")
-    if f == nil then return end
+    if f == nil then return ' ' end
     local t = f:read("*all")
     f:close()
-    --      hex_dump(t)
     local z = string.char(0)
     return t:gsub("(.)", function(c) if c == z then return ' ' end return c end)
 end
@@ -1980,17 +2007,15 @@ end
 function pidof(program)
     local ret = {}
     if program == nil then return ret end
-    local files = posix.dir("/proc")
+    local pids = list_pids()
     local me = posix.getpid()
-    for _, name in ipairs(files) do
-        if string.match(name, '[0-9]+') then
-            if tonumber(name) ~= me  then
-                local cmdline = get_cmdline(name)
-                if cmdline:find(program, 1, true) ~= nil then
-                    table.insert(ret, tonumber(name), cmdline)
-                end
-            end
+    for _, name in ipairs(pids) do
+      if tonumber(name) ~= me  then
+        local cmdline = get_cmdline(name)
+        if cmdline and cmdline:find(program, 1, true) ~= nil then
+            table.insert(ret, tonumber(name), cmdline)
         end
+      end
     end
     return ret
 end
