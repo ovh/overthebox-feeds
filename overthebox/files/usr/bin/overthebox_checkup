@@ -34,8 +34,12 @@ end
 
 -- Check if overtheboxd is running, and not stalled
 -- If stalled, restart it
-if o.restart_daemon_if_stalled() then
-    o.warning("daemon restarted")
+if o.is_daemon_stalled() then
+    o.warning("OTB daemon stalled, need restart")
+    rcode, ret = o.restart_daemon()
+    if not rcode then
+      o.warning("OTB daemon restart failed : " .. ret)
+    end
 end
 
 -- Don't try to do the last checks if the device is not linked to a service
@@ -46,13 +50,13 @@ end
 
 -- Check if shadowsocks is running
 if not o.test_if_running( "/usr/bin/ss-redir") then
-    o.warning("shadowsocks starting")
+    o.warning("shadowsocks restarting")
     o.run("/etc/init.d/shadowsocks restart")
 end
 
 -- Check if glorytun or glorytun-udp is running
 if not o.test_if_running("glorytun") then
-    o.warning("glorytun starting")
+    o.warning("glorytun restarting")
     o.run("/etc/init.d/glorytun restart")
     o.run("/etc/init.d/glorytun-udp restart")
 end

@@ -1887,22 +1887,30 @@ function create_dhcp_server()
 	return true
 end
 
--- checks methods
-function restart_daemon_if_stalled()
+-- Checks methods
+--  check if the daemon is running
+--  check if it has more than 1h old sockets
+-- If one of the check is not successfull, return true
+function is_daemon_stalled()
     local otb_cmdline = "lua /usr/bin/overtheboxd"
     local max_age_socket = 3600
 
     local nb_pid = 0
+    -- Iterate over the processes of overtheboxd daemon
     for pid, cmdline in pairs(pidof(otb_cmdline)) do
-        for k, v in pairs(tcpsocketsof(pid)) do
-            if v.age > max_age_socket then
-                return restart_daemon()
-            end
+      -- Iterate over all its sockets
+      for k, v in pairs(tcpsocketsof(pid)) do
+        -- Check the socket's age is not to old
+        -- If too old, restart the daemon
+        if v.age > max_age_socket then
+          return true
         end
-        nb_pid = nb_pid +  1
+      end
+      nb_pid = nb_pid +  1
     end
+    -- If no pid of the daemon is found, restart the daemon
     if nb_pid == 0 then
-        return restart_daemon()
+      return true
     end
 
     return false
