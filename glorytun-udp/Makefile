@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun-udp
-PKG_VERSION:=0.0.65-mud
-PKG_RELEASE:=3
+PKG_VERSION:=0.0.83-mud
+PKG_RELEASE:=4
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
 PKG_BUILD_DIR:=glorytun-$(PKG_VERSION)
