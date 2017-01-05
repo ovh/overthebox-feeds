@@ -1743,13 +1743,10 @@ function update_confmwan()
 	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
 	uci:commit("mwan3")
-	-- Saving net conf md5 and restarting services
-	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") == 0 then
-		os.execute("/etc/init.d/network reload")
-		os.execute("/etc/init.d/firewall reload")
-		os.execute("nohup /usr/sbin/mwan3 restart &")
-	end
+	-- Release mwan3 lock
 	l:close()
+	-- Ask uci to reload mwan3 service if needed
+	os.execute("/sbin/reload_config mwan3")
 	return result, interfaces
 end
 
