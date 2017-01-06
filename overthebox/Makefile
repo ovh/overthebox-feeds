@@ -45,8 +45,8 @@ endef
 
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
-	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/lib/lua/overthebox.lua 
-	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/bin/overthebox_emergency_action 
+	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/lib/lua/overthebox.lua
+	sed -i -e "s/<VERSION>/$(PKG_VERSION)-$(PKG_RELEASE)/" $(1)/usr/bin/overthebox_emergency_action
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./defaults/overthebox.defaults $(1)/etc/uci-defaults/overthebox.defaults
 	$(INSTALL_BIN) ./defaults/network.defaults $(1)/etc/uci-defaults/otb-network.defaults
@@ -69,7 +69,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
         ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
         ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
         ( . /etc/uci-defaults/otb-power.defaults ) && rm -f /etc/uci-defaults/otb-power.defaults
-        ( . /etc/uci-defaults/otb-recovery.defaults ) 
+        ( . /etc/uci-defaults/otb-recovery.defaults )
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
@@ -91,8 +91,8 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	MD5="e8ed1b70b4b1972ffca620b255a1373b"
 	if [ "$$(md5sum /lib/upgrade/platform.sh | cut -f1 -d" ")" != "$$MD5" ]
 	then
-	    wget -q http://downloads.overthebox.ovh/trunk/x86/64/platform.sh -O /tmp/platform.sh
-	    if [ "$$(md5sum /tmp/platform.sh | cut -f1 -d" ")" == "$$MD5" ] 
+	    wget -q http://downloads.overthebox.ovh/stable/x86/64/platform.sh -O /tmp/platform.sh
+	    if [ "$$(md5sum /tmp/platform.sh | cut -f1 -d" ")" == "$$MD5" ]
 	    then
 		mv /tmp/platform.sh /lib/upgrade/platform.sh
 	    fi

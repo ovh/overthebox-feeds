@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SDK_URL="http://downloads.overthebox.ovh/trunk/x86/64/OpenWrt-SDK-x86-64_gcc-4.8-linaro_glibc-2.21.Linux-x86_64.tar.bz2"
+SDK_URL="http://downloads.overthebox.ovh/stable/x86/64/OpenWrt-SDK-x86-64_gcc-4.8-linaro_glibc-2.21.Linux-x86_64.tar.bz2"
 
 if [ ! -d sdk ]; then
     mkdir sdk
