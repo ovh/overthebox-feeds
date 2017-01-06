@@ -77,7 +77,8 @@ start_instance() {
         dev ${dev} \
         bind-port ${port} \
         mtu ${mtu} \
-        bind ${BIND_ARGS}
+        bind ${BIND_ARGS} \
+        v4only
 
     procd_set_param respawn 15 30 0
 
