@@ -177,8 +177,8 @@ BOF
 setup_rules() {
 	# Keep redirect rules at the end in the same order
 	iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
-		$IPTN -A $LINE | sh
-		$IPTN -D $LINE | sh
+		$IPTN -A $LINE
+		$IPTN -D $LINE
 	done
 }
 
@@ -285,7 +285,7 @@ stop_service() {
 	done
 	# Clean up monitoring_ip rules
 	iptables-save | grep "shadowsocks_tracker" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
-		$IPTN -D $LINE | sh
+		$IPTN -D $LINE
 	done
 }
 
