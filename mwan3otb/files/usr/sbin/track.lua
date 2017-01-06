@@ -423,22 +423,24 @@ end
 -- Circular buffer for ping stats collection
 local pingstats    = {}
 pingstats.numvalue = 60
-pingstats.entries  = 0
 pingstats.pos      = 0
 
+-- Push a balue in the circular buffer
 function pingstats:push(value)
+	-- Set the new value at the right position
 	pingstats[pingstats.pos] = value
+	-- Increase pos number
 	pingstats.pos = pingstats.pos + 1
-	if pingstats.pos < pingstats.numvalue then
-		pingstats.entries = pingstats.entries + 1
-	else
-		pingstats.pos = pingstats.pos - pingstats.numvalue
+	-- If there is no more room in the buffer
+	if pingstats.pos > pingstats.numvalue then
+		-- reset the pos to 0
+		pingstats.pos = 0
 	end
 end
 
 function pingstats:avg()
 	sum = 0
-	if pingstats.entries == 0 then
+	if table.getn(pingstats) == 0 then
 		return sum
 	end
 	for index = #pingstats, 1, -1 do
@@ -450,7 +452,7 @@ end
 
 function pingstats:min()
 	min = 10000
-	if pingstats.entries == 0 then
+	if table.getn(pingstats) == 0 then
 		return min
 	end
 	for index = #pingstats, 1, -1 do
