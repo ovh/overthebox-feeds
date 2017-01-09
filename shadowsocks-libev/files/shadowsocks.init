@@ -40,6 +40,14 @@ shadowsocks_add_instance() {
 	done
 }
 
+generateZoneHook() {
+	local name
+	config_get name $1 name
+	if [ "$name" = "lan" ]; then
+		config_list_foreach $1 network shadowsocks_$2_interfaces_hook
+	fi
+}
+
 shadowsocks_enable_interfaces_hook() {
 	if [ -n "$1" ]; then
 		for i in $1
@@ -48,13 +56,8 @@ shadowsocks_enable_interfaces_hook() {
 			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
 		done
 	else
-		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS 2>/dev/null
-		$IPTN -A PREROUTING  -i lan -p tcp -j SOCKS
-		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
-		do
-			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
-			$IPTN -A PREROUTING  -i $i -p tcp -j SOCKS
-		done
+		config_load firewall
+		config_foreach generateZoneHook zone enable
 	fi
 }
 
@@ -65,11 +68,8 @@ shadowsocks_disable_interfaces_hook() {
 			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS 2>/dev/null
 		done
 	else
-		$IPTN -D PREROUTING  -i lan -p tcp -j SOCKS
-		for i in `cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','`
-		do
-			$IPTN -D PREROUTING  -i $i -p tcp -j SOCKS
-		done
+		config_load firewall
+		config_foreach generateZoneHook zone disable
 	fi
 }
 
@@ -128,33 +128,12 @@ BOF
 
 	if [ "$server" != "127.0.0.1" ]; then
 		shadowsocks_add_instance $conf
-
+		# Setup iptables rules
 		$IPTN -N SOCKS 2>/dev/null
-
-		$IPTN -D SOCKS -d 0.0.0.0/8 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 0.0.0.0/8 -j RETURN
-
-		$IPTN -D SOCKS -d 10.0.0.0/8 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 10.0.0.0/8 -j RETURN
-
-		$IPTN -D SOCKS -d 127.0.0.0/8 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 127.0.0.0/8 -j RETURN
-
-		$IPTN -D SOCKS -d 169.254.0.0/16 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 169.254.0.0/16 -j RETURN
-
-		$IPTN -D SOCKS -d 172.16.0.0/12 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 172.16.0.0/12 -j RETURN
-
-		$IPTN -D SOCKS -d 192.168.0.0/16 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 192.168.0.0/16 -j RETURN
-
-		$IPTN -D SOCKS -d 224.0.0.0/4 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 224.0.0.0/4 -j RETURN
-
-		$IPTN -D SOCKS -d 240.0.0.0/4 -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d 240.0.0.0/4 -j RETURN
-
+		ipset -! create shadowsocks_localnetwork hash:net
+		$IPTN -D SOCKS -m set --match-set shadowsocks_localnetwork dst -j RETURN 2>/dev/null
+		$IPTN -A SOCKS -m set --match-set shadowsocks_localnetwork dst -j RETURN
+		# Setup redirect rules with QoS
 		$IPTN -D SOCKS -p tcp -m dscp --dscp-class cs7 -j REDIRECT --to-ports $(( $lport + 1 )) 2>/dev/null
 		$IPTN -A SOCKS -p tcp -m dscp --dscp-class cs7 -j REDIRECT --to-ports $(( $lport + 1 ))
 
@@ -178,12 +157,11 @@ BOF
 
 		$IPTN -D SOCKS -p tcp -j REDIRECT --to-ports $lport 2>/dev/null
 		$IPTN -A SOCKS -p tcp -j REDIRECT --to-ports $lport
-
 	fi
 
 	if [ -n "$monitoring_ip" -a -x "$TRACK" ]; then
-		if ! $IPTN -C OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "ss_monitoring" -j REDIRECT --to-ports $(( $lport + 2 )) 2>/dev/null; then
-			$IPTN -A OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "ss_monitoring" -j REDIRECT --to-ports $(( $lport + 2 ))
+		if ! $IPTN -C OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "shadowsocks_tracker" -j REDIRECT --to-ports $(( $lport + 2 )) 2>/dev/null; then
+			$IPTN -A OUTPUT -d $monitoring_ip/32 -p tcp -m comment --comment "shadowsocks_tracker" -j REDIRECT --to-ports $(( $lport + 2 ))
 		fi
 		procd_open_instance
 		procd_set_param command "$TRACK" -r $reliability -c $count -t $tracktimeout -v $interval -o $down -u $up $monitoring_ip
@@ -199,8 +177,8 @@ BOF
 setup_rules() {
 	# Keep redirect rules at the end in the same order
 	iptables-save | grep "SOCKS" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
-		$IPTN -A $LINE | sh
-		$IPTN -D $LINE | sh
+		$IPTN -A $LINE
+		$IPTN -D $LINE
 	done
 }
 
@@ -248,55 +226,66 @@ generateStaticRoutesRules() {
 	if [ -n "$gateway" ] && [ -n "$target" ]; then
 		eval "$(ipcalc.sh $target $netmask)"
 		if [ "$NETWORK" != "0.0.0.0" ] && [ "$PREFIX" != "0" ]; then
-			$IPTN -D SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN 2>/dev/null
-			$IPTN -A SOCKS -d "$NETWORK/$PREFIX" -m comment --comment "ss_staticroute" -j RETURN
-			setup_rules
+			ipset -! add shadowsocks_reload "$NETWORK/$PREFIX"
 		fi
 	fi
 }
 
-generateWanAddress() {
+generateLocalRules() {
+	ipset -! add shadowsocks_reload 0.0.0.0/8
+	ipset -! add shadowsocks_reload 10.0.0.0/8
+	ipset -! add shadowsocks_reload 127.0.0.0/8
+	ipset -! add shadowsocks_reload 169.254.0.0/16
+	ipset -! add shadowsocks_reload 172.16.0.0/12
+	ipset -! add shadowsocks_reload 192.168.0.0/16
+	ipset -! add shadowsocks_reload 224.0.0.0/4
+}
+
+generateWanRoutesRules() {
 	local ifname ipaddr
 
 	config_get ifname $1 ifname
-	network_get_ipaddr ipaddr $ifname
-
-	if [ -n "$ipaddr" ]; then
-		$IPTN -D SOCKS -d "$ipaddr/32" -m comment --comment "ss_itf_$ifname" -j RETURN 2>/dev/null
-		$IPTN -A SOCKS -d "$ipaddr/32" -m comment --comment "ss_itf_$ifname" -j RETURN
-		setup_rules
-	fi
+	network_get_ipaddr ipaddr $ifname	|| return 0
+	network_get_subnet network $ifname	|| return 0
+	__network_ifstatus netmask $ifname "['ipv4-address'][0]['mask']"
+	network=`ipcalc.sh $network | sed -n '/NETWORK=/{;s/.*=//;s/ .*//;p;}'`
+	ipset -! add shadowsocks_reload "$network/$netmask"
 }
-
 
 start_service() {
 	config_load shadowsocks
 	config_foreach generateConfig client
-
-	config_load mwan3
-	config_foreach genrateRules rule
-
-	config_load network
-	config_foreach generateWanAddress interface
-	config_foreach generateStaticRoutesRules route
+	reload_service
 }
 
 reload_service() {
+	# Creating temp ipset for seamless reload
+	ipset -! create shadowsocks_reload hash:net
+
 	config_load mwan3
 	config_foreach genrateRules rule
 
 	config_load network
-	config_foreach generateWanAddress interface
+	generateLocalRules
+	config_foreach generateWanRoutesRules interface
 	config_foreach generateStaticRoutesRules route
+
+	# Swap ipset
+	ipset swap shadowsocks_reload shadowsocks_localnetwork
+	ipset destroy shadowsocks_reload
 }
 
 stop_service() {
 	shadowsocks_disable_interfaces_hook
+	# Clean shadowsocks tables
 	$IPTN -F SOCKS
 	$IPTN -X SOCKS
+	for ipset in $(ipset -n list | grep shadowsocks_); do
+		ipset destroy $ipset
+	done
 	# Clean up monitoring_ip rules
-	iptables-save | grep "ss_monitoring" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
-		$IPTN -D $LINE | sh
+	iptables-save | grep "shadowsocks_tracker" | grep "REDIRECT --to-ports" | sed "s/-A //g" | while read LINE; do
+		$IPTN -D $LINE
 	done
 }
 
