@@ -55,28 +55,24 @@ sig.signal(sig.SIGUSR2, function ()
 end)
 
 function create_socket(interface, kind)
-	local s, fd, err
+	local s, ok, err
 	if kind == "stream" then
 		s = socket.tcp()
-		fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+		if s then ok, err = s:bind('*', 0) end
 	elseif kind == "datagram" then
 		s = socket.udp()
-		fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
+		if s then ok, err = s:setsockname('*', 0) end
 	else
-		log("create_socket: unknown kind")
-		return nil
+		err = "unknown kind"
 	end
-	if not fd then
-		log("create_socket: "..err)
-		return nil
+	if ok then
+		ok, err = p.setsockopt(s:getfd(), p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	end
-	-- TODO: s:bind with ip
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	if not ok then
 		log("create_socket: "..err)
+		if s then s:close() end
 		return nil
 	end
-	s:setfd(fd)
 	return s
 end
 
