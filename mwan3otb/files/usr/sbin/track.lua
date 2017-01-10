@@ -922,7 +922,7 @@ while true do
 
 					score = 0
 				else
-					if dlspeed ~= nil or upspeed ~= nil then
+					if dlspeed ~= nil and upspeed ~= nil then
 						log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
 						shaper.losttimestamp = os.time()
 					else
