@@ -330,7 +330,7 @@ method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
-	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", "\127\6\8\4") end
+	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	fallback_method = method
