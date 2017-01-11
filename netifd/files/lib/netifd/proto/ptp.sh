@@ -14,7 +14,6 @@ proto_ptp_init_config() {
 
 proto_ptp_setup() {
 	local interface="$1"; shift
-	ipv4=1
 
 	json_select ipv4
 	json_get_vars ipaddr gateway
@@ -28,6 +27,7 @@ proto_ptp_setup() {
 
 proto_ptp_teardown() {
 	local interface="$1"
+	proto_kill_command "$interface"
 }
 
 add_protocol ptp
