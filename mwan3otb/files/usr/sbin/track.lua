@@ -119,9 +119,9 @@ function dns_request(host, interface, timeout, domain, match)
 		s:close()
 		return false, "dns_request: "..err
 	end
-	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
+	local t1 = socket.gettime()
 	local data, err = s:receive()
-	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
+	local t2 = socket.gettime()
 	s:close()
 	if not data then
 		return false, "dns_request: "..err
@@ -129,7 +129,7 @@ function dns_request(host, interface, timeout, domain, match)
 	if id >= data or not string.find(data, match, 1, true) then
 		return false, "dns_request: bad answer"
 	end
-	local dt = diff_nsec(t1, t2)/1000000
+	local dt = t2-t1
 	if dt <= 1 then
 		log("dns proxy/cache detected, falling back to ICMP ping method")
 		method = fallback_method
@@ -144,14 +144,14 @@ function socks_request(host, interface, timeout, port)
 		return false, "socks_request: no socket"
 	end
 	s:settimeout(timeout)
-	local t1 = p.clock_gettime(p.CLOCK_REALTIME)
+	local t1 = socket.gettime()
 	local ok, err = s:connect(host, port)
-	local t2 = p.clock_gettime(p.CLOCK_REALTIME)
+	local t2 = socket.gettime()
 	s:close()
 	if not ok then
 		return false, "socks_request: "..err
 	end
-	return true, (diff_nsec(t1, t2)/1000000)
+	return true, t2-t1
 end
 
 function get_public_ip(interface)
@@ -219,17 +219,6 @@ function get_asn(interface, ip)
 		return json.decode(table.concat(data))
 	end
 	return whois(interface, ip)
-end
-
-function diff_nsec(t1, t2)
-	local ret = ( t2.tv_sec * 1000000000 + t2.tv_nsec) - (t1.tv_sec * 1000000000 + t1.tv_nsec)
-	if ret < 0 then
-		print("euhh :", t2.tv_sec, t1.tv_sec, t2.tv_nsec, t1.tv_nsec)
-		print(( t2.tv_sec * 1000000000 + t2.tv_nsec), (t1.tv_sec * 1000000000 + t1.tv_nsec))
-		print(ret)
-		os.exit(-1)
-	end
-	return ret
 end
 
 local arguments = {
