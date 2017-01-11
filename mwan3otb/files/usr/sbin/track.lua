@@ -42,6 +42,14 @@ http.TIMEOUT = 5
 
 local shaper = {}
 
+function log(str)
+	if str then p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str) end
+end
+
+function debug(str)
+	if str then p.syslog(p.LOG_DEBUG, opts["i"]..'.'..str) end
+end
+
 sig.signal(sig.SIGUSR1, function ()
 	if shaper.interface and shaper.interface ~= "tun0" then
 		shaper.reloadtimestamp = os.time()
@@ -222,14 +230,6 @@ function diff_nsec(t1, t2)
 		os.exit(-1)
 	end
 	return ret
-end
-
-function log(str)
-	p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str)
-end
-
-function debug(str)
-	p.syslog(p.LOG_DEBUG, opts["i"]..'.'..str)
 end
 
 local arguments = {
@@ -881,6 +881,7 @@ while true do
 		else
 			lost = lost + 1
 
+			log(msg)
 			shaper:pushPing(false)
 			debug("check: "..servers[i].." failed was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3))
 		end
