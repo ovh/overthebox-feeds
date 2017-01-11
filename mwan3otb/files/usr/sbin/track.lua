@@ -42,6 +42,14 @@ http.TIMEOUT = 5
 
 local shaper = {}
 
+function log(str)
+	if str then p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str) end
+end
+
+function debug(str)
+	if str then p.syslog(p.LOG_DEBUG, opts["i"]..'.'..str) end
+end
+
 sig.signal(sig.SIGUSR1, function ()
 	if shaper.interface and shaper.interface ~= "tun0" then
 		shaper.reloadtimestamp = os.time()
@@ -55,28 +63,24 @@ sig.signal(sig.SIGUSR2, function ()
 end)
 
 function create_socket(interface, kind)
-	local s, fd, err
+	local s, ok, err
 	if kind == "stream" then
 		s = socket.tcp()
-		fd, err = p.socket(p.AF_INET, p.SOCK_STREAM, 0)
+		if s then ok, err = s:bind('*', 0) end
 	elseif kind == "datagram" then
 		s = socket.udp()
-		fd, err = p.socket(p.AF_INET, p.SOCK_DGRAM, 0)
+		if s then ok, err = s:setsockname('*', 0) end
 	else
-		log("create_socket: unknown kind")
-		return nil
+		err = "unknown kind"
 	end
-	if not fd then
-		log("create_socket: "..err)
-		return nil
+	if ok then
+		ok, err = p.setsockopt(s:getfd(), p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	end
-	-- TODO: s:bind with ip
-	local ok, err = p.setsockopt(fd, p.SOL_SOCKET, p.SO_BINDTODEVICE, interface)
 	if not ok then
 		log("create_socket: "..err)
+		if s then s:close() end
 		return nil
 	end
-	s:setfd(fd)
 	return s
 end
 
@@ -217,14 +221,6 @@ function get_asn(interface, ip)
 	return whois(interface, ip)
 end
 
-function log(str)
-	p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str)
-end
-
-function debug(str)
-	p.syslog(p.LOG_DEBUG, opts["i"]..'.'..str)
-end
-
 local arguments = {
 	{"help",        "none",     'h', "bool",   "this help message" },
 	{"device",      "required", 'd', "string", "device to check" },
@@ -322,7 +318,7 @@ method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 
 if opts["m"] == "dns" then
 	debug("test dns method")
 	fallback_method = method
-	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", "\127\6\8\4") end
+	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
 elseif opts["m"] == "sock" then
 	debug("test sock method")
 	fallback_method = method
@@ -874,6 +870,7 @@ while true do
 		else
 			lost = lost + 1
 
+			log(msg)
 			shaper:pushPing(false)
 			debug("check: "..servers[i].." failed was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3))
 		end
