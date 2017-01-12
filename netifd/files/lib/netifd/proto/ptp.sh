@@ -7,6 +7,7 @@ init_proto "$@"
 proto_ptp_init_config() {
 	proto_config_add_string 'ipaddr:ipaddr'
 	proto_config_add_string 'gateway:gateway'
+	proto_config_add_int 'txqueuelen:txqueuelen'
 
 	no_device=1
 	available=1
@@ -22,6 +23,8 @@ proto_ptp_setup() {
 	proto_set_keep 1
 	proto_add_ipv4_address "$ipaddr" "255.255.255.255" "" "$gateway"
 	proto_add_ipv4_route "0.0.0.0" 0 "$gateway"
+	# txqueuelen is not correctly handled by device layer
+	/usr/bin/ip link set $interface txqueuelen "$txqueuelen"
 	proto_send_update "$interface"
 }
 
