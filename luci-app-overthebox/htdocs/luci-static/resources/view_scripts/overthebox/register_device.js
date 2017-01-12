@@ -238,10 +238,16 @@
                             if (!err) {
                                 switch (dhcp.status) {
                                     case "found":
+                                        var ips = [];
                                         // Stop polling
                                         poller();
-                                        otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@dhcp_activated"), "</p>"].join(""));
-                                        callback(null, { status: "found" });
+                                        if (dhcp.activeDhcpList) {
+                                            ips = dhcp.activeDhcpList.map(function (dhcpDetail) {
+                                                return dhcpDetail.ip;
+                                            });
+                                        }
+                                        otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@dhcp_activated", {detail: ips.join(", ")}), "</p>"].join(""));
+                                        callback(null, { status: "found", activeDhcpList: dhcp.activeDhcpList });
                                         break;
                                     case "notFound":
                                         // Stop polling
