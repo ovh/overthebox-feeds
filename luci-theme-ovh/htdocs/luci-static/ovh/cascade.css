@@ -2412,3 +2412,22 @@ form#passwordSetForm{
 	border-width: 11px;
 	margin-top: -11px;
 }
+
+.dialog-message-support .ui-dialog-titlebar-close {
+  display: none;
+}
+
+.dialog-message-support.ui-widget.ui-widget-content {
+    border: 1px solid #51A2D9;
+}
+
+.dialog-message-support .ui-widget-header {
+    border: none;
+    background: rgba(81, 162, 217, 0.07);
+    color: #333;
+    font-weight: bold;
+}
+
+#networkRootNode td {
+  vertical-align: middle;
+}

@@ -250,8 +250,16 @@ Souhaitez-vous remplacer la précédente association ?%></p>
     </div>
 </div>
 
+<div id="dialog-message-support" title="<%:Besoin d'aide ?%>">
+  <p>
+    <%:Rendez-vous sur%> <a href="https://www.ovh.com/fr/support/" target="_blank">https://www.ovh.com/fr/support/</a>
+  </p>
+</div>
+
 <script>
     $(document).ready(function() {
+
+        var dhcpCounter;
 
         $.widget("ui.tooltip", $.ui.tooltip, {
             options: {
@@ -289,15 +297,16 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         };
         otb.translations.add("register-device@linked_device", "<%:associé à%>");
         otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé%>");
-        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%>");
+        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> <strong>({{detail}})</strong>");
         otb.translations.add("register-device@service_activation_error", "<%:L'activation de votre service n'a pas abouti%>");
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
         otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
         otb.translations.add("register-device@service_not_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:n'a pas pu être associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
         otb.translations.add("register-device@wrong_password", "<%:Erreur lors du changement de mot de passe. Veuillez recommencer.%>");
         otb.translations.add("register-device@success_password", "<%:Votre nouveau mot de passe a bien été pris en compte.%>");
-        otb.dhcpCheckDelay = 30;
+        otb.dhcpCheckDelay = 40;
         otb.dhcpCheckInterval = 2;
+        otb.tryBeforSupport = 3;
 
         /* ==================== */
         /* == Initialization == */
@@ -326,6 +335,18 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         otb.svgAddClass($("#firstModemScheme .jsModem1"), "to-be-plugged");
         otb.connectionScheme($("#additionalModemScheme"));
         $("#additionalModemScheme .jsModem2,#additionalModemScheme .jsModem3,#additionalModemScheme .jsModem4").hide();
+
+        $("#dialog-message-support").dialog({
+            modal: true,
+            autoOpen: false,
+            width: "400px",
+            dialogClass: "dialog-message-support",
+            buttons: {
+                Ok: function() {
+                $( this ).dialog( "close" );
+                }
+            }
+        });
 
         function next() {
             $("div.wizard").wizard("next", function() {
@@ -384,6 +405,13 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             }
             $("#registerWizard").show();
         });
+
+        function displaySupport() {
+            if (!(--dhcpCounter)) {
+                $("#dialog-message-support").dialog("open");
+                dhcpCounter = otb.tryBeforSupport;
+            }
+        }
 
         /* ============== */
         /* == Password == */
@@ -590,7 +618,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
             $("#testPublicIp").prop("disabled", true);
             otb.usingOTB(function (err, status) {
                 if (!err && status) {
-                    //$("#gotoAdditionalModem").show();
+                    dhcpCounter = otb.tryBeforSupport;
                     $("#testPublicIp").hide();
                     $("div.wizard").wizard("next", function() {
                         otb.cleanMessages();
@@ -598,6 +626,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
                 } else {
                     otb.pushMessage($("div#messageContainer"), "error", "<p><%:Veuillez déconnecter et reconnecter votre ordinateur au réseau%></p>");
+                    displaySupport();
                 }
                 $("#testPublicIp").prop("disabled", false)
             });
@@ -606,6 +635,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         var waitForModem = otb.noop;
         var searchDhcp = otb.noop;
         $("div.wizard").wizard("attachEvent", "dhcpDesactivate", "start", function() {
+            dhcpCounter = otb.tryBeforSupport;
             if (otb.getRoute() === "/ip-check") {
                 $("div#dhcpDesactivateProcess .config").hide();
                 $("#gotoAdditionalModem").prop("disabled", true);
@@ -643,11 +673,13 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     case "found":
                         dhcpMainCheckButton.prop("disabled", false);
                         dhcpMainCheckButton.find("span.percent").text("");
+                        displaySupport();
                         break;
                     case "checking":
                         dhcpMainCheckButton.find("span.percent").text(dhcp.message);
                         break;
                     default:
+                        dhcpCounter = otb.tryBeforSupport;
                         dhcpMainCheckButton.prop("disabled", false);
                         $("div#dhcpDesactivateProcess .config").hide();
                         $("#gotoAdditionalModem").prop("disabled", true);
@@ -664,6 +696,7 @@ Souhaitez-vous remplacer la précédente association ?%></p>
         /* ============================= */
 
         $("div.wizard").wizard("attachEvent", "dhcpDesactivateMore", "start", function() {
+            dhcpCounter = otb.tryBeforSupport;
             $("div#dhcpDesactivateMoreProcess .config").hide();
             $("div#dhcpDesactivateMoreProcess .done").hide();
 
@@ -723,11 +756,13 @@ Souhaitez-vous remplacer la précédente association ?%></p>
                     case "found":
                         dhcpAdditionalCheckButton.prop("disabled", false);
                         dhcpAdditionalCheckButton.find("span.percent").text("");
+                        displaySupport();
                         break;
                     case "checking":
                         dhcpAdditionalCheckButton.find("span.percent").text(dhcp.message);
                         break;
                     default:
+                        dhcpCounter = otb.tryBeforSupport;
                         dhcpAdditionalCheckButton.prop("disabled", false);
                         $("div#dhcpDesactivateMoreProcess .config").hide();
                         $("#gotoAdditionalModem").prop("disabled", true);

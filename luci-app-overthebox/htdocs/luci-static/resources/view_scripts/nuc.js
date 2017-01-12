@@ -29,6 +29,7 @@
         var callback = otb.getCallback(arguments);
         var self = this;
         var forceChecking = false;
+        var activeDhcpList = [];
         $.ajax({
             url: otb.constants.dhcpStatusURL,
             success: function (data, status) {
@@ -50,10 +51,12 @@
 
                             if (lastlease && !lastcheck) {
                                 found = true;
+                                activeDhcpList.push(dhcp);
                                 return;
                             }
                             if (lastlease > lastcheck) {
                                 found = true;
+                                activeDhcpList.push(dhcp);
                                 return;
                             }
                             if (timestamp - lastcheck < timeout) {
@@ -74,7 +77,7 @@
                                 dhcpStatus = "checking";
                             }
                         }
-                        callback(false, { status: dhcpStatus });
+                        callback(false, { status: dhcpStatus, activeDhcpList: activeDhcpList });
                     } else {
                         callback(false, { status: "notFound" });
                     }
