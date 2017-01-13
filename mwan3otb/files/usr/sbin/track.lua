@@ -601,7 +601,6 @@ function API(uri, method, data)
 	local reqbody   = json.encode(data)
 	local respbody  = {}
 	-- Building Request
-	http.TIMEOUT=5
 	local body, code, headers, status = http.request{
 		method = method,
 		url = url,
