@@ -129,7 +129,7 @@ function dns_request(host, interface, timeout, domain, match)
 	if id >= data or not string.find(data, match, 1, true) then
 		return false, "dns_request: bad answer"
 	end
-	local dt = t2-t1
+	local dt = (t2-t1)*1000
 	if dt <= 1 then
 		log("dns proxy/cache detected, falling back to ICMP ping method")
 		method = fallback_method
@@ -151,7 +151,7 @@ function socks_request(host, interface, timeout, port)
 	if not ok then
 		return false, "socks_request: "..err
 	end
-	return true, t2-t1
+	return true, (t2-t1)*1000
 end
 
 function get_public_ip(interface)
