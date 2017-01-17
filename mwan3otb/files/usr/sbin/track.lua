@@ -36,11 +36,13 @@ local ping   = require "ping"
 math.randomseed(os.time())
 
 local method -- ping function bindings
-local fallback_method -- fall
+local icmp_method -- ping icmp
 
 http.TIMEOUT = 5
 
 local shaper = {}
+
+p.openlog("track")
 
 function log(str)
 	if str then p.syslog(p.LOG_NOTICE, opts["i"]..'.'..str) end
@@ -132,26 +134,10 @@ function dns_request(host, interface, timeout, domain, match)
 	local dt = (t2-t1)*1000
 	if dt <= 1 then
 		log("dns proxy/cache detected, falling back to ICMP ping method")
-		method = fallback_method
+		method = icmp_method
 		return false, "dns_request: proxy/cache detected"
 	end
 	return true, dt
-end
-
-function socks_request(host, interface, timeout, port)
-	local s = create_socket(interface, "stream")
-	if not s then
-		return false, "socks_request: no socket"
-	end
-	s:settimeout(timeout)
-	local t1 = socket.gettime()
-	local ok, err = s:connect(host, port)
-	local t2 = socket.gettime()
-	s:close()
-	if not ok then
-		return false, "socks_request: "..err
-	end
-	return true, (t2-t1)*1000
 end
 
 function get_public_ip(interface)
@@ -225,7 +211,7 @@ local arguments = {
 	{"help",        "none",     'h', "bool",   "this help message" },
 	{"device",      "required", 'd', "string", "device to check" },
 	{"interface",   "required", 'i', "string", "network interface to check"},
-	{"method", 	"optional", 'm', "string", "method to check : icmp (default), dns, socks"},
+	{"method",      "optional", 'm', "string", "method to check : icmp (default), dns"},
 	{"reliability", "required", 'r', "number", "how many success we have to consider the interface up"},
 	{"count",       "required", 'c', "number", "count number of test we make"},
 	{"timeout",     "required", 't', "number", "request timeout"},
@@ -280,8 +266,6 @@ function arguments:all_required_are_not_here(opt)
 	return true
 end
 
-p.openlog("track")
-
 opts = {}
 local last_index = 1
 for r, optarg, optind, li in p.getopt(arg, arguments:short(), arguments:long()) do
@@ -314,15 +298,11 @@ if table.getn(servers) == 0 then
 	arguments:usage()
 end
 
-method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
+icmp_method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
+method = icmp_method
+
 if opts["m"] == "dns" then
-	debug("test dns method")
-	fallback_method = method
 	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
-elseif opts["m"] == "sock" then
-	debug("test sock method")
-	fallback_method = method
-	method = function(s) return socks_request(s, opts["i"], tonumber(opts["t"]), "1090") end
 end
 
 local fn = "/var/run/mwan3track-"..opts["i"]..".pid"
