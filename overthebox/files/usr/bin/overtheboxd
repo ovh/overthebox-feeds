@@ -52,12 +52,15 @@ local delay = 10
 while run do
 	local rcode, ret = overthebox.status()
 
+	-- If we have a 401 Unauthorized, it means that we have no device_id and/or
+	-- no tokens, we need to subscribe to get one
 	if rcode == 401 then
 		rcode, ret = overthebox.subscribe()
 		debug("subscribe : ", ret)
 		if not rcode then
 			error("can not subscribe to api : " .. ret.error )
 		end
+	-- If everything went well, we should have an action to do
 	elseif rcode == 200 and ret.action then
 		local actionreturn
 		local msg
@@ -86,7 +89,7 @@ while run do
 		elseif ret.action == "configure" then
 			actionreturn, services = overthebox.config()
 			for i = 1, #services do
-			    overthebox.restart(services[i])
+				overthebox.restart(services[i])
 			end
 			if #services > 1 then
 				overthebox.restartmwan3()
@@ -153,7 +156,12 @@ while run do
 				debug("Error while updating action: ".. errMsg)
 			end
 		end
-
+	else
+		if rcode == nil then
+			error("Nil code while getting actions")
+		else
+			error("Error while getting actions: ".. rcode)
+		end
 	end
 
 	if run then

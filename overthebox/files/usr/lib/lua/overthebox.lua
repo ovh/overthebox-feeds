@@ -1036,7 +1036,17 @@ function API(uri, method, data)
 		end
 	end
 
-	return code, json.decode(table.concat(respbody))
+	-- Sometimes something's wrong and we have nil code
+	-- We warn and change the value of code so we can at least use it later
+	if code == nil then
+		warning("Got nil code while doing ".. method .." on ".. url)
+		-- I'm a teapot
+		code = 418
+	elseif code ~= 200 then
+		err("HTTP error " .. code .. " while doing ".. method .." on ".. url)
+	end
+
+	return code, (json.decode(table.concat(respbody)) or table.concat(respbody))
 end
 
 -- Remove any final \n from a string.
