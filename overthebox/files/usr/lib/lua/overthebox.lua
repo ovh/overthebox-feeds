@@ -232,7 +232,7 @@ function config()
 			uci:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
 			uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
 			uci:set('network', res.glorytun_mud_conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
-			uci:set('network', res.glorytun_mud_conf.dev, 'mtu', res.glorytun_mud_conf.mtu)
+			uci:delete('network', res.glorytun_mud_conf.dev, 'mtu')
 		end
 		uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
 		uci:delete('network', res.glorytun_mud_conf.dev, 'auto')
