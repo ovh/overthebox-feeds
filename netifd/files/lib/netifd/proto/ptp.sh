@@ -22,4 +22,9 @@ proto_ptp_setup() {
 	proto_send_update "$interface"
 }
 
+proto_ptp_teardown() {
+  # No actions to do
+  :
+}
+
 add_protocol ptp
