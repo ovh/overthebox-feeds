@@ -569,7 +569,10 @@ end
 
 function create_diagnostic(action_id)
 	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics",  {device_action_id=action_id or "" })
-	return (rcode == 200), res.diagnostic_id or ""
+	if rcode == 200 then
+		return true, res.diagnostic_id or ""
+	end
+	return false, ""
 end
 
 function post_result_diagnostic(id, name, cmd, output, exit_code)
