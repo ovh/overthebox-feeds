@@ -179,18 +179,11 @@ mwan3_track()
 		$IPS swap mwan3_track_temp_$INTERFACE mwan3_track_$INTERFACE
 		$IPS destroy mwan3_track_temp_$INTERFACE
 
-		if [ "$track_method" = "icmp" ]; then
-			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
-		fi
-		if [ "$track_method" = "dns" ]; then
-			$IPT -D mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPT -A mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00
-		fi
-		if [ "$track_method" = "sock" ]; then
-			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
-		fi
+		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+		$IPT -A mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00
+
+		$IPT -D mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+		$IPT -A mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00
 
 		[ -x /usr/sbin/mwan3track ] && {
 			procd_open_service mwan3track.$INTERFACE
@@ -203,18 +196,10 @@ mwan3_track()
 			procd_close_service
 		}
 	else
-		if [ "$track_method" = "icmp" ]; then
-			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPS destroy mwan3_track_$INTERFACE
-		fi
-		if [ "$track_method" = "dns" ]; then
-			$IPT -D mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPS destroy mwan3_track_$INTERFACE
-		fi
-		if [ "$track_method" = "sock" ]; then
-			$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
-			$IPS destroy mwan3_track_$INTERFACE
-		fi
+		$IPT -D mwan3_track -p icmp -m set --match-set mwan3_track_$INTERFACE dst -m icmp --icmp-type 8 -m length --length 32 -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+		$IPT -D mwan3_track -p udp --dport 53 -m set --match-set mwan3_track_$INTERFACE dst -m udp -j MARK --set-xmark 0xff00/0xff00 &> /dev/null
+
+		$IPS destroy mwan3_track_$INTERFACE
 	fi
 }
 
