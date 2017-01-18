@@ -50,6 +50,7 @@ end
 
 local delay = 10
 while run do
+	local additional_actions
 	local rcode, ret = overthebox.status()
 
 	-- If we have a 401 Unauthorized, it means that we have no device_id and/or
@@ -77,7 +78,7 @@ while run do
 				end
 			end
 			return_update, msg_update = overthebox.opkg_update()
-			return_upgrade, msg_upgrade = overthebox.upgrade()
+			return_upgrade, msg_upgrade, additional_actions = overthebox.upgrade()
 			actionreturn = return_update and return_upgrade
 			msg = "Updating repos:\n" .. msg_update .. "\nUpgrading packages:\n" .. msg_upgrade
 		elseif ret.action == "updateReleaseChannel" then
@@ -154,6 +155,7 @@ while run do
 				debug("Got error: "..msg)
 			end
 
+			-- Confirm the action's status
 			checkConfirm, errTab = overthebox.confirm_action(ret.id, actionreturn, msg)
 			if checkConfirm == false then
 				if errTab == nil or errTab.error == nil then
@@ -162,6 +164,18 @@ while run do
 					errMsg = errTab.error
 				end
 				debug("Error while updating action: ".. errMsg)
+			end
+
+			-- Check if we need to do some additional actions
+			if additional_actions ~= nil then
+				for action, _ in pairs(additional_actions) do
+					debug("Doing additional action "..action)
+					-- Run the command
+					local output, rcode = overthebox.run(action)
+					if not overthebox.status_code_ok(rcode) then
+						debug("Additional action "..action.." failed: ".. output)
+					end
+				end
 			end
 		end
 	else

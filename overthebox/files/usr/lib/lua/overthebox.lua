@@ -893,47 +893,121 @@ end
 
 -- all our packages, and the minimum version needed.
 local pkgs = {
-    ["sqm-scripts"]='remove',
-    ["overthebox"]='0.3-17',
-    ["lua"]='5.1.5-3',
-    ["liblua"]='5.1.5-3',
-    ["luac"]='5.1.5-3',
-    ["luci-base"]='git-16.067.54393-f931ee9-1',
-    ["luci-mod-admin-full"]='git-16.067.54393-f931ee9-1',
-    ["luci-app-overthebox"]='git-16.067.54393-f931ee9-1',
-    ["luci-app-mwan3otb"]='1.5-5',
-    ["shadowsocks-libev"]='2.4.5-5',
-    ["luci-theme-ovh"]='v0.1-3',
-    ["dnsmasq-full"]='2.75-8',
+    ["sqm-scripts"]         = {
+      version               = '-',
+    },
+    ["overthebox"]          = {
+      version               = '0.4-24',
+    },
+    ["lua"]                 = {
+      version               = '5.1.5-3',
+    },
+    ["liblua"]              = {
+      version               = '5.1.5-3',
+    },
+    ["luac"]                = {
+      version               = '5.1.5-3',
+    },
+    ["luci-base"]           = {
+      version               = 'v1.0-1',
+    },
+    ["luci-mod-admin-full"] = {
+      version               = 'v1.0-1',
+    },
+    ["luci-app-overthebox"] = {
+      version               = 'v1.0-2',
+    },
+    ["luci-app-mwan3otb"]   = {
+      version               = '1.5-6',
+    },
+    ["shadowsocks-libev"]   = {
+      version               = '2.5.0-1-ovh-2-5',
+    },
+    ["luci-theme-ovh"]      = {
+      version               = 'v0.1-3',
+    },
+    ["dnsmasq-full"]        = {
+      version               = '2.76-3',
+    },
     -- We do not want dnsmasq to fight with dnsmasq-full
-    ["dnsmasq"]='remove',
-    ["mptcp"]='1.0.0-6',
-    ["netifd"]='2015-08-25-58',
-    ["mwan3otb"]='1.7-22',
-    ["bosun"]='0.4.0-0.8',
-    ["vtund"]='remove',
-    ["e2fsprogs"]='1.42.12-1',
-    ["e2freefrag"]='1.42.12-1',
-    ["dumpe2fs"]='1.42.12-1',
-    ["resize2fs"]='1.42.12-1',
-    ["tune2fs"]='1.42.12-1',
-    ["libsodium"]='1.0.8-2',
-    ["glorytun"]='0.0.32-1',
-    ["glorytun-udp"]='0.0.51-mud-1',
-    ["bandwidth"]='0.6',
-    ["rdisc6"]='1.0.3-1',
-    ["shadow-useradd"]='4.2.1-4',
-    ["shadow-userdel"]='4.2.1-4',
-    ["luci-app-sqm"]='remove',
-    ['luci-app-qos']='remove',
-    ['qos-scripts']='remove'
+    ["dnsmasq"]             = {
+      version               = '-',
+    },
+    ["mptcp"]               = {
+      version               = '1.0.0-6',
+    },
+    ["netifd"]              = {
+      -- When upgrading from version before 2015-08-25-59, we need to restart
+      -- the network in order to add the new ptp protocol
+      version               = '2015-08-25-59',
+      actions               = {
+        '/etc/init.d/network restart',
+      },
+    },
+    ["mwan3otb"]            = {
+      version               = '1.7-30',
+    },
+    ["bosun"]               = {
+      version               = '0.4.0-0.8',
+    },
+    ["vtund"]               = {
+      version               = '-',
+    },
+    ["e2fsprogs"]           = {
+      version               = '1.42.12-1',
+    },
+    ["e2freefrag"]          = {
+      version               = '1.42.12-1',
+    },
+    ["dumpe2fs"]            = {
+      version               = '1.42.12-1',
+    },
+    ["resize2fs"]           = {
+      version               = '1.42.12-1',
+    },
+    ["tune2fs"]             = {
+      version               = '1.42.12-1',
+    },
+    ["libsodium"]           = {
+      version               = '1.0.11-1',
+    },
+    ["glorytun"]            = {
+      version               = '0.0.34-4',
+    },
+    ["glorytun-udp"]        = {
+      version               = '0.0.84-mud-4',
+    },
+    ["bandwidth"]           = {
+      version               = '0.6.2-1',
+    },
+    ["rdisc6"]              = {
+      version               = '1.0.3-1',
+    },
+    ["shadow-useradd"]      = {
+      version               = '4.2.1-4',
+    },
+    ["shadow-userdel"]      = {
+      version               = '4.2.1-4',
+    },
+    ["luci-app-sqm"]        = {
+      version               = '-',
+    },
+    ['luci-app-qos']        = {
+      version               = '-',
+    },
+    ['qos-scripts']         = {
+      version               = '-'
+    },
 }
 
 local services = {
     ["dnsmasq"]='enable'
 }
 
-
+-- function ensure_service_state ensures that the service is :
+-- - enabled and running
+--   or
+-- - disabled and not running
 function ensure_service_state(service, status)
     local initd = "/etc/init.d/" .. service
     local ret, rcode = run(initd .. " enabled")
@@ -958,47 +1032,71 @@ end
 -- function upgrade check if all package asked are up to date
 function upgrade()
     -- first, we upgrade ourself
-    local c, r = opkg_install("overthebox")
-    if not c then
-        return c, "Failed to install overthebox: \n" .. r
+    local success, r = opkg_install("overthebox")
+    if not success then
+        return success, "Failed to install overthebox: \n" .. r
     end
 
-    -- let's check others
+    -- let's check other packages
+    -- list installed packets
     local listpkginstalled, _ = run("opkg list-installed")
     local ret = ""
     local retcode = true
     local checked = {}
+    local additional_actions = {}
 
+    -- Iterate over installed packages and check if we need to
+    -- upgrade/install/remove them
     for str in string.gmatch(listpkginstalled,'[^\r\n]+') do
+        -- Parse the version
         local f = split(str)
         local pkg, version  = f[1], f[3]
 
         if pkgs[pkg] ~= nil then
-            local mversion = pkgs[pkg]
-            if mversion == 'remove' then
-                local c, r = opkg_remove(pkg)
-                retcode = retcode and c
+            local expected_version = pkgs[pkg].version
+            -- If there is no package number, package needs to be removed,
+            -- remove it
+            if expected_version == '-' then
+                info("removing "..pkg)
+                local success, r = opkg_remove(pkg)
+                retcode = retcode and success
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
-            elseif version:find(mversion,1, true) == 1  then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
-            elseif version < mversion then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
-            elseif version > mversion then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
+            else
+                -- Upgrade the package
+                local success, r = opkg_install(pkg)
+                retcode = retcode and success
+                if success then
+                    -- Check the diff between the versions
+                    if version:find(expected_version,1, true) == 1  then
+                        ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..expected_version.."\n".. r .."\n"
+                    elseif version < expected_version then
+                        ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..expected_version.."\n".. r
+                        -- Check if we have additional actions to do
+                        if pkgs[pkg].actions ~= nil then
+                            for _, action in ipairs(pkgs[pkg].actions) do
+                                info("appending action "..action)
+                                additional_actions[action] = true
+                                ret = ret .. "Appending action "..action.."\n"
+                            end
+                        end
+                        ret = ret .. "\n"
+                    else
+                        ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..expected_version.."\n".. r .."\n"
+                    end
+                else
+                    warning(pkg.." got error when installing: "..r)
+                    ret = ret .. "Failed to install "..pkg.." :\n".. r .."\n"
+                end
             end
             checked[pkg] = 1
         end
     end
 
-    for pkg, version in pairs(pkgs) do
+    -- Check within the rest of the packages to ensure that their are
+    -- correctly installed or removed
+    for pkg, info in pairs(pkgs) do
         if checked[pkg] == nil then -- not seen
-            if version == 'remove' then
+            if info.version == '-' then
                 local c, r = opkg_remove(pkg)
                 retcode = retcode and c
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
@@ -1010,13 +1108,14 @@ function upgrade()
         end
     end
 
+    -- Check that all the needed services are correctly enabled and running
     for service, status in pairs(services) do
-        local c, r = ensure_service_state(service, status)
-        retcode = retcode and c
+        local success, r = ensure_service_state(service, status)
+        retcode = retcode and success
         ret = ret .. r .. "\n"
     end
 
-    return retcode, ret
+    return retcode, ret, additional_actions
 end
 
 
