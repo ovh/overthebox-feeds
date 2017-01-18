@@ -277,7 +277,6 @@ end
 servers = {}
 for i = last_index, #arg do
 	if string.find(arg[i], "%d+.%d+.%d+.%d+") then
-		--		print("track : "..arg[i])
 		table.insert(servers, arg[i])
 	else
 		print("not reconize : "..arg[i])
@@ -605,14 +604,11 @@ end
 	shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
 	shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
 	shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-	shaper.pingdelta      = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-	shaper.bandwidthdelta = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
 	shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	-- Shaper timers
 	shaper.reloadtimestamp    = 0   -- Time when signal to (re)load qos was received
 	shaper.qostimestam        = nil -- Time of when QoS was enabled, nil mean that QoS is disabled
 	shaper.losttimestamp      = nil -- Time when we lost the first ping
-	shaper.congestedtimestamp = nil -- Time when we detect a link congestion
 end)()
 
 -- Shaper functions
@@ -639,22 +635,6 @@ function shaper:pushPing(lat)
 		end
 	end
 	pingstats:push(lat)
-	-- QoS manager
-	if shaper.mode ~= "off" and (lat > (pingstats:min() + shaper.pingdelta)) then
-		if shaper.congestedtimestamp == nil then
-			debug("Starting bandwidth stats collector on "..shaper.interface)
-			shaper.congestedtimestamp = os.time()
-		end
-		bw_stats:collect()
-	end
-end
-
-function shaper:isCongested()
-	if pingstats:getn(0) > (min + shaper.pingdelta) and pingstats:getn(-1) > (min + shaper.pingdelta) and pingstats:getn(-2) > (min + shaper.pingdelta) then
-		return true
-	else
-		return false
-	end
 end
 
 function shaper:update()
@@ -672,8 +652,6 @@ function shaper:update()
 		shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
 		shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
 		shaper.qostimeout     = tonumber(uci:get("network", shaper.interface, "qostimeout")) or 30 -- min
-		shaper.pingdelta      = tonumber(uci:get("network", shaper.interface, "pingdelta")) or 100 -- ms
-		shaper.bandwidthdelta = tonumber(uci:get("network", shaper.interface, "bandwidthdelta")) or 100 -- kbit/s
 		shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
 	end
 	--
@@ -685,25 +663,6 @@ function shaper:update()
 		if shaper.qostimestamp and shaper.qostimeout and (os.time() > (shaper.qostimestamp + shaper.qostimeout * 60)) then
 			log(string.format("disabling download QoS after %s min", shaper.qostimeout))
 			shaper:disableQos()
-		end
-		if shaper:isCongested() then
-			local download = bw_stats:avgdownload(shaper.congestedtimestamp - 2)
-			local upload   = bw_stats:avgupload(shaper.congestedtimestamp - 2)
-			log("avg rate since "..shaper.congestedtimestamp.." is "..download.." kbit/s down and "..upload.." kbit/s up")
-			-- upload congestion detected
-			if upload > download then
-				if uci:get("network", shaper.interface, "upload") then
-					shaper.upload = tonumber(uci:get("network", shaper.interface, "upload"))
-				else
-					shaper.upload = math.floor(upload * shaper.ratefactor)
-					if shaper.download ~= nil then
-						shaper:enableQos()
-					end
-				end
-			else
-				shaper.download = math.floor(download * shaper.ratefactor)
-				shaper:enableQos()
-			end
 		end
 	elseif shaper.mode == "static" then
 		local uci = libuci.cursor()
@@ -744,7 +703,6 @@ function shaper:disableQos()
 			run(string.format("/usr/lib/qos/run.sh stop %s", shaper.interface))
 		end
 		shaper.qostimestamp = nil
-		shaper.congestedtimestamp = nil
 	end
 end
 
@@ -812,7 +770,6 @@ function write_stats()
 	end
 	-- QoS status
 	if shaper then
-		result[interface.name].congestedtimestamp = shaper.congestedtimestamp
 		result[interface.name].qostimestamp       = shaper.qostimestamp
 		result[interface.name].reloadtimestamp    = shaper.reloadtimestamp
 		result[interface.name].losttimestamp      = shaper.losttimestamp
