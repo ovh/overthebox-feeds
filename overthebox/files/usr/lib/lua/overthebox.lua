@@ -2025,9 +2025,9 @@ function lock(name)
 end
 
 -- function run execute a program
--- return stdout and status code
+-- return stdout + stderr and status code
 function run(command)
-	local handle = io.popen(command)
+	local handle = io.popen(command .. " 2>&1")
 	local result = handle:read("*a")
 	local rc = {handle:close()}
 	return result, rc[4]
