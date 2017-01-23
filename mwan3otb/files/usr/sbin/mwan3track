@@ -384,69 +384,29 @@ function updateInterfaceInfos()
 	return false
 end
 
--- Circular buffer for ping stats collection
-local pingstats    = {}
-pingstats.numvalue = 60
-pingstats.pos      = 0
+local pingstats = {}
 
--- Push a balue in the circular buffer
+pingstats.last = 0
+pingstats.min  = 0
+pingstats.avg  = 0
+
 function pingstats:push(value)
-	-- Set the new value at the right position
-	pingstats[pingstats.pos] = value
-	-- Increase pos number
-	pingstats.pos = pingstats.pos + 1
-	-- If there is no more room in the buffer
-	if pingstats.pos > pingstats.numvalue then
-		-- reset the pos to 0
-		pingstats.pos = 0
+	if value <= 0 then
+		return
 	end
-end
 
-function pingstats:avg()
-	sum = 0
-	if table.getn(pingstats) == 0 then
-		return sum
-	end
-	for index = #pingstats, 1, -1 do
-		local item = pingstats[index]
-		sum = sum + item
-	end
-	return sum / #pingstats
-end
+	if pingstats.last == 0 then
+		pingstats.min = value
+		pingstats.avg = value
+	else
+		if value < pingstats.min then
+			pingstats.min = value
+		end
 
-function pingstats:min()
-	min = 10000
-	if table.getn(pingstats) == 0 then
-		return min
+		pingstats.avg = (7*pingstats.avg + value)/8
 	end
-	for index = #pingstats, 1, -1 do
-		min = math.min(pingstats[index], min)
-	end
-	return min
-end
 
-function pingstats:getn(index)
-	index = math.abs(index)
-	if index >= pingstats.numvalue then
-		return 0
-	end
-	local pos = pingstats.pos - 1 - index
-	if pos < 1 then
-		pos = pingstats.numvalue + pos
-	end
-	return pingstats[pos] or 10000
-end
-
-function pingstats:setn(index, value)
-	index = math.abs(index)
-	if index >= pingstats.numvalue then
-		return 0
-	end
-	local pos = pingstats.pos - 1 - index
-	if pos < 1 then
-		pos = pingstats.numvalue + pos
-	end
-	pingstats[pos] = value
+	pingstats.last = value
 end
 
 -- Bandwith stats
@@ -613,9 +573,8 @@ end)()
 
 -- Shaper functions
 
-function shaper:pushPing(lat)
-	if lat == false then
-		lat = 1000
+function shaper:ping(ok)
+	if not ok then
 		if shaper.interface ~= "tun0" then
 			if shaper.losttimestamp == nil then
 				shaper.losttimestamp = os.time()
@@ -634,7 +593,6 @@ function shaper:pushPing(lat)
 			run('pkill -USR2 -f "mwan3track -i tun0"')
 		end
 	end
-	pingstats:push(lat)
 end
 
 function shaper:update()
@@ -764,9 +722,9 @@ function write_stats()
 	result[interface.name].country = interface.country
 	-- Ping stats
 	if pingstats then
-		result[interface.name].minping = pingstats:min()
-		result[interface.name].curping = pingstats:getn(0)
-		result[interface.name].avgping = pingstats:avg()
+		result[interface.name].minping = pingstats.min
+		result[interface.name].curping = pingstats.last
+		result[interface.name].avgping = pingstats.avg
 	end
 	-- QoS status
 	if shaper then
@@ -793,23 +751,23 @@ while true do
 		if ok then
 			host_up_count = host_up_count + 1
 
-			lat = tonumber(msg)
 			-- Check public ip every 900 sec and reload QoS if public ip change
 			if interface.timestamp == nil or (os.time() > interface.timestamp + 900) then
 				if updateInterfaceInfos() and shaper.qostimestamp then
 					shaper.reloadtimestamp = os.time()
 				end
 			end
+
 			-- Update shaper
-			shaper:pushPing(lat)
-			local min = pingstats:min()
-			debug("check: "..servers[i].." OK "..lat.."ms".." was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3).." ("..tostring(min).." min)")
+			shaper:ping(true)
+			pingstats:push(tonumber(msg))
+			debug("check: "..servers[i].." OK "..string.format("%.2f ms", pingstats.last))
 		else
 			lost = lost + 1
 
 			log(msg)
-			shaper:pushPing(false)
-			debug("check: "..servers[i].." failed was "..pingstats:getn(-1).." "..pingstats:getn(-2).." "..pingstats:getn(-3))
+			shaper:ping(false)
+			debug("check: "..servers[i].." failed")
 		end
 		write_stats()
 		shaper:update()
