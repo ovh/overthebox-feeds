@@ -9,6 +9,23 @@ EXTRA_COMMANDS="ifup ifdown"
 EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
         ifdown  Disable the hook to prevent traffic from being routed through ss-redir"
 
+# iptables/ipset architecture used in this script for ss-redir:
+# PREROUTING/mangle    mwan stuff
+# PREROUTING/nat
+#   - delegate_prerouting (for OpenWRT and user DNAT)
+#   - socks_hook (this chain is empty if we don't route traffic through shadowsocks)
+#       - socks_decision (one for each interface of the lan zone)
+#           - ipset socks_bypass lookup (if dst addr match, ACCEPT: exit PREROUTING/nat altogether)
+#           - socks_bypass_for_mwan
+#              - For each TCP mwan3 rule with policy active, ACCEPT: exit PREROUTING/nat altogether)
+#           - socks_redir
+#               - REDIRECT rule, one for each DSCP (CS1 to CS7), and the last rule is default DSCP
+
+# When reloading:
+# iptables/ipset global skeleton doesn't change.
+# Only socks_hook, socks_bypass_for_mwan and socks_redir **content** change
+# There is also an ipset swap between socks_staging <-> socks_bypass
+
 _log() {
     # 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
     logger -st $PROG_NAME -p $1 "$2"
