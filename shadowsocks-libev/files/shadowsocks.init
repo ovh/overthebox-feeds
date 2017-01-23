@@ -15,7 +15,7 @@ _log() {
 }
 
 # Needed because we use network_get_subnet
-source /lib/functions/network.sh
+. /lib/functions/network.sh
 
 # Instances counter to avoid more than one shadowsocks
 SINGLETON_SS_COUNT=0
