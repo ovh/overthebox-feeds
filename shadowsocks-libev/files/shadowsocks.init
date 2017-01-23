@@ -6,6 +6,8 @@ PROG=/usr/bin/$PROG_NAME
 TRACKER=/usr/bin/ss-redir-track
 USE_PROCD=1
 EXTRA_COMMANDS="ifup ifdown"
+EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
+        ifdown  Disable the hook to prevent traffic from being routed through ss-redir"
 
 _log() {
     # 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
