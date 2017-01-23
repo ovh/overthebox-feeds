@@ -91,7 +91,7 @@ _shadow_init_once() {
 }
 
 # This function launches one shadowsocks per CPU
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _launch_shadow() {
     local conf
     config_get conf $1 conf "/etc/shadowsocks.json"
@@ -108,7 +108,7 @@ _launch_shadow() {
 }
 
 # This function launches the shadowsocks tracker
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _launch_tracker() {
     local conf lport monitoring_ip reliability count tracktimeout interval down up
     config_get conf $1 conf "/etc/shadowsocks.json"
@@ -139,7 +139,7 @@ _shadow_reload_once() {
     _update_conf_and_ipt $1
 }
 
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _update_conf_and_ipt() {
     _generate_conf $1
     _populate_ipt_socks_redir $1
@@ -150,7 +150,7 @@ _update_conf_and_ipt() {
     # Sometimes it seems the jump to delegate_prerouting is recreated under my rule
 }
 
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _populate_ipt_socks_redir() {
     local lport
     config_get lport $1 lport
@@ -177,10 +177,10 @@ _populate_ipt_socks_bypass_for_mwan() {
     config_foreach _populate_ipt_socks_bypass_for_mwan_one rule
 }
 
-# $1 is a ref to the the mwan3 uci section (type =rule)
+# $1 is a ref to the mwan3 uci section (type =rule)
 # Because mwan3 takes some decisions for packets in mangle table,
 # and shadowsocks takes decisions after (in nat table), if a packet has been handled
-# by mwan, we need to let it escape shadowsocks so that the intented routing will be performed.
+# by mwan, we need to let it escape shadowsocks so that the intended routing will be performed.
 # Therefore, for each mwan3 rule, we need to add a matching "escape shadowsocks" rule in nat.
 _populate_ipt_socks_bypass_for_mwan_one() {
     local ipset proto src_ip src_port dest_ip dest_port use_policy rule
@@ -231,7 +231,7 @@ _populate_ipset_socks_bypass() {
     ipset -q destroy socks_staging
 }
 
-# $1 is a ref to the the network route uci element (type =route)
+# $1 is a ref to the network route uci element (type =route)
 # If the client adds static routes via the luci interface, we need
 # to let the packets escape ss-redir so that the intended routing can take place.
 _populate_ipset_socks_bypass_static_routes_one() {
@@ -255,8 +255,8 @@ _populate_ipset_socks_bypass_static_routes_one() {
         return 0
     fi
 
-    # Check the network part is really the netork address of this network/mask
-    # Because when it't not the case, the route is not added to the routing table, even if it's in uci config
+    # Check the network part is really the network address of this network/mask
+    # Because when it's not the case, the route is not added to the routing table, even if it's in uci config
     # If the route is not in the routing table, we don't want to add a bypass rule for ss-redir
     # An example of wrong route is 9.9.9.9/30. The correct one is 9.9.9.8/30.
     if [ "$NETWORK" != "$IP" ]; then
@@ -327,7 +327,7 @@ _update_or_enable_hook_one_if() {
 }
 
 # Generate the JSON configuration file that ss-redir binary can understand
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _generate_conf() {
     local conf server port lport password timeout method
     config_get conf $1 conf "/etc/shadowsocks.json"
@@ -361,7 +361,7 @@ END
 }
 
 # If the param "monitoring_ip" is there, we need to add an ipt rule to nat/OUTPUT
-# $1 is a ref to the the shadowsocks uci section (type =client)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _update_ipt_monitoring_ip_rule() {
     local lport monitoring_ip reliability count tracktimeout interval down up
     config_get lport $1 lport ""
@@ -382,7 +382,7 @@ _update_ipt_monitoring_ip_rule() {
         $IPT -A socks_emitted_by_myself -d $monitoring_ip/32 -p tcp -m comment \
             --comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
     else
-        # When there is no monitoring, don't wait for a tracker to enable routhing through shadowsocks
+        # When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
         _update_or_enable_hook
     fi
 }
