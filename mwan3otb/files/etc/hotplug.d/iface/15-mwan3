@@ -155,10 +155,6 @@ mwan3_track()
 	config_list_foreach $INTERFACE track_ip mwan3_list_track_ips
 
 	procd_kill mwan3track.$INTERFACE
-#	if [ -e /var/run/mwan3track-$INTERFACE.pid ] ; then
-#		kill $(cat /var/run/mwan3track-$INTERFACE.pid) &> /dev/null
-#		rm /var/run/mwan3track-$INTERFACE.pid &> /dev/null
-#	fi
 
 	config_get track_method $INTERFACE track_method none # no default value, avoid error in logs
 	if [ -n "$track_ips" ]; then

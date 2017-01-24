@@ -37,10 +37,6 @@ ifdown()
 	fi
 	
 	procd_kill mwan3track.$1
-#	if [ -e /var/run/mwan3track-$1.pid ] ; then
-#		kill $(cat /var/run/mwan3track-$1.pid)
-#		rm /var/run/mwan3track-$1.pid
-#	fi
 
 	ACTION=ifdown INTERFACE=$1 /sbin/hotplug-call iface
 }
@@ -179,17 +175,10 @@ stop()
 {
 	local ipset route rule table
 
-#	for i in `cat /var/run/mwan3track-*`; do
-#		kill $i &> /dev/null
-#	done
-#	rm /var/run/mwan3track-* &> /dev/null
-
 	for itf in `ps -w | grep mwan3track | grep -v grep | sed '/.*\/usr\/sbin\/mwan3track -i \([^ ]*\) .*$/!d;s//\1/'`
 	do
 		procd_kill mwan3track.$itf
 	done
-
-#	pkill -f mwan3track &> /dev/null
 
 	for route in $($IP route list table all | sed -n 's/.*table \([^ ]*\) .*/\1/p' |  awk '{print $1}' | awk '{for(i=1;i<=NF;i++) if($i+0>0) if($i+0<100) {print;break}}'); do
 		$IP route flush table $route &> /dev/null
