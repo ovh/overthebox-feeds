@@ -101,6 +101,8 @@ ifdown() {
 # I make sure I'm called once even if the conf has several shadowsocks
 _shadow_init_once() {
     _check_singleton_ok || return 0
+    # If the config cannot be validated, abort the starting operation altogether
+    _validate_conf $1 || return 0
     _ipt_init_skeleton
     _update_conf_and_ipt $1
     _launch_shadow $1
@@ -147,8 +149,12 @@ _launch_tracker() {
 
 
 # Reload shadowsocks (make sure we are called one time per reload)
+# $1 is a ref to the shadowsocks uci section (type =client)
 _shadow_reload_once() {
     _check_singleton_ok || return 0
+    # If the config cannot be validated, abort the reloading operation altogether
+    # The shadowsocks with the previous working config continues to run, but no reload is performed.
+    _validate_conf $1 || return 0
     _update_conf_and_ipt $1
 }
 
@@ -337,6 +343,24 @@ _update_or_enable_hook_one_zone() {
 _update_or_enable_hook_one_if() {
     # Plug socks_hook with socks_decision so that packets start to flow through ss-redir!
     $IPT -A socks_hook -i $1 -j socks_decision
+}
+
+# This validates shadowsocks uci configuration
+# It only checks the type of the params present in the config
+# Missing params are not an error
+# $1 is a ref to the shadowsocks uci section (type =client)
+_validate_conf() {
+    uci_validate_section shadowsocks client "$1" \
+        'port:port'          \
+        'lport:port'         \
+        'password:string'    \
+        'method:string'      \
+        'timeout:uinteger'   \
+        'server:host'        \
+        'monitoring_ip:host' || {
+            _log 3 "Cannot validate uci configuration. Are the types correct? ABORTED reload or start action."
+            return 1
+        }
 }
 
 # Generate the JSON configuration file that ss-redir binary can understand
