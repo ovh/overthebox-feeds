@@ -61,7 +61,7 @@ ifup()
 
 	config_get enabled "$1" enabled 0
 
-	device=$(uci -p /var/state get network.$1.ifname) &> /dev/null
+	device=$(uci -p /var/state get network.$1.ifname 2>/dev/null)
 
 	if [ -n "$device" ] ; then
 		[ "$enabled" -eq 1 ] && ACTION=ifup INTERFACE=$1 DEVICE=$device /sbin/hotplug-call iface
