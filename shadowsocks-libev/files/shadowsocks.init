@@ -28,7 +28,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 
 _log() {
     # 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
-    logger -st $PROG_NAME -p $1 "$2"
+    logger -st $PROG_NAME-initd -p $1 "$2"
 }
 
 # Needed because we use network_get_subnet
@@ -66,22 +66,23 @@ LOCALNETS="
 
 # When following config files change and reload_config is called, we trigger a reload here
 service_triggers() {
-    procd_add_reload_trigger "shadowsocks"
-    procd_add_reload_trigger "mwan3"
-    procd_add_reload_trigger "network"
+    procd_add_reload_trigger "shadowsocks" "mwan3" "network"
 }
 
 start_service() {
+    _log 6 "Starting service..."
     config_load shadowsocks
     config_foreach _shadow_init_once client
 }
 
 reload_service() {
+    _log 6 "Reloading service..."
     config_load shadowsocks
     config_foreach _shadow_reload_once client
 }
 
 stop_service() {
+    _log 6 "Stopping service..."
     _ipt_clean_all
 }
 
