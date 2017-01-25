@@ -23,77 +23,57 @@ local json      = require("luci.json")
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
+	-- main menu entry
 	entry({"admin", "overthebox"}, firstchild(), _("OverTheBox"), 19).index = true
+	-- submenu entries
+	entry({"admin", "overthebox", "overview"}, template("overthebox/index"), _("Overview"), 1).leaf = true
+	entry({"admin", "overthebox", "dscp"}, cbi("dscp/dscp"), _("DSCP Settings"), 2).leaf = true
+	entry({"admin", "overthebox", "register_device"}, template("overthebox/register_device"), _("Register device"), 3).leaf = true
+	entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 4).leaf = true
+	entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 5).leaf = true
+	entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 6).leaf = true
+	entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 7).leaf = true
+	-- functions
+	entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data")).leaf = true
+	entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data")).leaf = true
+	entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data")).leaf = true
+	entry({"admin", "overthebox", "interfaces_status"}, call("interfaces_status")).leaf = true
+	entry({"admin", "overthebox", "lease_overview"}, call("lease_overview")).leaf = true
+	entry({"admin", "overthebox", "ipv6_discover"}, call("ipv6_discover")).leaf = true
+	entry({"admin", "overthebox", "dhcp_status"}, call("dhcp_status")).leaf = true
+	entry({"admin", "overthebox", "dhcp_recheck"}, call("action_dhcp_recheck")).leaf = true
+	entry({"admin", "overthebox", "dhcp_skiptimer"}, call("action_dhcp_skip_timer")).leaf = true
+	entry({"admin", "overthebox", "dhcp_start_server"}, call("action_dhcp_start_server")).leaf = true
+	entry({"admin", "overthebox", "activate_service"}, call("action_activate")).leaf = true
+	entry({"admin", "overthebox", "need_activate_service"},  call("need_activate")).leaf = true
+	entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
+	entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
+	entry({"admin", "overthebox", "update_conf"}, call("action_update_conf")).leaf = true
+end
 
-	local e = entry({"admin", "overthebox", "overview"}, template("overthebox/index"), _("Overview"), 1)
-	e.sysauth = false
-
-	entry({"admin", "overthebox", "dscp"}, cbi("dscp/dscp"), _("DSCP Settings"), 2)
-
-	local e = entry({"admin", "overthebox", "lan_traffic"}, template("overthebox/lan_traffic"), _("LAN Traffic"), 3)
-	 e.leaf = true
-
-	local e = entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 4)
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 5)
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 6)
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data"))
-	e.leaf = true
-
-	local e = entry({"admin", "overthebox", "bandwidth_status"}, call("action_bandwidth_data"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "interfaces_status"}, call("interfaces_status"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "lease_overview"}, call("lease_overview"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "ipv6_discover"},  call("ipv6_discover"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "dhcp_status"},  call("dhcp_status"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "dhcp_recheck"},  call("action_dhcp_recheck"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "dhcp_skiptimer"},  call("action_dhcp_skip_timer"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "dhcp_start_server"},  call("action_dhcp_start_server"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "activate_service"},  call("action_activate"))
-	e.leaf = true
-	e.sysauth = false
-
-	local e = entry({"admin", "overthebox", "activate"}, template("overthebox/index"))
-	e.leaf = true
-	e.sysauth = false
-
-	entry({"admin", "overthebox", "update_conf"},  call("action_update_conf")).leaf = true
-
+function action_passwd()
+	local result = {}
+	result["status"] = false
+	local p1 = luci.http.formvalue("p1")
+	local p2 = luci.http.formvalue("p2")
+	if p1 and p2 then
+		if p1 == p2 then
+			result["rcode"] = luci.sys.user.setpasswd("root", p1)
+			result["status"] = (result["rcode"] ~= nil and result["rcode"] == 0)
+			if result["status"] then
+				result["error"] = false
+			else
+				result["error"] = "Internal error"
+			end
+		else
+			result["status"] = false
+			result["error"] = "passwords are not the same"
+		end
+	else
+		result["error"] = "missing arguments"
+	end
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(result)
 end
 
 -- Multipath overview functions
@@ -111,6 +91,7 @@ function interfaces_status()
 	mArray.overthebox = {}
 	mArray.overthebox["version"] = require('overthebox')._VERSION
 	-- Check that requester is in same network
+	mArray.overthebox["service_addr"]	= uci:get("shadowsocks", "proxy", "server") or "0.0.0.0"
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["wan_addr"]		= "0.0.0.0"
 	local wanaddr = ut.trim(sys.exec("cat /tmp/wanip"))
@@ -405,6 +386,19 @@ function action_activate(service)
 	action_dhcp_start_server()
 	action_dhcp_recheck()
 	luci.http.prepare_content("application/json")
+	luci.http.write_json(result)
+end
+
+function need_activate()
+	-- TODO change response. Now, false, means "I recieved a request from server to answer". This request is sent 0 to 30sec after a device is linked to a service
+	local result = { };
+	local uci = luci.model.uci.cursor()
+	luci.http.prepare_content("application/json")
+	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
+		result["active"] = false
+	else
+		result["active"] = true
+	end
 	luci.http.write_json(result)
 end
 
