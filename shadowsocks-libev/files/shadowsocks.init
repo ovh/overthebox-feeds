@@ -60,6 +60,11 @@ service_triggers() {
     procd_add_reload_trigger "shadowsocks" "mwan3" "network"
 }
 
+# '/etc/init.d/service running' calls "running" function which calls service_running
+service_running() {
+    pgrep -x $PROG > /dev/null
+}
+
 start_service() {
     _log 6 "Starting service..."
     config_load shadowsocks
@@ -67,6 +72,11 @@ start_service() {
 }
 
 reload_service() {
+    # We don't want to reload if we are not running :)
+    # We should return 0 here otherwise init system will consider reload didn't work
+    # And it will fallback asking us to start instead!
+    service_running || return 0
+
     _log 6 "Reloading service..."
     config_load shadowsocks
     config_foreach _shadow_reload_once client
