@@ -89,12 +89,16 @@ stop_service() {
 
 # Called from tracker when it sees ss-redir/ss-server communication works
 ifup() {
+    # We don't want to ifup if we are not running :)
+    service_running || return 0
     _update_or_enable_hook
 }
 
 # Called from tracker when it sees ss-redir/ss-server communication doesn't work anymore
 # This prevent traffic from flowing through shadowsocks
 ifdown() {
+    # We don't want to ifdown if we are not running :)
+    service_running || return 0
     _disable_hook
 }
 
@@ -430,6 +434,7 @@ _update_ipt_monitoring_ip_rule() {
     config_get monitoring_ip $1 monitoring_ip ""
 
     # First, let's empty the chain!
+    # Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
     $IPT -F socks_emitted_by_myself
 
     # Only add the rule if monitoring_ip is set and the tracker binary is there
