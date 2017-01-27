@@ -37,7 +37,7 @@ _log() {
 # Instances counter to avoid more than one shadowsocks
 SINGLETON_SS_COUNT=0
 
-IPT="$(which iptables) -w -t nat"
+IPT="iptables -w -t nat"
 CHAINS="socks_hook socks_decision socks_bypass_for_mwan socks_redir socks_emitted_by_myself"
 SOCKS_HOOK_COMMENT="Don't add anything after me, my children use -j ACCEPT"
 
@@ -171,6 +171,10 @@ _launch_tracker() {
 
 # Reload shadowsocks (make sure we are called one time per reload)
 # $1 is a ref to the shadowsocks uci section (type =client)
+# It should be noted that we update the configuration file when reloading (.json)
+# But the binary ss-redir will never know it. It's config in RAM won't be updated
+# This is fine :) Our reload is a partial reload for iptables and ipset
+# For a full reload, we can use restart
 _shadow_reload_once() {
     _check_singleton_ok || return 0
     # If the config cannot be validated, abort the reloading operation altogether
