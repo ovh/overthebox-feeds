@@ -133,9 +133,10 @@ _shadow_init_once() {
     _check_singleton_ok || return 0
     # If the config cannot be validated, abort the starting operation altogether
     _validate_conf $1 || return 0
+    # Launch shadowsocks first to minimize the time during which traffic is routed to a non-listening-yet-process
+    _launch_shadow $1
     _ipt_init_skeleton
     _update_conf_and_ipt $1
-    _launch_shadow $1
     _launch_tracker $1
 }
 
@@ -232,7 +233,8 @@ _populate_ipt_socks_redir() {
 
     # Let's add one rule per CS DSCP
     for i in $(seq 1 $MAX_DSCP_CS); do
-        $IPT -A socks_redir -p tcp -m dscp --dscp-class cs$i -j REDIRECT --to-ports $(($lport + $i)) -m comment --comment "CS$i"
+        $IPT -A socks_redir -p tcp -m dscp --dscp-class cs$i -j REDIRECT --to-ports $(($lport + $i)) \
+            -m comment --comment "CS$i"
     done
     # Let's add the default rule at the bottom
     $IPT -A socks_redir -p tcp -j REDIRECT --to-ports $lport
@@ -361,7 +363,7 @@ _populate_ipset_socks_bypass_wan_one() {
     fi
 
     # Add the WAN IP to the exceptions list
-    # We use -q here because most of the time, WAN interface IPs are local and may already be excluded in the set
+    # We use -q here: most of the time, WAN interface IPs are local and may already be excluded in the set
     ipset -q add socks_staging "$NETWORK/$PREFIX"
 }
 
