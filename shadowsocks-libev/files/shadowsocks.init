@@ -60,8 +60,7 @@ service_triggers() {
     procd_add_reload_trigger "shadowsocks" "mwan3" "network"
 }
 
-# '/etc/init.d/service running' calls "running" function which calls service_running
-service_running() {
+_running() {
     pgrep -x $PROG > /dev/null
 }
 
@@ -75,7 +74,7 @@ reload_service() {
     # We don't want to reload if we are not running :)
     # We should return 0 here otherwise init system will consider reload didn't work
     # And it will fallback asking us to start instead!
-    service_running || return 0
+    _running || return 0
 
     _log 6 "Reloading service..."
     config_load shadowsocks
@@ -90,7 +89,7 @@ stop_service() {
 # Called from tracker when it sees ss-redir/ss-server communication works
 ifup() {
     # We don't want to ifup if we are not running :)
-    service_running || return 0
+    _running || return 0
     _shadow_cable plug
 }
 
@@ -98,7 +97,7 @@ ifup() {
 # This prevent traffic from flowing through shadowsocks
 ifdown() {
     # We don't want to ifdown if we are not running :)
-    service_running || return 0
+    _running || return 0
     _shadow_cable unplug
 }
 
