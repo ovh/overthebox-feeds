@@ -13,7 +13,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 # PREROUTING/mangle    mwan stuff
 # PREROUTING/nat
 #   - delegate_prerouting (for OpenWRT and user DNAT)
-#   - socks_hook (this chain is empty if we don't route traffic through shadowsocks)
+#   - socks_hook (This is the main "cable" when we want to enable routing through shadowsocks)
 #       - socks_decision (one for each interface of the lan zone)
 #           - ipset socks_bypass lookup (if dst addr match, ACCEPT: exit PREROUTING/nat altogether)
 #           - socks_bypass_for_mwan
@@ -25,6 +25,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 # iptables/ipset global skeleton doesn't change.
 # Only socks_hook, socks_bypass_for_mwan and socks_redir **content** change
 # There is also an ipset swap between socks_staging <-> socks_bypass
+# PREROUTING only changes upon ifup/ifdown
 
 _log() {
     # 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
@@ -39,7 +40,6 @@ SINGLETON_SS_COUNT=0
 
 IPT="iptables -w -t nat"
 CHAINS="socks_hook socks_decision socks_bypass_for_mwan socks_redir socks_emitted_by_myself"
-SOCKS_HOOK_COMMENT="Don't add anything after me, my children use -j ACCEPT"
 
 MAX_DSCP_CS=7
 # The monitoring requests will go through the CS2 ss-redir listener
@@ -91,7 +91,7 @@ stop_service() {
 ifup() {
     # We don't want to ifup if we are not running :)
     service_running || return 0
-    _update_or_enable_hook
+    _shadow_cable plug
 }
 
 # Called from tracker when it sees ss-redir/ss-server communication doesn't work anymore
@@ -99,7 +99,32 @@ ifup() {
 ifdown() {
     # We don't want to ifdown if we are not running :)
     service_running || return 0
-    _disable_hook
+    _shadow_cable unplug
+}
+
+# This function enable or disable global routing through shadowsocks
+# $1 is "plug" or "unplug"
+_shadow_cable() {
+    # Do nothing and say nothing if we don't understand $1
+    if [ "$1" != "plug" -a "$1" != "unplug" ]; then
+        return 0
+    fi
+
+    # Check whether cable is already plugged in or not
+    $IPT -C PREROUTING -p tcp -j socks_hook 2> /dev/null
+    already=$?
+
+    if [ "$1" = "plug" -a $already -ne 0 ]; then
+        _log 6 "Plugging shadowsocks cable in..."
+        # We want to append, so that we are after delegate_prerouting (we use -j ACCEPT)
+        $IPT -A PREROUTING -p tcp -j socks_hook
+
+    elif [ "$1" = "unplug" -a $already -eq 0 ]; then
+        _log 6 "Unplugging shadowsocks cable..."
+        $IPT -D PREROUTING -p tcp -j socks_hook
+    fi
+
+    # Do nothing and say nothing if we don't need to do anything (idempotent behaviour)
 }
 
 # Initialize shadowsocks for the first time
@@ -177,7 +202,7 @@ _launch_tracker() {
 # Reload shadowsocks (make sure we are called one time per reload)
 # $1 is a ref to the shadowsocks uci section (type =client)
 # It should be noted that we update the configuration file when reloading (.json)
-# But the binary ss-redir will never know it. It's config in RAM won't be updated
+# But the binary ss-redir will never know it. Its config in RAM won't be updated
 # This is fine :) Our reload is a partial reload for iptables and ipset
 # For a full reload, we can use restart
 _shadow_reload_once() {
@@ -194,9 +219,8 @@ _update_conf_and_ipt() {
     _populate_ipt_socks_redir $1
     _populate_ipt_socks_bypass_for_mwan
     _populate_ipset_socks_bypass
+    _populate_ipt_socks_hook
     _update_ipt_monitoring_ip_rule $1
-    # XXX Ensure jump to socks_hook from PREROUTING chain is always at the end?
-    # Sometimes it seems the jump to delegate_prerouting is recreated under my rule
 }
 
 # $1 is a ref to the shadowsocks uci section (type =client)
@@ -244,7 +268,7 @@ _populate_ipt_socks_bypass_for_mwan_one() {
 
     # If both ipset and dest_id are set, the following iptables command will crash
     if [ -n "$ipset" -a -n "$dest_ip" ]; then
-        _log 4 "ipset and dest_ip are both set! Skipping this strange mwan3 rule..."
+        _log 4 "ipset and dest_ip are both set! Skipping this strange mwan3 rule ($dest_ip)..."
         return 0
     fi
 
@@ -300,7 +324,7 @@ _populate_ipset_socks_bypass_static_routes_one() {
     # If they are not valid, the corresponding value will turn to 0
     eval "$(ipcalc.sh $target $netmask)"
     if [ "$NETWORK" = "0.0.0.0" ] || [ "$PREFIX" = "0" ]; then
-        _log 4 "Skipping garbage or wildcard static route..."
+        _log 4 "Skipping garbage or wildcard static route ($target/$netmask)..."
         return 0
     fi
 
@@ -330,34 +354,34 @@ _populate_ipset_socks_bypass_wan_one() {
     network_get_subnet subnet $ifname || return 0
 
     # Find the network address and check everything is valid :)
+    # $subnet is in the form a.b.c.d/z
     eval "$(ipcalc.sh $subnet)"
     if [ "$NETWORK" = "0.0.0.0" ] || [ "$PREFIX" = "0" ]; then
-        _log 4 "Skipping WAN IP ($NETWORK/$PREFIX) that I don't understand..."
+        _log 4 "Skipping WAN IP ($subnet) that I don't understand..."
         return 0
     fi
 
     # Add the WAN IP to the exceptions list
+    # We use -q here because most of the time, WAN interface IPs are local and may already be excluded in the set
     ipset -q add socks_staging "$NETWORK/$PREFIX"
 }
 
-# This updates the socks_hook chain to route or stop routing packets to shadowsocks
+# This updates the socks_hook chain with interfaces the user wants to route through shadowsocks
 # This is handled in a by-interface basis.
-_update_or_enable_hook() {
+# Should only be executed when starting or reloading shadowsocks
+_populate_ipt_socks_hook() {
     # First, reset the chain
-    _disable_hook
+    $IPT -F socks_hook
 
     # For each zone, find if we got a lan zone
     # And activate the routing to shadowsocks for all its interfaces
+    # (This is not the main plug, traffic may not flow through ss-redir after this)
     config_load firewall
-    config_foreach _update_or_enable_hook_one_zone zone
-}
-
-_disable_hook() {
-    $IPT -F socks_hook
+    config_foreach _update_socks_hook_one_zone zone
 }
 
 # $1 is a ref to the current zone section being processed
-_update_or_enable_hook_one_zone() {
+_update_socks_hook_one_zone() {
     # Let's fetch the current zone name
     local zone
     config_get zone $1 name
@@ -365,13 +389,13 @@ _update_or_enable_hook_one_zone() {
     # Only traffic coming from a lan zone's interface will be routed to shadowsocks
     if [ "$zone" = "lan" ]; then
         # Call this callback for each interface belonging to the lan zone
-        config_list_foreach $1 network _update_or_enable_hook_one_if
+        config_list_foreach $1 network _update_socks_hook_one_if
     fi
 }
 
 # $1 is one of the interfaces belonging to the lan zone
-_update_or_enable_hook_one_if() {
-    # Plug socks_hook with socks_decision so that packets start to flow through ss-redir!
+_update_socks_hook_one_if() {
+    # Plug socks_hook with socks_decision for that interface
     $IPT -A socks_hook -i $1 -j socks_decision
 }
 
@@ -445,7 +469,8 @@ _update_ipt_monitoring_ip_rule() {
             --comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
     else
         # When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
-        _update_or_enable_hook
+        # Let's plug the cable in! :p
+        _shadow_cable plug
     fi
 }
 
@@ -466,11 +491,10 @@ _ipt_init_skeleton() {
     $IPT -A socks_decision -m set --match-set socks_bypass dst -j ACCEPT
     $IPT -A socks_decision -j socks_bypass_for_mwan
     $IPT -A socks_decision -j socks_redir
-    $IPT -A PREROUTING -p tcp -j socks_hook -m comment --comment "$SOCKS_HOOK_COMMENT"
     $IPT -A OUTPUT -p tcp -j socks_emitted_by_myself
 
     # Now, everything is glued together except socks_hook which is not connected to socks_decision yet.
-    # Traffic doesn't flow through ss-redir for now.
+    # PREROUTING isn't linked to socks_hook either, traffic doesn't flow through ss-redir for now.
 }
 
 # I'm stateless, I don't make any assumptions on iptables or ipset state.
@@ -483,7 +507,7 @@ _ipt_clean_all() {
     # This will allow deletion and avoid "Too many links" error.
     # Then, empty each chain before deleting it to avoid "Directory not empty" error
     # (Some -F also remove some jumps)
-    $IPT -D PREROUTING -p tcp -j socks_hook -m comment --comment "$SOCKS_HOOK_COMMENT" 2> /dev/null
+    $IPT -D PREROUTING -p tcp -j socks_hook 2> /dev/null
     $IPT -D OUTPUT -p tcp -j socks_emitted_by_myself 2> /dev/null
     for chain in $CHAINS; do
         $IPT -F $chain 2> /dev/null
