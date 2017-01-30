@@ -146,13 +146,13 @@ _launch_shadow() {
     local conf cpu_count
 
     # Determine the number of CPU cores
-    local cpu_sysfs="/sys/devices/system/cpu/"
-
-    if [ -d $cpu_sysfs ]; then
+    if [ -f /proc/cpuinfo ] && command -v awk &> /dev/null; then
         # Try to get the number of CPU cores
-        # We need something returning (number of CPU x number of cores)
-        # We are not interested in threads number
-        cpu_count=$(cat /proc/cpuinfo | egrep "core id|physical id" | tr -d "\n" | sed s/physical/\\nphysical/g | grep -v ^$ | sort -u | wc -l)
+        # We need something returning (number of CPU x number of cores). We are not interested in threads number
+        # In "p", we store the physical ID. NF is the last value of the line (Physical ID or Core ID)
+        # cores[p$NF] will for example create the key 00 and 01 if we have one CPU and two cores
+        cpu_count=$(awk '{ if ($0~/^physical id/) { p=$NF }; if ($0~/^core id/) { cores[p$NF]=p$NF } } \
+            END { for (key in cores) { n++ } } END { print n }' /proc/cpuinfo)
 
         # If the value we got here is strange, let's cap the value to one
         if [ -z "$cpu_count" ] || [ "$cpu_count" -lt 1 ]; then
@@ -160,7 +160,7 @@ _launch_shadow() {
             cpu_count=1
         fi
     else
-        _log 3 "Couldn't determine CPU number because of missing sysfs. Falling back to 1 CPU."
+        _log 3 "Couldn't determine CPU number because of missing /proc/cpuinfo or awk. Falling back to 1 CPU."
         cpu_count=1
     fi
 
