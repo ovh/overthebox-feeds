@@ -1,71 +1,129 @@
 #!/bin/sh
 
+MPTCP_HANDLED_STATES="
+    on
+    backup
+    handover
+    master
+"
+
+DNSMASQ_FILES="
+    /tmp/resolv.conf
+    /tmp/resolv.conf.auto
+"
+
+_log() {
+    # 1.alert
+    # 2.crit
+    # 3.err
+    # 4.warn
+    # 5.notice
+    # 6.info
+    # 7.debug
+    logger -st "hotplug-16-mwan3custom" -p $1 "$2"
+}
+
+# This function will add / delete a route to the shadowsocks server using a
+# specific gateway on a given device. The routes will not be changed if there
+# are already setup correctly.
+# Params:
+#   $1 Device
+#   $2 Action
+_update_route() {
+    DEVICE=$1
+    ACTION=$2
+    if [ $ACTION != "add" -a $ACTION != "delete" ]; then
+        _log 4 "invalid action: ${ACTION}"
+        return 1
+    fi
+
+    # Get IP and gateway
+    IP=$(uci -q get shadowsocks.proxy.server)
+    GW=$(uci -q get network.$DEVICE.gateway)
+    if [ -z "$IP" -o -z "$GW" ]; then
+        _log 4 "missing IP ($IP) or gateway ($GW)"
+        return 1
+    fi
+
+    # Check if the route exists
+    CHECK="$(ip route show $IP via $GW dev $DEVICE)"
+    if [ -z "$CHECK" -a $ACTION = "delete" ]; then
+        _log 7 "route already deleted for $IP via $GW on dev $DEVICE"
+        return 0
+    elif [ -n "$CHECK" -a $ACTION = "add" ]; then
+        _log 7 "route already added for $IP via $GW on dev $DEVICE"
+        return 0
+    fi
+
+    # 'ip route' won't let us create two routes to the same IP, even with
+    # different gateways, if no metric is added as parameter. 'route' on the
+    # other hand is less strict and allows us to do so.
+    route $ACTION $IP gw $GW dev $DEVICE
+    _log 7 "route $ACTION $IP gw $GW dev $DEVICE"
+
+    return 0
+}
+
+_remove_dnsmasq_upstream() {
+    _log 7 "removing $DEVICE from upstreams in dnsmasq"
+    for file in $DNSMASQ_FILES; do
+        sed -i "/# Interface $1/,/# Interface/ s/nameserver /#nameserver /" $file
+    done
+}
+
+_add_dnsmasq_upstream() {
+    _log 7 "adding $DEVICE from upstreams in dnsmasq"
+    for file in $DNSMASQ_FILES; do
+        sed -i "/# Interface $1/,/# Interface/ s/#nameserver /nameserver /" $file
+    done
+}
+
+MULTIPATH=$(uci -q get network.${DEVICE}.multipath)
+[ $MULTIPATH = "master" ] && MULTIPATH="on"
+if [ -z "$MULTIPATH" ]; then
+    _log 7 "MPTCP not configured on device $DEVICE, nothing to do"
+    return 0;
+fi
+
+HANDLE=0
+for state in $MPTCP_HANDLED_STATES; do
+    if [ "$state" = $MULTIPATH ]; then
+        HANDLE=1
+        break
+    fi
+done
+if [ $HANDLE = "0" ]; then
+    _log 7 "MPTCP state '$MULTIPATH' on $DEVICE not handled by this script"
+    return 0;
+fi
+
+# TODO: deal with the up/down notifications to the API elsewhere
 case "$ACTION" in
-	ifup)
-		logger mwan3 ifup $DEVICE
+    ifup)
+        _log 7 "ifup device $DEVICE"
+        _update_route $DEVICE "add"
 
-		MPTCP=$(uci -q get network.$DEVICE.multipath)
-		case "$MPTCP" in
-			"on");;
-			"master")
-				MPTCP="on";;
-			"backup");;
-			"handover");;
-			*)
-				MPTCP="";;
-		esac
+        _add_dnsmasq_upstream $DEVICE
 
-		if [ -n "$MPTCP" ]; then
-			# Re-activate DNS of this interface
-			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf
-			sed -i "/# Interface $DEVICE/,/# Interface/ s/#nameserver /nameserver /" /tmp/resolv.conf.auto
-			# static route for mptcp
-			DST=$(uci -q get shadowsocks.proxy.server)
-			GW=$(uci -q get network.$DEVICE.gateway)
-			if [ -n "$DST" ] && [ -n "$GW" ]; then
-				route add $DST gw $GW dev $DEVICE
-				logger route add $DST gw $GW dev $DEVICE
-			fi
-			# Notify OverTheBox API
-			/usr/bin/otb_notify_ifup $DEVICE &
-			# On interface tracking back to life we re-initialize multipath on this interface
-			/usr/bin/multipath $DEVICE off
-			sleep 1
-			/usr/bin/multipath $DEVICE $MPTCP
-			sleep 5 # Workaround for full bandwidth issue
-			/usr/bin/multipath $DEVICE off
-			sleep 1
-			/usr/bin/multipath $DEVICE $MPTCP
+        _log 7 "multipath $DEVICE $MULTIPATH"
+        multipath $DEVICE $MULTIPATH
 
-			logger /usr/bin/multipath $DEVICE $MPTCP
-		fi
-		;;
-	ifdown)
+        # Notify OverTheBox API
+        otb_notify_ifup $DEVICE &
+        ;;
+    ifdown)
+        _log 7 "ifdown device $DEVICE"
 
-		MPTCP=$(uci -q get network.$DEVICE.multipath)
-		case "$MPTCP" in
-			"on");;
-			"master");;
-			"backup");;
-			"handover");;
-			*)
-				MPTCP="";;
-		esac
-		if [ -n "$MPTCP" ]; then
-			# Desactivate DNS of this interface
-			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf
-			sed -i "/# Interface $DEVICE/,/# Interface/ s/nameserver /#nameserver /" /tmp/resolv.conf.auto
-			# static route for mptcp
-			DST=$(uci -q get shadowsocks.proxy.server)
-			GW=$(uci -q get network.$DEVICE.gateway)
-			if [ -n "$DST" ] && [ -n "$GW" ]; then
-				route delete $DST gw $GW dev $DEVICE
-				logger route delete $DST gw $GW dev $DEVICE
-			fi
-			# Notify OverTheBox API
-			/usr/bin/otb_notify_ifdown $DEVICE &
-		fi
-		;;
+        _log 7 "multipath $DEVICE off"
+        multipath $DEVICE off
+
+        _remove_dnsmasq_upstream $DEVICE
+
+        _update_route $DEVICE "delete"
+
+        # Notify OverTheBox API
+        otb_notify_ifdown $DEVICE &
+        ;;
 esac
 
-exit 0
+return 0
