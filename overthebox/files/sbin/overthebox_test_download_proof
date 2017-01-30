@@ -1,11 +1,29 @@
 #!/bin/sh
+IPT="iptables -w -t nat"
+HOST="proof.ovh.net"
+COMMENT="Test download proof"
 
-iptables -t nat -A OUTPUT -p tcp -d 188.165.12.106 -j SOCKS
+# This function checks existence of an iptables chain
+# $1 is the chain to test
+_chain_exists() {
+    $IPT -nL $1 &> /dev/null
+    return $?
+}
 
-wget http://proof.ovh.net/files/10Gio.dat -O /dev/null &
-WPID=$!
-trap "kill $WPID" SIGINT SIGTERM
-wait $WPID
+# This function is called if we get a SIGINT or SIGTERM
+_cleanup() {
+    $IPT -D socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$COMMENT"
+    echo "Stopped"
+}
 
-echo stopped
-iptables -t nat -D OUTPUT -p tcp -d 188.165.12.106 -j SOCKS
+if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_redir"; then
+    echo "Couldn't find the iptables chain to plug myself into. Is ss-redir running?"
+    return 1
+fi
+
+echo "Starting..."
+$IPT -A socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$COMMENT"
+
+trap _cleanup SIGINT SIGTERM
+wget http://$HOST/files/10Gio.dat -O /dev/null
+_cleanup
