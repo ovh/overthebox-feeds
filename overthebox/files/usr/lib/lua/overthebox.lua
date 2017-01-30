@@ -1901,7 +1901,7 @@ function update_confmwan()
 	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
 	uci:commit("mwan3")
-    -- We don't call reload_config here anymore as this is done in hotplug.d/net
+	-- We don't call reload_config here anymore as this is done in hotplug.d/net
 	-- Release mwan3 lock
 	l:close()
 	return result, interfaces
