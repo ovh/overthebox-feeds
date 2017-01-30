@@ -26,3 +26,4 @@ $IPT -A socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$C
 
 trap _cleanup SIGINT SIGTERM
 wget http://$HOST/files/10Gio.dat -O /dev/null
+_cleanup
