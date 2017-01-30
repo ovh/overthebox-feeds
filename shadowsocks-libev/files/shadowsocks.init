@@ -43,7 +43,7 @@ CHAINS="socks_hook socks_decision socks_bypass_for_mwan socks_redir socks_emitte
 
 MAX_DSCP_CS=7
 # The monitoring requests will go through the CS2 ss-redir listener
-TRACKER_CS=2
+TRACKER_CS=7
 
 # Nets that should always bypass shadowsocks
 LOCALNETS="
