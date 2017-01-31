@@ -390,9 +390,11 @@ function get_mptcp_version()
 	return nil
 end
 
+-- Send properties about the box on a regular basis
 function send_properties( props )
-	body = {}
+	local body = {}
 
+	-- Send kernel build infos
 	if props.build_version then
 		local version = get_kernel_build_info()
 		if version then
@@ -400,6 +402,7 @@ function send_properties( props )
 		end
 	end
 
+	-- Send MPTCP infos
 	if props.mptcp_version then
 		local version = get_mptcp_version()
 		if version then
@@ -407,15 +410,16 @@ function send_properties( props )
 		end
 	end
 
-	local uci = uci.cursor()
+	-- Get information about network interfaces
+	local ucic = uci.cursor()
 	if props.interfaces then
 		body.interfaces = {}
-		uci:foreach("network", "interface",
+		ucic:foreach("network", "interface",
 			function (e)
 				if not e.ifname then
 					return
 				end
-				entry = {
+				local entry = {
 					ip=e.ipaddr,
 					netmask=e.netmask,
 					gateway=e.gateway,
@@ -427,6 +431,18 @@ function send_properties( props )
 				end
 				if e.gateway then
 					entry.public_ip = get_ip_public(e.ifname)
+				end
+				if e.label then
+					entry.label = e.label
+				end
+				if e.trafficcontrol then
+					entry.traffic_control = e.trafficcontrol
+					if e.upload then
+						entry.upload = tonumber(e.upload)
+					end
+					if e.download then
+						entry.download = tonumber(e.download)
+					end
 				end
 
 				table.insert( body.interfaces, entry)
@@ -447,7 +463,7 @@ function send_properties( props )
 		body.mounts = get_mounts()
 	end
 
-	local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
+	local rcode, res = POST('devices/'.. (ucic:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
 	tprint(res)
 	print(rcode)
 	return (rcode == 200), res
