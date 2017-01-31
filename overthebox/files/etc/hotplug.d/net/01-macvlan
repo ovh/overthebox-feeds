@@ -8,7 +8,6 @@ for IFNAME in `uci show network | grep "type='macvlan'" | cut -f2 -d'.'`
 do
 	if [ -n "$IFNAME" ]; then
 
-		ip link show "$IFNAME" >> /tmp/macvlan.log
 		if ! ip link show "$IFNAME" 1>/dev/null ; then
 
 			DEVICE=$(uci -q get network.$IFNAME.interface)
