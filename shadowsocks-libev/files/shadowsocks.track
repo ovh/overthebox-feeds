@@ -1,6 +1,7 @@
 #!/bin/sh
 
 name=$0
+basename="$(basename $0)"
 
 usage() {
     printf "Usage: %s: [-t TIMEOUT] [-v INTERVAL] [ -r RETRY ] HOST\n" ${name}
@@ -8,7 +9,7 @@ usage() {
 }
 
 log() {
-    logger -p daemon.info -t ${name} "$@"
+    logger -p daemon.info -t ${basename} "$@"
 }
 
 uri="ping"
@@ -31,16 +32,16 @@ shift $((${OPTIND} - 1))
 
 last=0
 
-log "starting..."
+log "Starting..."
 
 while true; do
     if curl -s --max-time ${timeout} --retry ${retry} "$1/${uri}" &>/dev/null ; then
         [ ${last} = 0 ] && log "Shadowsocks is up"
-        /etc/init.d/shadowsocks ifup > /dev/null
+        /etc/init.d/shadowsocks ifup 2> /dev/null
         last=1
     else
         [ ${last} = 1 ] && log "Shadowsocks is down"
-        /etc/init.d/shadowsocks ifdown > /dev/null
+        /etc/init.d/shadowsocks ifdown 2> /dev/null
         last=0
     fi
 
