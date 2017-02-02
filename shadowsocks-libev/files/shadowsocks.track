@@ -34,12 +34,12 @@ log "starting..."
 
 while true; do
     if curl -s --max-time ${timeout} --retry ${retry} $1 &>/dev/null ; then
-        [ ${last} = 0 ] && log "is up"
-        /etc/init.d/shadowsocks ifup
+        [ ${last} = 0 ] && log "Shadowsocks is up"
+        /etc/init.d/shadowsocks ifup > /dev/null
         last=1
     else
-        [ ${last} = 1 ] && log "is down"
-        /etc/init.d/shadowsocks ifdown
+        [ ${last} = 1 ] && log "Shadowsocks is down"
+        /etc/init.d/shadowsocks ifdown > /dev/null
         last=0
     fi
 
