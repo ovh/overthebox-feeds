@@ -319,10 +319,11 @@ function config()
 		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
 		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
 
-		if exists( res.shadow_conf, 'monitoring_ip' ) then
+		if exists( res.shadow_conf, 'monitoring_ip', 'track_retry', 'track_timeout', 'track_interval' ) then
 			uci:set('shadowsocks','proxy','monitoring_ip', res.shadow_conf.monitoring_ip)
-		else
-			uci:delete('shadowsocks','proxy','monitoring_ip')
+			uci:set('shadowsocks','proxy','track_timeout', res.shadow_conf.track_timeout)
+			uci:set('shadowsocks','proxy','track_interval', res.shadow_conf.track_interval)
+			uci:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
 		end
 
 		uci:save('shadowsocks')
