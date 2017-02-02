@@ -180,17 +180,18 @@ _launch_shadow() {
 # This function launches the shadowsocks tracker
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_tracker() {
-    local conf lport monitoring_ip tracktimeout interval
+    local conf lport monitoring_ip track_timeout track_interval track_retry
     config_get conf $1 conf "/etc/shadowsocks.json"
     config_get lport $1 lport ""
     config_get monitoring_ip $1 monitoring_ip ""
-    config_get tracktimeout $1 tracktimeout "2"
-    config_get interval $1 trackinterval "5"
+    config_get track_timeout $1 track_timeout "5"
+    config_get track_interval $1 track_interval "10"
+    config_get track_retry $1 track_retry "0"
 
     # Only launch the tracker if monitoring_ip is set and the tracker binary is there
     if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
         procd_open_instance
-        procd_set_param command "$TRACKER" -t $tracktimeout -v $interval $monitoring_ip
+        procd_set_param command "$TRACKER" -t $track_timeout -v $track_interval -r $track_retry $monitoring_ip
         procd_set_param file "$conf"
         procd_set_param respawn
         procd_set_param stderr 1
@@ -466,8 +467,10 @@ _update_ipt_monitoring_ip_rule() {
     # Only add the rule if monitoring_ip is set and the tracker binary is there
     if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
         # Add the special rule so that when we send a packet to the monitoring_ip, it flows through ss-redir
+        # Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
+        # If shadowsocks is manually stopped, mud will provide network access to API config
         $IPT -A socks_emitted_by_myself -d $monitoring_ip/32 -p tcp -m comment \
-            --comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
+            --comment "shadowsocks_tracker + API config (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
     else
         # When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
         # Let's plug the cable in! :p
