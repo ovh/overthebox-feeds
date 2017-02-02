@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+# We need to use bash for trap EXIT to work
+
 IPT="iptables -w -t nat"
 HOST="proof.ovh.net"
 COMMENT="Test download proof"
@@ -24,6 +26,6 @@ fi
 echo "Starting..."
 $IPT -A socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$COMMENT"
 
-trap _cleanup SIGINT SIGTERM
+# Note that trap EXIT works only because we use /bin/bash as shebang
+trap _cleanup EXIT
 wget http://$HOST/files/10Gio.dat -O /dev/null
-_cleanup
