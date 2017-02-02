@@ -11,6 +11,7 @@ log() {
     logger -p daemon.info -t ${name} "$@"
 }
 
+uri="ping"
 timeout=5
 interval=1
 retry=0
@@ -33,7 +34,7 @@ last=0
 log "starting..."
 
 while true; do
-    if curl -s --max-time ${timeout} --retry ${retry} $1 &>/dev/null ; then
+    if curl -s --max-time ${timeout} --retry ${retry} "$1/${uri}" &>/dev/null ; then
         [ ${last} = 0 ] && log "Shadowsocks is up"
         /etc/init.d/shadowsocks ifup > /dev/null
         last=1
