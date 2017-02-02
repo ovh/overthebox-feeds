@@ -180,17 +180,18 @@ _launch_shadow() {
 # This function launches the shadowsocks tracker
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_tracker() {
-    local conf lport monitoring_ip tracktimeout interval
+    local conf lport monitoring_ip track_timeout track_interval track_retry
     config_get conf $1 conf "/etc/shadowsocks.json"
     config_get lport $1 lport ""
     config_get monitoring_ip $1 monitoring_ip ""
-    config_get tracktimeout $1 tracktimeout "2"
-    config_get interval $1 trackinterval "5"
+    config_get track_timeout $1 track_timeout "5"
+    config_get track_interval $1 track_interval "10"
+    config_get track_retry $1 track_retry "0"
 
     # Only launch the tracker if monitoring_ip is set and the tracker binary is there
     if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
         procd_open_instance
-        procd_set_param command "$TRACKER" -t $tracktimeout -v $interval $monitoring_ip
+        procd_set_param command "$TRACKER" -t $track_timeout -v $track_interval -r $track_retry $monitoring_ip
         procd_set_param file "$conf"
         procd_set_param respawn
         procd_set_param stderr 1

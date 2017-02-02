@@ -3,7 +3,7 @@
 name=$0
 
 usage() {
-    printf "Usage: %s: [-t TIMEOUT] [-v INTERVAL] HOST\n" ${name}
+    printf "Usage: %s: [-t TIMEOUT] [-v INTERVAL] [ -r RETRY ] HOST\n" ${name}
     exit 2
 }
 
@@ -13,11 +13,13 @@ log() {
 
 timeout=5
 interval=1
+retry=0
 
-while getopts "t:v:" opt; do
+while getopts "t:v:r:" opt; do
     case $opt in
         t) timeout="${OPTARG}";;
         v) interval="${OPTARG}";;
+        r) retry="${OPTARG}";;
         *) usage;;
     esac
 done
@@ -31,7 +33,7 @@ last=0
 log "starting..."
 
 while true; do
-    if curl -s --max-time ${timeout} $1 &>/dev/null ; then
+    if curl -s --max-time ${timeout} --retry ${retry} $1 &>/dev/null ; then
         [ ${last} = 0 ] && log "is up"
         /etc/init.d/shadowsocks ifup
         last=1
