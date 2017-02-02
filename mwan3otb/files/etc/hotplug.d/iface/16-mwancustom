@@ -5,6 +5,7 @@ MPTCP_HANDLED_STATES="
     backup
     handover
     master
+    off
 "
 
 DNSMASQ_FILES="
@@ -20,7 +21,7 @@ _log() {
     # 5.notice
     # 6.info
     # 7.debug
-    logger -st "hotplug-16-mwan3custom" -p $1 "$2"
+    logger -t "hotplug-16-mwan3custom" -p $1 "$2"
 }
 
 # This function will add / delete a route to the shadowsocks server using a
@@ -79,22 +80,21 @@ _add_dnsmasq_upstream() {
 }
 
 MULTIPATH=$(uci -q get network.${DEVICE}.multipath)
-[ $MULTIPATH = "master" ] && MULTIPATH="on"
-if [ -z "$MULTIPATH" ]; then
-    _log 7 "MPTCP not configured on device $DEVICE, nothing to do"
-    return 0;
-fi
+[ "$MULTIPATH" = "master" ] && MULTIPATH="on"
+
+# If the state is off, we have nothing to do so let's exit
+[ "$MULTIPATH" = "off" ] && return 0
 
 HANDLE=0
 for state in $MPTCP_HANDLED_STATES; do
-    if [ "$state" = $MULTIPATH ]; then
+    if [ "$state" = "$MULTIPATH" ]; then
         HANDLE=1
         break
     fi
 done
 if [ $HANDLE = "0" ]; then
-    _log 7 "MPTCP state '$MULTIPATH' on $DEVICE not handled by this script"
-    return 0;
+    _log 4 "Strange MPTCP state '$MULTIPATH' detected on interface ${DEVICE}. Skipping..."
+    return 0
 fi
 
 # TODO: deal with the up/down notifications to the API elsewhere
