@@ -59,22 +59,24 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults/dscp.defaults
 	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults/ucitrack.defaults
 	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
+	$(INSTALL_BIN) ./defaults/shadowsocks.defaults $(1)/etc/uci-defaults/shadowsocks.defaults
 endef
 
 define Package/overthebox/postinst
 #!/bin/sh
 if [ -z $${IPKG_INSTROOT} ] ; then
-        ( . /etc/uci-defaults/overthebox.defaults ) && rm -f /etc/uci-defaults/overthebox.defaults
-        ( . /etc/uci-defaults/otb-network.defaults ) && rm -f /etc/uci-defaults/otb-network.defaults
-        ( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
-        ( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
-        ( . /etc/uci-defaults/otb-power.defaults ) && rm -f /etc/uci-defaults/otb-power.defaults
-        ( . /etc/uci-defaults/otb-recovery.defaults )
+	( . /etc/uci-defaults/overthebox.defaults ) && rm -f /etc/uci-defaults/overthebox.defaults
+	( . /etc/uci-defaults/otb-network.defaults ) && rm -f /etc/uci-defaults/otb-network.defaults
+	( . /etc/uci-defaults/otb-dnsmasq.defaults ) && rm -f /etc/uci-defaults/otb-dnsmasq.defaults
+	( . /etc/uci-defaults/otb-firewall.defaults ) && rm -f /etc/uci-defaults/otb-firewall.defaults
+	( . /etc/uci-defaults/otb-power.defaults ) && rm -f /etc/uci-defaults/otb-power.defaults
+	( . /etc/uci-defaults/otb-recovery.defaults )
 	( . /etc/uci-defaults/otb-crontab.defaults ) && rm -f /etc/uci-defaults/otb-crontab.defaults
 	( . /etc/uci-defaults/mwan3.defaults ) && rm -f /etc/uci-defaults/mwan3.defaults
 	( . /etc/uci-defaults/dscp.defaults ) && rm -f /etc/uci-defaults/dscp.defaults
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
 	( . /etc/uci-defaults/uhttpd.defaults ) && rm -f /etc/uci-defaults/uhttpd.defaults
+	( . /etc/uci-defaults/shadowsocks.defaults ) && rm -f /etc/uci-defaults/shadowsocks.defaults
 
 	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
