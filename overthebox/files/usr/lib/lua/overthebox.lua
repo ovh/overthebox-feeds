@@ -145,11 +145,16 @@ function config()
 
 		uci:set('network', res.glorytun_conf.dev, 'interface')
 		uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
-		uci:set('network', res.glorytun_conf.dev, 'proto', 'none')
+		if res.tun_conf.app == 'glorytun' then
+			uci:set('network', res.glorytun_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
+			uci:set('network', res.glorytun_conf.dev, 'gateway', res.glorytun_conf.ip_peer)
+			uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
+			uci:set('network', res.glorytun_conf.dev, 'txqueuelen', res.glorytun_conf.txqueuelen or '1000')
+			uci:set('network', res.glorytun_conf.dev, 'mtu', res.glorytun_conf.mtu)
+		end
 		uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
-		uci:set('network', res.glorytun_conf.dev, 'delegate', '0')
-		uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
-		uci:set('network', res.glorytun_conf.dev, 'auto', '0')
+		uci:delete('network', res.glorytun_conf.dev, 'auto')
 		uci:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
 
 		addInterfaceInZone("wan", res.glorytun_conf.dev)
@@ -176,11 +181,16 @@ function config()
 
 					uci:set('network', conf.dev, 'interface')
 					uci:set('network', conf.dev, 'ifname', conf.dev)
-					uci:set('network', conf.dev, 'proto', 'none')
+					if res.tun_conf.app == 'glorytun' then
+						uci:set('network', conf.dev, 'proto', 'ptp')
+						uci:set('network', conf.dev, 'ipaddr', conf.ip_local)
+						uci:set('network', conf.dev, 'gateway', conf.ip_peer)
+						uci:set('network', conf.dev, 'metric', conf.metric)
+						uci:set('network', conf.dev, 'txqueuelen', conf.txqueuelen or res.glorytun_conf.txqueuelen or '1000')
+						uci:set('network', conf.dev, 'mtu', conf.mtu or res.glorytun_conf.mtu)
+					end
 					uci:set('network', conf.dev, 'multipath', 'off')
-					uci:set('network', conf.dev, 'delegate', '0')
-					uci:set('network', conf.dev, 'metric', conf.metric)
-					uci:set('network', conf.dev, 'auto', '0')
+					uci:delete('network', conf.dev, 'auto')
 					uci:set('network', conf.dev, 'type', 'tunnel')
 
 					addInterfaceInZone("wan", conf.dev)
@@ -216,11 +226,16 @@ function config()
 
 		uci:set('network', res.glorytun_mud_conf.dev, 'interface')
 		uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
-		uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'none')
+		if res.tun_conf.app == 'glorytun_mud' then
+			uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_mud_conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
+			uci:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
+			uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
+			uci:set('network', res.glorytun_mud_conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
+			uci:delete('network', res.glorytun_mud_conf.dev, 'mtu')
+		end
 		uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
-		uci:set('network', res.glorytun_mud_conf.dev, 'delegate', '0')
-		uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
-		uci:set('network', res.glorytun_mud_conf.dev, 'auto', '0')
+		uci:delete('network', res.glorytun_mud_conf.dev, 'auto')
 		uci:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
 
 		addInterfaceInZone("wan", res.glorytun_mud_conf.dev)
@@ -303,6 +318,14 @@ function config()
 		uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
 		uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
 		uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+
+		if exists( res.shadow_conf, 'monitoring_ip', 'track_retry', 'track_timeout', 'track_interval' ) then
+			uci:set('shadowsocks','proxy','monitoring_ip', res.shadow_conf.monitoring_ip)
+			uci:set('shadowsocks','proxy','track_timeout', res.shadow_conf.track_timeout)
+			uci:set('shadowsocks','proxy','track_interval', res.shadow_conf.track_interval)
+			uci:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
+		end
+
 		uci:save('shadowsocks')
 		uci:commit('shadowsocks')
 		table.insert(ret, "shadowsocks")
@@ -339,18 +362,65 @@ function config()
 	return true, ret
 end
 
-function send_properties( props )
-	body = {}
+function get_kernel_build_info()
+	local file = io.open("/proc/version", "r")
+	if file then
+		local build_info = file:read("*line")
+		file:close()
+		if string.match(build_info, "Linux version") then
+			return build_info
+		end
+	end
+	return nil
+end
 
-	local uci = uci.cursor()
+function get_mptcp_version()
+	local file = io.open("/dev/kmsg", "r")
+	if file then
+		local readmax = 1000
+		while readmax > 0 do
+			local mptcp_info = file:read("*line")
+			if string.match(mptcp_info, ";MPTCP") then
+				file:close()
+				return mptcp_info:gsub(".*;","")
+			end
+			readmax = readmax - 1;
+		end
+		file:close()
+	end
+	return nil
+end
+
+-- Send properties about the box on a regular basis
+function send_properties( props )
+	local body = {}
+
+	-- Send kernel build infos
+	if props.build_version then
+		local version = get_kernel_build_info()
+		if version then
+			body.build_version = version
+		end
+	end
+
+	-- Send MPTCP infos
+	if props.mptcp_version then
+		local version = get_mptcp_version()
+		if version then
+			body.mptcp_version = version
+		end
+	end
+
+	-- Get information about network interfaces
+	local ucic = uci.cursor()
 	if props.interfaces then
 		body.interfaces = {}
-		uci:foreach("network", "interface",
+		ucic:foreach("network", "interface",
 			function (e)
 				if not e.ifname then
 					return
 				end
-				entry = {
+				local entry = {
 					ip=e.ipaddr,
 					netmask=e.netmask,
 					gateway=e.gateway,
@@ -362,6 +432,18 @@ function send_properties( props )
 				end
 				if e.gateway then
 					entry.public_ip = get_ip_public(e.ifname)
+				end
+				if e.label then
+					entry.label = e.label
+				end
+				if e.trafficcontrol then
+					entry.traffic_control = e.trafficcontrol
+					if e.upload then
+						entry.upload = tonumber(e.upload)
+					end
+					if e.download then
+						entry.download = tonumber(e.download)
+					end
 				end
 
 				table.insert( body.interfaces, entry)
@@ -382,7 +464,7 @@ function send_properties( props )
 		body.mounts = get_mounts()
 	end
 
-	local rcode, res = POST('devices/'.. (uci:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
+	local rcode, res = POST('devices/'.. (ucic:get("overthebox", "me", "device_id", {}) or "null")..'/properties',  body)
 	tprint(res)
 	print(rcode)
 	return (rcode == 200), res
@@ -504,7 +586,10 @@ end
 
 function create_diagnostic(action_id)
 	local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics",  {device_action_id=action_id or "" })
-	return (rcode == 200), res.diagnostic_id or ""
+	if rcode == 200 then
+		return true, res.diagnostic_id or ""
+	end
+	return false, ""
 end
 
 function post_result_diagnostic(id, name, cmd, output, exit_code)
@@ -681,47 +766,121 @@ end
 
 -- all our packages, and the minimum version needed.
 local pkgs = {
-    ["sqm-scripts"]='remove',
-    ["overthebox"]='0.3-17',
-    ["lua"]='5.1.5-3',
-    ["liblua"]='5.1.5-3',
-    ["luac"]='5.1.5-3',
-    ["luci-base"]='git-16.067.54393-f931ee9-1',
-    ["luci-mod-admin-full"]='git-16.067.54393-f931ee9-1',
-    ["luci-app-overthebox"]='git-16.067.54393-f931ee9-1',
-    ["luci-app-mwan3otb"]='1.5-5',
-    ["shadowsocks-libev"]='2.4.5-5',
-    ["luci-theme-ovh"]='v0.1-3',
-    ["dnsmasq-full"]='2.75-8',
+    ["sqm-scripts"]         = {
+      version               = '-',
+    },
+    ["overthebox"]          = {
+      version               = '0.4-24',
+    },
+    ["lua"]                 = {
+      version               = '5.1.5-3',
+    },
+    ["liblua"]              = {
+      version               = '5.1.5-3',
+    },
+    ["luac"]                = {
+      version               = '5.1.5-3',
+    },
+    ["luci-base"]           = {
+      version               = 'v1.0-1',
+    },
+    ["luci-mod-admin-full"] = {
+      version               = 'v1.0-1',
+    },
+    ["luci-app-overthebox"] = {
+      version               = 'v1.0-2',
+    },
+    ["luci-app-mwan3otb"]   = {
+      version               = '1.5-6',
+    },
+    ["shadowsocks-libev"]   = {
+      version               = '2.5.0-1-ovh-2-5',
+    },
+    ["luci-theme-ovh"]      = {
+      version               = 'v0.1-3',
+    },
+    ["dnsmasq-full"]        = {
+      version               = '2.76-3',
+    },
     -- We do not want dnsmasq to fight with dnsmasq-full
-    ["dnsmasq"]='remove',
-    ["mptcp"]='1.0.0-6',
-    ["netifd"]='2015-08-25-58',
-    ["mwan3otb"]='1.7-22',
-    ["bosun"]='0.4.0-0.8',
-    ["vtund"]='remove',
-    ["e2fsprogs"]='1.42.12-1',
-    ["e2freefrag"]='1.42.12-1',
-    ["dumpe2fs"]='1.42.12-1',
-    ["resize2fs"]='1.42.12-1',
-    ["tune2fs"]='1.42.12-1',
-    ["libsodium"]='1.0.8-2',
-    ["glorytun"]='0.0.32-1',
-    ["glorytun-udp"]='0.0.51-mud-1',
-    ["bandwidth"]='0.6',
-    ["rdisc6"]='1.0.3-1',
-    ["shadow-useradd"]='4.2.1-4',
-    ["shadow-userdel"]='4.2.1-4',
-    ["luci-app-sqm"]='remove',
-    ['luci-app-qos']='remove',
-    ['qos-scripts']='remove'
+    ["dnsmasq"]             = {
+      version               = '-',
+    },
+    ["mptcp"]               = {
+      version               = '1.0.0-6',
+    },
+    ["netifd"]              = {
+      -- When upgrading from version before 2015-08-25-59, we need to restart
+      -- the network in order to add the new ptp protocol
+      version               = '2015-08-25-59',
+      actions               = {
+        '/etc/init.d/network restart',
+      },
+    },
+    ["mwan3otb"]            = {
+      version               = '1.7-30',
+    },
+    ["bosun"]               = {
+      version               = '0.4.0-0.8',
+    },
+    ["vtund"]               = {
+      version               = '-',
+    },
+    ["e2fsprogs"]           = {
+      version               = '1.42.12-1',
+    },
+    ["e2freefrag"]          = {
+      version               = '1.42.12-1',
+    },
+    ["dumpe2fs"]            = {
+      version               = '1.42.12-1',
+    },
+    ["resize2fs"]           = {
+      version               = '1.42.12-1',
+    },
+    ["tune2fs"]             = {
+      version               = '1.42.12-1',
+    },
+    ["libsodium"]           = {
+      version               = '1.0.11-1',
+    },
+    ["glorytun"]            = {
+      version               = '0.0.34-4',
+    },
+    ["glorytun-udp"]        = {
+      version               = '0.0.84-mud-4',
+    },
+    ["bandwidth"]           = {
+      version               = '0.6.2-1',
+    },
+    ["rdisc6"]              = {
+      version               = '1.0.3-1',
+    },
+    ["shadow-useradd"]      = {
+      version               = '4.2.1-4',
+    },
+    ["shadow-userdel"]      = {
+      version               = '4.2.1-4',
+    },
+    ["luci-app-sqm"]        = {
+      version               = '-',
+    },
+    ['luci-app-qos']        = {
+      version               = '-',
+    },
+    ['qos-scripts']         = {
+      version               = '-'
+    },
 }
 
 local services = {
     ["dnsmasq"]='enable'
 }
 
-
+-- function ensure_service_state ensures that the service is :
+-- - enabled and running
+--   or
+-- - disabled and not running
 function ensure_service_state(service, status)
     local initd = "/etc/init.d/" .. service
     local ret, rcode = run(initd .. " enabled")
@@ -746,47 +905,71 @@ end
 -- function upgrade check if all package asked are up to date
 function upgrade()
     -- first, we upgrade ourself
-    local c, r = opkg_install("overthebox")
-    if not c then
-        return c, "Failed to install overthebox: \n" .. r
+    local success, r = opkg_install("overthebox")
+    if not success then
+        return success, "Failed to install overthebox: \n" .. r
     end
 
-    -- let's check others
+    -- let's check other packages
+    -- list installed packets
     local listpkginstalled, _ = run("opkg list-installed")
     local ret = ""
     local retcode = true
     local checked = {}
+    local additional_actions = {}
 
+    -- Iterate over installed packages and check if we need to
+    -- upgrade/install/remove them
     for str in string.gmatch(listpkginstalled,'[^\r\n]+') do
+        -- Parse the version
         local f = split(str)
         local pkg, version  = f[1], f[3]
 
         if pkgs[pkg] ~= nil then
-            local mversion = pkgs[pkg]
-            if mversion == 'remove' then
-                local c, r = opkg_remove(pkg)
-                retcode = retcode and c
+            local expected_version = pkgs[pkg].version
+            -- If there is no package number, package needs to be removed,
+            -- remove it
+            if expected_version == '-' then
+                info("removing "..pkg)
+                local success, r = opkg_remove(pkg)
+                retcode = retcode and success
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
-            elseif version:find(mversion,1, true) == 1  then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
-            elseif version < mversion then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..mversion.."\n"..   r .."\n"
-            elseif version > mversion then
-                local c, r = opkg_install(pkg)
-                retcode = retcode and c
-                ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..mversion.."\n".. r .."\n"
+            else
+                -- Upgrade the package
+                local success, r = opkg_install(pkg)
+                retcode = retcode and success
+                if success then
+                    -- Check the diff between the versions
+                    if version:find(expected_version,1, true) == 1  then
+                        ret = ret .. "install "..pkg.." version match, installed:"..version.." asked:"..expected_version.."\n".. r .."\n"
+                    elseif version < expected_version then
+                        ret = ret .. "install "..pkg.." version obsolete, installed:"..version.." asked:"..expected_version.."\n".. r
+                        -- Check if we have additional actions to do
+                        if pkgs[pkg].actions ~= nil then
+                            for _, action in ipairs(pkgs[pkg].actions) do
+                                info("appending action "..action)
+                                additional_actions[action] = true
+                                ret = ret .. "Appending action "..action.."\n"
+                            end
+                        end
+                        ret = ret .. "\n"
+                    else
+                        ret = ret .. "install "..pkg.." version newest, installed:"..version.." asked:"..expected_version.."\n".. r .."\n"
+                    end
+                else
+                    warning(pkg.." got error when installing: "..r)
+                    ret = ret .. "Failed to install "..pkg.." :\n".. r .."\n"
+                end
             end
             checked[pkg] = 1
         end
     end
 
-    for pkg, version in pairs(pkgs) do
+    -- Check within the rest of the packages to ensure that their are
+    -- correctly installed or removed
+    for pkg, info in pairs(pkgs) do
         if checked[pkg] == nil then -- not seen
-            if version == 'remove' then
+            if info.version == '-' then
                 local c, r = opkg_remove(pkg)
                 retcode = retcode and c
                 ret = ret .. "remove "..pkg.. ": \n" .. r .."\n"
@@ -798,13 +981,14 @@ function upgrade()
         end
     end
 
+    -- Check that all the needed services are correctly enabled and running
     for service, status in pairs(services) do
-        local c, r = ensure_service_state(service, status)
-        retcode = retcode and c
+        local success, r = ensure_service_state(service, status)
+        retcode = retcode and success
         ret = ret .. r .. "\n"
     end
 
-    return retcode, ret
+    return retcode, ret, additional_actions
 end
 
 
@@ -971,7 +1155,17 @@ function API(uri, method, data)
 		end
 	end
 
-	return code, json.decode(table.concat(respbody))
+	-- Sometimes something's wrong and we have nil code
+	-- We warn and change the value of code so we can at least use it later
+	if code == nil then
+		warning("Got nil code while doing ".. method .." on ".. url)
+		-- I'm a teapot
+		code = 418
+	elseif code ~= 200 then
+		err("HTTP error " .. code .. " while doing ".. method .." on ".. url)
+	end
+
+	return code, (json.decode(table.concat(respbody)) or table.concat(respbody))
 end
 
 -- Remove any final \n from a string.
@@ -1572,12 +1766,8 @@ function update_confmwan()
 	uci:set("mwan3", "netconfchecksum", newmd5)
 	uci:save("mwan3")
 	uci:commit("mwan3")
-	-- Saving net conf md5 and restarting services
-	if os.execute("mwan3 status 1>/dev/null 2>/dev/null") == 0 then
-		os.execute("/etc/init.d/network reload")
-		os.execute("/etc/init.d/firewall reload")
-		os.execute("nohup /usr/sbin/mwan3 restart &")
-	end
+	-- We don't call reload_config here anymore as this is done in hotplug.d/net
+	-- Release mwan3 lock
 	l:close()
 	return result, interfaces
 end
@@ -1731,27 +1921,38 @@ function create_dhcp_server()
 	return true
 end
 
--- checks methods
-function restart_daemon_if_stalled()
+-- Checks methods
+--  check if the daemon is running
+--  check if it has more than 1h old sockets
+-- If one of the check is not successfull, return true
+function is_daemon_stalled()
     local otb_cmdline = "lua /usr/bin/overtheboxd"
     local max_age_socket = 3600
 
     local nb_pid = 0
+    -- Iterate over the processes of overtheboxd daemon
     for pid, cmdline in pairs(pidof(otb_cmdline)) do
-        for k, v in pairs(tcpsocketsof(pid)) do
-            if v.age > max_age_socket then
-                return restart_daemon()
-            end
+      -- Iterate over all its sockets
+      for k, v in pairs(tcpsocketsof(pid)) do
+        -- Check the socket's age is not to old
+        -- If too old, restart the daemon
+        if v.age > max_age_socket then
+          return true
         end
-        nb_pid = nb_pid +  1
+      end
+      nb_pid = nb_pid +  1
     end
+    -- If no pid of the daemon is found, restart the daemon
     if nb_pid == 0 then
-        return restart_daemon()
+      return true
     end
 
     return false
 end
 
+-- test_if_running tests if a process is running
+-- Take a command line
+-- Return true or false if a running PID as a cmdline matching the given name
 function test_if_running(cmdline)
     local nb_pid = 0
     for _, _ in pairs(pidof(cmdline)) do
@@ -1760,34 +1961,59 @@ function test_if_running(cmdline)
     return nb_pid ~= 0
 end
 
+-- restart_daemon restarts the overtheboxd daemon
 function restart_daemon()
-	local ret, rcode = run("/etc/init.d/overtheboxd restart")
-	return status_code_ok(rcode), ret
+  local ret, rcode = run("/etc/init.d/overtheboxd restart")
+  return status_code_ok(rcode), ret
 end
-
-
 
 --
 -- function getzombieppid search zombie programs
 -- return array of zombie's pid and ppid
 function getzombieppid()
-	local ret = {}
-	local files = posix.dir("/proc")
-	for _, name in ipairs(files) do
-		if string.match(name, '[0-9]+') then -- only pids
-			local f = io.open(string.format('/proc/%s/stat', name), "r")
-			if f == nil then return ret end
-			for line in f:lines() do
-				local fis = split(line or "" )
-				if #fis > 4 and fis[3] == "Z" then
-					table.insert(ret, {pid=name, ppid=fis[4]})
-				end
-			end
-			f:close()
+  local ret = {}
+  local pids = list_pids()
+  -- Iterate over pids
+  for _, name in ipairs(pids) do
+    -- Get process stats
+    local filename = string.format('/proc/%s/stat', name)
+    local f = io.open(filename, "r")
+    if f ~= nil then
+      -- Iterate over the lines of the stat files
+      for line in f:lines() do
+        -- Split the line and check if the process state is Z for Zombie
+        local fis = split(line or "" )
+        if #fis > 4 and fis[3] == "Z" then
+          table.insert(ret, {pid=name, ppid=fis[4]})
+        end
+      end
 
-		end
-	end
-	return ret
+      -- Close the file
+      f:close()
+    else
+      warning("getzombieppid : couldn't open file ".. filename)
+    end
+  end
+
+  return ret
+end
+
+--
+-- function list_pids lists pids
+-- returns array of pid
+function list_pids()
+  local ret = {}
+  -- List files in /proc
+  local files = posix.dir("/proc")
+
+  for _, name in ipairs(files) do
+    -- Append only files whose name is a number (PID)
+    if string.match(name, '^[0-9]+$') then
+      table.insert(ret, name)
+    end
+  end
+
+  return ret
 end
 
 --
@@ -1802,10 +2028,9 @@ end
 -- return the command line which start the PID process
 function get_cmdline(pid)
     local f = io.open(string.format('/proc/%s/cmdline', pid), "rb")
-    if f == nil then return end
+    if f == nil then return ' ' end
     local t = f:read("*all")
     f:close()
-    --      hex_dump(t)
     local z = string.char(0)
     return t:gsub("(.)", function(c) if c == z then return ' ' end return c end)
 end
@@ -1816,17 +2041,15 @@ end
 function pidof(program)
     local ret = {}
     if program == nil then return ret end
-    local files = posix.dir("/proc")
+    local pids = list_pids()
     local me = posix.getpid()
-    for _, name in ipairs(files) do
-        if string.match(name, '[0-9]+') then
-            if tonumber(name) ~= me  then
-                local cmdline = get_cmdline(name)
-                if cmdline:find(program, 1, true) ~= nil then
-                    table.insert(ret, tonumber(name), cmdline)
-                end
-            end
+    for _, name in ipairs(pids) do
+      if tonumber(name) ~= me  then
+        local cmdline = get_cmdline(name)
+        if cmdline and cmdline:find(program, 1, true) ~= nil then
+            table.insert(ret, tonumber(name), cmdline)
         end
+      end
     end
     return ret
 end
@@ -1917,9 +2140,9 @@ function lock(name)
 end
 
 -- function run execute a program
--- return stdout and status code
+-- return stdout + stderr and status code
 function run(command)
-	local handle = io.popen(command)
+	local handle = io.popen(command .. " 2>&1")
 	local result = handle:read("*a")
 	local rc = {handle:close()}
 	return result, rc[4]

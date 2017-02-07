@@ -1,0 +1,15 @@
+#!/usr/bin/env lua
+
+local o = require "overthebox"
+local u = require "uci"
+
+local ok, ret = o.confirm_service(u.cursor():get("overthebox", "me", "service"))
+
+if ok then
+    print("OK")
+else
+    print("FAILED !")
+    if ret then
+        print(ret)
+    end
+end
