@@ -1298,13 +1298,6 @@ function API(uri, method, data)
 			fd:write(headers["x-otb-client-ip"])
 			fd:close()
 		end
-		-- update miupnp uci value # upnpd.config.external_ip
-		if uci:get('upnpd', 'config') then
-			if not (uci:get('upnpd', 'config', 'external_ip') == headers["x-otb-client-ip"]) then
-				uci:set('upnpd', 'config', 'external_ip', headers["x-otb-client-ip"])
-				uci:commit('upnpd')
-			end
-		end
 	end
 
 	-- Sometimes something's wrong and we have nil code
