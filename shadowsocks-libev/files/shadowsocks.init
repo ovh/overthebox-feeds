@@ -470,7 +470,7 @@ _update_ipt_monitoring_ip_rule() {
         # Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
         # If shadowsocks is manually stopped, mud will provide network access to API config
         $IPT -A socks_emitted_by_myself -d $monitoring_ip/32 -p tcp -m comment \
-            --comment "shadowsocks_tracker + API config (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
+            --comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
     else
         # When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
         # Let's plug the cable in! :p
