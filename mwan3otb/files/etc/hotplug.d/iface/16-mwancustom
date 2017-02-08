@@ -31,7 +31,7 @@ _log() {
 #   $1 Device
 #   $2 Action
 _update_route() {
-    DEVICE=$1
+    INTERFACE=$1
     ACTION=$2
     if [ $ACTION != "add" -a $ACTION != "delete" ]; then
         _log 4 "invalid action: ${ACTION}"
@@ -40,46 +40,46 @@ _update_route() {
 
     # Get IP and gateway
     IP=$(uci -q get shadowsocks.proxy.server)
-    GW=$(uci -q get network.$DEVICE.gateway)
+    GW=$(uci -q get network.$INTERFACE.gateway)
     if [ -z "$IP" -o -z "$GW" ]; then
         _log 4 "missing IP ($IP) or gateway ($GW)"
         return 1
     fi
 
     # Check if the route exists
-    CHECK="$(ip route show $IP via $GW dev $DEVICE)"
+    CHECK="$(ip route show $IP via $GW dev $INTERFACE)"
     if [ -z "$CHECK" -a $ACTION = "delete" ]; then
-        _log 7 "route already deleted for $IP via $GW on dev $DEVICE"
+        _log 7 "route already deleted for $IP via $GW on dev $INTERFACE"
         return 0
     elif [ -n "$CHECK" -a $ACTION = "add" ]; then
-        _log 7 "route already added for $IP via $GW on dev $DEVICE"
+        _log 7 "route already added for $IP via $GW on dev $INTERFACE"
         return 0
     fi
 
     # 'ip route' won't let us create two routes to the same IP, even with
     # different gateways, if no metric is added as parameter. 'route' on the
     # other hand is less strict and allows us to do so.
-    route $ACTION $IP gw $GW dev $DEVICE
-    _log 7 "route $ACTION $IP gw $GW dev $DEVICE"
+    route $ACTION $IP gw $GW dev $INTERFACE
+    _log 7 "route $ACTION $IP gw $GW dev $INTERFACE"
 
     return 0
 }
 
 _remove_dnsmasq_upstream() {
-    _log 7 "removing $DEVICE from upstreams in dnsmasq"
+    _log 7 "removing $INTERFACE from upstreams in dnsmasq"
     for file in $DNSMASQ_FILES; do
         sed -i "/# Interface $1/,/# Interface/ s/nameserver /#nameserver /" $file
     done
 }
 
 _add_dnsmasq_upstream() {
-    _log 7 "adding $DEVICE from upstreams in dnsmasq"
+    _log 7 "adding $INTERFACE from upstreams in dnsmasq"
     for file in $DNSMASQ_FILES; do
         sed -i "/# Interface $1/,/# Interface/ s/#nameserver /nameserver /" $file
     done
 }
 
-MULTIPATH=$(uci -q get network.${DEVICE}.multipath)
+MULTIPATH=$(uci -q get network.${INTERFACE}.multipath)
 [ "$MULTIPATH" = "master" ] && MULTIPATH="on"
 
 # If the state is off, we have nothing to do so let's exit
@@ -93,36 +93,36 @@ for state in $MPTCP_HANDLED_STATES; do
     fi
 done
 if [ $HANDLE = "0" ]; then
-    _log 4 "Strange MPTCP state '$MULTIPATH' detected on interface ${DEVICE}. Skipping..."
+    _log 4 "Strange MPTCP state '$MULTIPATH' detected on interface ${INTERFACE}. Skipping..."
     return 0
 fi
 
 # TODO: deal with the up/down notifications to the API elsewhere
 case "$ACTION" in
     ifup)
-        _log 7 "ifup device $DEVICE"
-        _update_route $DEVICE "add"
+        _log 7 "ifup device $INTERFACE"
+        _update_route $INTERFACE "add"
 
-        _add_dnsmasq_upstream $DEVICE
+        _add_dnsmasq_upstream $INTERFACE
 
-        _log 7 "multipath $DEVICE $MULTIPATH"
-        multipath $DEVICE $MULTIPATH
+        _log 7 "multipath $INTERFACE $MULTIPATH"
+        multipath $INTERFACE $MULTIPATH
 
         # Notify OverTheBox API
-        otb_notify_ifup $DEVICE &
+        otb_notify_ifup $INTERFACE &
         ;;
     ifdown)
-        _log 7 "ifdown device $DEVICE"
+        _log 7 "ifdown device $INTERFACE"
 
-        _log 7 "multipath $DEVICE off"
-        multipath $DEVICE off
+        _log 7 "multipath $INTERFACE off"
+        multipath $INTERFACE off
 
-        _remove_dnsmasq_upstream $DEVICE
+        _remove_dnsmasq_upstream $INTERFACE
 
-        _update_route $DEVICE "delete"
+        _update_route $INTERFACE "delete"
 
         # Notify OverTheBox API
-        otb_notify_ifdown $DEVICE &
+        otb_notify_ifdown $INTERFACE &
         ;;
 esac
 
