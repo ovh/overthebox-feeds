@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
 PKG_VERSION:=2.5.0-1-ovh-3
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 PKG_SOURCE:=v$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/ovh/overthebox-shadowsocks-libev/archive
 
@@ -60,8 +60,6 @@ define Package/shadowsocks-libev/install
 	$(INSTALL_DIR) $(1)/etc/config
 	touch  $(1)/etc/config/shadowsocks
 	$(INSTALL_BIN) ./files/shadowsocks.init $(1)/etc/init.d/shadowsocks
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
-	$(INSTALL_DATA) ./files/shadowsocks.hotplug $(1)/etc/hotplug.d/iface/40-shadowsocks
 endef
 
 define Package/shadowsocks-libev/postinst
