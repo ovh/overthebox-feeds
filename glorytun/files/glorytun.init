@@ -69,3 +69,7 @@ start_service() {
     config_load glorytun
     config_foreach start_instance tunnel
 }
+
+service_triggers() {
+    procd_add_reload_trigger glorytun network
+}
