@@ -29,38 +29,40 @@ _log() {
 # are already setup correctly.
 # Params:
 #   $1 Device
-#   $2 Action
+#   $2 Interface
+#   $3 Action
 _update_route() {
-    INTERFACE=$1
-    ACTION=$2
-    if [ $ACTION != "add" -a $ACTION != "delete" ]; then
-        _log 4 "invalid action: ${ACTION}"
+    local device=$1
+    local interface=$2
+    local action=$3
+    if [ $action != "add" -a $action != "delete" ]; then
+        _log 4 "invalid action: $action"
         return 1
     fi
 
     # Get IP and gateway
-    IP=$(uci -q get shadowsocks.proxy.server)
-    GW=$(uci -q get network.$INTERFACE.gateway)
-    if [ -z "$IP" -o -z "$GW" ]; then
-        _log 4 "missing IP ($IP) or gateway ($GW)"
+    local ip=$(uci -q get shadowsocks.proxy.server)
+    local gw=$(uci -q get network.$interface.gateway)
+    if [ -z "$ip" -o -z "$gw" ]; then
+        _log 4 "missing IP ($ip) or gateway ($gw)"
         return 1
     fi
 
     # Check if the route exists
-    CHECK="$(ip route show $IP via $GW dev $INTERFACE)"
-    if [ -z "$CHECK" -a $ACTION = "delete" ]; then
-        _log 7 "route already deleted for $IP via $GW on dev $INTERFACE"
+    local check="$(ip route show $ip via $gw dev $device)"
+    if [ -z "$check" -a $action = "delete" ]; then
+        _log 7 "route already deleted for $ip via $gw on $interface (dev:$device)"
         return 0
-    elif [ -n "$CHECK" -a $ACTION = "add" ]; then
-        _log 7 "route already added for $IP via $GW on dev $INTERFACE"
+    elif [ -n "$check" -a $action = "add" ]; then
+        _log 7 "route already added for $ip via $gw on $interface (dev:$device)"
         return 0
     fi
 
     # 'ip route' won't let us create two routes to the same IP, even with
     # different gateways, if no metric is added as parameter. 'route' on the
     # other hand is less strict and allows us to do so.
-    route $ACTION $IP gw $GW dev $INTERFACE
-    _log 7 "route $ACTION $IP gw $GW dev $INTERFACE"
+    route $action $ip gw $gw dev $device
+    _log 7 "route $action $ip gw $gw dev $device"
 
     return 0
 }
@@ -78,6 +80,12 @@ _add_dnsmasq_upstream() {
         sed -i "/# Interface $1/,/# Interface/ s/#nameserver /nameserver /" $file
     done
 }
+
+DEVICE=$(uci -q get network.${INTERFACE}.ifname)
+if [ -z "$DEVICE" ]; then
+    _log 4 "Got an interface $INTERFACE with no device"
+    return 0
+fi
 
 MULTIPATH=$(uci -q get network.${INTERFACE}.multipath)
 [ "$MULTIPATH" = "master" ] && MULTIPATH="on"
@@ -101,7 +109,7 @@ fi
 case "$ACTION" in
     ifup)
         _log 7 "ifup device $INTERFACE"
-        _update_route $INTERFACE "add"
+        _update_route $DEVICE $INTERFACE "add"
 
         _add_dnsmasq_upstream $INTERFACE
 
@@ -119,7 +127,7 @@ case "$ACTION" in
 
         _remove_dnsmasq_upstream $INTERFACE
 
-        _update_route $INTERFACE "delete"
+        _update_route $DEVICE $INTERFACE "delete"
 
         # Notify OverTheBox API
         otb_notify_ifdown $INTERFACE &
