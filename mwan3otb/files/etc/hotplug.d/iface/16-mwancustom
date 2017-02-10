@@ -35,7 +35,7 @@ _update_route() {
     local device=$1
     local interface=$2
     local action=$3
-    if [ $action != "add" -a $action != "delete" ]; then
+    if [ "$action" != "add" -a "$action" != "delete" ]; then
         _log 4 "invalid action: $action"
         return 1
     fi
@@ -49,11 +49,11 @@ _update_route() {
     fi
 
     # Check if the route exists
-    local check="$(ip route show $ip via $gw dev $device)"
-    if [ -z "$check" -a $action = "delete" ]; then
+    local check=$(ip route show $ip via $gw dev $device)
+    if [ -z "$check" -a "$action" = "delete" ]; then
         _log 7 "route already deleted for $ip via $gw on $interface (dev:$device)"
         return 0
-    elif [ -n "$check" -a $action = "add" ]; then
+    elif [ -n "$check" -a "$action" = "add" ]; then
         _log 7 "route already added for $ip via $gw on $interface (dev:$device)"
         return 0
     fi
@@ -81,6 +81,11 @@ _add_dnsmasq_upstream() {
     done
 }
 
+if [ -z "$INTERFACE" ]; then
+    _log 3 "Missing interface"
+    return 0
+fi
+
 DEVICE=$(uci -q get network.${INTERFACE}.ifname)
 if [ -z "$DEVICE" ]; then
     _log 4 "Got an interface $INTERFACE with no device"
@@ -100,7 +105,7 @@ for state in $MPTCP_HANDLED_STATES; do
         break
     fi
 done
-if [ $HANDLE = "0" ]; then
+if [ "$HANDLE" = "0" ]; then
     _log 4 "Strange MPTCP state '$MULTIPATH' detected on interface ${INTERFACE}. Skipping..."
     return 0
 fi
