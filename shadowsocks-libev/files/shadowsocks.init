@@ -385,13 +385,19 @@ _populate_ipt_socks_hook() {
 # $1 is a ref to the current zone section being processed
 _update_socks_hook_one_zone() {
     # Let's fetch the current zone name
-    local zone
+    local zone zone_members
     config_get zone $1 name
 
     # Only traffic coming from a lan zone's interface will be routed to shadowsocks
     if [ "$zone" = "lan" ]; then
+        # We don't use config_list_foreach so that we are compatible with lists AND single string with spaces
+        config_get zone_members $1 network
+
         # Call this callback for each interface belonging to the lan zone
-        config_list_foreach $1 network _update_socks_hook_one_if
+        # Don't put double quotes around $zone_members or the loop will iterate only once
+        for member in $zone_members; do
+            _update_socks_hook_one_if $member
+        done
     fi
 }
 
@@ -470,7 +476,7 @@ _update_ipt_monitoring_ip_rule() {
         # Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
         # If shadowsocks is manually stopped, mud will provide network access to API config
         $IPT -A socks_emitted_by_myself -d $monitoring_ip/32 -p tcp -m comment \
-            --comment "shadowsocks_tracker + API config (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
+            --comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
     else
         # When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
         # Let's plug the cable in! :p
