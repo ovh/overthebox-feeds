@@ -304,20 +304,6 @@ if opts["m"] == "dns" then
 	method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
 end
 
-local fn = "/var/run/mwan3track-"..opts["i"]..".pid"
-local fd, err = io.open(fn, 'r')
-if fd then
-	io.input(fd)
-	local pid = io.read()
-	io.close(fd)
-	if pid and tonumber(pid) > 1 then p.kill(pid, sig.SIGTERM) end
-end
-
-local fd, err = io.open(fn, 'w')
-io.output(fd)
-io.write(p.getpid(), "\n")
-io.close(fd)
-
 os.execute("mkdir -p /tmp/tracker/if")
 
 local nb_up = tonumber(opts["u"])
