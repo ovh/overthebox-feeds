@@ -905,12 +905,7 @@ local pkgs = {
       version               = '1.0.0-6',
     },
     ["netifd"]              = {
-      -- When upgrading from version before 2015-08-25-59, we need to restart
-      -- the network in order to add the new ptp protocol
       version               = '2015-08-25-59',
-      actions               = {
-        '/etc/init.d/network restart',
-      },
     },
     ["mwan3otb"]            = {
       version               = '1.7-30',
