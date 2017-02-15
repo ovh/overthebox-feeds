@@ -2,12 +2,18 @@
 
 touch /etc/config/network
 
+DEFAULT_TCP_CONGESTION_CONTROL="cubic"
+
 uci get network.globals.multipath >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   uci -q batch <<-EOF >/dev/null
 	set network.globals=globals
 	set network.globals.multipath='enable'
 EOF
+fi
+
+if ! uci -q get network.globals.tcp_congestion_control 1>/dev/null 2>/dev/null; then
+	uci -q set network.globals.tcp_congestion_control="$DEFAULT_TCP_CONGESTION_CONTROL"
 fi
 
 uci get network.lan.multipath >/dev/null 2>&1
