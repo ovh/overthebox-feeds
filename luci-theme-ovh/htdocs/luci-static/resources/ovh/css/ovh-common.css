@@ -7,12 +7,19 @@ h6 {
   color: #333333;
 }
 h1 {
-  font-size: 36px;
-  font-weight: 400;
+  border-bottom: 2px solid #59d2ef;
+  padding-bottom: 6px;
+  font-size: 40px;
+  letter-spacing: -0.28px;
+  line-height: 55px;
+  margin-bottom: 15px;
+}
+h2 {
+  padding-top: 30px;
 }
 h2,
 .cbi-section legend {
-  border-bottom: 2px solid #33acff;
+  border-bottom: 2px solid #59d2ef;
   padding-bottom: 8px;
   margin-top: 0px;
   font-size: 24px;
@@ -28,7 +35,7 @@ table.description-value tr td:first-child {
   cursor: pointer;
   display: inline-block;
   color: white;
-  background-color: #33acff;
+  background-color: #59d2ef;
   background-repeat: no-repeat;
   background-image: none;
   padding: 5px 14px 6px;
