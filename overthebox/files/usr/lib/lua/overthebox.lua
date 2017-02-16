@@ -128,26 +128,17 @@ function config()
 
 	if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', 'otb', 'tunnel')
-
 		uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
-
 		uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
 		uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
 		uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
 
-		uci:set('glorytun', 'otb', 'iplocal', res.glorytun_conf.ip_local)
-		uci:set('glorytun', 'otb', 'ippeer',  res.glorytun_conf.ip_peer)
-		uci:set('glorytun', 'otb', 'mtu',     res.glorytun_conf.mtu )
-
-		uci:set('glorytun', 'otb', 'table',   res.glorytun_conf.table )
-		uci:set('glorytun', 'otb', 'pref',    res.glorytun_conf.pref )
-		uci:set('glorytun', 'otb', 'metric',  res.glorytun_conf.metric )
-
 		uci:set('network', res.glorytun_conf.dev, 'interface')
 		uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
 		if res.tun_conf.app == 'glorytun' then
-			uci:set('network', res.glorytun_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_conf.dev, 'proto', 'static')
 			uci:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
+			uci:set('network', res.glorytun_conf.dev, 'netmask', '255.255.255.0')
 			uci:set('network', res.glorytun_conf.dev, 'gateway', res.glorytun_conf.ip_peer)
 			uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
 			uci:set('network', res.glorytun_conf.dev, 'txqueuelen', res.glorytun_conf.txqueuelen or '1000')
@@ -161,29 +152,19 @@ function config()
 
 		if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
 			for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
-				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'pref', 'metric' ) then
-
+				if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'metric' ) then
 					uci:set('glorytun', conf.dev, 'tunnel')
-
 					uci:set('glorytun', conf.dev, 'dev', conf.dev)
-
 					uci:set('glorytun', conf.dev, 'server', conf.server or res.glorytun_conf.server)
 					uci:set('glorytun', conf.dev, 'port', conf.port)
 					uci:set('glorytun', conf.dev, 'key', conf.key or res.glorytun_conf.key)
 
-					uci:set('glorytun', conf.dev, 'iplocal', conf.ip_local)
-					uci:set('glorytun', conf.dev, 'ippeer', conf.ip_peer)
-					uci:set('glorytun', conf.dev, 'mtu', conf.mtu)
-
-					uci:set('glorytun', conf.dev, 'table', conf.table)
-					uci:set('glorytun', conf.dev, 'pref', conf.pref)
-					uci:set('glorytun', conf.dev, 'metric', conf.metric)
-
 					uci:set('network', conf.dev, 'interface')
 					uci:set('network', conf.dev, 'ifname', conf.dev)
 					if res.tun_conf.app == 'glorytun' then
-						uci:set('network', conf.dev, 'proto', 'ptp')
+						uci:set('network', conf.dev, 'proto', 'static')
 						uci:set('network', conf.dev, 'ipaddr', conf.ip_local)
+						uci:set('network', conf.dev, 'netmask', '255.255.255.0')
 						uci:set('network', conf.dev, 'gateway', conf.ip_peer)
 						uci:set('network', conf.dev, 'metric', conf.metric)
 						uci:set('network', conf.dev, 'txqueuelen', conf.txqueuelen or res.glorytun_conf.txqueuelen or '1000')
@@ -194,7 +175,6 @@ function config()
 					uci:set('network', conf.dev, 'type', 'tunnel')
 
 					addInterfaceInZone("wan", conf.dev)
-
 				end
 			end
 		end
@@ -210,25 +190,18 @@ function config()
 	if res.glorytun_mud_conf and exists( res.glorytun_mud_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
 		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mud')
 
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev )
-
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev)
 		uci:set('glorytun', res.glorytun_mud_conf.dev, 'server',  res.glorytun_mud_conf.server)
 		uci:set('glorytun', res.glorytun_mud_conf.dev, 'port',    res.glorytun_mud_conf.port)
 		uci:set('glorytun', res.glorytun_mud_conf.dev, 'key',     res.glorytun_mud_conf.key)
-
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'iplocal', res.glorytun_mud_conf.ip_local)
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'ippeer',  res.glorytun_mud_conf.ip_peer)
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu )
-
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'table',   res.glorytun_mud_conf.table )
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'pref',    res.glorytun_mud_conf.pref )
-		uci:set('glorytun', res.glorytun_mud_conf.dev, 'metric',  res.glorytun_mud_conf.metric )
+		uci:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu)
 
 		uci:set('network', res.glorytun_mud_conf.dev, 'interface')
 		uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
 		if res.tun_conf.app == 'glorytun_mud' then
-			uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'ptp')
+			uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'static')
 			uci:set('network', res.glorytun_mud_conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
+			uci:set('network', res.glorytun_mud_conf.dev, 'netmask', '255.255.255.0')
 			uci:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
 			uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
 			uci:set('network', res.glorytun_mud_conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
@@ -810,12 +783,7 @@ local pkgs = {
       version               = '1.0.0-6',
     },
     ["netifd"]              = {
-      -- When upgrading from version before 2015-08-25-59, we need to restart
-      -- the network in order to add the new ptp protocol
       version               = '2015-08-25-59',
-      actions               = {
-        '/etc/init.d/network restart',
-      },
     },
     ["mwan3otb"]            = {
       version               = '1.7-30',

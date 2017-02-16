@@ -1,8 +1,6 @@
 #!/bin/sh /etc/rc.common
 # Copyright (C) 2015 ovh.com
 
-. /lib/functions/network.sh
-
 START=90
 STOP=10
 
@@ -21,12 +19,12 @@ _err() {
 BIND_ARGS=
 
 setup_bind_args() {
-    config_get ifname $1 ifname
     config_get multipath $1 multipath
     if [ "${multipath}" = "on" -o "${multipath}" = "master" ]; then
-        network_get_ipaddr ipaddr ${ifname}
+        local ipaddr
+        network_get_ipaddr ipaddr $1
         if [ -n "${ipaddr}" ]; then
-            _log "add interface ${ifname}"
+            _log "add interface $1"
             BIND_ARGS="${BIND_ARGS}${ipaddr},"
         fi
     fi
@@ -57,6 +55,8 @@ start_instance() {
     [ -n "${port}" ] || return 1
     [ -n "${dev}" ] || return 1
     [ -n "${mtu}" ] || return 1
+
+    . /lib/functions/network.sh
 
     config_load network
     config_foreach setup_bind_args interface
@@ -91,4 +91,8 @@ start_instance() {
 start_service() {
     config_load glorytun
     config_foreach start_instance mud
+}
+
+service_triggers() {
+    procd_add_reload_trigger glorytun network
 }
