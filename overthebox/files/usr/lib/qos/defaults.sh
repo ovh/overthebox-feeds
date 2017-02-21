@@ -1,4 +1,5 @@
 # You need to jiggle these parameters. Note limits are tuned towards a <10Mbit uplink <60Mbup down
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 [ -z "$UPLINK" ] && UPLINK=2302
 [ -z "$DOWNLINK" ] && DOWNLINK=14698
@@ -49,10 +50,10 @@ VERBOSITY_TRACE=10
 [ -z "$SQM_DEBUG" ] && SQM_DEBUG=0
 if [ "$SQM_DEBUG" -eq "1" ]
 then
-    SQM_DEBUG_LOG=${SQM_STATE_DIR}/${IFACE}.debug.log
-    OUTPUT_TARGET=${SQM_DEBUG_LOG}
+	SQM_DEBUG_LOG=${SQM_STATE_DIR}/${IFACE}.debug.log
+	OUTPUT_TARGET=${SQM_DEBUG_LOG}
 else
-    OUTPUT_TARGET="/dev/null"
+	OUTPUT_TARGET="/dev/null"
 fi
 
 

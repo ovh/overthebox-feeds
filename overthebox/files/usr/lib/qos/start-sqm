@@ -1,4 +1,5 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -15,32 +16,32 @@
 STATE_FILE="${SQM_STATE_DIR}/${IFACE}.state"
 
 if [ -z "${SCRIPT}" ] ; then
-    sqm_error "SCRIPT value is not defined in /etc/qos/${IFACE}.iface.conf"
-    sqm_error "Please check your configuration and try again."
-    exit 1
+	sqm_error "SCRIPT value is not defined in /etc/qos/${IFACE}.iface.conf"
+	sqm_error "Please check your configuration and try again."
+	exit 1
 fi
 
 [ -d "${SQM_STATE_DIR}" ] || mkdir -p "${SQM_STATE_DIR}"
 
 if [ -f "${STATE_FILE}" ]; then
-    # if a state file already exists, clear qos and reload (old behaviour was "exit 1")
-    sqm_stop
+	# if a state file already exists, clear qos and reload (old behaviour was "exit 1")
+	sqm_stop
 fi
 
 # in case of spurious hotplug events, try double check whether the interface is really up
 if [ ! -d /sys/class/net/${IFACE} ] ; then
-    sqm_error "${IFACE} does currently not exist, not even trying to start SQM on nothing."
-    exit 1
+	sqm_error "${IFACE} does currently not exist, not even trying to start SQM on nothing."
+	exit 1
 fi
 
 if [ "${ENABLED:-1}" -ne "1" ]; then
-    sqm_log "SQM config disabled on ${IFACE}."
-    exit 0
+	sqm_log "SQM config disabled on ${IFACE}."
+	exit 0
 fi
 
 if [ ! -f "${SQM_LIB_DIR}/$SCRIPT" ]; then
-    sqm_error "SQM script ${SCRIPT} not found!"
-    exit 1
+	sqm_error "SQM script ${SCRIPT} not found!"
+	exit 1
 fi
 
 . "${SQM_LIB_DIR}/$SCRIPT"

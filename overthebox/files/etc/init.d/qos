@@ -1,4 +1,6 @@
 #!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 START=60
 
 reload()

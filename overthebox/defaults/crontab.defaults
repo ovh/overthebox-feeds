@@ -1,45 +1,46 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 FILE="/etc/crontabs/root"
 if [ ! -f "$FILE" ]; then
-    touch $FILE
+	touch $FILE
 fi
 
 _crontab_clean(){
-    TMP=$(mktemp)
-    grep -v "$1" $FILE > $TMP
-    mv $TMP $FILE
+	TMP=$(mktemp)
+	grep -v "$1" $FILE > $TMP
+	mv $TMP $FILE
 }
 
 _crontab_add(){
-    echo "$1" >> $FILE
+	echo "$1" >> $FILE
 }
 
 _crontab_add_if_not_exists(){
-    grep -q "$1" $FILE && return
+	grep -q "$1" $FILE && return
 
-    #first clean, just in case
-    _crontab_clean "$1"
-    _crontab_add "$2"
+	#first clean, just in case
+	_crontab_clean "$1"
+	_crontab_add "$2"
 }
 
 _crontab_del_if_exists(){
-    grep -q "$1" $FILE ||  return
+	grep -q "$1" $FILE ||  return
 
-    _crontab_clean "$1"
+	_crontab_clean "$1"
 }
 
 
 _crontab_add_if_not_exists "/usr/bin/overthebox_download_recovery" \
-    '00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null'
+	'00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null'
 
 _crontab_del_if_exists "/usr/bin/overtheboxd"
 
 _crontab_add_if_not_exists "/usr/bin/overthebox_checkup" \
-    '00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null'
+	'00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null'
 
 _crontab_add_if_not_exists "/usr/bin/overthebox_emergency_action" \
-    '00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null'
+	'00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null'
 
 _crontab_del_if_exists "No such file or directory"
 

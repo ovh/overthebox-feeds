@@ -1,6 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-#
 # find a section in firewall which match all condition
 search_uci_section() {
 	Z=$1
@@ -48,7 +48,6 @@ update_uci_section(){
 	done
 }
 
-
 find_or_new_uci_section(){
 	R=$(search_uci_section $@)
 	if [ -z "$R" ]
@@ -58,8 +57,6 @@ find_or_new_uci_section(){
 		echo $R
 	fi
 }
-
-
 
 ZLAN=$(search_uci_section zone name=lan)
 if [ -z "$ZLAN" ]
@@ -126,4 +123,3 @@ fi
 update_uci_section $RVPN target=ACCEPT name=vpn enabled=1
 
 uci commit firewall
-

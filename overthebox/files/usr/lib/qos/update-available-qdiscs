@@ -1,4 +1,5 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /etc/qos/sqm.conf
 . ${SQM_LIB_DIR}/functions.sh
@@ -7,6 +8,6 @@
 [ -d "${SQM_QDISC_STATE_DIR}" ] || mkdir -p "${SQM_QDISC_STATE_DIR}"
 
 for qdisc in $SQM_CHECK_QDISCS; do
-    [ -f ${SQM_QDISC_STATE_DIR}/$qdisc ] && continue
-    verify_qdisc $qdisc && touch ${SQM_QDISC_STATE_DIR}/$qdisc
+	[ -f ${SQM_QDISC_STATE_DIR}/$qdisc ] && continue
+	verify_qdisc $qdisc && touch ${SQM_QDISC_STATE_DIR}/$qdisc
 done

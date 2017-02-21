@@ -1,4 +1,6 @@
 #!/usr/bin/env lua
+-- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
+
 local overthebox = require("overthebox")
 
 local retcode, ret = overthebox.opkg_update()

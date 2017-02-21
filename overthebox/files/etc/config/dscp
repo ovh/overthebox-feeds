@@ -1,4 +1,3 @@
-
 config classify
 	option proto 'tcp'
 	option dest_ip '169.254.254.1'
@@ -53,8 +52,7 @@ config classify
 	option comment 'FTP'
 
 config classify
-        option proto 'udp'
-        option src_port '27000:27050'
-        option class 'cs4'
-        option comment 'Steam'
-
+	option proto 'udp'
+	option src_port '27000:27050'
+	option class 'cs4'
+	option comment 'Steam'

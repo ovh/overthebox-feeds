@@ -1,22 +1,23 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 touch /etc/config/ucitrack
 
 if ! uci -q get ucitrack.@dscp[0]; then
-        uci add ucitrack dscp
-        uci add_list ucitrack.@dscp[-1].init="dscp"
-        uci commit ucitrack
+	uci add ucitrack dscp
+	uci add_list ucitrack.@dscp[-1].init="dscp"
+	uci commit ucitrack
 fi
 
 if ! uci -q get ucitrack.@ipv6[0]; then
-        uci add ucitrack ipv6
-        uci set ucitrack.@ipv6[-1].exec="/usr/sbin/ipv6 restart"
-        uci commit ucitrack
+	uci add ucitrack ipv6
+	uci set ucitrack.@ipv6[-1].exec="/usr/sbin/ipv6 restart"
+	uci commit ucitrack
 fi
 
 if ! uci -q get ucitrack.@mwan3[0]; then
-        uci add ucitrack mwan3
-        uci set ucitrack.@mwan3[-1].exec="/usr/sbin/mwan3 restart"
-        uci commit ucitrack
+	uci add ucitrack mwan3
+	uci set ucitrack.@mwan3[-1].exec="/usr/sbin/mwan3 restart"
+	uci commit ucitrack
 fi
 
