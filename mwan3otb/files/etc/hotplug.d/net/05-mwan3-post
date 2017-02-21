@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 # After mwan has potentially changed its conf, send the "config.change" event
 # in case some services subscribed to it.
 # Unfortunately, reload_config cannot take an argument :(

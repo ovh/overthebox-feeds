@@ -1,4 +1,5 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 service_triggers()
 {
@@ -155,10 +156,10 @@ mwan3_track()
 	config_list_foreach $INTERFACE track_ip mwan3_list_track_ips
 
 	procd_kill mwan3track.$INTERFACE
-#	if [ -e /var/run/mwan3track-$INTERFACE.pid ] ; then
-#		kill $(cat /var/run/mwan3track-$INTERFACE.pid) &> /dev/null
-#		rm /var/run/mwan3track-$INTERFACE.pid &> /dev/null
-#	fi
+	#if [ -e /var/run/mwan3track-$INTERFACE.pid ] ; then
+	#	kill $(cat /var/run/mwan3track-$INTERFACE.pid) &> /dev/null
+	#	rm /var/run/mwan3track-$INTERFACE.pid &> /dev/null
+	#fi
 
 	config_get track_method $INTERFACE track_method none # no default value, avoid error in logs
 	if [ -n "$track_ips" ]; then
@@ -269,13 +270,13 @@ mwan3_set_policies_iptables()
 	case "$last_resort" in
 		blackhole)
 			$IPT -A mwan3_policy_$policy -m mark --mark 0x0/0xff00 -m comment --comment "blackhole" -j MARK --set-xmark 0xfd00/0xff00
-		;;
+			;;
 		default)
 			$IPT -A mwan3_policy_$policy -m mark --mark 0x0/0xff00 -m comment --comment "default" -j MARK --set-xmark 0xff00/0xff00
-		;;
+			;;
 		*)
 			$IPT -A mwan3_policy_$policy -m mark --mark 0x0/0xff00 -m comment --comment "unreachable" -j MARK --set-xmark 0xfe00/0xff00
-		;;
+			;;
 	esac
 
 	lowest_metric=256
@@ -363,27 +364,27 @@ mwan3_set_user_rules_iptables()
 		fi
 
 		case $proto in
-		tcp)
-			if [ -n "$dscp_class" ]; then
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			else
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			fi
-			;;
-		udp)
-			if [ -n "$dscp_class" ]; then
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			else
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			fi
-			;;
-		*)
-			if [ -n "$dscp_class" ]; then
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			else
-				$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			fi
-			;;
+			tcp)
+				if [ -n "$dscp_class" ]; then
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				else
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				fi
+				;;
+			udp)
+				if [ -n "$dscp_class" ]; then
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				else
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				fi
+				;;
+			*)
+				if [ -n "$dscp_class" ]; then
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m dscp --dscp-class $dscp_class -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				else
+					$IPT -A mwan3_rules -p $proto -s $src_ip -d $dest_ip $ipset -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+				fi
+				;;
 		esac
 	fi
 }
@@ -465,7 +466,7 @@ case "$ACTION" in
 	ifup|ifdown)
 		mwan3_ifupdown
 		mwan3_set_connected_iptables
-	;;
+		;;
 esac
 
 exit 0
