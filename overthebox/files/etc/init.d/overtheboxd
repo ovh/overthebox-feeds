@@ -1,4 +1,5 @@
 #!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 START=95
 STOP=95
@@ -6,8 +7,8 @@ STOP=95
 USE_PROCD=1
 
 start_service() {
-        procd_open_instance
-        procd_set_param command /usr/bin/overtheboxd
-        procd_set_param respawn
-        procd_close_instance
+	procd_open_instance
+	procd_set_param command /usr/bin/overtheboxd
+	procd_set_param respawn
+	procd_close_instance
 }

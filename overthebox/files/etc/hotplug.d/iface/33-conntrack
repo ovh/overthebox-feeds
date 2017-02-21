@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 #
 # Clean udp conntrack when tun0 or xtun0 change state
 #

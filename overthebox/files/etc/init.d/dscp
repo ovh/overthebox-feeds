@@ -1,4 +1,5 @@
 #!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 START=60
 COMMID="$(date +%s)_$$"
@@ -30,15 +31,15 @@ genrateDscp() {
 			tcp)
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
-			;;
-		udp)
+				;;
+			udp)
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
-			;;
-		*)
+				;;
+			*)
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
 				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j RETURN
-			;;
+				;;
 		esac
 	fi
 }

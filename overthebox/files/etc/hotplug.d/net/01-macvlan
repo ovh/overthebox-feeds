@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 #
 #   Create not created macvlan intefaces
 #
@@ -66,4 +68,3 @@ do
 	fi
 done
 IFS=$old_IFS
-# EOF

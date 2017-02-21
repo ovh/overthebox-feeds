@@ -1,19 +1,20 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 usage() { echo "Usage: $0 [-f] [-h] [-q]" 1>&2; exit 1; }
 
 while getopts ":fqh" o; do
-    case "${o}" in
-        f)
-            f=1
-            ;;
-        q)
-            q="-q"
-            ;;
-        h)
-            usage
-            ;;
-    esac
+	case "${o}" in
+		f)
+			f=1
+			;;
+		q)
+			q="-q"
+			;;
+		h)
+			usage
+			;;
+	esac
 done
 shift $((OPTIND-1))
 
@@ -23,7 +24,7 @@ then
 	read -p "Are you sure? [y/N]" -r REPLY
 	if [[ "$REPLY" != "y" ]]
 	then
-	    exit 1
+		exit 1
 	fi
 fi
 

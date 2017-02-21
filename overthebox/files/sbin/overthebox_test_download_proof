@@ -1,4 +1,6 @@
 #!/bin/bash
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 # We need to use bash for trap EXIT to work
 
 IPT="iptables -w -t nat"
@@ -8,19 +10,19 @@ COMMENT="Test download proof"
 # This function checks existence of an iptables chain
 # $1 is the chain to test
 _chain_exists() {
-    $IPT -nL $1 &> /dev/null
-    return $?
+	$IPT -nL $1 &> /dev/null
+	return $?
 }
 
 # This function is called if we get a SIGINT or SIGTERM
 _cleanup() {
-    $IPT -D socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$COMMENT"
-    echo "Stopped"
+	$IPT -D socks_emitted_by_myself -d $HOST -j socks_redir -m comment --comment "$COMMENT"
+	echo "Stopped"
 }
 
 if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_redir"; then
-    echo "Couldn't find the iptables chain to plug myself into. Is ss-redir running?"
-    return 1
+	echo "Couldn't find the iptables chain to plug myself into. Is ss-redir running?"
+	return 1
 fi
 
 echo "Starting..."

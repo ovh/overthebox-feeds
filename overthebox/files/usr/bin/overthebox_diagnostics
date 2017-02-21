@@ -1,8 +1,5 @@
 #!/usr/bin/env lua
-
--- Copyright 2015 OVH
--- Author: Simon Lelievre <sim@ovh.net>
--- Licensed to the public under the GNU General Public License version 3
+-- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 
 local overthebox = require 'overthebox'
 overthebox.send_diagnostic()

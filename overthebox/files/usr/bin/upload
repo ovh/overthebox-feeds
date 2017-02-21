@@ -1,4 +1,5 @@
 #!/bin/bash
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 #version 1.03
 
@@ -19,31 +20,31 @@ bcurl() { curl --cookie "$COOKIES" "$@"; }
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
 parse_all() {
-    local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p") &&
-        test "$STRING" && echo "$STRING" ||
-        { echo "parse failed: sed -n \"/$1/$2\""; return 1; }
+	local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p") &&
+		test "$STRING" && echo "$STRING" ||
+		{ echo "parse failed: sed -n \"/$1/$2\""; return 1; }
 }
 
 # Like parse_all, but get only first match
 parse() {
-    parse_all "$@" | head -n1
+	parse_all "$@" | head -n1
 }
 
 # Return value of html attribute
 parse_attr() {
-    parse "$1" "$2=[\"']\?\([^\"'>]*\)"
+	parse "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
 # Return value of html attribute
 parse_all_attr() {
-    parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
+	parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
 F=""
 for FILE in "$@"
 do
 	echo $FILE
-  [ -f "$FILE" ] && F="$F -F upload_filename=@$FILE "
+	[ -f "$FILE" ] && F="$F -F upload_filename=@$FILE "
 done
 [ -z "$F" ] && echo "$0 file [file ...]" && exit 1
 
@@ -52,7 +53,7 @@ ccurl -s $URL > /dev/null
 bcurl -L -F "step=3" $F $URL > $TMP
 echo
 echo "URL : "$(cat $TMP | parse_attr 'id="link_field"' "value")
-echo 
+echo
 cat $TMP | parse_all_attr "\/download\/" "href" | sed -e "s#^#wget $URL#"
 
 rm -f $COOKIES # $TMP

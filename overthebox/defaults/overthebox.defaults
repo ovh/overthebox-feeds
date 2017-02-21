@@ -1,20 +1,21 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 touch /etc/config/overthebox
 
 uci get overthebox.me >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  uci -q batch <<-EOF >/dev/null
+	uci -q batch <<-EOF >/dev/null
 	set overthebox.me=config
 	commit overthebox
-EOF
+	EOF
 fi
 
 if uci get overthebox.me.wanip 2>/dev/null 1>/dev/null; then
-  uci -q batch <<-EOF >/dev/null
+	uci -q batch <<-EOF >/dev/null
 	delete overthebox.me.wanip
 	commit overthebox
-EOF
+	EOF
 fi
 
 if grep "\s*#\s*PollSecs [0-9]*" /etc/conntrackd/conntrackd.conf; then
@@ -42,20 +43,20 @@ if uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'"; then
 fi
 
 if ! uci get -q system.@system[0].zonename 1>/dev/null; then
-        uci -q batch <<-EOF >/dev/null
-       set system.@system[0].zonename="Europe/Paris"
-       set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
-       commit system
-EOF
+	uci -q batch <<-EOF >/dev/null
+	set system.@system[0].zonename="Europe/Paris"
+	set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
+	commit system
+	EOF
 fi
 
 if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'" &>/dev/null; then
 	uci -q batch <<-EOF >/dev/null
-		add dhcp hostrecord
-		set dhcp.@hostrecord[-1].name='api'
-		set dhcp.@hostrecord[-1].ip='169.254.254.1'
-		commit dhcp
-EOF
+	add dhcp hostrecord
+	set dhcp.@hostrecord[-1].name='api'
+	set dhcp.@hostrecord[-1].ip='169.254.254.1'
+	commit dhcp
+	EOF
 fi
 
 # Remove synchronous mode

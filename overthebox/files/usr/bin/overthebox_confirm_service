@@ -1,4 +1,5 @@
 #!/usr/bin/env lua
+-- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 
 local o = require "overthebox"
 local u = require "uci"
@@ -6,10 +7,10 @@ local u = require "uci"
 local ok, ret = o.confirm_service(u.cursor():get("overthebox", "me", "service"))
 
 if ok then
-    print("OK")
+  print("OK")
 else
-    print("FAILED !")
-    if ret then
-        print(ret)
-    end
+  print("FAILED !")
+  if ret then
+    print(ret)
+  end
 end

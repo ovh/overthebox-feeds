@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 #
 # Avoid Dnsmasq to answer DHCP request on multipath interfaces with direct modems gateways
 # Create the Dnsmasq options to choose Gateway in DHCP config
@@ -13,15 +15,15 @@ config_load network
 config_get mode $INTERFACE multipath
 
 case "$mode" in
-  "off")
-        exit 0;;
-  "master")
-        mode="on";;
-  "on");;
-  "backup");;
-  "handover");;
-  *)
-	exit 1;;
+	"off")
+		exit 0;;
+	"master")
+		mode="on";;
+	"on");;
+	"backup");;
+	"handover");;
+	*)
+		exit 1;;
 esac
 
 # Get lan subnet
@@ -44,22 +46,22 @@ network_get_subnet  if_network $INTERFACE
 network_get_dnsserver if_dnsservers $INTERFACE
 
 checktag() {
-        [ "$1" == "$INTERFACE" ] && {
-                TAGFOUND="$INTERFACE"
-        }
+	[ "$1" == "$INTERFACE" ] && {
+		TAGFOUND="$INTERFACE"
+	}
 }
 
 checkdhcpignore() {
-        local itf
-        local ignore
+	local itf
+	local ignore
 
-        config_get itf $1 interface
-        [ "$itf" == "$INTERFACE" ] && {
-                config_get_bool ignore $1 ignore
-                [ "$ignore" == "1" ] && {
-                        IGNOREFOUND="$1"
-                }
-        }
+	config_get itf $1 interface
+	[ "$itf" == "$INTERFACE" ] && {
+		config_get_bool ignore $1 ignore
+		[ "$ignore" == "1" ] && {
+			IGNOREFOUND="$1"
+		}
+	}
 }
 
 config_load dhcp
@@ -67,13 +69,12 @@ config_foreach checktag tag
 config_foreach checkdhcpignore dhcp
 eval "$(ipcalc.sh $if_network)"
 if [ "$NETWORK" == "$lannet" ]; then
-
 	if [ -z $IGNOREFOUND ]; then
-	        # Tell dnsmasq to ignore this interface
-	        uci add dhcp dhcp
-	        uci set dhcp.@dhcp[-1].interface="$INTERFACE"
-	        uci set dhcp.@dhcp[-1].ignore='1'
-	        uci commit dhcp
+		# Tell dnsmasq to ignore this interface
+		uci add dhcp dhcp
+		uci set dhcp.@dhcp[-1].interface="$INTERFACE"
+		uci set dhcp.@dhcp[-1].ignore='1'
+		uci commit dhcp
 	fi
 
 	[ ! -z $TAGFOUND ] && exit 0
