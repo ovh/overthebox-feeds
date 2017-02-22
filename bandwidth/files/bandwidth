@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 txname="BANDWIDTH-TX"
 rxname="BANDWIDTH-RX"
 iif="lan"
@@ -15,8 +17,8 @@ interval=5
 
 sig_handler()
 {
-    rm -f $tx_tmp $rx_tmp $traf_tmp.new $traf_tmp
-    exit 0
+	rm -f $tx_tmp $rx_tmp $traf_tmp.new $traf_tmp
+	exit 0
 }
 
 trap 'sig_handler' INT TERM
@@ -25,113 +27,113 @@ trap 'sig_handler' INT TERM
 #It then stores them in a file (format is IP MAC CONFIRMED)
 fetch_neigh()
 {
-    $neigh_cmd | sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' > $neigh_tmp
+	$neigh_cmd | sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' > $neigh_tmp
 }
 
 #This function installs new iptables rules based on fetched neighbors.
 #It cleans up entries if the neigh_thresh has been exceeded.
 arp_populate_iptables()
 {
-    fetch_neigh
-    cat $neigh_tmp | while read IP MAC CONFIRMED;
-    do
-        if [ $CONFIRMED -gt $neigh_thresh ];
-        then
-            continue
-        fi
+	fetch_neigh
+	cat $neigh_tmp | while read IP MAC CONFIRMED;
+	do
+		if [ $CONFIRMED -gt $neigh_thresh ];
+		then
+			continue
+		fi
 
-        iptables -w -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
-        if [ $? -ne 0 ]; then
-            iptables -w -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
-        fi
-        iptables -w -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
-        if [ $? -ne 0 ]; then
-            iptables -w -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
-        fi
-    done
+		iptables -w -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
+		if [ $? -ne 0 ]; then
+			iptables -w -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
+		fi
+		iptables -w -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
+		if [ $? -ne 0 ]; then
+			iptables -w -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
+		fi
+	done
 }
 
 fetch_bytes()
 {
-    #Fetches TX/RX by IP
-    iptables -w -t mangle -vxnL $txname > $tx_tmp
-    iptables -w -t mangle -vxnL $rxname > $rx_tmp
+	#Fetches TX/RX by IP
+	iptables -w -t mangle -vxnL $txname > $tx_tmp
+	iptables -w -t mangle -vxnL $rxname > $rx_tmp
 
-    #Replaces IP by MAC, aggregates duplicate MAC into one row (sum of TXs and sum of RXs for that MAC)
-    awk -f $awk_fetch \
-        -v neighfile="$neigh_tmp" \
-        -v leasefile="$leasefile" \
-        -v txfile="$tx_tmp" \
-        -v rxfile="$rx_tmp" \
-        -v json="$1" \
-        $neigh_tmp $leasefile $tx_tmp $rx_tmp
+	#Replaces IP by MAC, aggregates duplicate MAC into one row (sum of TXs and sum of RXs for that MAC)
+	awk -f $awk_fetch \
+		-v neighfile="$neigh_tmp" \
+		-v leasefile="$leasefile" \
+		-v txfile="$tx_tmp" \
+		-v rxfile="$rx_tmp" \
+		-v json="$1" \
+		$neigh_tmp $leasefile $tx_tmp $rx_tmp
 
-    rm -f $tx_tmp $rx_tmp
+	rm -f $tx_tmp $rx_tmp
 }
 
 case $1 in
-    #Prepares the chains in PREROUTING and POSTROUTING
-    #Populates it with first found devices on the LAN
-    "setup")
-        iptables -w -t mangle -N $txname 2> /dev/null
-        iptables -w -t mangle -N $rxname 2> /dev/null
-        iptables -w -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
-        if [ $? -ne 0 ]; then
-            iptables -w -t mangle -I PREROUTING -i $iif -j $txname
-        fi
-        iptables -w -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
-        if [ $? -ne 0 ]; then
-            iptables -w -t mangle -I POSTROUTING -o $iif -j $rxname
-        fi
-        arp_populate_iptables
-        ;;
+	#Prepares the chains in PREROUTING and POSTROUTING
+	#Populates it with first found devices on the LAN
+	"setup")
+		iptables -w -t mangle -N $txname 2> /dev/null
+		iptables -w -t mangle -N $rxname 2> /dev/null
+		iptables -w -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
+		if [ $? -ne 0 ]; then
+			iptables -w -t mangle -I PREROUTING -i $iif -j $txname
+		fi
+		iptables -w -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
+		if [ $? -ne 0 ]; then
+			iptables -w -t mangle -I POSTROUTING -o $iif -j $rxname
+		fi
+		arp_populate_iptables
+		;;
 
-    #Updates iptables with devices currently found on the LAN
-    "ipt-update")
-        iptables -w -t mangle -F $txname
-        iptables -w -t mangle -F $rxname
-        arp_populate_iptables
-        ;;
+		#Updates iptables with devices currently found on the LAN
+		"ipt-update")
+		iptables -w -t mangle -F $txname
+		iptables -w -t mangle -F $rxname
+		arp_populate_iptables
+		;;
 
-    #Cleans up everything in iptables
-    "unsetup")
-        iptables -w -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
-        iptables -w -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
-        iptables -w -t mangle -F $txname 2> /dev/null
-        iptables -w -t mangle -F $rxname 2> /dev/null
-        iptables -w -t mangle -X $txname 2> /dev/null
-        iptables -w -t mangle -X $rxname 2> /dev/null
-        rm -f $neigh_tmp
-        ;;
+	#Cleans up everything in iptables
+	"unsetup")
+		iptables -w -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
+		iptables -w -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
+		iptables -w -t mangle -F $txname 2> /dev/null
+		iptables -w -t mangle -F $rxname 2> /dev/null
+		iptables -w -t mangle -X $txname 2> /dev/null
+		iptables -w -t mangle -X $rxname 2> /dev/null
+		rm -f $neigh_tmp
+		;;
 
-    "fetch")
-        if [ "$2" == "json" ]; then
-            fetch_bytes "json"
-        else
-            fetch_bytes
-        fi
-        ;;
+	"fetch")
+		if [ "$2" == "json" ]; then
+			fetch_bytes "json"
+		else
+			fetch_bytes
+		fi
+		;;
 
-    "watch")
-        while :
-        do
-            fetch_bytes > $traf_tmp.new
-            clear
-            if [ -f $traf_tmp ]; then
-                awk -f $awk_watch \
-                    -v interval="$interval" \
-                    -v traffile="$traf_tmp" \
-                    $traf_tmp.new $traf_tmp
-            else
-                echo "Waiting for data..."
-            fi
+	"watch")
+		while :
+		do
+			fetch_bytes > $traf_tmp.new
+			clear
+			if [ -f $traf_tmp ]; then
+				awk -f $awk_watch \
+					-v interval="$interval" \
+					-v traffile="$traf_tmp" \
+					$traf_tmp.new $traf_tmp
+			else
+				echo "Waiting for data..."
+			fi
 
-            mv $traf_tmp.new $traf_tmp
-            sleep $interval
-        done
-        ;;
+			mv $traf_tmp.new $traf_tmp
+			sleep $interval
+		done
+		;;
 
-    *)
-        echo "Usage: $0 {setup|ipt-update|fetch|watch|unsetup}"
-        ;;
+	*)
+		echo "Usage: $0 {setup|ipt-update|fetch|watch|unsetup}"
+		;;
 esac
