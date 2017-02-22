@@ -1,4 +1,5 @@
 #!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 # Copyright (C) 2007-2012 OpenWrt.org
 
 START=60
@@ -565,7 +566,7 @@ start_service() {
 	procd_add_jail dnsmasq ubus log
 	procd_add_jail_mount $CONFIGFILE $TRUSTANCHORSFILE $HOSTFILE /etc/passwd /etc/group /etc/TZ /dev/null /dev/urandom /etc/dnsmasq.conf /tmp/dnsmasq.d /tmp/resolv.conf.auto /etc/hosts /etc/ethers
 	procd_add_jail_mount_rw /var/run/dnsmasq/ /tmp/dhcp.leases $TIMESTAMPFILE
-	
+
 	procd_close_instance
 
 	# before we can call xappend
