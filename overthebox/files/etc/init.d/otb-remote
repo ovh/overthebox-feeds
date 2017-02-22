@@ -16,18 +16,18 @@ mount_ram() {
 	local DST="$1"
 	local TMP="$2"
 
-	[ ! -d "$DST" ] && echo error: $DST not found && return 1
-	[ ! -d "$TMP" ] && mkdir $TMP
+	[ ! -d "$DST" ] && echo error: "$DST" not found && return 1
+	[ ! -d "$TMP" ] && mkdir "$TMP"
 
-	grep -q -s "$DST" /proc/mounts && echo error: $DST already mount && return 1;
+	grep -q -s "$DST" /proc/mounts && echo error: "$DST" already mount && return 1;
 
-	chown root $TMP
-	chmod 700 $TMP
+	chown root "$TMP"
+	chmod 700 "$TMP"
 
-	rm $TMP/* -fr
-	cp -a $DST/* $TMP/
+	rm "$TMP/*" -fr
+	cp -a "$DST/*" "$TMP/"
 
-	mount -o bind $TMP $DST
+	mount -o bind "$TMP" "$DST"
 }
 
 mount_ssh_dir() {
@@ -52,7 +52,7 @@ umount_ram() {
 
 	grep -q -s "$DST" /proc/mounts || return 1;
 	umount "$DST"
-	rm $TMP -fr
+	rm "$TMP" -fr
 }
 
 validate_section() {
@@ -106,14 +106,14 @@ start_instance() {
 		fi
 	fi
 
-	hostkey="$ip $(echo $server_public_key| cut -d' ' -f1,2)"
+	hostkey="$ip $(echo "$server_public_key" | cut -d' ' -f1,2)"
 	grep -q "$hostkey" $knownhosts || echo "$hostkey" >> $knownhosts
 
-	echo run tunnel ssh to $ip:$port $s
+	echo run tunnel ssh to "$ip:$port" "$s"
 
 	procd_open_instance
 	procd_set_param env HOME=/root
-	procd_set_param command /usr/bin/ssh -l limited-user $ip -p $port -N -R 6666:$internal_lan_ip:$forwarded_port -i $sshkey -K 30
+	procd_set_param command /usr/bin/ssh -l limited-user "$ip" -p "$port" -N -R "6666:$internal_lan_ip:$forwarded_port" -i "$sshkey" -K 30
 	procd_set_param respawn
 	procd_close_instance
 }

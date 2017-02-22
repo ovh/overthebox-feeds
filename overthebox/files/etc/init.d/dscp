@@ -5,40 +5,40 @@ START=60
 COMMID="$(date +%s)_$$"
 
 # Generate dscp tagging preferences
-IPT="/usr/sbin/iptables -t mangle -w"
+IPT="iptables -t mangle -w"
 genrateDscp() {
 	local ipset proto src_ip src_port dest_ip $ipset dest_port class
 
-	config_get proto $1 proto all
-	config_get ipset $1 ipset
-	config_get src_ip $1 src_ip 0.0.0.0/0
-	config_get src_port $1 src_port 0:65535
-	config_get dest_ip $1 dest_ip 0.0.0.0/0
-	config_get dest_port $1 dest_port 0:65535
-	config_get class $1 class
-	config_get direction $1 direction "upload"
+	config_get proto "$1" proto all
+	config_get ipset "$1" ipset
+	config_get src_ip "$1" src_ip 0.0.0.0/0
+	config_get src_port "$1" src_port 0:65535
+	config_get dest_ip "$1" dest_ip 0.0.0.0/0
+	config_get dest_port "$1" dest_port 0:65535
+	config_get class "$1" class
+	config_get direction "$1" direction "upload"
 
 	# Take OTB point of view when using both direction (inverse source and destination)
-	if [ "$direction" == "both" ]; then
-		config_get src_ip $1 dest_ip 0.0.0.0/0
-		config_get src_port $1 dest_port 0:65535
-		config_get dest_ip $1 src_ip 0.0.0.0/0
-		config_get dest_port $1 src_port 0:65535
+	if [ "$direction" = "both" ]; then
+		config_get src_ip "$1" dest_ip 0.0.0.0/0
+		config_get src_port "$1" dest_port 0:65535
+		config_get dest_ip "$1" src_ip 0.0.0.0/0
+		config_get dest_port "$1" src_port 0:65535
 	fi
 
-	if [ "$direction" == "upload" -o "$direction" == "both" ]; then
+	if [ "$direction" = "upload" -o "$direction" = "both" ]; then
 		case $proto in
 			tcp)
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 			udp)
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m multiport --sports $src_port -m multiport --dports $dest_port -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 			*)
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class $class
-				$IPT -A dscp -p $proto -s $src_ip -d $dest_ip $ipset -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 		esac
 	fi
@@ -63,7 +63,7 @@ reload()
 	# Generate DSCP table
 	config_load dscp
 	config_foreach genrateDscp classify
-	generateStaticRules $COMMID
+	generateStaticRules "$COMMID"
 	# Clean Old DSCP values
 	iptables-save | grep "A dscp" | grep "dscp_" | grep -v "dscp_$COMMID" | sed "s/-A/\/usr\/sbin\/iptables -t mangle -w -D/g" | sh
 	# Tell trackers to resend QoS to API
@@ -76,7 +76,7 @@ restart()
 {
 	# Flush DSCP table
 	$IPT -F dscp 2>/dev/null
-	reload
+	reload "$@"
 }
 
 start()
@@ -87,7 +87,7 @@ start()
 	# Generate DSCP table
 	config_load dscp
 	config_foreach genrateDscp classify
-	generateStaticRules $COMMID
+	generateStaticRules "$COMMID"
 	# Add it to PREROUTING
 	$IPT -D PREROUTING -j dscp 2>/dev/null
 	$IPT -I PREROUTING -j dscp
