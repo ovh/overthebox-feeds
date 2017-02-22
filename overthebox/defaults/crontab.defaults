@@ -8,8 +8,8 @@ fi
 
 _crontab_clean(){
 	TMP=$(mktemp)
-	grep -v "$1" $FILE > $TMP
-	mv $TMP $FILE
+	grep -v "$1" "$FILE" > "$TMP"
+	mv "$TMP" "$FILE"
 }
 
 _crontab_add(){
