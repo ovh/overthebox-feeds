@@ -10,7 +10,7 @@ COMMENT="Test download proof"
 # This function checks existence of an iptables chain
 # $1 is the chain to test
 _chain_exists() {
-	$IPT -nL $1 &> /dev/null
+	$IPT -nL "$1" &> /dev/null
 	return $?
 }
 

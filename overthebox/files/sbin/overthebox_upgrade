@@ -1,5 +1,5 @@
 #! /usr/bin/env lua
 -- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 
-retcode, ret = require('overthebox').upgrade()
+local _, ret = require('overthebox').upgrade()
 print(ret)

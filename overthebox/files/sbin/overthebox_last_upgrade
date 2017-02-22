@@ -22,14 +22,13 @@ if [ -z ${f} ]
 then
 	echo this script will download and upgrade the overthebox with the last version
 	read -p "Are you sure? [y/N]" -r REPLY
-	if [[ "$REPLY" != "y" ]]
-	then
+	if [ "$REPLY" != "y" ]; then
 		exit 1
 	fi
 fi
 
 URL=$(uci get -q overthebox.me.image_url || echo "http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-squashfs.img.gz")
 
-wget $URL -O /tmp/openwrt-x86-64-combined.img.gz ${q}
+wget "$URL" -O /tmp/openwrt-x86-64-combined.img.gz ${q}
 
 sysupgrade /tmp/openwrt-x86-64-combined.img.gz

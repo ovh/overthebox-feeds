@@ -7,14 +7,24 @@ _log() {
 	logger -p daemon.info -t power.button "$@"
 }
 
+# File to keep the timestamps of the last clicks
 POWER_FILE=/var/log/power
+
+# Number of clicks to trigger a reset
 OCCUR_TRIGGER=5
+
+# Time interval during which the number of clicks should be done
 OCCUR_DELAY=5
 
-echo `date +"%s"`   >> ${POWER_FILE}
+# Add the current timestamp to the file
+date +%s >> ${POWER_FILE}
 
-limit=$((`date +"%s"`-${OCCUR_DELAY}))
-occur=`cat ${POWER_FILE}  | awk '{if($1>'"$limit"')print $1}' | wc -l`
+# Compute the time range starting point
+limit=$(($(date +"%s")-OCCUR_DELAY))
+
+# Compute the number of occurrences (number of clicks for the last $OCCUR_DELAY
+# seconds)
+occur=$(awk '{if($1>'"$limit"')print $1}' ${POWER_FILE} | wc -l)
 
 # Only continue if 5 times in less than 5s
 if [ "$occur" -ne ${OCCUR_TRIGGER} ]; then
@@ -25,7 +35,7 @@ _log "Power button pressed more than 5 time within 5 sec."
 _log "Factory Reset initialized manually by user."
 
 # If the device uses SquashFS, no need to do a full sysupgrade
-IS_SQUASHFS=$(mount | grep squashfs | wc -l)
+IS_SQUASHFS=$(mount | grep -c squashfs)
 if [ "${IS_SQUASHFS}" -ge 1 ]; then
 	_log "Factory reset using mtd on squashfs"
 	mtd -r erase rootfs_data
