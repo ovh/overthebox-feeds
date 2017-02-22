@@ -1,4 +1,6 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 #
 # Enable or disable Multipath
 #
@@ -6,7 +8,7 @@ enable=$(uci -q get network.globals.multipath)
 if [ "$enable" = "disable" ]; then
 	sysctl -qw net.mptcp.mptcp_enabled=0 2>/dev/null
 elif [ "$enable" = "enable" ]; then
-        sysctl -qw net.mptcp.mptcp_enabled=1 2>/dev/null
+	sysctl -qw net.mptcp.mptcp_enabled=1 2>/dev/null
 else
-    exit 0
+	exit 0
 fi

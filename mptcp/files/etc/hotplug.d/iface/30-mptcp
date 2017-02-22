@@ -1,5 +1,6 @@
 #!/bin/sh
-#
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
 # Load the multipath config
 #
 # Author: Mario Krueger <openwrt at xedp3x.de>
@@ -10,11 +11,11 @@
 enable=`uci -q get network.globals.multipath` || exit 0
 
 if [ "$enable" = "disable" ]; then
-    echo "0" > /proc/sys/net/mptcp/mptcp_enabled
+	echo "0" > /proc/sys/net/mptcp/mptcp_enabled
 elif [ "$enable" = "enable" ]; then
-    echo "1" > /proc/sys/net/mptcp/mptcp_enabled
+	echo "1" > /proc/sys/net/mptcp/mptcp_enabled
 else
-    exit 0
+	exit 0
 fi
 
 . /lib/functions.sh
@@ -24,56 +25,56 @@ id=0
 count=301
 
 set_default() {
-    local mode
-    local config="$1"
-    count=$(($count+1))
-    [ "$config" = "$INTERFACE" ] && id=$count
-    config_get mode "$config" multipath
-    [ "$mode" = "master" ] && {
-        local gateway
-        network_get_gateway gateway $config || {
-                logger -t multipath master device $DEVICE has no gateway!
-		logger -t multipath disable mtcp on $DEVICE
-		multipath $DEVICE off
-                #Fallback: use upcomming interface...
-		network_get_gateway gateway $INTERFACE
-		config=$INTERFACE
-        }
-        local iface
-        config_get iface "$config" ifname
-        ip route del default
-        ip route add default scope global nexthop via $gateway dev $iface || {
-		#Fallback: use upcomming interface...
-		network_get_gateway gateway $INTERFACE
-		ip route add default scope global nexthop via $gateway dev $INTERFACE
-		logger -t multipath Faild to set default multipath device! Use $INTERFACE as fallback...
+	local mode
+	local config="$1"
+	count=$(($count+1))
+	[ "$config" = "$INTERFACE" ] && id=$count
+	config_get mode "$config" multipath
+	[ "$mode" = "master" ] && {
+		local gateway
+		network_get_gateway gateway $config || {
+			logger -t multipath master device $DEVICE has no gateway!
+			logger -t multipath disable mtcp on $DEVICE
+			multipath $DEVICE off
+			#Fallback: use upcomming interface...
+			network_get_gateway gateway $INTERFACE
+			config=$INTERFACE
+		}
+		local iface
+		config_get iface "$config" ifname
+		ip route del default
+		ip route add default scope global nexthop via $gateway dev $iface || {
+			#Fallback: use upcomming interface...
+			network_get_gateway gateway $INTERFACE
+			ip route add default scope global nexthop via $gateway dev $INTERFACE
+			logger -t multipath Faild to set default multipath device! Use $INTERFACE as fallback...
+		}
 	}
-    }
 }
 
 config_load network
 config_foreach set_default interface
 
 [ $id = 0 ] && {
-        logger -t multipath device $INTERFACE not fount!
-        echo device $INTERFACE not fount!
-        exit 1
+	logger -t multipath device $INTERFACE not fount!
+	echo device $INTERFACE not fount!
+	exit 1
 }
 
 mode=`uci -q get network.$INTERFACE.multipath` || mode='off'
 
 case "$mode" in
-  "off")
-        multipath $DEVICE off
-        exit 0;;
-  "master")
-        mode="on";;
-  "on");;
-  "backup");;
-  "handover");;
-  *)
-        logger -t multipath Wrong multipath value for device $DEVICE
-        exit 1;;
+	"off")
+		multipath $DEVICE off
+		exit 0;;
+	"master")
+		mode="on";;
+	"on");;
+	"backup");;
+	"handover");;
+	*)
+		logger -t multipath Wrong multipath value for device $DEVICE
+		exit 1;;
 esac
 
 # Update kernel flags
@@ -85,10 +86,10 @@ local ipaddr
 local gateway
 local network
 local netmask
-network_get_ipaddr  ipaddr  $INTERFACE || exit 1
+network_get_ipaddr	ipaddr	$INTERFACE || exit 1
 network_get_gateway gateway $INTERFACE || exit 1
-network_get_subnet  network $INTERFACE || exit 1
-__network_ifstatus  netmask $INTERFACE "['ipv4-address'][0]['mask']"
+network_get_subnet	network $INTERFACE || exit 1
+__network_ifstatus	netmask $INTERFACE "['ipv4-address'][0]['mask']"
 network=`ipcalc.sh $network | sed -n '/NETWORK=/{;s/.*=//;s/ .*//;p;}'`
 
 ip rule del table $id
