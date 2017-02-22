@@ -8,7 +8,7 @@
 
 clearConntrack() {
 	local mode
-	config_get mode $1 multipath
+	config_get mode "$1" multipath
 	case "$mode" in
 		"off")
 			return;;
@@ -21,9 +21,9 @@ clearConntrack() {
 			return;;
 	esac
 
-	network_get_ipaddr if_ipaddr $1
+	network_get_ipaddr if_ipaddr "$1"
 	if [ -n "$if_ipaddr" ]; then
-		/usr/sbin/conntrack -p udp -q $if_ipaddr -D 1>/dev/null
+		/usr/sbin/conntrack -p udp -q "$if_ipaddr" -D 1>/dev/null
 	fi
 }
 
@@ -37,9 +37,9 @@ elif [ "$ACTION" = ifdown ]; then
 	. /lib/functions.sh
 	. /lib/functions/network.sh
 
-	network_get_ipaddr if_ipaddr $INTERFACE
+	network_get_ipaddr if_ipaddr "$INTERFACE"
 	if [ -n "$if_ipaddr" ]; then
-		/usr/sbin/conntrack -p udp -q $if_ipaddr -D 1>/dev/null
+		/usr/sbin/conntrack -p udp -q "$if_ipaddr" -D 1>/dev/null
 	fi
 fi
 

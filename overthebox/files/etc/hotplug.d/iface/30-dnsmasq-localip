@@ -11,18 +11,18 @@
 . /lib/functions/network.sh
 
 config_load network
-network_get_ipaddr if_ipaddr $INTERFACE
+network_get_ipaddr if_ipaddr "$INTERFACE"
 config_load dhcp
 getrecord() {
-	config_get names $1 name
-	[ "$names" == "$INTERFACE" ] && {
+	config_get names "$1" name
+	[ "$names" = "$INTERFACE" ] && {
 		RECORD="$1"
 	}
 }
 config_foreach getrecord hostrecord
 if [ -n "$RECORD" ]; then
-	uci set dhcp.$RECORD.name="$INTERFACE"
-	uci set dhcp.$RECORD.ip="$if_ipaddr"
+	uci set "dhcp.$RECORD.name=$INTERFACE"
+	uci set "dhcp.$RECORD.ip=$if_ipaddr"
 else
 	uci add dhcp hostrecord
 	uci set dhcp.@hostrecord[-1].name="$INTERFACE"
