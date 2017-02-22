@@ -1,10 +1,10 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-PROG_NAME=$(basename $0)
+PROG_NAME=$(basename "$0")
 _log() {
-	echo $@
-	logger -p daemon.info -t ${PROG_NAME} "$@"
+	echo "$@"
+	logger -p daemon.info -t "$PROG_NAME" "$@"
 }
 
 VERSION=openwrt-x86-64-combined-squashfs.img.gz
@@ -33,21 +33,21 @@ clean_recovery_images() {
 valid_checksum() {
 	# Get the MD5 from the online repo
 	MD5_ONLINE=$(curl --silent ${MD5_URL} | grep ${VERSION} | awk '{print $1}')
-	if [ -z $MD5_ONLINE ]; then
+	if [ -z "$MD5_ONLINE" ]; then
 		_log "Empty online MD5"
 		return 0
 	fi
 
 	# Get the local MD5 of the file
 	MD5_LOCAL=$(md5sum $RECOVERY_PATH | awk '{ print $1 }')
-	if [ -z $MD5_LOCAL ]; then
+	if [ -z "$MD5_LOCAL" ]; then
 		_log "Empty local MD5"
 		return 0
 	fi
 
 	_log "Online MD5: ${MD5_ONLINE} / Local MD5: ${MD5_LOCAL}"
 
-	if [ "${MD5_ONLINE}" == "${MD5_LOCAL}" ]; then
+	if [ "${MD5_ONLINE}" = "${MD5_LOCAL}" ]; then
 		return 1
 	fi
 
@@ -71,10 +71,10 @@ then
 	download
 fi
 
-for i in `seq 1 ${DOWNLOAD_MAX_RETRY}` ; do
+for _ in $(seq 1 ${DOWNLOAD_MAX_RETRY}) ; do
 	valid_checksum
 	VALID=$?
-	if [ "${VALID}" == 1 ] ; then
+	if [ "${VALID}" = 1 ] ; then
 		_log "Download verified successfuly"
 		exit 0
 	fi

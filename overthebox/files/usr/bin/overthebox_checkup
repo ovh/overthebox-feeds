@@ -37,7 +37,7 @@ end
 -- If stalled, restart it
 if o.is_daemon_stalled() then
   o.warning("OTB daemon stalled, need restart")
-  rcode, ret = o.restart_daemon()
+  local rcode, ret = o.restart_daemon()
   if not rcode then
     o.warning("OTB daemon restart failed : " .. ret)
   end
