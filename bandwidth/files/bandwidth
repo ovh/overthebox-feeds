@@ -35,22 +35,22 @@ fetch_neigh()
 arp_populate_iptables()
 {
 	fetch_neigh
-	cat $neigh_tmp | while read IP MAC CONFIRMED;
+	while read IP _ CONFIRMED
 	do
-		if [ $CONFIRMED -gt $neigh_thresh ];
+		if [ "$CONFIRMED" -gt "$neigh_thresh" ];
 		then
 			continue
 		fi
 
-		iptables -w -t mangle -C BANDWIDTH-TX -s $IP -j RETURN 2> /dev/null
+		iptables -w -t mangle -C BANDWIDTH-TX -s "$IP" -j RETURN 2> /dev/null
 		if [ $? -ne 0 ]; then
-			iptables -w -t mangle -A BANDWIDTH-TX -s $IP -j RETURN
+			iptables -w -t mangle -A BANDWIDTH-TX -s "$IP" -j RETURN
 		fi
-		iptables -w -t mangle -C BANDWIDTH-RX -d $IP -j RETURN 2> /dev/null
+		iptables -w -t mangle -C BANDWIDTH-RX -d "$IP" -j RETURN 2> /dev/null
 		if [ $? -ne 0 ]; then
-			iptables -w -t mangle -A BANDWIDTH-RX -d $IP -j RETURN
+			iptables -w -t mangle -A BANDWIDTH-RX -d "$IP" -j RETURN
 		fi
-	done
+	done < $neigh_tmp
 }
 
 fetch_bytes()
@@ -107,7 +107,7 @@ case $1 in
 		;;
 
 	"fetch")
-		if [ "$2" == "json" ]; then
+		if [ "$2" = "json" ]; then
 			fetch_bytes "json"
 		else
 			fetch_bytes
