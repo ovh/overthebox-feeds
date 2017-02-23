@@ -275,9 +275,11 @@ _populate_ipt_socks_bypass_for_mwan_one() {
 		return 0
 	fi
 
+	# We set the dest to the dest_ip OR the ipset
+	dest=${dest_ip:-$ipset}
 	# We only want to add a bypass rule if the policy is active and the proto is TCP
 	if [ -n "$use_policy" -a "$proto" = "tcp" ]; then
-		$IPT -A socks_bypass_for_mwan -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport \
+		$IPT -A socks_bypass_for_mwan -p "$proto" -s "$src_ip" -d "$dest" -m multiport \
 			--sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "mwan3_$1" -j ACCEPT
 	fi
 }
