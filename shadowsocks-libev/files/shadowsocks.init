@@ -30,7 +30,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 
 _log() {
 	# 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
-	logger -st $PROG_NAME-initd -p $1 "$2"
+	logger -st $PROG_NAME-initd -p "$1" "$2"
 }
 
 # Needed because we use network_get_subnet
@@ -133,12 +133,12 @@ _shadow_cable() {
 _shadow_init_once() {
 	_check_singleton_ok || return 0
 	# If the config cannot be validated, abort the starting operation altogether
-	_validate_conf $1 || return 0
+	_validate_conf "$1" || return 0
 	# Launch shadowsocks first to minimize the time during which traffic is routed to a non-listening-yet-process
-	_launch_shadow $1
+	_launch_shadow "$1"
 	_ipt_init_skeleton
-	_update_conf_and_ipt $1
-	_launch_tracker $1
+	_update_conf_and_ipt "$1"
+	_launch_tracker "$1"
 }
 
 # This function launches one shadowsocks per CPU
@@ -165,11 +165,11 @@ _launch_shadow() {
 		cpu_count=1
 	fi
 
-	config_get conf $1 conf "/etc/shadowsocks.json"
+	config_get conf "$1" conf "/etc/shadowsocks.json"
 
 	for i in $(seq 1 $cpu_count); do
 		procd_open_instance
-		procd_set_param command "$PROG" -c $conf -b 0.0.0.0
+		procd_set_param command "$PROG" -c "$conf" -b 0.0.0.0
 		procd_set_param file "$conf"
 		procd_set_param limits nofile="51200 51200"
 		procd_set_param respawn
@@ -182,17 +182,17 @@ _launch_shadow() {
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_tracker() {
 	local conf lport monitoring_ip track_timeout track_interval track_retry
-	config_get conf $1 conf "/etc/shadowsocks.json"
-	config_get lport $1 lport ""
-	config_get monitoring_ip $1 monitoring_ip ""
-	config_get track_timeout $1 track_timeout "5"
-	config_get track_interval $1 track_interval "10"
-	config_get track_retry $1 track_retry "0"
+	config_get conf "$1" conf "/etc/shadowsocks.json"
+	config_get lport "$1" lport ""
+	config_get monitoring_ip "$1" monitoring_ip ""
+	config_get track_timeout "$1" track_timeout "5"
+	config_get track_interval "$1" track_interval "10"
+	config_get track_retry "$1" track_retry "0"
 
 	# Only launch the tracker if monitoring_ip is set and the tracker binary is there
 	if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
 		procd_open_instance
-		procd_set_param command "$TRACKER" -t $track_timeout -v $track_interval -r $track_retry $monitoring_ip
+		procd_set_param command "$TRACKER" -t "$track_timeout" -v "$track_interval" -r "$track_retry" "$monitoring_ip"
 		procd_set_param file "$conf"
 		procd_set_param respawn
 		procd_set_param stderr 1
@@ -211,35 +211,35 @@ _shadow_reload_once() {
 	_check_singleton_ok || return 0
 	# If the config cannot be validated, abort the reloading operation altogether
 	# The shadowsocks with the previous working config continues to run, but no reload is performed.
-	_validate_conf $1 || return 0
-	_update_conf_and_ipt $1
+	_validate_conf "$1" || return 0
+	_update_conf_and_ipt "$1"
 }
 
 # $1 is a ref to the shadowsocks uci section (type =client)
 _update_conf_and_ipt() {
-	_generate_conf $1
-	_populate_ipt_socks_redir $1
+	_generate_conf "$1"
+	_populate_ipt_socks_redir "$1"
 	_populate_ipt_socks_bypass_for_mwan
 	_populate_ipset_socks_bypass
 	_populate_ipt_socks_hook
-	_update_ipt_monitoring_ip_rule $1
+	_update_ipt_monitoring_ip_rule "$1"
 }
 
 # $1 is a ref to the shadowsocks uci section (type =client)
 _populate_ipt_socks_redir() {
 	local lport
-	config_get lport $1 lport
+	config_get lport "$1" lport
 
 	# First, reset the chain
 	$IPT -F socks_redir
 
 	# Let's add one rule per CS DSCP
 	for i in $(seq 1 $MAX_DSCP_CS); do
-		$IPT -A socks_redir -p tcp -m dscp --dscp-class cs$i -j REDIRECT --to-ports $(($lport + $i)) \
+		$IPT -A socks_redir -p tcp -m dscp --dscp-class "cs$i" -j REDIRECT --to-ports $((lport + i)) \
 			-m comment --comment "CS$i"
 	done
 	# Let's add the default rule at the bottom
-	$IPT -A socks_redir -p tcp -j REDIRECT --to-ports $lport
+	$IPT -A socks_redir -p tcp -j REDIRECT --to-ports "$lport"
 }
 
 # Each TCP mwan3 rule traffic has to bypass shadowsocks
@@ -261,13 +261,13 @@ _populate_ipt_socks_bypass_for_mwan() {
 _populate_ipt_socks_bypass_for_mwan_one() {
 	local ipset proto src_ip src_port dest_ip dest_port use_policy rule
 
-	config_get ipset $1 ipset
-	config_get proto $1 proto all
-	config_get src_ip $1 src_ip 0.0.0.0/0
-	config_get src_port $1 src_port 0:65535
-	config_get dest_ip $1 dest_ip 0.0.0.0/0
-	config_get dest_port $1 dest_port 0:65535
-	config_get use_policy $1 use_policy
+	config_get ipset "$1" ipset
+	config_get proto "$1" proto all
+	config_get src_ip "$1" src_ip 0.0.0.0/0
+	config_get src_port "$1" src_port 0:65535
+	config_get dest_ip "$1" dest_ip 0.0.0.0/0
+	config_get dest_port "$1" dest_port 0:65535
+	config_get use_policy "$1" use_policy
 
 	# If both ipset and dest_id are set, the following iptables command will crash
 	if [ -n "$ipset" -a -n "$dest_ip" ]; then
@@ -275,10 +275,12 @@ _populate_ipt_socks_bypass_for_mwan_one() {
 		return 0
 	fi
 
+	# We set the dest to the dest_ip OR the ipset
+	dest=${dest_ip:-$ipset}
 	# We only want to add a bypass rule if the policy is active and the proto is TCP
 	if [ -n "$use_policy" -a "$proto" = "tcp" ]; then
-		$IPT -A socks_bypass_for_mwan -p $proto -s $src_ip -d $dest_ip $ipset -m multiport \
-			--sports $src_port -m multiport --dports $dest_port -m comment --comment "mwan3_$1" -j ACCEPT
+		$IPT -A socks_bypass_for_mwan -p "$proto" -s "$src_ip" -d "$dest" -m multiport \
+			--sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "mwan3_$1" -j ACCEPT
 	fi
 }
 
@@ -292,7 +294,7 @@ _populate_ipset_socks_bypass() {
 
 	# Add the local nets to the exceptions list
 	for net in $LOCALNETS; do
-		ipset add socks_staging $net
+		ipset add socks_staging "$net"
 	done
 
 	# Add the static routes and the WAN ips to the exceptions list
@@ -313,9 +315,9 @@ _populate_ipset_socks_bypass() {
 _populate_ipset_socks_bypass_static_routes_one() {
 	local target netmask gateway
 
-	config_get target $1 target ''
-	config_get netmask $1 netmask '255.255.255.255'
-	config_get gateway $1 gateway ''
+	config_get target "$1" target ''
+	config_get netmask "$1" netmask '255.255.255.255'
+	config_get gateway "$1" gateway ''
 
 	# Skip strange buggy route configuration
 	if [ -z "$gateway" ] || [ -z "$target" ]; then
@@ -351,10 +353,10 @@ _populate_ipset_socks_bypass_wan_one() {
 	local ifname subnet
 
 	# Get the current interface name
-	config_get ifname $1 ifname
+	config_get ifname "$1" ifname
 
 	# Fetch IP/Netmask but skip interfaces with no IP
-	network_get_subnet subnet $ifname || return 0
+	network_get_subnet subnet "$ifname" || return 0
 
 	# Find the network address and check everything is valid :)
 	# $subnet is in the form a.b.c.d/z
@@ -387,17 +389,17 @@ _populate_ipt_socks_hook() {
 _update_socks_hook_one_zone() {
 	# Let's fetch the current zone name
 	local zone zone_members
-	config_get zone $1 name
+	config_get zone "$1" name
 
 	# Only traffic coming from a lan zone's interface will be routed to shadowsocks
 	if [ "$zone" = "lan" ]; then
 		# We don't use config_list_foreach so that we are compatible with lists AND single string with spaces
-		config_get zone_members $1 network
+		config_get zone_members "$1" network
 
 		# Call this callback for each interface belonging to the lan zone
 		# Don't put double quotes around $zone_members or the loop will iterate only once
 		for member in $zone_members; do
-			_update_socks_hook_one_if $member
+			_update_socks_hook_one_if "$member"
 		done
 	fi
 }
@@ -405,7 +407,7 @@ _update_socks_hook_one_zone() {
 # $1 is one of the interfaces belonging to the lan zone
 _update_socks_hook_one_if() {
 	# Plug socks_hook with socks_decision for that interface
-	$IPT -A socks_hook -i $1 -j socks_decision
+	$IPT -A socks_hook -i "$1" -j socks_decision
 }
 
 # This validates shadowsocks uci configuration
@@ -430,13 +432,13 @@ _validate_conf() {
 # $1 is a ref to the shadowsocks uci section (type =client)
 _generate_conf() {
 	local conf server port lport password timeout method
-	config_get conf $1 conf "/etc/shadowsocks.json"
-	config_get server $1 server "127.0.0.1"
-	config_get port $1 port ""
-	config_get lport $1 lport ""
-	config_get password $1 password ""
-	config_get timeout $1 timeout ""
-	config_get method $1 method ""
+	config_get conf "$1" conf "/etc/shadowsocks.json"
+	config_get server "$1" server "127.0.0.1"
+	config_get port "$1" port ""
+	config_get lport "$1" lport ""
+	config_get password "$1" password ""
+	config_get timeout "$1" timeout ""
+	config_get method "$1" method ""
 
 	cat <<END > $conf
 {
@@ -454,18 +456,18 @@ END
 	# In the config, we specify a distinct listening port for each DSCP CS.
 	for i in $(seq 1 $MAX_DSCP_CS); do
 		# Why didn't the JSON spec accept trailing comma at the end :'(
-		[ $i -gt 1 ] && printf ",\n" >> $conf
-		printf '\t\t"%d": "CS%d"' "$(( $lport + $i ))" "$i" >> $conf
+		[ "$i" -gt 1 ] && printf ",\n" >> "$conf"
+		printf '\t\t"%d": "CS%d"' "$(( lport + i ))" "$i" >> "$conf"
 	done
-	printf "\n\t}\n}" >> $conf
+	printf "\n\t}\n}" >> "$conf"
 }
 
 # If the param "monitoring_ip" is there, we need to add an ipt rule to nat/OUTPUT
 # $1 is a ref to the shadowsocks uci section (type =client)
 _update_ipt_monitoring_ip_rule() {
 	local lport monitoring_ip
-	config_get lport $1 lport ""
-	config_get monitoring_ip $1 monitoring_ip ""
+	config_get lport "$1" lport ""
+	config_get monitoring_ip "$1" monitoring_ip ""
 
 	# First, let's empty the chain!
 	# Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
@@ -476,8 +478,8 @@ _update_ipt_monitoring_ip_rule() {
 		# Add the special rule so that when we send a packet to the monitoring_ip, it flows through ss-redir
 		# Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
 		# If shadowsocks is manually stopped, mud will provide network access to API config
-		$IPT -A socks_emitted_by_myself -d $monitoring_ip/32 -p tcp -m comment \
-			--comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $(($lport + $TRACKER_CS))
+		$IPT -A socks_emitted_by_myself -d "$monitoring_ip/32" -p tcp -m comment \
+			--comment "shadowsocks_tracker (CS$TRACKER_CS)" -j REDIRECT --to-ports $((lport + TRACKER_CS))
 	else
 		# When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
 		# Let's plug the cable in! :p
@@ -494,7 +496,7 @@ _ipt_init_skeleton() {
 
 	# State is known. Let's initialize everything!
 	for chain in $CHAINS; do
-		$IPT -N $chain
+		$IPT -N "$chain"
 	done
 	ipset create socks_bypass hash:net
 
@@ -521,13 +523,13 @@ _ipt_clean_all() {
 	$IPT -D PREROUTING -p tcp -j socks_hook 2> /dev/null
 	$IPT -D OUTPUT -p tcp -j socks_emitted_by_myself 2> /dev/null
 	for chain in $CHAINS; do
-		$IPT -F $chain 2> /dev/null
+		$IPT -F "$chain" 2> /dev/null
 	done
 
 	# Now that everything is deletable, let's delete! :)
 	ipset -q destroy socks_bypass
 	for chain in $CHAINS; do
-		$IPT -X $chain 2> /dev/null
+		$IPT -X "$chain" 2> /dev/null
 	done
 
 	# This very one ipset should not exist, but it could if we crash during a reload

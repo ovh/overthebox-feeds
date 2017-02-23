@@ -5,12 +5,12 @@ name=$0
 basename="$(basename $0)"
 
 usage() {
-	printf "Usage: %s: [-t TIMEOUT] [-v INTERVAL] [ -r RETRY ] HOST\n" ${name}
+	printf "Usage: %s: [-t TIMEOUT] [-v INTERVAL] [ -r RETRY ] HOST\n" "${name}"
 	exit 2
 }
 
 log() {
-	logger -p daemon.info -t ${basename} "$@"
+	logger -p daemon.info -t "${basename}" "$@"
 }
 
 uri="ping"
@@ -27,7 +27,7 @@ while getopts "t:v:r:" opt; do
 	esac
 done
 
-shift $((${OPTIND} - 1))
+shift $((OPTIND - 1))
 
 [ -z "$1" ] && usage
 
@@ -36,7 +36,7 @@ last=0
 log "Starting..."
 
 while true; do
-	if curl -s --max-time ${timeout} --retry ${retry} "$1/${uri}" &>/dev/null ; then
+	if curl -s --max-time "${timeout}" --retry "${retry}" "$1/${uri}" &>/dev/null ; then
 		[ ${last} = 0 ] && log "Shadowsocks is up"
 		/etc/init.d/shadowsocks ifup 2> /dev/null
 		last=1
@@ -46,5 +46,5 @@ while true; do
 		last=0
 	fi
 
-	sleep ${interval}
+	sleep "${interval}"
 done
