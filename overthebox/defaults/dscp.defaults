@@ -39,10 +39,10 @@ search_uci_section() {
 DSCP=$(search_uci_section classify dest_ip='169.254.254.1')
 if [ -z "$DSCP" ]; then
 	SECTION=$(uci add dscp classify)
-	uci set "dscp.$SECTION.proto='tcp'"
-	uci set "dscp.$SECTION.dest_ip='169.254.254.1'"
-	uci set "dscp.$SECTION.class='cs6'"
-	uci set "dscp.$SECTION.comment='Service API'"
+	uci set "dscp.$SECTION.proto=tcp"
+	uci set "dscp.$SECTION.dest_ip=169.254.254.1"
+	uci set "dscp.$SECTION.class=cs6"
+	uci set "dscp.$SECTION.comment=Service API"
 	uci reorder "dscp.$SECTION=0"
 	uci commit
 fi
@@ -51,9 +51,9 @@ fi
 DSCP=$(search_uci_section classify proto='icmp')
 if [ -z "$DSCP" ]; then
 	SECTION=$(uci add dscp classify)
-	uci set "dscp.$SECTION.proto='icmp'"
-	uci set "dscp.$SECTION.class='cs6'"
-	uci set "dscp.$SECTION.comment='ICMP'"
+	uci set "dscp.$SECTION.proto=icmp"
+	uci set "dscp.$SECTION.class=cs6"
+	uci set "dscp.$SECTION.comment=ICMP"
 	uci reorder "dscp.$SECTION=1"
 	uci commit
 fi
@@ -62,10 +62,10 @@ fi
 DSCP=$(search_uci_section classify comment='VoIP')
 if [ -z "$DSCP" ]; then
 	SECTION=$(uci add dscp classify)
-	uci set "dscp.$SECTION.proto='udp'"
-	uci set "dscp.$SECTION.class='cs5'"
-	uci set "dscp.$SECTION.dest_ip='91.121.128.0/23'"
-	uci set "dscp.$SECTION.comment='VoIP'"
+	uci set "dscp.$SECTION.proto=udp"
+	uci set "dscp.$SECTION.class=cs5"
+	uci set "dscp.$SECTION.dest_ip=91.121.128.0/23"
+	uci set "dscp.$SECTION.comment=VoIP"
 	uci reorder "dscp.$SECTION=2"
 	uci commit
 fi
