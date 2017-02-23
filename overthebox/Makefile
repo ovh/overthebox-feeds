@@ -92,15 +92,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
 
-	MD5="e8ed1b70b4b1972ffca620b255a1373b"
-	if [ "$$(md5sum /lib/upgrade/platform.sh | cut -f1 -d" ")" != "$$MD5" ]
-	then
-	    wget -q http://downloads.overthebox.ovh/stable/x86/64/platform.sh -O /tmp/platform.sh
-	    if [ "$$(md5sum /tmp/platform.sh | cut -f1 -d" ")" == "$$MD5" ]
-	    then
-		mv /tmp/platform.sh /lib/upgrade/platform.sh
-	    fi
-	fi
 	if [ ! -f /root/.ssh_otb_remote.pub ] ; then
 		dropbearkey -t rsa -s 4096 -f /root/.ssh_otb_remote |grep ^ssh- > /root/.ssh_otb_remote.pub
 	fi
@@ -109,8 +100,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	exit 0
 fi
 endef
-
-
 
 $(eval $(call BuildPackage,overthebox))
 
