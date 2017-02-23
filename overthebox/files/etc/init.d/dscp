@@ -26,19 +26,20 @@ genrateDscp() {
 		config_get dest_port "$1" src_port 0:65535
 	fi
 
+	local dest=${dest_ip:-$ipset}
 	if [ "$direction" = "upload" -o "$direction" = "both" ]; then
 		case $proto in
 			tcp)
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 			udp)
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 			*)
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
-				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" "$ipset" -m comment --comment "dscp_$COMMID" -j RETURN
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m comment --comment "dscp_$COMMID" -j RETURN
 				;;
 		esac
 	fi
