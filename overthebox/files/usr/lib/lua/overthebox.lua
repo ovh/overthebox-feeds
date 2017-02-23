@@ -14,26 +14,22 @@ local posix    = require("posix")
 local sys_stat = require("posix.sys.stat")
 
 local print = print
-local ipairs, pairs, next, type, tostring, tonumber, error = ipairs, pairs, next, type, tostring, tonumber, error
+local ipairs, pairs, next, type, tostring, tonumber = ipairs, pairs, next, type, tostring, tonumber
 local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci")
-debug = false
+local debug = false
 local VERSION = "<VERSION>"
 module "overthebox"
 _VERSION = VERSION
-api_url = 'https://provisionning.overthebox.net:4443/'
+local api_url = 'https://provisionning.overthebox.net:4443/'
 
 -- Subscribe Sticky to OVH Network as soon as possible a request an unic identifier
 function subscribe()
   local lan = iface_info('lan')
   local ip4 = ''
-  local ip6 = ''
   if #lan.ipaddrs > 0 then
     ip4 = lan.ipaddrs[1].addr
-  end
-  if #lan.ip6addrs > 0 then
-    ip6 = lan.ip6addrs.addr
   end
 
   local rcode, res = POST('subscribe', {private_ips = {ip4}})
@@ -45,12 +41,12 @@ function subscribe()
       file:write("")
       file:close()
     end
-    local uci = uci.cursor()
-    uci:set("overthebox", "me", "config")
-    uci:set("overthebox", "me", "token", res.token)
-    uci:set("overthebox", "me", "device_id", res.device_id)
-    uci:save("overthebox")
-    uci:commit("overthebox")
+    local ucic = uci.cursor()
+    ucic:set("overthebox", "me", "config")
+    ucic:set("overthebox", "me", "token", res.token)
+    ucic:set("overthebox", "me", "device_id", res.device_id)
+    ucic:save("overthebox")
+    ucic:commit("overthebox")
   end
   return (rcode == 200), res
 end
@@ -69,134 +65,133 @@ function exists(obj, ...)
 end
 
 function addInterfaceInZone(name, ifname)
-  local uci = uci.cursor()
-  uci:foreach("firewall", "zone",
-  function (zone)
-    if zone["name"] == name then
-      local list = uci:get_list("firewall", zone[".name"], "network")
-      if list then
-        local zones = {}
-        list = table.concat(list, " "):gmatch("%S+")
-        for itf in list do
-          if itf == ifname then
-            return false;
+  local ucic = uci.cursor()
+  ucic:foreach("firewall", "zone", function (zone)
+      if zone["name"] == name then
+        local list = ucic:get_list("firewall", zone[".name"], "network")
+        if list then
+          local zones = {}
+          list = table.concat(list, " "):gmatch("%S+")
+          for itf in list do
+            if itf == ifname then
+              return false;
+            end
+            table.insert(zones, itf)
           end
-          table.insert(zones, itf)
+          table.insert(zones, ifname)
+          ucic:set_list("firewall", zone[".name"], "network", zones)
+          ucic:save('firewall')
+          ucic:commit('firewall')
+          return true
+        else
+          ucic:set_list("firewall", zone[".name"], "network", { ifname })
+          ucic:save('firewall')
+          ucic:commit('firewall')
+          return true
         end
-        table.insert(zones, ifname)
-        uci:set_list("firewall", zone[".name"], "network", zones)
-        uci:save('firewall')
-        uci:commit('firewall')
-        return true
-      else
-        uci:set_list("firewall", zone[".name"], "network", { ifname })
-        uci:save('firewall')
-        uci:commit('firewall')
-        return true
       end
     end
-  end
   )
   return false
 end
 
 function config()
   local ret = {}
-  local uci = uci.cursor()
-  local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/config")
+  local ucic = uci.cursor()
+  local rcode, res = GET('devices/'..ucic:get("overthebox", "me", "device_id", {}).."/config")
   if rcode ~= 200 then
     table.insert(ret, "Error getting config : ".. rcode)
     return false, ret
   end
 
   if res.glorytun_conf and exists( res.glorytun_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
-    uci:set('glorytun', 'otb', 'tunnel')
-    uci:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
-    uci:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
-    uci:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
-    uci:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
+    ucic:set('glorytun', 'otb', 'tunnel')
+    ucic:set('glorytun', 'otb', 'dev',     res.glorytun_conf.dev )
+    ucic:set('glorytun', 'otb', 'server',  res.glorytun_conf.server)
+    ucic:set('glorytun', 'otb', 'port',    res.glorytun_conf.port)
+    ucic:set('glorytun', 'otb', 'key',     res.glorytun_conf.key)
 
-    uci:set('network', res.glorytun_conf.dev, 'interface')
-    uci:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
+    ucic:set('network', res.glorytun_conf.dev, 'interface')
+    ucic:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
     if res.tun_conf.app == 'glorytun' then
-      uci:set('network', res.glorytun_conf.dev, 'proto', 'static')
-      uci:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
-      uci:set('network', res.glorytun_conf.dev, 'netmask', '255.255.255.0')
-      uci:set('network', res.glorytun_conf.dev, 'gateway', res.glorytun_conf.ip_peer)
-      uci:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
-      uci:set('network', res.glorytun_conf.dev, 'txqueuelen', res.glorytun_conf.txqueuelen or '1000')
-      uci:set('network', res.glorytun_conf.dev, 'mtu', res.glorytun_conf.mtu)
+      ucic:set('network', res.glorytun_conf.dev, 'proto', 'static')
+      ucic:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
+      ucic:set('network', res.glorytun_conf.dev, 'netmask', '255.255.255.0')
+      ucic:set('network', res.glorytun_conf.dev, 'gateway', res.glorytun_conf.ip_peer)
+      ucic:set('network', res.glorytun_conf.dev, 'metric', res.glorytun_conf.metric)
+      ucic:set('network', res.glorytun_conf.dev, 'txqueuelen', res.glorytun_conf.txqueuelen or '1000')
+      ucic:set('network', res.glorytun_conf.dev, 'mtu', res.glorytun_conf.mtu)
     end
-    uci:set('network', res.glorytun_conf.dev, 'multipath', 'off')
-    uci:delete('network', res.glorytun_conf.dev, 'auto')
-    uci:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
+    ucic:set('network', res.glorytun_conf.dev, 'multipath', 'off')
+    ucic:delete('network', res.glorytun_conf.dev, 'auto')
+    ucic:set('network', res.glorytun_conf.dev, 'type', 'tunnel')
 
     addInterfaceInZone("wan", res.glorytun_conf.dev)
 
     if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
       for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
         if conf and exists( conf, 'dev', 'ip_peer', 'ip_local', 'port', 'mtu', 'table', 'metric' ) then
-          uci:set('glorytun', conf.dev, 'tunnel')
-          uci:set('glorytun', conf.dev, 'dev', conf.dev)
-          uci:set('glorytun', conf.dev, 'server', conf.server or res.glorytun_conf.server)
-          uci:set('glorytun', conf.dev, 'port', conf.port)
-          uci:set('glorytun', conf.dev, 'key', conf.key or res.glorytun_conf.key)
+          ucic:set('glorytun', conf.dev, 'tunnel')
+          ucic:set('glorytun', conf.dev, 'dev', conf.dev)
+          ucic:set('glorytun', conf.dev, 'server', conf.server or res.glorytun_conf.server)
+          ucic:set('glorytun', conf.dev, 'port', conf.port)
+          ucic:set('glorytun', conf.dev, 'key', conf.key or res.glorytun_conf.key)
 
-          uci:set('network', conf.dev, 'interface')
-          uci:set('network', conf.dev, 'ifname', conf.dev)
+          ucic:set('network', conf.dev, 'interface')
+          ucic:set('network', conf.dev, 'ifname', conf.dev)
           if res.tun_conf.app == 'glorytun' then
-            uci:set('network', conf.dev, 'proto', 'static')
-            uci:set('network', conf.dev, 'ipaddr', conf.ip_local)
-            uci:set('network', conf.dev, 'netmask', '255.255.255.0')
-            uci:set('network', conf.dev, 'gateway', conf.ip_peer)
-            uci:set('network', conf.dev, 'metric', conf.metric)
-            uci:set('network', conf.dev, 'txqueuelen', conf.txqueuelen or res.glorytun_conf.txqueuelen or '1000')
-            uci:set('network', conf.dev, 'mtu', conf.mtu or res.glorytun_conf.mtu)
+            ucic:set('network', conf.dev, 'proto', 'static')
+            ucic:set('network', conf.dev, 'ipaddr', conf.ip_local)
+            ucic:set('network', conf.dev, 'netmask', '255.255.255.0')
+            ucic:set('network', conf.dev, 'gateway', conf.ip_peer)
+            ucic:set('network', conf.dev, 'metric', conf.metric)
+            ucic:set('network', conf.dev, 'txqueuelen', conf.txqueuelen or res.glorytun_conf.txqueuelen or '1000')
+            ucic:set('network', conf.dev, 'mtu', conf.mtu or res.glorytun_conf.mtu)
           end
-          uci:set('network', conf.dev, 'multipath', 'off')
-          uci:delete('network', conf.dev, 'auto')
-          uci:set('network', conf.dev, 'type', 'tunnel')
+          ucic:set('network', conf.dev, 'multipath', 'off')
+          ucic:delete('network', conf.dev, 'auto')
+          ucic:set('network', conf.dev, 'type', 'tunnel')
 
           addInterfaceInZone("wan", conf.dev)
         end
       end
     end
     -- We do not commit network now because network will be restarted later
-    uci:save('network')
+    ucic:save('network')
 
-    uci:save('glorytun')
-    uci:commit('glorytun')
+    ucic:save('glorytun')
+    ucic:commit('glorytun')
 
     table.insert(ret, 'glorytun')
   end
 
   if res.glorytun_mud_conf and exists( res.glorytun_mud_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'mud')
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'mud')
 
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev)
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'server',  res.glorytun_mud_conf.server)
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'port',    res.glorytun_mud_conf.port)
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'key',     res.glorytun_mud_conf.key)
-    uci:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu)
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'dev',     res.glorytun_mud_conf.dev)
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'server',  res.glorytun_mud_conf.server)
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'port',    res.glorytun_mud_conf.port)
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'key',     res.glorytun_mud_conf.key)
+    ucic:set('glorytun', res.glorytun_mud_conf.dev, 'mtu',     res.glorytun_mud_conf.mtu)
 
-    uci:set('network', res.glorytun_mud_conf.dev, 'interface')
-    uci:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
+    ucic:set('network', res.glorytun_mud_conf.dev, 'interface')
+    ucic:set('network', res.glorytun_mud_conf.dev, 'ifname', res.glorytun_mud_conf.dev)
     if res.tun_conf.app == 'glorytun_mud' then
-      uci:set('network', res.glorytun_mud_conf.dev, 'proto', 'static')
-      uci:set('network', res.glorytun_mud_conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
-      uci:set('network', res.glorytun_mud_conf.dev, 'netmask', '255.255.255.0')
-      uci:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
-      uci:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
-      uci:set('network', res.glorytun_mud_conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
-      uci:delete('network', res.glorytun_mud_conf.dev, 'mtu')
+      ucic:set('network', res.glorytun_mud_conf.dev, 'proto', 'static')
+      ucic:set('network', res.glorytun_mud_conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
+      ucic:set('network', res.glorytun_mud_conf.dev, 'netmask', '255.255.255.0')
+      ucic:set('network', res.glorytun_mud_conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
+      ucic:set('network', res.glorytun_mud_conf.dev, 'metric', res.glorytun_mud_conf.metric)
+      ucic:set('network', res.glorytun_mud_conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
+      ucic:delete('network', res.glorytun_mud_conf.dev, 'mtu')
     end
-    uci:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
-    uci:delete('network', res.glorytun_mud_conf.dev, 'auto')
-    uci:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
+    ucic:set('network', res.glorytun_mud_conf.dev, 'multipath', 'off')
+    ucic:delete('network', res.glorytun_mud_conf.dev, 'auto')
+    ucic:set('network', res.glorytun_mud_conf.dev, 'type', 'tunnel')
 
     addInterfaceInZone("wan", res.glorytun_mud_conf.dev)
-    uci:save('glorytun')
-    uci:commit('glorytun')
+    ucic:save('glorytun')
+    ucic:commit('glorytun')
 
     table.insert(ret, 'glorytun-udp')
   end
@@ -210,107 +205,107 @@ function config()
 
   if res.tun_conf.app == 'glorytun_mud' then
     -- Activate MUD
-    uci:foreach("glorytun", "mud",
+    ucic:foreach("glorytun", "mud",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '1')
+      ucic:set('glorytun', e[".name"], 'enable', '1')
     end
     )
     -- Deactivate Glorytun
-    uci:foreach("glorytun", "tunnel",
+    ucic:foreach("glorytun", "tunnel",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '0')
+      ucic:set('glorytun', e[".name"], 'enable', '0')
     end
     )
     -- Delete glorytun additionnal interface when using mud
     if exists( res.glorytun_conf, 'additional_interfaces') and type(res.glorytun_conf.additional_interfaces) == 'table' then
       for _, conf in pairs(res.glorytun_conf.additional_interfaces) do
         if conf and exists('dev') then
-          uci:delete('network', conf.dev)
+          ucic:delete('network', conf.dev)
         end
       end
-      uci:commit('network')
+      ucic:commit('network')
     end
-    uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_mud_conf.server)
+    ucic:set('mwan3', 'socks', 'dest_ip', res.glorytun_mud_conf.server)
   elseif res.tun_conf.app == 'glorytun' then
     -- Activate Glorytun
-    uci:foreach("glorytun", "tunnel",
+    ucic:foreach("glorytun", "tunnel",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '1' )
+      ucic:set('glorytun', e[".name"], 'enable', '1' )
     end
     )
     -- Deactivate MUD
-    uci:foreach("glorytun", "mud",
+    ucic:foreach("glorytun", "mud",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '0' )
+      ucic:set('glorytun', e[".name"], 'enable', '0' )
     end
     )
-    uci:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+    ucic:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
   else
     -- Deactivate MUD
-    uci:foreach("glorytun", "mud",
+    ucic:foreach("glorytun", "mud",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '0' )
+      ucic:set('glorytun', e[".name"], 'enable', '0' )
     end
     )
     -- Deactivate Glorytun
-    uci:foreach("glorytun", "tunnel",
+    ucic:foreach("glorytun", "tunnel",
     function (e)
-      uci:set('glorytun', e[".name"], 'enable', '0' )
+      ucic:set('glorytun', e[".name"], 'enable', '0' )
     end
     )
   end
-  uci:save('glorytun')
-  uci:commit('glorytun')
+  ucic:save('glorytun')
+  ucic:commit('glorytun')
 
-  uci:delete('mwan3', 'socks', 'dest_port')
-  uci:save('mwan3')
-  uci:commit('mwan3')
+  ucic:delete('mwan3', 'socks', 'dest_port')
+  ucic:save('mwan3')
+  ucic:commit('mwan3')
 
   if res.shadow_conf and exists( res.shadow_conf, 'server', 'port', 'lport', 'password', 'method', 'timeout')  then
-    uci:set('shadowsocks','proxy','client')
-    uci:set('shadowsocks','proxy','server',   res.shadow_conf.server )
-    uci:set('shadowsocks','proxy','port',     res.shadow_conf.port)
-    uci:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
-    uci:set('shadowsocks','proxy','password', res.shadow_conf.password)
-    uci:set('shadowsocks','proxy','method',   res.shadow_conf.method)
-    uci:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
+    ucic:set('shadowsocks','proxy','client')
+    ucic:set('shadowsocks','proxy','server',   res.shadow_conf.server )
+    ucic:set('shadowsocks','proxy','port',     res.shadow_conf.port)
+    ucic:set('shadowsocks','proxy','lport',    res.shadow_conf.lport)
+    ucic:set('shadowsocks','proxy','password', res.shadow_conf.password)
+    ucic:set('shadowsocks','proxy','method',   res.shadow_conf.method)
+    ucic:set('shadowsocks','proxy','timeout',  res.shadow_conf.timeout)
 
     if exists( res.shadow_conf, 'monitoring_ip', 'track_retry', 'track_timeout', 'track_interval' ) then
-      uci:set('shadowsocks','proxy','monitoring_ip', res.shadow_conf.monitoring_ip)
-      uci:set('shadowsocks','proxy','track_timeout', res.shadow_conf.track_timeout)
-      uci:set('shadowsocks','proxy','track_interval', res.shadow_conf.track_interval)
-      uci:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
+      ucic:set('shadowsocks','proxy','monitoring_ip', res.shadow_conf.monitoring_ip)
+      ucic:set('shadowsocks','proxy','track_timeout', res.shadow_conf.track_timeout)
+      ucic:set('shadowsocks','proxy','track_interval', res.shadow_conf.track_interval)
+      ucic:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
     end
 
-    uci:save('shadowsocks')
-    uci:commit('shadowsocks')
+    ucic:save('shadowsocks')
+    ucic:commit('shadowsocks')
     table.insert(ret, "shadowsocks")
   end
 
   if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-    uci:set('scollector','opentsdb', 'client')
-    uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-    uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-    uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+    ucic:set('scollector','opentsdb', 'client')
+    ucic:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
+    ucic:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
+    ucic:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
 
-    uci:save('scollector')
-    uci:commit('scollector')
+    ucic:save('scollector')
+    ucic:commit('scollector')
     table.insert(ret, 'scollector')
   end
 
   if res.log_conf and exists( res.log_conf, 'host', 'port') then
 
-    uci:foreach("system", "system",
+    ucic:foreach("system", "system",
     function (e)
-      uci:set('system', e[".name"], 'log_ip', res.log_conf.host )
-      uci:set('system', e[".name"], 'log_port', res.log_conf.port )
-      uci:set('system', e[".name"], 'log_proto', res.log_conf.protocol )
-      uci:set('system', e[".name"], 'log_prefix', res.log_conf.key )
+      ucic:set('system', e[".name"], 'log_ip', res.log_conf.host )
+      ucic:set('system', e[".name"], 'log_port', res.log_conf.port )
+      ucic:set('system', e[".name"], 'log_proto', res.log_conf.protocol )
+      ucic:set('system', e[".name"], 'log_prefix', res.log_conf.key )
     end
     )
 
-    uci:save('system')
-    uci:commit('system')
+    ucic:save('system')
+    ucic:commit('system')
 
     table.insert(ret, 'log')
   end
@@ -410,7 +405,8 @@ function send_properties( props )
   if props.packages then
     body.packages = {}
     for i, pkg in pairs(props.packages) do
-      local ret, rcode = run("opkg status ".. pkg .. " |grep Version: ")
+      -- TODO: deal with this return code
+      local ret, _ = run("opkg status ".. pkg .. " |grep Version: ")
       ret = string.gsub(chomp(ret), "Version: ", "" ) -- remove Version: prefix
       table.insert( body.packages, {name=pkg, version=ret})
     end
@@ -429,7 +425,7 @@ end
 function get_mounts()
   local mounts = {}
   for line in io.lines("/proc/mounts") do
-    t = split(line)
+    local t = split(line)
     table.insert(mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
   end
   return mounts
@@ -457,17 +453,17 @@ function check_release_channel(rc)
 end
 
 function update_release_channel()
-  local uci = uci.cursor()
-  local rcode, res = GET('devices/'..uci:get("overthebox", "me", "device_id", {}).."/release_channel")
+  local ucic = uci.cursor()
+  local rcode, res = GET('devices/'..ucic:get("overthebox", "me", "device_id", {}).."/release_channel")
   if rcode == 200 then
     if res.feeds then
       set_feeds(res.feeds)
     end
     if res.name and res.image_url then
-      uci:set("overthebox", "me", "release_channel", res.name)
-      uci:set("overthebox", "me", "image_url", res.image_url)
-      uci:save('overthebox')
-      uci:commit('overthebox')
+      ucic:set("overthebox", "me", "release_channel", res.name)
+      ucic:set("overthebox", "me", "image_url", res.image_url)
+      ucic:save('overthebox')
+      ucic:commit('overthebox')
     end
     return true, "ok"
   end
@@ -482,7 +478,7 @@ function set_feeds(feeds)
   end
 
   if txt ~= "" then
-    fd = io.open("/etc/opkg/distfeeds.conf", "w")
+    local fd = io.open("/etc/opkg/distfeeds.conf", "w")
     if fd then
       fd:write("# generated file, do not edit\n")
       fd:write(txt)
@@ -512,6 +508,7 @@ local diags = {
 }
 
 function send_diagnostic(id, info)
+  -- TODO: use api_ok
   local api_ok, diag_id = create_diagnostic( id or "")
   if diag_id == "" then
     return false, "no diag id found"
@@ -532,10 +529,11 @@ function send_diagnostic(id, info)
 end
 
 function run_diagnostic( id, name, arg )
-  cmd = string.gsub( diags[name].cmd, "{{(%w+)}}", function(w)
+  local cmd = string.gsub( diags[name].cmd, "{{(%w+)}}", function(w)
     return (arg and arg[w]) or diags[name].default[w] or ""
   end )
   local ret, rcode = run(cmd)
+  -- TODO: use ret_api
   local ret_api = post_result_diagnostic(id, name, cmd, ret, rcode)
   return rcode==0
 end
@@ -585,13 +583,13 @@ function post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, conte
 end
 
 function run_backup(id, file)
-  local uid, gid, mode, is_symlink, symlink, content = nil
   local pstat = sys_stat.lstat(file)
   if pstat then
-    mode = string.sub(string.format("%o", pstat.st_mode), -4)
-    uid = pstat.st_uid
-    gid = pstat.st_gid
-    is_symlink = sys_stat.S_ISLNK(pstat.st_mode)
+    local mode = string.sub(string.format("%o", pstat.st_mode), -4)
+    local uid = pstat.st_uid
+    local gid = pstat.st_gid
+    local is_symlink = sys_stat.S_ISLNK(pstat.st_mode)
+    local symlink, content = nil
     if is_symlink ~= 0 then
       is_symlink = true
       symlink = require("posix.unistd").readlink(file)
@@ -621,6 +619,7 @@ function create_backup(action_id)
 end
 
 function send_backup(id, info)
+  -- TODO: use api_ok
   local api_ok, backup_id = create_backup(id or "")
   if backup_id == "" then
     return false, "no backup id found"
@@ -652,7 +651,7 @@ function restore_backup(id, info)
   -- do
   local ret, content = retrieve_backup(backup_id)
   if ret then
-    fp = io.popen("/sbin/sysupgrade --restore-backup -", "w")
+    local fp = io.popen("/sbin/sysupgrade --restore-backup -", "w")
     if fp then
       fp:write(content)
       local rc = {fp:close()}
@@ -683,15 +682,14 @@ function remoteAccessPrepare(args)
     return false, "no arguments or remote_access_id arg is missing"
   end
 
-  ret, key = create_ssh_key()
-
+  local ret, key = create_ssh_key()
   if not ret or not key then
     return false, "key not well created"
   end
 
   local name = remoteAccessIdToUci(args.remote_access_id)
-  local uci = uci.cursor()
-  uci:set("overthebox", name, "remote")
+  local ucic = uci.cursor()
+  ucic:set("overthebox", name, "remote")
 
   -- create luci user if requested
   if exists(args, 'luci_user', 'luci_password') and
@@ -711,10 +709,10 @@ function remoteAccessPrepare(args)
       return false, "error when changing password for luci user"
     end
 
-    uci:set("overthebox", name, "luci_user", args.luci_user)
+    ucic:set("overthebox", name, "luci_user", args.luci_user)
   end
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
 
   local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..args.remote_access_id.."/keys",   {public_key=key})
   return (rcode == 200), "ok"
@@ -752,15 +750,15 @@ function remoteAccessConnect(args)
   end
 
   local name = remoteAccessIdToUci(args.remote_access_id)
-  local uci = uci.cursor()
-  uci:set("overthebox", name, "forwarded_port", args.forwarded_port)
-  uci:set("overthebox", name, "ip", args.ip)
-  uci:set("overthebox", name, "port", args.port)
-  uci:set("overthebox", name, "server_public_key", args.server_public_key)
-  uci:set("overthebox", name, "remote_public_key", args.remote_public_key)
+  local ucic = uci.cursor()
+  ucic:set("overthebox", name, "forwarded_port", args.forwarded_port)
+  ucic:set("overthebox", name, "ip", args.ip)
+  ucic:set("overthebox", name, "port", args.port)
+  ucic:set("overthebox", name, "server_public_key", args.server_public_key)
+  ucic:set("overthebox", name, "remote_public_key", args.remote_public_key)
 
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
 
   local ret, rcode = run("/etc/init.d/otb-remote restart")
   if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
@@ -777,11 +775,11 @@ function remoteAccessDisconnect(args)
   local oldName = "remote" .. args.port
   local name = remoteAccessIdToUci(args.remote_access_id)
 
-  local uci = uci.cursor()
+  local ucic = uci.cursor()
 
-  local luci_user = uci:get("overthebox", oldName, "luci_user")
+  local luci_user = ucic:get("overthebox", oldName, "luci_user")
   if luci_user == nil then
-    luci_user = uci:get("overthebox", name, "luci_user")
+    luci_user = ucic:get("overthebox", name, "luci_user")
   end
 
   -- Delete luci user if we created one earlier
@@ -790,10 +788,10 @@ function remoteAccessDisconnect(args)
     if not status_code_ok(rcode) then return false, "error when deleting user " .. luci_user end
   end
 
-  uci:delete("overthebox", oldName)
-  uci:delete("overthebox", name)
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  ucic:delete("overthebox", oldName)
+  ucic:delete("overthebox", name)
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
 
   local ret, rcode = run("/etc/init.d/otb-remote restart")
   if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
@@ -1074,10 +1072,10 @@ end
 
 -- action api
 function backup_last_action(id)
-  local uci = uci.cursor()
-  uci:set("overthebox", "me", "last_action_id", id)
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  local ucic = uci.cursor()
+  ucic:set("overthebox", "me", "last_action_id", id)
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
 end
 
 function get_last_action()
@@ -1085,10 +1083,10 @@ function get_last_action()
 end
 
 function flush_action(id)
-  local uci = uci.cursor()
-  uci:delete("overthebox", "me", "last_action_id", id)
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  local ucic = uci.cursor()
+  ucic:delete("overthebox", "me", "last_action_id", id)
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
 end
 
 
@@ -1134,16 +1132,16 @@ end
 
 -- service ovh
 function ask_service_confirmation(service)
-  local uci = uci.cursor()
-  uci:set("overthebox", "me", "service", service)
-  uci:set("overthebox", "me", "askserviceconfirmation", "1")
-  uci:save("overthebox")
-  uci:commit("overthebox")
+  local ucic = uci.cursor()
+  ucic:set("overthebox", "me", "service", service)
+  ucic:set("overthebox", "me", "askserviceconfirmation", "1")
+  ucic:save("overthebox")
+  ucic:commit("overthebox")
   -- Ask web interface to display activation form
-  uci:set("luci", "overthebox", "overthebox")
-  uci:set("luci", "overthebox", "activate", "1")
-  uci:save("luci")
-  uci:commit("luci")
+  ucic:set("luci", "overthebox", "overthebox")
+  ucic:set("luci", "overthebox", "activate", "1")
+  ucic:save("luci")
+  ucic:commit("luci")
 
   return true
 end
@@ -1152,20 +1150,20 @@ function get_service()
   return (rcode == 200), ret
 end
 function confirm_service(service)
-  local uci = uci.cursor()
-  if service ~= uci:get("overthebox", "me", "service") then
+  local ucic = uci.cursor()
+  if service ~= ucic:get("overthebox", "me", "service") then
     return false, "service does not match"
   end
 
-  local rcode, ret = POST('devices/'..uci:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
+  local rcode, ret = POST('devices/'..ucic:get("overthebox", "me", "device_id", {}).."/service/"..service.."/confirm", nil )
   if rcode == 200 then
-    uci:delete("overthebox", "me", "askserviceconfirmation")
-    uci:save("overthebox")
-    uci:commit("overthebox")
+    ucic:delete("overthebox", "me", "askserviceconfirmation")
+    ucic:save("overthebox")
+    ucic:commit("overthebox")
     -- Ask web interface to enter activated mode
-    uci:delete("luci", "overthebox", "activate")
-    uci:save("luci")
-    uci:commit("luci")
+    ucic:delete("luci", "overthebox", "activate")
+    ucic:save("luci")
+    ucic:commit("luci")
   end
   return (rcode == 200), ret
 end
@@ -1182,7 +1180,7 @@ end
 
 
 function API(uri, method, data)
-  local uci = uci.cursor()
+  local ucic = uci.cursor()
   url = api_url .. uri
 
   -- Buildin JSON POST
@@ -1198,7 +1196,7 @@ function API(uri, method, data)
     {
       ["Content-Type"] = "application/json",
       ["Content-length"] = reqbody:len(),
-      ["X-Auth-OVH"] = uci:get("overthebox", "me", "token"),
+      ["X-Auth-OVH"] = ucic:get("overthebox", "me", "token"),
       ["X-Overthebox-Version"] = VERSION
     },
     source = ltn12.source.string(reqbody),
@@ -1259,9 +1257,9 @@ end
 
 -- Mwan conf generator
 function update_confmwan()
-  local uci = uci.cursor()
+  local ucic = uci.cursor()
   -- Check if we need to update mwan conf
-  local oldmd5 = uci:get("mwan3", "netconfchecksum")
+  local oldmd5 = ucic:get("mwan3", "netconfchecksum")
   local newmd5 = string.match(sys.exec("uci -q export network | egrep -v 'upload|download|trafficcontrol|label' | md5sum"), "[0-9a-f]*")
   if oldmd5 and (oldmd5 == newmd5) then
     log("update_confmwan: no changes !")
@@ -1277,31 +1275,31 @@ function update_confmwan()
   -- Start main code
   local results={}
   -- clear up mwan config
-  uci:foreach("mwan3", "policy",
+  ucic:foreach("mwan3", "policy",
   function (section)
     if section["generated"] == "1" and section["edited"] ~= "1" then
-      uci:delete("mwan3", section[".name"])
+      ucic:delete("mwan3", section[".name"])
     end
   end
   )
-  uci:foreach("mwan3", "member",
+  ucic:foreach("mwan3", "member",
   function (section)
     if section["generated"] == "1" and section["edited"] ~= "1" then
-      uci:delete("mwan3", section[".name"])
+      ucic:delete("mwan3", section[".name"])
     end
   end
   )
-  uci:foreach("mwan3", "interface",
+  ucic:foreach("mwan3", "interface",
   function (section)
     if section["generated"] == "1" and section["edited"] ~= "1" then
-      uci:delete("mwan3", section[".name"])
+      ucic:delete("mwan3", section[".name"])
     end
   end
   )
-  uci:foreach("mwan3", "rule",
+  ucic:foreach("mwan3", "rule",
   function (section)
     if section["generated"] == "1" and section["edited"] ~= "1" then
-      uci:delete("mwan3", section[".name"])
+      ucic:delete("mwan3", section[".name"])
     end
   end
   )
@@ -1319,26 +1317,26 @@ function update_confmwan()
   local dns_policies = {}
 
   -- Create a tracker for each mptcp interface
-  uci:foreach("network", "interface",
+  ucic:foreach("network", "interface",
   function (section)
     if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
       size_interfaces = size_interfaces + 1
       interfaces[ section[".name"] ] = section
-      uci:set("mwan3", section[".name"], "interface")
-      if uci:get("mwan3", section[".name"], "edited") ~= "1" then
-        uci:set("mwan3", section[".name"], "enabled", "1")
+      ucic:set("mwan3", section[".name"], "interface")
+      if ucic:get("mwan3", section[".name"], "edited") ~= "1" then
+        ucic:set("mwan3", section[".name"], "enabled", "1")
         if next(tracking_servers) then
-          uci:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
+          ucic:set_list("mwan3", section[".name"], "track_ip", tracking_servers)
         end
-        uci:set("mwan3", section[".name"], "track_method","dns")
-        uci:set("mwan3", section[".name"], "reliability", "1")
-        uci:set("mwan3", section[".name"], "count", "1")
-        uci:set("mwan3", section[".name"], "timeout", "2")
-        uci:set("mwan3", section[".name"], "interval", "5")
-        uci:set("mwan3", section[".name"], "down", "3")
-        uci:set("mwan3", section[".name"], "up", "3")
+        ucic:set("mwan3", section[".name"], "track_method","dns")
+        ucic:set("mwan3", section[".name"], "reliability", "1")
+        ucic:set("mwan3", section[".name"], "count", "1")
+        ucic:set("mwan3", section[".name"], "timeout", "2")
+        ucic:set("mwan3", section[".name"], "interval", "5")
+        ucic:set("mwan3", section[".name"], "down", "3")
+        ucic:set("mwan3", section[".name"], "up", "3")
       end
-      uci:set("mwan3", section[".name"], "generated", "1")
+      ucic:set("mwan3", section[".name"], "generated", "1")
       if section["dns"] then
         local seen = {}
         for dns in string.gmatch(section["dns"], "%S+") do
@@ -1355,40 +1353,40 @@ function update_confmwan()
       size_interfaces = size_interfaces + 1
       interfaces[section[".name"]] = section
       -- Create a tracker used to monitor tunnel interface
-      uci:set("mwan3", section[".name"], "interface")
-      if uci:get("mwan3", section[".name"], "edited") ~= "1" then
-        uci:set("mwan3", section[".name"], "enabled", "1")
+      ucic:set("mwan3", section[".name"], "interface")
+      if ucic:get("mwan3", section[".name"], "edited") ~= "1" then
+        ucic:set("mwan3", section[".name"], "enabled", "1")
         if next(tracking_tunnels) then
-          uci:set_list("mwan3", section[".name"], "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
+          ucic:set_list("mwan3", section[".name"], "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
         end
-        uci:set("mwan3", section[".name"], "track_method","icmp")
-        uci:set("mwan3", section[".name"], "reliability", "1")
-        uci:set("mwan3", section[".name"], "count", "1")
-        uci:set("mwan3", section[".name"], "timeout", "2")
-        uci:set("mwan3", section[".name"], "interval", "5")
-        uci:set("mwan3", section[".name"], "down", "3")
-        uci:set("mwan3", section[".name"], "up", "3")
+        ucic:set("mwan3", section[".name"], "track_method","icmp")
+        ucic:set("mwan3", section[".name"], "reliability", "1")
+        ucic:set("mwan3", section[".name"], "count", "1")
+        ucic:set("mwan3", section[".name"], "timeout", "2")
+        ucic:set("mwan3", section[".name"], "interval", "5")
+        ucic:set("mwan3", section[".name"], "down", "3")
+        ucic:set("mwan3", section[".name"], "up", "3")
       end
-      uci:set("mwan3", section[".name"], "generated", "1")
+      ucic:set("mwan3", section[".name"], "generated", "1")
     elseif section[".name"] == "tun0" then
       size_interfaces = size_interfaces + 1
       interfaces[section[".name"]] = section
       -- Create a tun0 tracker used for non tcp traffic
-      uci:set("mwan3", "tun0", "interface")
-      if uci:get("mwan3", "tun0", "edited") ~= "1" then
-        uci:set("mwan3", "tun0", "enabled", "1")
+      ucic:set("mwan3", "tun0", "interface")
+      if ucic:get("mwan3", "tun0", "edited") ~= "1" then
+        ucic:set("mwan3", "tun0", "enabled", "1")
         if next(tracking_tunnels) then
-          uci:set_list("mwan3", "tun0", "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
+          ucic:set_list("mwan3", "tun0", "track_ip", tracking_tunnels) -- No tracking ip for tunnel interface
         end
-        uci:set("mwan3", section[".name"], "track_method","icmp")
-        uci:set("mwan3", "tun0", "reliability", "1")
-        uci:set("mwan3", "tun0", "count", "1")
-        uci:set("mwan3", "tun0", "timeout", "2")
-        uci:set("mwan3", "tun0", "interval", "5")
-        uci:set("mwan3", "tun0", "down", "3")
-        uci:set("mwan3", "tun0", "up", "3")
+        ucic:set("mwan3", section[".name"], "track_method","icmp")
+        ucic:set("mwan3", "tun0", "reliability", "1")
+        ucic:set("mwan3", "tun0", "count", "1")
+        ucic:set("mwan3", "tun0", "timeout", "2")
+        ucic:set("mwan3", "tun0", "interval", "5")
+        ucic:set("mwan3", "tun0", "down", "3")
+        ucic:set("mwan3", "tun0", "up", "3")
       end
-      uci:set("mwan3", "tun0", "generated", "1")
+      ucic:set("mwan3", "tun0", "generated", "1")
     end
   end
   )
@@ -1485,45 +1483,45 @@ function update_confmwan()
       table.insert(members[metric], name)
       table.insert(list_interf[metric], interf[".name"])
       --- Creating mwan3 member
-      uci:set("mwan3", name, "member")
-      if uci:get("mwan3", name, "edited") ~= "1" then
-        uci:set("mwan3", name, "interface", interf[".name"])
-        uci:set("mwan3", name, "metric", metric)
-        uci:set("mwan3", name, "weight", 1)
+      ucic:set("mwan3", name, "member")
+      if ucic:get("mwan3", name, "edited") ~= "1" then
+        ucic:set("mwan3", name, "interface", interf[".name"])
+        ucic:set("mwan3", name, "metric", metric)
+        ucic:set("mwan3", name, "weight", 1)
       end
-      uci:set("mwan3", name, "generated", 1)
+      ucic:set("mwan3", name, "generated", 1)
     end
   end
   -- generate policies
   if #members_wan and members_wan[1] then
     log("Creating mwan balanced policy")
-    uci:set("mwan3", "balanced", "policy")
-    if uci:get("mwan3", "balanced", "edited") ~= "1" then
-      uci:set_list("mwan3", "balanced", "use_member", members_wan[1])
+    ucic:set("mwan3", "balanced", "policy")
+    if ucic:get("mwan3", "balanced", "edited") ~= "1" then
+      ucic:set_list("mwan3", "balanced", "use_member", members_wan[1])
     end
-    uci:set("mwan3", "balanced", "generated", "1")
+    ucic:set("mwan3", "balanced", "generated", "1")
   end
 
-  uci:set("mwan3", "failover_api", "policy")
+  ucic:set("mwan3", "failover_api", "policy")
   if #members_tun and members_tun[1] then
-    uci:set("mwan3", "balanced_tuns", "policy")
-    if uci:get("mwan3", "balanced_tuns", "edited") ~= "1" then
-      uci:set_list("mwan3", "balanced_tuns", "use_member", members_tun[1])
+    ucic:set("mwan3", "balanced_tuns", "policy")
+    if ucic:get("mwan3", "balanced_tuns", "edited") ~= "1" then
+      ucic:set_list("mwan3", "balanced_tuns", "use_member", members_tun[1])
     end
-    uci:set("mwan3", "balanced_tuns", "generated", "1")
-    if uci:get("mwan3", "failover_api", "edited") ~= "1" then
-      uci:set_list("mwan3", "failover_api", "use_member", members_tun[1])
+    ucic:set("mwan3", "balanced_tuns", "generated", "1")
+    if ucic:get("mwan3", "failover_api", "edited") ~= "1" then
+      ucic:set_list("mwan3", "failover_api", "use_member", members_tun[1])
     end
   end
 
   if #members_qos and members_qos[1] then
-    uci:set("mwan3", "balanced_qos", "policy")
-    if uci:get("mwan3", "balanced_qos", "edited") ~= "1" then
-      uci:set_list("mwan3", "balanced_qos", "use_member", members_qos[1])
+    ucic:set("mwan3", "balanced_qos", "policy")
+    if ucic:get("mwan3", "balanced_qos", "edited") ~= "1" then
+      ucic:set_list("mwan3", "balanced_qos", "use_member", members_qos[1])
     end
-    uci:set("mwan3", "balanced_qos", "generated", "1")
-    if uci:get("mwan3", "failover_api", "edited") ~= "1" then
-      uci:set_list("mwan3", "failover_api", "use_member", members_qos[1])
+    ucic:set("mwan3", "balanced_qos", "generated", "1")
+    if ucic:get("mwan3", "failover_api", "edited") ~= "1" then
+      ucic:set_list("mwan3", "failover_api", "use_member", members_qos[1])
     end
   end
 
@@ -1535,21 +1533,21 @@ function update_confmwan()
     for k, v in pairs(members_tun[2]) do
       table.insert(members_tuns, v)
     end
-    if uci:get("mwan3", "failover_api", "edited") ~= "1" then
-      uci:set_list("mwan3", "failover_api", "use_member", members_tuns)
+    if ucic:get("mwan3", "failover_api", "edited") ~= "1" then
+      ucic:set_list("mwan3", "failover_api", "use_member", members_tuns)
     end
   end
-  uci:set("mwan3", "failover_api", "generated", "1")
+  ucic:set("mwan3", "failover_api", "generated", "1")
 
   -- all uniq policy
   log("Creating mwan single policy")
   for i=1,#list_interf[1] do
     local name = list_interf[1][i].."_only"
-    uci:set("mwan3", name, "policy")
-    if uci:get("mwan3", name, "edited") ~= "1" then
-      uci:set_list("mwan3", name, "use_member", members[1][i])
+    ucic:set("mwan3", name, "policy")
+    if ucic:get("mwan3", name, "edited") ~= "1" then
+      ucic:set_list("mwan3", name, "use_member", members[1][i])
     end
-    uci:set("mwan3", name, "generated", "1")
+    ucic:set("mwan3", name, "generated", "1")
   end
 
   local seenName = { }
@@ -1573,11 +1571,11 @@ function update_confmwan()
     end
     if seenName[name] == nil then
       log("genrating route of " .. name)
-      uci:set("mwan3", name, "policy")
-      if uci:get("mwan3", name, "edited") ~= "1" then
-        uci:set_list("mwan3", name, "use_member", my_members)
+      ucic:set("mwan3", name, "policy")
+      if ucic:get("mwan3", name, "edited") ~= "1" then
+        ucic:set_list("mwan3", name, "use_member", my_members)
       end
-      uci:set("mwan3", name, "generated", "1")
+      ucic:set("mwan3", name, "generated", "1")
       seenName[name] = my_members
       if first_tun0_policy == nil and string.find(name, '^tun0*') then
         first_tun0_policy=name
@@ -1624,13 +1622,13 @@ function update_confmwan()
   end
 
   -- Setting rule to forward all non tcp traffic to tun0
-  if not uci:get("mwan3", "all") then
-    uci:set("mwan3", "all", "rule")
-    uci:set("mwan3", "all", "proto", "all")
-    uci:set("mwan3", "all", "sticky", "0")
+  if not ucic:get("mwan3", "all") then
+    ucic:set("mwan3", "all", "rule")
+    ucic:set("mwan3", "all", "proto", "all")
+    ucic:set("mwan3", "all", "sticky", "0")
   end
-  if uci:get("mwan3", "all", "edited") ~= "1" then
-    uci:set("mwan3", "all", "use_policy", "tun0_only")
+  if ucic:get("mwan3", "all", "edited") ~= "1" then
+    ucic:set("mwan3", "all", "use_policy", "tun0_only")
   end
 
   if n > 1 then
@@ -1639,7 +1637,7 @@ function update_confmwan()
     end
 
     -- Generate failover policy
-    uci:set("mwan3", "failover", "policy")
+    ucic:set("mwan3", "failover", "policy")
     local my_members = {}
     if #members_tun then
       for i=1,#members_tun[1] do
@@ -1653,141 +1651,141 @@ function update_confmwan()
         end
       end
     end
-    if uci:get("mwan3", "failover", "edited") ~= "1" then
-      uci:set_list("mwan3", "failover", "use_member", my_members)
+    if ucic:get("mwan3", "failover", "edited") ~= "1" then
+      ucic:set_list("mwan3", "failover", "use_member", my_members)
     end
-    uci:set("mwan3", "failover", "generated", "1")
+    ucic:set("mwan3", "failover", "generated", "1")
     -- Update "all" policy
-    uci:set("mwan3", "all", "rule")
-    uci:set("mwan3", "all", "proto", "all")
-    if uci:get("mwan3", "all", "edited") ~= "1" then
-      uci:set("mwan3", "all", "use_policy", "failover")
+    ucic:set("mwan3", "all", "rule")
+    ucic:set("mwan3", "all", "proto", "all")
+    if ucic:get("mwan3", "all", "edited") ~= "1" then
+      ucic:set("mwan3", "all", "use_policy", "failover")
     end
-    uci:set("mwan3", "all", "generated", "1")
+    ucic:set("mwan3", "all", "generated", "1")
     -- Create icmp policies
-    uci:set("mwan3", "icmp", "rule")
-    uci:set("mwan3", "icmp", "proto", "icmp")
-    if uci:get("mwan3", "icmp", "edited") ~= "1" then
-      uci:set("mwan3", "icmp", "use_policy", "failover")
+    ucic:set("mwan3", "icmp", "rule")
+    ucic:set("mwan3", "icmp", "proto", "icmp")
+    if ucic:get("mwan3", "icmp", "edited") ~= "1" then
+      ucic:set("mwan3", "icmp", "use_policy", "failover")
     end
-    uci:set("mwan3", "icmp", "generated", "1")
+    ucic:set("mwan3", "icmp", "generated", "1")
     -- Create voip policies
-    uci:set("mwan3", "voip", "rule")
-    if uci:get("mwan3", "voip", "edited") ~= "1" then
-      uci:set("mwan3", "voip", "proto", "udp")
-      uci:set("mwan3", "voip", "dest_ip", '91.121.128.0/23')
-      uci:set("mwan3", "voip", "use_policy", "failover")
+    ucic:set("mwan3", "voip", "rule")
+    if ucic:get("mwan3", "voip", "edited") ~= "1" then
+      ucic:set("mwan3", "voip", "proto", "udp")
+      ucic:set("mwan3", "voip", "dest_ip", '91.121.128.0/23')
+      ucic:set("mwan3", "voip", "use_policy", "failover")
     end
-    uci:set("mwan3", "voip", "generated", "1")
+    ucic:set("mwan3", "voip", "generated", "1")
     -- Create api policies
-    uci:set("mwan3", "api", "rule")
-    if uci:get("mwan3", "api", "edited") ~= "1" then
-      uci:set("mwan3", "api", "proto", "tcp")
-      uci:set("mwan3", "api", "dest_ip", 'api')
-      uci:set("mwan3", "api", "dest_port", '80')
-      uci:set("mwan3", "api", "use_policy", "failover_api")
+    ucic:set("mwan3", "api", "rule")
+    if ucic:get("mwan3", "api", "edited") ~= "1" then
+      ucic:set("mwan3", "api", "proto", "tcp")
+      ucic:set("mwan3", "api", "dest_ip", 'api')
+      ucic:set("mwan3", "api", "dest_port", '80')
+      ucic:set("mwan3", "api", "use_policy", "failover_api")
     end
-    uci:set("mwan3", "api", "generated", "1")
+    ucic:set("mwan3", "api", "generated", "1")
     -- Create DSCPs policies
     -- cs1
-    uci:set("mwan3", "CS1_Scavenger", "rule")
-    uci:set("mwan3", "CS1_Scavenger", "proto", "all")
-    uci:set("mwan3", "CS1_Scavenger", "dscp_class", "cs1")
-    if uci:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
-      uci:set("mwan3", "CS1_Scavenger", "use_policy", "failover")
+    ucic:set("mwan3", "CS1_Scavenger", "rule")
+    ucic:set("mwan3", "CS1_Scavenger", "proto", "all")
+    ucic:set("mwan3", "CS1_Scavenger", "dscp_class", "cs1")
+    if ucic:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
+      ucic:set("mwan3", "CS1_Scavenger", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS1_Scavenger", "generated", "1")
+    ucic:set("mwan3", "CS1_Scavenger", "generated", "1")
     -- cs2
-    uci:set("mwan3", "CS2_Normal", "rule")
-    uci:set("mwan3", "CS2_Normal", "proto", "all")
-    uci:set("mwan3", "CS2_Normal", "dscp_class", "cs2")
-    if uci:get("mwan3", "CS2_Normal", "edited") ~= "1" then
-      uci:set("mwan3", "CS2_Normal", "use_policy", "failover")
+    ucic:set("mwan3", "CS2_Normal", "rule")
+    ucic:set("mwan3", "CS2_Normal", "proto", "all")
+    ucic:set("mwan3", "CS2_Normal", "dscp_class", "cs2")
+    if ucic:get("mwan3", "CS2_Normal", "edited") ~= "1" then
+      ucic:set("mwan3", "CS2_Normal", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS2_Normal", "generated", "1")
+    ucic:set("mwan3", "CS2_Normal", "generated", "1")
     -- cs3
-    uci:set("mwan3", "CS3_Signaling", "rule")
-    uci:set("mwan3", "CS3_Signaling", "proto", "all")
-    uci:set("mwan3", "CS3_Signaling", "dscp_class", "cs3")
-    if uci:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
-      uci:set("mwan3", "CS3_Signaling", "use_policy", "failover")
+    ucic:set("mwan3", "CS3_Signaling", "rule")
+    ucic:set("mwan3", "CS3_Signaling", "proto", "all")
+    ucic:set("mwan3", "CS3_Signaling", "dscp_class", "cs3")
+    if ucic:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
+      ucic:set("mwan3", "CS3_Signaling", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS3_Signaling", "generated", "1")
+    ucic:set("mwan3", "CS3_Signaling", "generated", "1")
     -- cs4
-    uci:set("mwan3", "CS4_Realtime", "rule")
-    uci:set("mwan3", "CS4_Realtime", "proto", "all")
-    uci:set("mwan3", "CS4_Realtime", "dscp_class", "cs4")
-    if uci:get("mwan3", "CS4_Realtime", "edited") ~= "1" then
-      uci:set("mwan3", "CS4_Realtime", "use_policy", "failover")
+    ucic:set("mwan3", "CS4_Realtime", "rule")
+    ucic:set("mwan3", "CS4_Realtime", "proto", "all")
+    ucic:set("mwan3", "CS4_Realtime", "dscp_class", "cs4")
+    if ucic:get("mwan3", "CS4_Realtime", "edited") ~= "1" then
+      ucic:set("mwan3", "CS4_Realtime", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS4_Realtime", "generated", "1")
+    ucic:set("mwan3", "CS4_Realtime", "generated", "1")
     -- cs5
-    uci:set("mwan3", "CS5_BroadcastVd", "rule")
-    uci:set("mwan3", "CS5_BroadcastVd", "proto", "all")
-    uci:set("mwan3", "CS5_BroadcastVd", "dscp_class", "cs5")
-    if uci:get("mwan3", "CS5_BroadcastVd", "edited") ~= "1" then
-      uci:set("mwan3", "CS5_BroadcastVd", "use_policy", "failover")
+    ucic:set("mwan3", "CS5_BroadcastVd", "rule")
+    ucic:set("mwan3", "CS5_BroadcastVd", "proto", "all")
+    ucic:set("mwan3", "CS5_BroadcastVd", "dscp_class", "cs5")
+    if ucic:get("mwan3", "CS5_BroadcastVd", "edited") ~= "1" then
+      ucic:set("mwan3", "CS5_BroadcastVd", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS5_BroadcastVd", "generated", "1")
+    ucic:set("mwan3", "CS5_BroadcastVd", "generated", "1")
     -- cs6
-    uci:set("mwan3", "CS6_NetworkCtrl", "rule")
-    uci:set("mwan3", "CS6_NetworkCtrl", "proto", "all")
-    uci:set("mwan3", "CS6_NetworkCtrl", "dscp_class", "cs6")
-    if uci:get("mwan3", "CS6_NetworkCtrl", "edited") ~= "1" then
-      uci:set("mwan3", "CS6_NetworkCtrl", "use_policy", "failover")
+    ucic:set("mwan3", "CS6_NetworkCtrl", "rule")
+    ucic:set("mwan3", "CS6_NetworkCtrl", "proto", "all")
+    ucic:set("mwan3", "CS6_NetworkCtrl", "dscp_class", "cs6")
+    if ucic:get("mwan3", "CS6_NetworkCtrl", "edited") ~= "1" then
+      ucic:set("mwan3", "CS6_NetworkCtrl", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS6_NetworkCtrl", "generated", "1")
+    ucic:set("mwan3", "CS6_NetworkCtrl", "generated", "1")
     -- cs7
-    uci:set("mwan3", "CS7_Reserved", "rule")
-    uci:set("mwan3", "CS7_Reserved", "proto", "all")
-    uci:set("mwan3", "CS7_Reserved", "dscp_class", "cs7")
-    if uci:get("mwan3", "CS7_Reserved", "edited") ~= "1" then
-      uci:set("mwan3", "CS7_Reserved", "use_policy", "failover")
+    ucic:set("mwan3", "CS7_Reserved", "rule")
+    ucic:set("mwan3", "CS7_Reserved", "proto", "all")
+    ucic:set("mwan3", "CS7_Reserved", "dscp_class", "cs7")
+    if ucic:get("mwan3", "CS7_Reserved", "edited") ~= "1" then
+      ucic:set("mwan3", "CS7_Reserved", "use_policy", "failover")
     end
-    uci:set("mwan3", "CS7_Reserved", "generated", "1")
+    ucic:set("mwan3", "CS7_Reserved", "generated", "1")
     -- Generate qos failover policy
     if #members_qos and members_qos[1] then
       for i=1,#members_qos[1] do
         local name = list_qos[1][i].."_failover"
-        uci:set("mwan3", name, "policy")
+        ucic:set("mwan3", name, "policy")
         local my_members = {}
         table.insert(my_members, members_qos[1][i])
         for j=i,#list_wan[1] do
           table.insert(my_members, members_wan[j + 1][j])
         end
-        if uci:get("mwan3", name, "edited") ~= "1" then
-          uci:set_list("mwan3", name, "use_member", my_members)
+        if ucic:get("mwan3", name, "edited") ~= "1" then
+          ucic:set_list("mwan3", name, "use_member", my_members)
         end
-        uci:set("mwan3", name, "generated", "1")
+        ucic:set("mwan3", name, "generated", "1")
         --
         if list_qos[1][i] == "xtun0" then
           -- Update voip and icmp policies
-          if uci:get("mwan3", "voip", "edited") ~= "1" then
-            uci:set("mwan3", "voip", "use_policy", name)
+          if ucic:get("mwan3", "voip", "edited") ~= "1" then
+            ucic:set("mwan3", "voip", "use_policy", name)
           end
-          if uci:get("mwan3", "icmp", "edited") ~= "1" then
-            uci:set("mwan3", "icmp", "use_policy", name)
+          if ucic:get("mwan3", "icmp", "edited") ~= "1" then
+            ucic:set("mwan3", "icmp", "use_policy", name)
           end
           -- Update DSCPs policies
-          if uci:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
-            uci:set("mwan3", "CS3_Signaling", "use_policy", name)
+          if ucic:get("mwan3", "CS3_Signaling", "edited") ~= "1" then
+            ucic:set("mwan3", "CS3_Signaling", "use_policy", name)
           end
-          if uci:get("mwan3", "CS4_Realtime", "edited") ~= "1" then
-            uci:set("mwan3", "CS4_Realtime", "use_policy", name)
+          if ucic:get("mwan3", "CS4_Realtime", "edited") ~= "1" then
+            ucic:set("mwan3", "CS4_Realtime", "use_policy", name)
           end
-          if uci:get("mwan3", "CS5_BroadcastVd", "edited") ~= "1" then
-            uci:set("mwan3", "CS5_BroadcastVd", "use_policy", name)
+          if ucic:get("mwan3", "CS5_BroadcastVd", "edited") ~= "1" then
+            ucic:set("mwan3", "CS5_BroadcastVd", "use_policy", name)
           end
-          if uci:get("mwan3", "CS6_NetworkCtrl", "edited") ~= "1" then
-            uci:set("mwan3", "CS6_NetworkCtrl", "use_policy", name)
+          if ucic:get("mwan3", "CS6_NetworkCtrl", "edited") ~= "1" then
+            ucic:set("mwan3", "CS6_NetworkCtrl", "use_policy", name)
           end
-          if uci:get("mwan3", "CS7_Reserved", "edited") ~= "1" then
-            uci:set("mwan3", "CS7_Reserved", "use_policy", name)
+          if ucic:get("mwan3", "CS7_Reserved", "edited") ~= "1" then
+            ucic:set("mwan3", "CS7_Reserved", "use_policy", name)
           end
         end
         if list_qos[1][i] == "stun0" then
-          if uci:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
-            uci:set("mwan3", "CS1_Scavenger", "use_policy", name)
+          if ucic:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
+            ucic:set("mwan3", "CS1_Scavenger", "use_policy", name)
           end
         end
       end
@@ -1803,40 +1801,40 @@ function update_confmwan()
     end
     table.insert(members, "tun0_m2_w1")
 
-    uci:set("mwan3", "dns_p_" .. count, "policy")
-    if uci:get("mwan3", "dns_p_" .. count, "edited") ~= "1" then
-      uci:set_list("mwan3", "dns_p_" .. count, "use_member", members)
-      uci:set("mwan3", "dns_p_" .. count, "last_resort", "default")
+    ucic:set("mwan3", "dns_p_" .. count, "policy")
+    if ucic:get("mwan3", "dns_p_" .. count, "edited") ~= "1" then
+      ucic:set_list("mwan3", "dns_p_" .. count, "use_member", members)
+      ucic:set("mwan3", "dns_p_" .. count, "last_resort", "default")
 
-      uci:set("mwan3", "dns_" .. count, "rule")
-      if uci:get("mwan3", "dns_" .. count, "edited") ~= "1" then
-        uci:set("mwan3", "dns_" .. count, "proto", "udp")
-        uci:set("mwan3", "dns_" .. count, "sticky", "0")
-        uci:set("mwan3", "dns_" .. count, "use_policy", "dns_p_" .. count)
-        uci:set("mwan3", "dns_" .. count, "dest_ip", dns)
-        uci:set("mwan3", "dns_" .. count, "dest_port", 53)
+      ucic:set("mwan3", "dns_" .. count, "rule")
+      if ucic:get("mwan3", "dns_" .. count, "edited") ~= "1" then
+        ucic:set("mwan3", "dns_" .. count, "proto", "udp")
+        ucic:set("mwan3", "dns_" .. count, "sticky", "0")
+        ucic:set("mwan3", "dns_" .. count, "use_policy", "dns_p_" .. count)
+        ucic:set("mwan3", "dns_" .. count, "dest_ip", dns)
+        ucic:set("mwan3", "dns_" .. count, "dest_port", 53)
       end
-      uci:set("mwan3", "dns_" .. count, "generated", "1")
+      ucic:set("mwan3", "dns_" .. count, "generated", "1")
     end
-    uci:set("mwan3", "dns_p_" .. count, "generated", "1")
-    uci:reorder("mwan3", "dns_" .. count, count - 1)
+    ucic:set("mwan3", "dns_p_" .. count, "generated", "1")
+    ucic:reorder("mwan3", "dns_" .. count, count - 1)
   end
   -- reorder lasts policies
-  uci:reorder("mwan3", "api", 244)
-  uci:reorder("mwan3", "icmp", 245)
-  uci:reorder("mwan3", "voip", 246)
-  uci:reorder("mwan3", "CS1_Scavenger", 247)
-  uci:reorder("mwan3", "CS2_Normal", 248)
-  uci:reorder("mwan3", "CS3_Signaling", 249)
-  uci:reorder("mwan3", "CS4_Realtime", 250)
-  uci:reorder("mwan3", "CS5_BroadcastVd", 251)
-  uci:reorder("mwan3", "CS6_NetworkCtrl", 252)
-  uci:reorder("mwan3", "CS7_Reserved", 253)
-  uci:reorder("mwan3", "all", 254)
+  ucic:reorder("mwan3", "api", 244)
+  ucic:reorder("mwan3", "icmp", 245)
+  ucic:reorder("mwan3", "voip", 246)
+  ucic:reorder("mwan3", "CS1_Scavenger", 247)
+  ucic:reorder("mwan3", "CS2_Normal", 248)
+  ucic:reorder("mwan3", "CS3_Signaling", 249)
+  ucic:reorder("mwan3", "CS4_Realtime", 250)
+  ucic:reorder("mwan3", "CS5_BroadcastVd", 251)
+  ucic:reorder("mwan3", "CS6_NetworkCtrl", 252)
+  ucic:reorder("mwan3", "CS7_Reserved", 253)
+  ucic:reorder("mwan3", "all", 254)
 
-  uci:set("mwan3", "netconfchecksum", newmd5)
-  uci:save("mwan3")
-  uci:commit("mwan3")
+  ucic:set("mwan3", "netconfchecksum", newmd5)
+  ucic:save("mwan3")
+  ucic:commit("mwan3")
   -- We don't call reload_config here anymore as this is done in hotplug.d/net
   -- Release mwan3 lock
   l:close()
@@ -1910,7 +1908,7 @@ end
 
 function create_dhcp_server()
   local result = {}
-  local uci = uci.cursor()
+  local ucic = uci.cursor()
   -- Setup a dhcp server if needed
   local dhcpd_configured = 0
   local dhcpd = list_running_dhcp()
@@ -1922,7 +1920,7 @@ function create_dhcp_server()
   if dhcpd_configured == 0 then
     -- find the interface with the lowest metric
     local minMetric = 255;
-    uci:foreach("network", "interface",
+    ucic:foreach("network", "interface",
     function (section)
       if section["type"] == "macvlan" then
         if section["proto"] == "static" then
@@ -1941,23 +1939,21 @@ function create_dhcp_server()
     end
     )
     if minMetricInterface == nil then
-      uci:foreach("network", "interface",
+      ucic:foreach("network", "interface",
       function (section)
         if section["type"] == "macvlan" then
           if section["proto"] == "static" then
             -- add static only interface => our wans
             log( "Adding DHCP on interface : "..section[".name"] )
             result[ section[".name"] ] = section
-            uci:set("dhcp", section[".name"], "dhcp")
-            uci:set("dhcp", section[".name"], "interface", section[".name"])
-            uci:set("dhcp", section[".name"], "authoritative", "0")
-            uci:set("dhcp", section[".name"], "ignore", "0")
-            uci:set("dhcp", section[".name"], "force", "1")
-            uci:set("dhcp", section[".name"], "start", "50")
-            uci:set("dhcp", section[".name"], "limit", "200")
-            uci:set("dhcp", section[".name"], "leasetime", "12h")
-            --              uci:set("dhcp", section[".name"], "dhcp_option", "option:router," .. uci:get("interface", section[".name"], 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("interface", section[".name"], 'ipaddr'))
-            --              sys.exec("echo 'host-record=overthebox.ovh,".. section["ipaddr"]  .."'  >> /etc/dnsmasq.conf")
+            ucic:set("dhcp", section[".name"], "dhcp")
+            ucic:set("dhcp", section[".name"], "interface", section[".name"])
+            ucic:set("dhcp", section[".name"], "authoritative", "0")
+            ucic:set("dhcp", section[".name"], "ignore", "0")
+            ucic:set("dhcp", section[".name"], "force", "1")
+            ucic:set("dhcp", section[".name"], "start", "50")
+            ucic:set("dhcp", section[".name"], "limit", "200")
+            ucic:set("dhcp", section[".name"], "leasetime", "12h")
             dhcpd_configured = dhcpd_configured + 1
             return;
           end
@@ -1965,21 +1961,19 @@ function create_dhcp_server()
       end
       )
     else
-      uci:set("dhcp", minMetricInterface, "dhcp")
-      uci:set("dhcp", minMetricInterface, "interface", minMetricInterface)
-      uci:set("dhcp", minMetricInterface, "authoritative", "0")
-      uci:set("dhcp", minMetricInterface, "ignore", "0")
-      uci:set("dhcp", minMetricInterface, "force", "1")
-      uci:set("dhcp", minMetricInterface, "start", "50")
-      uci:set("dhcp", minMetricInterface, "limit", "200")
-      uci:set("dhcp", minMetricInterface, "leasetime", "12h")
-      --      uci:set("dhcp", minMetricInterface, "dhcp_option", "option:router," .. uci:get("network", minMetricInterface, 'ipaddr') .. ' ' .. "option:dns-server," .. uci:get("network", minMetricInterface, 'ipaddr'))
-      --      sys.exec("echo 'host-record=overthebox.ovh,".. uci:get("network", minMetricInterface, 'ipaddr') .."'  >> /etc/dnsmasq.conf")
+      ucic:set("dhcp", minMetricInterface, "dhcp")
+      ucic:set("dhcp", minMetricInterface, "interface", minMetricInterface)
+      ucic:set("dhcp", minMetricInterface, "authoritative", "0")
+      ucic:set("dhcp", minMetricInterface, "ignore", "0")
+      ucic:set("dhcp", minMetricInterface, "force", "1")
+      ucic:set("dhcp", minMetricInterface, "start", "50")
+      ucic:set("dhcp", minMetricInterface, "limit", "200")
+      ucic:set("dhcp", minMetricInterface, "leasetime", "12h")
       dhcpd_configured = dhcpd_configured + 1
     end
   end
-  uci:save("dhcp")
-  uci:commit("dhcp")
+  ucic:save("dhcp")
+  ucic:commit("dhcp")
   -- Cleaning UP lease info for DHCP wizard
   sys.exec("uci delete dhcpdiscovery.if0.lastcheck")
   sys.exec("uci delete dhcpdiscovery.if0.timestamp")
@@ -2198,7 +2192,8 @@ function lock(name)
   end
 
   -- Acquire lock
-  local stat, code, msg = file:lock("tlock")
+  local stat
+  stat, code, msg = file:lock("tlock")
   if not stat then
     return stat, code, msg
   end
@@ -2236,7 +2231,6 @@ function iface_info(iface)
     result.ipaddrs  = { }
     result.ip6addrs = { }
     -- populate ipv4 address
-    local _, a
     for _, a in ipairs(device:ipaddrs()) do
       result.ipaddrs[#result.ipaddrs+1] = {
         addr  = a:host():string(),
@@ -2352,6 +2346,7 @@ function tprint (tbl, indent)
     return
   end
 
+  local formatting
   for k, v in pairs(tbl) do
     formatting = string.rep("  ", indent) .. k .. ": "
     if type(v) == "table" then
