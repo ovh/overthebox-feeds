@@ -547,7 +547,8 @@ function create_diagnostic(action_id)
 end
 
 function post_result_diagnostic(id, name, cmd, output, exit_code)
-  local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics/"..id , { name= name, cmd=cmd, output=output, exit_code=exit_code})
+  -- TODO: check response
+  local rcode, _ = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/diagnostics/"..id , { name= name, cmd=cmd, output=output, exit_code=exit_code})
   return (rcode == 200)
 end
 
@@ -576,9 +577,21 @@ function list_config_files()
 end
 
 function post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
-  local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
-  '/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
-  "/backups/"..id , { filename=file, mode=mode, uid=uid, gid=gid, is_symlink=is_symlink, symlink=symlink, content=content })
+  local ucic = uci.cursor()
+  local device_id = ucic:get("overthebox", "me", "device_id")
+  local service_id = ucic:get("overthebox", "me", "service")
+  local uri = string.format("devices/%s/service/%s/backups/%s", device_id, service_id, id)
+
+  -- TODO: check response
+  local rcode, _ = POST(uri , {
+    filename=file,
+    mode=mode,
+    uid=uid,
+    gid=gid,
+    is_symlink=is_symlink,
+    symlink=symlink,
+    content=content
+  })
   return (rcode == 200)
 end
 
@@ -695,7 +708,7 @@ function remoteAccessPrepare(args)
   if exists(args, 'luci_user', 'luci_password') and
     args.luci_user ~= '' and args.luci_password ~= '' then
 
-    local ret, rcode = run("useradd -c "
+    local _, rcode = run("useradd -c "
     .. args.remote_access_id
     .. " -d /root -s /bin/false -u 0 -g root -MNo "
     .. args.luci_user)
@@ -714,7 +727,7 @@ function remoteAccessPrepare(args)
   ucic:save("overthebox")
   ucic:commit("overthebox")
 
-  local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..args.remote_access_id.."/keys",   {public_key=key})
+  local rcode, _ = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}).."/remote_accesses/"..args.remote_access_id.."/keys",   {public_key=key})
   return (rcode == 200), "ok"
 end
 
@@ -723,11 +736,11 @@ function create_ssh_key()
   local public_key = private_key..".pub"
 
   if not file_exists( private_key ) then
-    local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
+    local _, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " |grep ^ssh- > ".. public_key)
     if not status_code_ok(rcode) then return false, "error create key" end
   end
   if not file_exists( public_key ) then
-    local ret, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
+    local _, rcode = run("dropbearkey -t rsa -s 4096 -f ".. private_key .. " -y |grep ^ssh- > ".. public_key )
     if not status_code_ok(rcode) then return false, "error dump key" end
   end
 
@@ -760,7 +773,7 @@ function remoteAccessConnect(args)
   ucic:save("overthebox")
   ucic:commit("overthebox")
 
-  local ret, rcode = run("/etc/init.d/otb-remote restart")
+  local _, rcode = run("/etc/init.d/otb-remote restart")
   if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
   return true, "ok"
 end
@@ -784,7 +797,7 @@ function remoteAccessDisconnect(args)
 
   -- Delete luci user if we created one earlier
   if luci_user ~= nil then
-    local ret, rcode = run("userdel -f " .. luci_user)
+    local _, rcode = run("userdel -f " .. luci_user)
     if not status_code_ok(rcode) then return false, "error when deleting user " .. luci_user end
   end
 
@@ -793,7 +806,7 @@ function remoteAccessDisconnect(args)
   ucic:save("overthebox")
   ucic:commit("overthebox")
 
-  local ret, rcode = run("/etc/init.d/otb-remote restart")
+  local _, rcode = run("/etc/init.d/otb-remote restart")
   if not status_code_ok(rcode) then return false, "error on otb-remote daemon restart" end
   return true, "ok"
 end
@@ -951,7 +964,7 @@ local services = {
 -- - disabled and not running
 function ensure_service_state(service, status)
   local initd = "/etc/init.d/" .. service
-  local ret, rcode = run(initd .. " enabled")
+  local _, rcode = run(initd .. " enabled")
   if not status_code_ok(rcode) and status == "enable" then
     ret = service .. " needs to be enabled because it isn't yet. Enabling and restarting..."
     local ret_initd, rcode = run(initd .. " enable; " .. initd .. " restart")
@@ -1188,7 +1201,7 @@ function API(uri, method, data)
   local respbody  = {}
   -- Building Request
   http.TIMEOUT=5
-  local body, code, headers, status = https.request{
+  local _, code, headers, status = https.request{
     method = method,
     url = url,
     protocol = "tlsv1",
@@ -2138,7 +2151,7 @@ function tcpsocketsof(pid)
   local f = io.open(string.format('/proc/%s/net/tcp',pid), "r")
   if f == nil then return ret end
   for line in f:lines() do
-    local fis = split(line or "" )
+    local fis = split(line or "")
     if #fis > 12 then
       fis[1] = fis[1]:gsub(":", "") -- clean id
       fis[2] = ipport(fis[2])
@@ -2288,10 +2301,10 @@ function tc_stats()
 
   output = {}
   result["download"] = {}
-  local json = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
-  if json and json.raw_output then
+  local tcstats = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
+  if tcstats and tcstats.raw_output then
 
-    for line in string.gmatch(json.raw_output, '[^\r\n]+') do
+    for line in string.gmatch(tcstats.raw_output, '[^\r\n]+') do
       table.insert(output, line)
     end
 
