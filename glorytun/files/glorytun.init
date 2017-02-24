@@ -41,7 +41,7 @@ start_instance() {
 	[ -n "${port}" ] || return 1
 	[ -n "${dev}" ] || return 1
 
-	echo -n "${key}" > /tmp/${PROG_NAME}.key
+	echo "${key}" > /tmp/${PROG_NAME}.key
 	key=""
 
 	_log "starting ${PROG_NAME} instance $*"
@@ -50,9 +50,9 @@ start_instance() {
 
 	procd_set_param command ${PROG} \
 		keyfile /tmp/${PROG_NAME}.key \
-		host ${server} \
-		port ${port} \
-		dev ${dev} \
+		host "$server" \
+		port "$port" \
+		dev "$dev" \
 		retry count -1 const 5000000 \
 		timeout 5000 \
 		keepalive count 3 idle 10 interval 1 \
