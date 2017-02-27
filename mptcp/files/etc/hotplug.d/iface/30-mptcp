@@ -8,7 +8,7 @@
 
 [ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
 
-enable=`uci -q get network.globals.multipath` || exit 0
+enable=$(uci -q get network.globals.multipath) || exit 0
 
 if [ "$enable" = "disable" ]; then
 	echo "0" > /proc/sys/net/mptcp/mptcp_enabled
@@ -27,27 +27,27 @@ count=301
 set_default() {
 	local mode
 	local config="$1"
-	count=$(($count+1))
+	count=$((count+1))
 	[ "$config" = "$INTERFACE" ] && id=$count
 	config_get mode "$config" multipath
 	[ "$mode" = "master" ] && {
 		local gateway
-		network_get_gateway gateway $config || {
-			logger -t multipath master device $DEVICE has no gateway!
-			logger -t multipath disable mtcp on $DEVICE
-			multipath $DEVICE off
+		network_get_gateway gateway "$config" || {
+			logger -t multipath "master device $DEVICE has no gateway!"
+			logger -t multipath "disable mtcp on $DEVICE"
+			multipath "$DEVICE" off
 			#Fallback: use upcomming interface...
-			network_get_gateway gateway $INTERFACE
+			network_get_gateway gateway "$INTERFACE"
 			config=$INTERFACE
 		}
 		local iface
 		config_get iface "$config" ifname
 		ip route del default
-		ip route add default scope global nexthop via $gateway dev $iface || {
+		ip route add default scope global nexthop via "$gateway" dev "$iface" || {
 			#Fallback: use upcomming interface...
-			network_get_gateway gateway $INTERFACE
-			ip route add default scope global nexthop via $gateway dev $INTERFACE
-			logger -t multipath Faild to set default multipath device! Use $INTERFACE as fallback...
+			network_get_gateway gateway "$INTERFACE"
+			ip route add default scope global nexthop via "$gateway" dev "$INTERFACE"
+			logger -t multipath "Failed to set default multipath device! Use $INTERFACE as fallback..."
 		}
 	}
 }
@@ -56,16 +56,16 @@ config_load network
 config_foreach set_default interface
 
 [ $id = 0 ] && {
-	logger -t multipath device $INTERFACE not fount!
-	echo device $INTERFACE not fount!
+	logger -t multipath "device $INTERFACE not found!"
+	echo "device $INTERFACE not found!"
 	exit 1
 }
 
-mode=`uci -q get network.$INTERFACE.multipath` || mode='off'
+mode=$(uci -q get "network.$INTERFACE.multipath") || mode='off'
 
 case "$mode" in
 	"off")
-		multipath $DEVICE off
+		multipath "$DEVICE" off
 		exit 0;;
 	"master")
 		mode="on";;
@@ -73,27 +73,27 @@ case "$mode" in
 	"backup");;
 	"handover");;
 	*)
-		logger -t multipath Wrong multipath value for device $DEVICE
+		logger -t multipath "Wrong multipath value for device $DEVICE"
 		exit 1;;
 esac
 
 # Update kernel flags
-multipath $DEVICE $mode
+multipath "$DEVICE" "$mode"
 
 # IPv4 Updates:
 
 local ipaddr
 local gateway
-local network
-local netmask
-network_get_ipaddr	ipaddr	$INTERFACE || exit 1
-network_get_gateway gateway $INTERFACE || exit 1
-network_get_subnet	network $INTERFACE || exit 1
-__network_ifstatus	netmask $INTERFACE "['ipv4-address'][0]['mask']"
-network=`ipcalc.sh $network | sed -n '/NETWORK=/{;s/.*=//;s/ .*//;p;}'`
+local subnet
+network_get_ipaddr	ipaddr	"$INTERFACE" || exit 1
+network_get_gateway gateway "$INTERFACE" || exit 1
+network_get_subnet	subnet "$INTERFACE" || exit 1
+
+# Fills the env values NETWORK and PREFIX needed to add the route
+eval "$(ipcalc.sh "$subnet")"
 
 ip rule del table $id
 ip route flush table $id
-ip rule add from $ipaddr table $id pref $(( 10000 + $id ))
-ip route add $network/$netmask dev $DEVICE scope link table $id
-ip route add default via $gateway dev $DEVICE table $id
+ip rule add from "$ipaddr" table "$id" pref $(( 10000 + id ))
+ip route add "$NETWORK/$PREFIX" dev "$DEVICE" scope link table "$id"
+ip route add default via "$gateway" dev "$DEVICE" table "$id"
