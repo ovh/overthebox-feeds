@@ -60,20 +60,12 @@ if fs.access("/usr/sbin/br2684ctl") then
 end
 
 local network = require "luci.model.network"
-if network:has_ipv6() or fs.access("/proc/sys/net/mptcp") then
+if fs.access("/proc/sys/net/mptcp") then
     local s = m:section(NamedSection, "globals", "globals", translate("Global network options"))
 
-    if fs.access("/proc/sys/net/mptcp") then
-        local mtcp = s:option(ListValue, "multipath", translate("Multipath TCP"))
-        mtcp:value("enable", translate("enable"))
-        mtcp:value("disable", translate("disable"))
-    end
-
-    if network:has_ipv6() then
-    	local o = s:option(Value, "ula_prefix", translate("IPv6 ULA-Prefix"))
-    	o.datatype = "ip6addr"
-    	o.rmempty = true
-    end
+    local mtcp = s:option(ListValue, "multipath", translate("Multipath TCP"))
+    mtcp:value("enable", translate("enable"))
+    mtcp:value("disable", translate("disable"))
 
     m.pageaction = true
 end
