@@ -139,7 +139,8 @@ setup_uci() {
 					# Bring up $IF interface
 					/sbin/hotplug-call net
 					ifup $IF
-					return pkill -USR1 udhcpc;
+					pkill -USR1 udhcpc
+					return
 				fi
 
 				# Find a free interface index
@@ -259,7 +260,7 @@ setup_uci() {
 				uci set network.if0.macaddr="$IF0_MACADDR"
 
 				# if we found mac address of the modem create the new interface
-				if [ -n DHCPMACADDR ]; then
+				if [ -n "$DHCPMACADDR" ]; then
 					# Convert info from dhcp server to a static interface
 					uci set network.$IF="interface"
 					uci set network.$IF.ifname="$IF"
@@ -315,11 +316,13 @@ setup_uci() {
 					ifup $IF
 				else
 					# ignore dhcp request
-					return pkill -USR1 udhcpc;
+					pkill -USR1 udhcpc
+					return
 				fi
 			else
 				# ignore dhcp request
-				return pkill -USR1 udhcpc;
+				pkill -USR1 udhcpc
+				return
 			fi
 		fi
 	fi
