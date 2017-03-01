@@ -70,12 +70,24 @@ function Switch:open()
     return true
 end
 
--- This closes the serial connection
+-- This closes the serial connection and resets the switch object for reuse
+-- It's very important NOT to logout from the switch
+-- If we logout 5 times, we get following warning:
+--  CLI is restarting too fast
+--  Console will be blocked 300 seconsd if you restart CLI less than 90 seconds next time.
+--
+-- If we logout a sixth time, UART CLI won't respond at all for 5 minutes
+--  Console is blocking 300 seconsd
+--
+-- It seems the best option is NOT to logout. CLI will auto logout after an idle time of 10min
 function Switch:close()
     if self.sock ~= nil then
         self.sock:close()
         self.sock = nil
     end
+
+    self.hostname = nil
+    self.state = Switch.State.UNKNOWN
 end
 
 -- Ask the kernel to see if someone else is already using the serial link
@@ -202,15 +214,15 @@ function Switch:_recv()
     return res
 end
 
--- This method analyzes the last line of the received output to determine the switch state
+-- This method analyzes the received output to determine the switch state
 function Switch:_parse_prompt(data)
     first_line = data[1]
     last_line = data[#data]
 
     -- It is crucial below to use "starts" and not "ends" because sometimes, there will be a comment after the prompt
     -- For example:
-    -- martinsw# *Jan 08 2000 03:54:00: %System-5: New console connection for user admin, source async  ACCEPTED
-    -- There should never be anything BEFORE the prompt
+    --  martinsw# *Jan 08 2000 03:54:00: %System-5: New console connection for user admin, source async  ACCEPTED
+    --  There should never be anything BEFORE the prompt
     if string.starts(last_line, "Username: ") then
         print("State Username detected")
         return Switch.State.LOGIN_USERNAME
@@ -219,9 +231,9 @@ function Switch:_parse_prompt(data)
         print("State Password detected")
         return Switch.State.LOGIN_PASSWORD
 
-    -- "Press any key to continue" is not the last line but the first one
-    -- Press any key to continue
-    -- *Jan 08 2000 06:42:48: %System-5: New console connection for user admin, source async  REJECTED
+    -- Press any key to continue is not the last line but the first one
+    --  Press any key to continue
+    --  *Jan 08 2000 06:42:48: %System-5: New console connection for user admin, source async  REJECTED
     elseif first_line == "Press any key to continue" then
         print("State 'Press any key' detected")
         return Switch.State.PRESS_ANY_KEY
@@ -275,7 +287,7 @@ function Switch:_parse_prompt(data)
     end
 end
 
--- This method brings the switch from any state to the ADMIN_MAIN state ("hostname#" prompt)
+-- This method brings the switch from any state to the ADMIN_MAIN state ("hostname# " prompt)
 -- No matter what the switch's state is, this should bring us there
 -- If needed, it will auto-login or exit some menus to reach the ADMIN_MAIN state
 function Switch:_goto_admin_main()
