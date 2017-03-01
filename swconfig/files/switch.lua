@@ -298,56 +298,48 @@ end
 -- No matter what the switch's state is, this should bring us there
 -- If needed, it will auto-login or exit some menus to reach the ADMIN_MAIN state
 function Switch:_goto_admin_main()
-    local ok
-
     self.sock:flush()
 
-    -- Sorry about this loop... Actually we never loop except when state is unknown
-    -- Is there a better way, avoiding infinite loops, gotos and recursive calls?
-    while true do
-        -- We are already where we want to go. Stop here
-        if self.state == Switch.State.ADMIN_MAIN then
-            ok = true
-            break
-        -- We are logged in and at the "hostname>" prompt
-        elseif self.state == Switch.State.USER_MAIN then
-            ok = self:send("enable")
-            break
-        -- We're logged in and in some menus. Just exit them
-        elseif self.state == Switch.State.CONFIG or
-                self.state == Switch.State.CONFIG_VLAN or
-                self.state == Switch.State.CONFIG_IF or
-                self.state == Switch.State.CONFIG_IF_RANGE then
-            ok = self:send("end")
-            break
-        -- We're in the login prompt. Just login now!
-        elseif self.state == Switch.State.LOGIN_USERNAME or
-                self.state == Switch.State.LOGIN_PASSWORD then
-            ok = self:_login()
-            break
-        -- We don't know where we are, let's find out :)
-        elseif self.state == Switch.State.UNKNOWN or self.state == Switch.State.PRESS_ANY_KEY then
-            -- TODO check write error here
-            self.sock:write("\n", SERIAL_TIMEOUT)
+    -- We don't know where we are, let's find out :)
+    if self.state == Switch.State.UNKNOWN or self.state == Switch.State.PRESS_ANY_KEY then
+        -- TODO check write error here
+        self.sock:write("\n", SERIAL_TIMEOUT)
 
-            -- We need to use low level receive here because of the "Username:" exception
-            -- just after the "Press any key to continue" where we can't check the echo of the "\n"
-            data = self:_recv()
-            if data ~= nil then
-                -- Remove leading "\n" if there is one (our echo most of the time, but not for "Username: ")
-                if #data > 1 and data[1] == "\n" then
-                    data = string.sub(data, 2, -1)
-                end
-                -- This will update the state with the freshly received prompt
-                self.state = self:_parse_prompt(self:_data_to_table(data))
-                ok = true
-                -- Don't break here. We want to loop again as state has been updated
-            else
-                self:_print_error("No echo at all when trying to determine switch state. Is the switch dead?")
-                ok = false
-                break
+        -- We need to use low level receive here because of the "Username: " exception
+        -- just after the "Press any key to continue" where we can't check the echo of the "\n"
+        data = self:_recv()
+        if data ~= nil then
+            -- Remove leading "\n" if there is one (our echo most of the time, but not for "Username: ")
+            if #data > 1 and data[1] == "\n" then
+                data = string.sub(data, 2, -1)
             end
+            -- This will update the state with the freshly received prompt
+            self.state = self:_parse_prompt(self:_data_to_table(data))
+        else
+            self:_print_error("No echo at all when trying to determine switch state. Is the switch dead?")
+            return false
         end
+    end
+
+    -- Now, we know where we are. It's time to go to the ADMIN_MAIN state :)
+    local ok
+
+    -- We are already where we want to go. Stop here
+    if self.state == Switch.State.ADMIN_MAIN then
+        return true
+    -- We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
+    elseif self.state == Switch.State.USER_MAIN then
+        ok = self:send("enable")
+    -- We're logged in and in some menus. Just exit them
+    elseif self.state == Switch.State.CONFIG or
+            self.state == Switch.State.CONFIG_VLAN or
+            self.state == Switch.State.CONFIG_IF or
+            self.state == Switch.State.CONFIG_IF_RANGE then
+        ok = self:send("end")
+    -- We're in the login prompt. Just login now!
+    elseif self.state == Switch.State.LOGIN_USERNAME or
+            self.state == Switch.State.LOGIN_PASSWORD then
+        ok = self:_login()
     end
 
     -- Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
