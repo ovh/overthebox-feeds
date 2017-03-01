@@ -19,6 +19,8 @@ Switch.State = {
     UNKNOWN         = {},
 }
 
+-- This method instantiates a new Switch object.
+-- It doesn't connect to the serial port, only prepares the object
 function Switch:new(file, username, password)
     local s = {}
     setmetatable(s, self)
@@ -39,11 +41,14 @@ function Switch:new(file, username, password)
     return s
 end
 
+-- This opens the serial connection
 function Switch:open()
     if sock ~= nil then
         return false
     end
 
+    -- Ask the kernel to see if someone is already using the serial link
+    -- Better than a lock we would handle ourselves :)
     if self:_file_is_busy() then
         self:_print_error("'" .. self.file .. "' is busy")
         return false
@@ -51,7 +56,7 @@ function Switch:open()
 
     local err, sock = rs232.open(self.file)
     if err ~= rs232.RS232_ERR_NOERROR then
-        self._print_error("Unable to connect to the switch", err)
+        self._print_error("Unable to open the serial connection to the switch", err)
         return false
     end
 
@@ -62,10 +67,10 @@ function Switch:open()
     sock:set_stop_bits(self.stop_bits)
 
     self.sock = sock
-    self:_print_rs232_state()
     return true
 end
 
+-- This closes the serial connection
 function Switch:close()
     if self.sock ~= nil then
         self.sock:close()
@@ -73,6 +78,7 @@ function Switch:close()
     end
 end
 
+-- Ask the kernel to see if someone else is already using the serial link
 function Switch:_file_is_busy()
     fd = io.popen("lsof " .. self.file)
     line_number = #fd:read("*a")
@@ -92,6 +98,7 @@ function Switch:_print_error(msg, err)
     end
 end
 
+-- Convert a string to a table with one line by row and without \r\n
 function Switch:_data_to_table(data)
     data = string.split(data, "\r\n")
     -- Sometimes the last line is empty (because of data ending by an additional \r\n)
@@ -104,6 +111,7 @@ function Switch:_data_to_table(data)
     return data
 end
 
+-- Send a command to the switch, read back the echo, fetch & return the command result
 function Switch:send(cmd)
     if not self:_send(cmd) then
         return nil
@@ -123,6 +131,7 @@ function Switch:send(cmd)
     return data
 end
 
+-- This is a low level method reading only one character at a time
 function Switch:_read_one_char()
     err, data, len = self.sock:read(1, SERIAL_TIMEOUT, 0)
 
@@ -134,6 +143,7 @@ function Switch:_read_one_char()
     return data
 end
 
+-- This low level method sends a command to the switch and consumes the echo
 function Switch:_send(cmd)
     -- When sending a command, only append a Line Feed
     cmd = cmd .. "\n"
@@ -167,6 +177,11 @@ function Switch:_send(cmd)
     return true
 end
 
+-- Implement serial read without the need to specify a length
+-- Read as much bytes as there is
+-- We need to do this because the underlying serial lib doesn't handle EOF
+-- EOF should be possible because the switch uses one stop bit in its UART implementation
+-- But because we don't have any EOF mechanism, we assume there's nothing to read if we hit a timeout error
 function Switch:_recv()
     res = ""
     while true do
@@ -187,9 +202,15 @@ function Switch:_recv()
     return res
 end
 
+-- This method analyzes the last line of the received output to determine the switch state
 function Switch:_parse_prompt(data)
+    first_line = data[1]
     last_line = data[#data]
 
+    -- It is crucial below to use "starts" and not "ends" because sometimes, there will be a comment after the prompt
+    -- For example:
+    -- martinsw# *Jan 08 2000 03:54:00: %System-5: New console connection for user admin, source async  ACCEPTED
+    -- There should never be anything BEFORE the prompt
     if string.starts(last_line, "Username: ") then
         print("State Username detected")
         return Switch.State.LOGIN_USERNAME
@@ -198,7 +219,10 @@ function Switch:_parse_prompt(data)
         print("State Password detected")
         return Switch.State.LOGIN_PASSWORD
 
-    elseif string.starts(last_line, "Press any key to continue") then
+    -- "Press any key to continue" is not the last line but the first one
+    -- Press any key to continue
+    -- *Jan 08 2000 06:42:48: %System-5: New console connection for user admin, source async  REJECTED
+    elseif first_line == "Press any key to continue" then
         print("State 'Press any key' detected")
         return Switch.State.PRESS_ANY_KEY
     end
@@ -249,10 +273,11 @@ function Switch:_parse_prompt(data)
         print("Unknown state :'(")
         return Switch.State.UNKNOWN
     end
-
-    hex_dump(last_line)
 end
 
+-- This method brings the switch from any state to the ADMIN_MAIN state ("hostname#" prompt)
+-- No matter what the switch's state is, this should bring us there
+-- If needed, it will auto-login or exit some menus to reach the ADMIN_MAIN state
 function Switch:_goto_admin_main()
     local ok
 
@@ -261,22 +286,27 @@ function Switch:_goto_admin_main()
     -- Sorry about this loop... Actually we never loop except when state is unknown
     -- Is there a better way, avoiding infinite loops, gotos and recursive calls?
     while true do
+        -- We are already where we want to go. Stop here
         if self.state == Switch.State.ADMIN_MAIN then
             ok = true
             break
+        -- We are logged in and at the "hostname>" prompt
         elseif self.state == Switch.State.USER_MAIN then
             ok = self:send("enable")
             break
+        -- We're logged in and in some menus. Just exit them
         elseif self.state == Switch.State.CONFIG or
                 self.state == Switch.State.CONFIG_VLAN or
                 self.state == Switch.State.CONFIG_IF or
                 self.state == Switch.State.CONFIG_IF_RANGE then
             ok = self:send("end")
             break
+        -- We're in the login prompt. Just login now!
         elseif self.state == Switch.State.LOGIN_USERNAME or
                 self.state == Switch.State.LOGIN_PASSWORD then
             ok = self:_login()
             break
+        -- We don't know where we are, let's find out :)
         elseif self.state == Switch.State.UNKNOWN or self.state == Switch.State.PRESS_ANY_KEY then
             -- TODO check write error here
             self.sock:write("\n", SERIAL_TIMEOUT)
@@ -285,36 +315,59 @@ function Switch:_goto_admin_main()
             -- just after the "Press any key to continue" where we can't check the echo of the "\n"
             data = self:_recv()
             if data ~= nil then
-                -- Remove leading "\n" if there is one (our echo most of the time, but not for Username: )
+                -- Remove leading "\n" if there is one (our echo most of the time, but not for "Username: ")
                 if #data > 1 and data[1] == "\n" then
                     data = string.sub(data, 2, -1)
                 end
+                -- This will update the state with the freshly received prompt
                 self.state = self:_parse_prompt(self:_data_to_table(data))
                 ok = true
                 -- Don't break here. We want to loop again as state has been updated
             else
+                self:_print_error("No echo at all when trying to determine switch state. Is the switch dead?")
                 ok = false
                 break
             end
         end
     end
 
+    -- Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
     return ok and self.state == Switch.State.ADMIN_MAIN
 end
 
+-- This function attempts to login
+-- It can be called whether we are in the LOGIN_USERNAME or LOGIN_PASSWORD state
+-- Never call me if the state is something else
 function Switch:_login()
     if self.state == Switch.State.LOGIN_USERNAME then
         print("I need to enter my username dude...")
-        -- We should have entered password state as soon as username has been sent
-        if not self:send(self.username) or self.state ~= Switch.State.LOGIN_PASSWORD then
+
+        -- Send the username to the switch
+        ret = self:send(self.username)
+        if not ret then
+            self:_print_error("Unexpected error when attempting to send the username during the login phase")
+            return false
+        end
+
+        -- The switch rejects us immediately if the username doesn't exist
+        if table.strfind(ret, "Incorrect User Name") then
+            self:_print_error("The switch claims the username is invalid. Check that the credentials are correct.")
+            return false
+        end
+
+        -- We should have entered password state as soon as correct username has been sent
+        if self.state ~= Switch.State.LOGIN_PASSWORD then
+            self:_print_error("Unexpected error when sending username to the switch: we should have entered password state but it's not the case")
             return false
         end
     end
 
     if self.state == Switch.State.LOGIN_PASSWORD then
         print("I need to enter my password dude...")
+        -- Send the password to the switch
         data = self:send(self.password)
         if data == nil then
+            self:_print_error("Unexpected error when attempting to send the password during the login phase")
             return false
         end
 
@@ -322,7 +375,21 @@ function Switch:_login()
         if table.strfind(data, "ACCEPTED") then
             return true
         end
+
+        -- This will happen when the password is incorrect
+        if table.strfind(data, "REJECTED") then
+            self:_print_error("The switch rejected the password. Check that the credentials are correct.")
+
+        -- Here, it's strange because we succeeded to send the password, but we didn't get ACCEPTED nor REJECTED
+        else
+            self:_print_error("Unexpected error when sending the password during the login phase: no ACCEPTED nor REJECTED")
+        end
+
+        return false
     end
 
+    -- Whaaaaat? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
+    self:_print_error("Login method should never have been called now. Bye bye...")
+    assert(false)
     return false
 end
