@@ -180,6 +180,13 @@ function Switch:_send(cmd)
             end
         end
 
+        -- Each character we get should be the echo of what we just sent
+        -- '*' is added as exception here for password echo
+        -- If we encounter wrong echo, maybe we just got a garbage line from the switch, for example:
+        --  martinsw# *Jan 08 2000 08:19:34: %Port-5: Port gi6 link down
+        -- We then flush the write and read buffers, so that we stop reading the garbage line immediately
+        -- That way, the next time we read one character, it should be again our echo
+        -- TODO: We should only tolerate a given fixed "wrong echo budget"
         if char ~= char_echo and char_echo ~= '*' then
             print(string.format("'%s' != '%s'", char, char_echo))
             self.sock:flush()
