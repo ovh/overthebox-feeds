@@ -368,11 +368,19 @@ function Switch:_login()
 
         -- We should have entered password state as soon as correct username has been sent
         if self.state ~= Switch.State.LOGIN_PASSWORD then
-            self:_print_error("Unexpected error when sending username to the switch: we should have entered password state but it's not the case")
+            self:_print_error("Unexpected error after sending username to the switch: we should have entered password state but it's not the case")
             return false
         end
+        -- If we got here, our login was accepted, let's continue and send the password below
     end
 
+    -- There are 2 possible execution flows:
+    --  1) We've just sent the login above, now it's time to send the password
+    --  2) We arrive directly here as the first if above was skipped
+    -- This second case is rare but could occur if the switch's state is the following before launching swconfig:
+    -- (Username fully typed in but no Line Feed entered)
+    --  Username: admin
+    -- In this case we'll transition from UNKNOWN to LOGIN_PASSWORD state directly
     if self.state == Switch.State.LOGIN_PASSWORD then
         print("I need to enter my password dude...")
         -- Send the password to the switch
