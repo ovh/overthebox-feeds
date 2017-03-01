@@ -1,5 +1,6 @@
 -- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 rs232 = require("luars232")
+utils = require("swconfig.utils")
 
 local MAX_HOSTNAME_LEN = 20
 local SERIAL_TIMEOUT   = 100
@@ -7,6 +8,8 @@ local SERIAL_TIMEOUT   = 100
 -- Switch class definition
 Switch = {}
 
+-- Yes, this is a way in lua to mimic an enum :'(
+-- It works because each value is a memory address that will be unique
 Switch.State = {
   PRESS_ANY_KEY   = {},
   USER_MAIN       = {},
@@ -23,6 +26,8 @@ Switch.State = {
 -- This method instantiates a new Switch object.
 -- It doesn't connect to the serial port, only prepares the object
 function Switch:new(file, username, password)
+  -- Following 3 lines are a way in lua to use OOP :'(
+  -- Note that we don't need inheritance feature here
   local s = {}
   setmetatable(s, self)
   self.__index = self
