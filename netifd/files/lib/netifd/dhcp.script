@@ -96,22 +96,22 @@ deconfig_interface() {
 	proto_send_update "$INTERFACE"
 }
 
+# TODO: this code needs a **big** refresh
 setup_uci() {
-
 	MACPREFIX="42:42:42"
 
 	# Test if we have a lease router
 	if [ -n "$router" ]; then
 
 		# Test if the leased ip is private
-		if /usr/bin/owipcalc $ip quiet private; then
+		if /usr/bin/owipcalc "$ip" quiet private; then
 
-			KNOWN_ROUTER=$(uci show network |grep '\.gateway=' |grep -v '@route' |grep "'$router'")
+			KNOWN_ROUTER=$(uci show network | grep '\.gateway=' | grep -v '@route' | grep "'$router'")
 			if [ -z "$KNOWN_ROUTER" ]; then
 
 				# Initialize the lan base interface
-				COUNT_INTERFACE=$(uci show network | grep "proto='static'"	| grep -v loopback | wc -l)
-				if [ "$COUNT_INTERFACE" == "0" ]; then
+				COUNT_INTERFACE=$(uci show network | grep "proto='static'" | grep -c loopback)
+				if [ "$COUNT_INTERFACE" = 0 ]; then
 					IF="lan"
 					uci set network.$IF="interface"
 					uci set network.$IF.ifname="$IF"
@@ -135,7 +135,7 @@ setup_uci() {
 					uci commit firewall
 					# Force update of if0 mac address
 					ifup if0
-					ifconfig if0 hw ether $IF0_MACADDR
+					ifconfig if0 hw ether "$IF0_MACADDR"
 					# Bring up $IF interface
 					/sbin/hotplug-call net
 					ifup $IF
@@ -147,7 +147,7 @@ setup_uci() {
 				IND=0
 				IF="if$IND"
 				while uci -q get network.$IF 1>/dev/null; do
-					IND=$(($IND + 1))
+					IND=$((IND + 1))
 					IF="if$IND"
 				done
 
@@ -173,8 +173,8 @@ setup_uci() {
 				uci set network.$IF.macaddr="$MACADDR"
 
 				# Setup firewall
-				LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
-				if [ -z $LANZONE ]; then
+				LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
+				if [ -z "$LANZONE" ]; then
 					uci add firewall zone
 					uci set firewall.@zone[-1].name='mptcp'
 					uci set firewall.@zone[-1].input='DROP'
@@ -191,17 +191,17 @@ setup_uci() {
 					uci set firewall.@forwarding[-1].src='lan'
 					uci set firewall.@forwarding[-1].dest='mptcp'
 
-					LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
+					LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
 				fi
-				LANIFS=$(uci get $LANZONE.network)
-				uci set $LANZONE.network="$LANIFS $IF"
+				LANIFS=$(uci get "$LANZONE.network")
+				uci set "$LANZONE.network=$LANIFS $IF"
 
 				# Save settings
 				uci commit network
 				uci commit firewall
 				# Force update of if0 mac address
 				ifup if0
-				ifconfig if0 hw ether $IF0_MACADDR
+				ifconfig if0 hw ether "$IF0_MACADDR"
 				# Bring up $IF interface
 				/sbin/hotplug-call net
 				ifup $IF
@@ -211,12 +211,12 @@ setup_uci() {
 
 			ISPUBLIC="true"
 			# Handler for bridge modem
-			KNOWN_WANIP=$(uci show network |grep '\.ipaddr=' |grep "'$ip'")
+			KNOWN_WANIP=$(uci show network | grep '\.ipaddr=' | grep "'$ip'")
 
 			if [ -z "$KNOWN_WANIP" ]; then
 
-				COUNT_INTERFACE=$(uci show network | grep "proto='static'"	| grep -v loopback | wc -l)
-				if [ "$COUNT_INTERFACE" == "0" ]; then
+				COUNT_INTERFACE=$(uci show network | grep "proto='static'" | grep -c loopback)
+				if [ "$COUNT_INTERFACE" = 0 ]; then
 					IF="lan"
 					uci set network.$IF="interface"
 					uci set network.$IF.ifname="$IF"
@@ -238,17 +238,17 @@ setup_uci() {
 				fi
 
 				# Get mac address of the router
-				if /sbin/ifconfig $INTERFACE $ip netmask $subnet; then
-					DHCPMACADDR=$( /usr/bin/arping $router -c 1 -w 1000 -I $INTERFACE | grep reply | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}')
+				if /sbin/ifconfig "$INTERFACE" "$ip" netmask "$subnet"; then
+					DHCPMACADDR=$(/usr/bin/arping "$router" -c 1 -w 1000 -I "$INTERFACE" | grep reply | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}')
 					# Clear subinterface ip
-					/sbin/ifconfig $INTERFACE 0 2>/dev/null
+					/sbin/ifconfig "$INTERFACE" 0 2>/dev/null
 				fi
 
 				# Find a free interface index
 				IND=0
 				IF="if$IND"
 				while uci -q get network.$IF 1>/dev/null; do
-					IND=$(($IND + 1))
+					IND=$((IND + 1))
 					IF="if$IND"
 				done
 
@@ -277,7 +277,7 @@ setup_uci() {
 
 					# Setup firewall
 					LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
-					if [ -z $LANZONE ]; then
+					if [ -z "$LANZONE" ]; then
 							uci add firewall zone
 							uci set firewall.@zone[-1].name='mptcp'
 							uci set firewall.@zone[-1].input='ACCEPT'
@@ -300,17 +300,17 @@ setup_uci() {
 							uci set firewall.@forwarding[-1].src='vpn'
 							uci set firewall.@forwarding[-1].dest='mptcp'
 
-							LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
+							LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
 					fi
-					LANIFS=$(uci get $LANZONE.network)
-					uci set $LANZONE.network="$LANIFS $IF"
+					LANIFS=$(uci get "$LANZONE.network")
+					uci set "$LANZONE.network=$LANIFS $IF"
 
 					# Save settings
 					uci commit network
 					uci commit firewall
 					# Force update of if0 mac address
 					ifup if0
-					ifconfig if0 hw ether $IF0_MACADDR
+					ifconfig if0 hw ether "$IF0_MACADDR"
 					# Bring up $IF interface
 					/sbin/hotplug-call net
 					ifup $IF
@@ -329,27 +329,22 @@ setup_uci() {
 
 	if [ "$ISPUBLIC" != "true" ]; then
 		/bin/touch /etc/config/dhcpdiscovery
-		uci set dhcpdiscovery.$INTERFACE=lease
-
-		old_IFS=$IFS
-		IFS=$'\n'
-		for i in `env`
-		do
-			index=`expr index $i =`
-			name=${i:0:$(( $index - 1 ))}
-			value=${i:$index}
-
-			uci set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
-			case $name in
+		uci set "dhcpdiscovery.$INTERFACE=lease"
+		uci set "dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)"
+		env | while read -r line ; do
+			name=${line%=*}
+			[ "$name" = "$line" ] && continue
+			case "$name" in
 				SHLVL|HOME|TERM|PWD|BOOT_IMAGE|PATH)
 					/bin/false
 				;;
 				*)
-					uci set dhcpdiscovery.$INTERFACE.$name="$value"
+					value=
+					eval value="\$$name"
+					uci set "dhcpdiscovery.$INTERFACE.$name=$value"
 				;;
 			esac
 		done
-		IFS=$old_IFS
 		uci commit dhcpdiscovery
 	fi
 }
@@ -359,9 +354,7 @@ case "$1" in
 		deconfig_interface
 	;;
 	renew|bound)
-		if [ $INTERFACE = "if0" ]; then
-			setup_uci
-		fi
+		[ "$INTERFACE" = if0 ] && setup_uci
 		setup_interface
 	;;
 esac
