@@ -101,6 +101,11 @@ end
 -- Ask the kernel to see if someone else is already using the serial link
 function Switch:_file_is_busy()
   fd = io.popen("lsof " .. self.file)
+  if not fd then
+    self:_print_error("Unexpected error when asking the kernel whether or not our serial line is busy (lsof)")
+    return false
+  end
+
   line_number = #fd:read("*a")
   fd:close()
   return (line_number > 0)
@@ -295,10 +300,12 @@ function Switch:_parse_prompt(data)
 
   -- Determine the hostname
   if self.hostname == nil then
-    -- '%' is the lua escape character for pattern, because '(' otherwise would have another meaning
-    needles = {"%(", "# ", "> "}
+    -- We don't need to escape the '(' because we turn off pattern matching in the find
+    -- Warning: we don't support hostnames that contain parenthesis
+    -- Following hostname: "martinsw(config)" will completely fool our program
+    needles = {"(", "# ", "> "}
     for key, needle in ipairs(needles) do
-      hostname_end = string.find(last_line, needle)
+      hostname_end, _ = string.find(last_line, needle, 1, true)
       if hostname_end and hostname_end > 1 and hostname_end <= MAX_HOSTNAME_LEN + 1 then
         self.hostname = string.sub(last_line, 1, hostname_end - 1)
         break
