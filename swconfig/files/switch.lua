@@ -361,6 +361,15 @@ function Switch:_goto_admin_main()
   -- Now, we know where we are. It's time to go to the ADMIN_MAIN state :)
   local ok
 
+  -- If we are in the --More-- state, let's escape it :)
+  if self.state == Switch.State.MORE then
+    -- We could send one space as long as we're still in the --More-- state
+    -- But there's a faster way: send one single ETX (End Of Text, CTRL+C) ASCII char
+    -- Here, we want to bypass the command echo consumption and check
+    print("Sending one End of Text (CTRL+C) to escape --More-- state")
+    self:send(string.char(0x3), nil, true)
+  end
+
   -- We are already where we want to go. Stop here
   if self.state == Switch.State.ADMIN_MAIN then
     return true
