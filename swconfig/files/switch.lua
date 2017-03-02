@@ -120,6 +120,12 @@ end
 
 -- Convert a string to a table with one line by row and without \r\n
 function Switch:_data_to_table(data)
+  -- Remove leading "\n" if there is one
+  if #data > 1 and data[1] == "\n" then
+    data = string.sub(data, 2, -1)
+  end
+
+  -- Convert the string to a table
   data = string.split(data, "\r\n")
   -- Sometimes the last line is empty (because of data ending by an additional \r\n)
   -- In this case we pop the last line which is empty, as we don't want it
@@ -132,12 +138,21 @@ function Switch:_data_to_table(data)
 end
 
 -- Send a command to the switch, read back the echo, fetch & return the command result
--- A timeout can be specified. It will be applied only when waiting the first char of the response
+-- A timeout can be specified. It will be applied only when waiting for the first char of the response
 -- By response we mean the real response of the command, after our own command echo
--- The timeout allow to give the switch's CPU the time to process the user request
+-- The timeout allows to give the switch's CPU the time to process the user request
 -- If no timeout is specified, we'll use a default (rather short) timeout
-function Switch:send(cmd, timeout)
-  if not self:_send(cmd) then
+function Switch:send_cmd(cmd, timeout)
+  return self:send(cmd .. "\n", timeout, nil)
+end
+
+-- Same as above, but this is a bit more low level in that:
+--  1) We can decide whether or not to consume and check the command echo
+--  2) No Line Feed is automatically appended to our cmd, allowing to send exactly want we want
+-- Setting bypass_echo_check to true doesn't consume the echo: the echo will be part of the result
+-- By default (when no bypass_echo_check is specified), the echo will be consumed and checked
+function Switch:send(str, timeout, bypass_echo_check)
+  if not self:_send(str, bypass_echo_check) then
     return nil
   end
 
@@ -168,40 +183,44 @@ function Switch:_read_one_char()
 end
 
 -- This low level method sends a command to the switch and consumes the echo
-function Switch:_send(cmd)
-  -- When sending a command, only append a Line Feed
-  cmd = cmd .. "\n"
-
+-- It's possible to bypass the echo consumption by setting bypass_echo_check to true
+-- Note: this method doesn't fetch the result of the command
+function Switch:_send(cmd, bypass_echo_check)
   for i = 1, #cmd do
     char = string.sub(cmd, i, i)
     -- TODO: Check write error
     self.sock:write(char, SERIAL_WRITE_ONE_CHAR_TIMEOUT)
 
-    -- This serial connection works in terminal mode
-    -- We should get an echo of every character we enter
-    char_echo = self:_read_one_char()
-    if not char_echo then
-      return false
-    end
-
-    -- Filter out Carriage Return characters
-    if char_echo == "\r" then
+    -- Sometimes it's useful not to check for the echo
+    -- That way no single character is consumed and we get a full manual mode
+    -- However most of the time we'll want to check the echo automatically
+    if not bypass_echo_check then
+      -- This serial connection works in terminal mode
+      -- We should get an echo of every character we enter
       char_echo = self:_read_one_char()
       if not char_echo then
         return false
       end
-    end
 
-    -- Each character we get should be the echo of what we just sent
-    -- '*' is added as exception here for password echo (it's normal to get the '*' "wrong echo")
-    -- If we encounter wrong echo, maybe we just got a garbage line from the switch, for example:
-    --  martinsw# *Jan 08 2000 08:19:34: %Port-5: Port gi6 link down
-    -- We then flush the write and read buffers, so that we stop reading the garbage line immediately
-    -- That way, the next time we read one character, it should be again our echo
-    -- TODO: We should only tolerate a given fixed "wrong echo budget"
-    if char ~= char_echo and (self.state ~= Switch.State.LOGIN_PASSWORD or char_echo ~= '*') then
-      print(string.format("Command echo error: got '%s', expected '%s'", char_echo, char))
-      self.sock:flush()
+      -- Filter out Carriage Return characters
+      if char_echo == "\r" then
+        char_echo = self:_read_one_char()
+        if not char_echo then
+          return false
+        end
+      end
+
+      -- Each character we get should be the echo of what we just sent
+      -- '*' is added as exception here for password echo (it's normal to get the '*' "wrong echo")
+      -- If we encounter wrong echo, maybe we just got a garbage line from the switch, for example:
+      --  martinsw# *Jan 08 2000 08:19:34: %Port-5: Port gi6 link down
+      -- We then flush the write and read buffers, so that we stop reading the garbage line immediately
+      -- That way, the next time we read one character, it should be again our echo
+      -- TODO: We should only tolerate a given fixed "wrong echo budget"
+      if char ~= char_echo and (self.state ~= Switch.State.LOGIN_PASSWORD or char_echo ~= '*') then
+        print(string.format("Command echo error: got '%s', expected '%s'", char_echo, char))
+        self.sock:flush()
+      end
     end
   end
 
@@ -330,21 +349,11 @@ function Switch:_goto_admin_main()
 
   -- We don't know where we are, let's find out :)
   if self.state == Switch.State.UNKNOWN or self.state == Switch.State.PRESS_ANY_KEY then
-    -- TODO check write error here
-    self.sock:write("\n", SERIAL_WRITE_ONE_CHAR_TIMEOUT)
-
-    -- We need to use low level receive here because of the "Username: " exception
-    -- just after the "Press any key to continue" where we can't check the echo of the "\n"
-    data = self:_recv()
-    if data ~= nil then
-      -- Remove leading "\n" if there is one (our echo most of the time, but not for "Username: ")
-      if #data > 1 and data[1] == "\n" then
-        data = string.sub(data, 2, -1)
-      end
-      -- This will update the state with the freshly received prompt
-      self.state = self:_parse_prompt(self:_data_to_table(data))
-    else
-      self:_print_error("No echo at all when trying to determine switch state. Is the switch dead?")
+    -- Because we don't know where we are, we don't know if our keystroke will produce an echo or not
+    -- So when sending our keystroke, we disable the consumption and check of the echo
+    -- This allows us to analyze the full answer ourselves and then determine the state
+    if not self:send("\n", nil, true) then
+      self:_print_error("Didn't get any answer when trying to determine switch state. Is the switch dead?")
       return false
     end
   end
@@ -357,13 +366,13 @@ function Switch:_goto_admin_main()
     return true
     -- We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
   elseif self.state == Switch.State.USER_MAIN then
-    ok = self:send("enable")
+    ok = self:send_cmd("enable")
     -- We're logged in and in some menus. Just exit them
   elseif self.state == Switch.State.CONFIG or
     self.state == Switch.State.CONFIG_VLAN or
     self.state == Switch.State.CONFIG_IF or
     self.state == Switch.State.CONFIG_IF_RANGE then
-    ok = self:send("end")
+    ok = self:send_cmd("end")
     -- We're in the login prompt. Just login now!
   elseif self.state == Switch.State.LOGIN_USERNAME or
     self.state == Switch.State.LOGIN_PASSWORD then
@@ -382,7 +391,7 @@ function Switch:_login()
     print("I need to enter my username dude...")
 
     -- Send the username to the switch
-    ret = self:send(self.username)
+    ret = self:send_cmd(self.username)
     if not ret then
       self:_print_error("Unexpected error when attempting to send the username during the login phase")
       return false
@@ -412,7 +421,7 @@ function Switch:_login()
   if self.state == Switch.State.LOGIN_PASSWORD then
     print("I need to enter my password dude...")
     -- Send the password to the switch
-    data = self:send(self.password)
+    data = self:send_cmd(self.password)
     if data == nil then
       self:_print_error("Unexpected error when attempting to send the password during the login phase")
       return false
