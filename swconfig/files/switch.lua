@@ -21,6 +21,7 @@ Switch.State = {
   CONFIG_IF_RANGE = {},
   LOGIN_USERNAME  = {},
   LOGIN_PASSWORD  = {},
+  MORE            = {},
   UNKNOWN         = {},
 }
 
@@ -268,6 +269,9 @@ function Switch:_parse_prompt(data)
   elseif first_line == "Press any key to continue" then
     print("State 'Press any key' detected")
     return Switch.State.PRESS_ANY_KEY
+  elseif last_line == "--More--" then
+    print("State More detected")
+    return Switch.State.MORE
   end
 
   -- Determine the hostname
