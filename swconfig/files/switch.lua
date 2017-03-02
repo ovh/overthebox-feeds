@@ -2,8 +2,9 @@
 rs232 = require("luars232")
 utils = require("swconfig.utils")
 
-local MAX_HOSTNAME_LEN = 20
-local SERIAL_TIMEOUT   = 100
+local MAX_HOSTNAME_LEN              = 20
+local SERIAL_READ_ONE_CHAR_TIMEOUT  = 100
+local SERIAL_WRITE_ONE_CHAR_TIMEOUT = 100
 
 -- Switch class definition
 Switch = {}
@@ -130,12 +131,16 @@ function Switch:_data_to_table(data)
 end
 
 -- Send a command to the switch, read back the echo, fetch & return the command result
-function Switch:send(cmd)
+-- A timeout can be specified. It will be applied only when waiting the first char of the response
+-- By response we mean the real response of the command, after our own command echo
+-- The timeout allow to give the switch's CPU the time to process the user request
+-- If no timeout is specified, we'll use a default (rather short) timeout
+function Switch:send(cmd, timeout)
   if not self:_send(cmd) then
     return nil
   end
 
-  data = self:_recv()
+  data = self:_recv(timeout)
 
   if data == nil then
     return nil
@@ -151,7 +156,7 @@ end
 
 -- This is a low level method reading only one character at a time
 function Switch:_read_one_char()
-  err, data, len = self.sock:read(1, SERIAL_TIMEOUT, 0)
+  err, data, len = self.sock:read(1, SERIAL_READ_ONE_CHAR_TIMEOUT, 0)
 
   if err ~= rs232.RS232_ERR_NOERROR or len ~= 1 then
     self:_print_error("Error while reading one char", err)
@@ -169,7 +174,7 @@ function Switch:_send(cmd)
   for i = 1, #cmd do
     char = string.sub(cmd, i, i)
     -- TODO: Check write error
-    self.sock:write(char, SERIAL_TIMEOUT)
+    self.sock:write(char, SERIAL_WRITE_ONE_CHAR_TIMEOUT)
 
     -- This serial connection works in terminal mode
     -- We should get an echo of every character we enter
@@ -207,10 +212,22 @@ end
 -- We need to do this because the underlying serial lib doesn't handle EOF
 -- EOF should be possible because the switch uses one stop bit in its UART implementation
 -- But because we don't have any EOF mechanism, we assume there's nothing to read if we hit a timeout error
-function Switch:_recv()
+-- A timeout can be specified. If not specified, default timeout apply.
+-- The timeout is only used when waiting for the first char of the response.
+-- Once the first char arrived, we become more strict and the timeout becomes the default again
+function Switch:_recv(timeout)
   res = ""
+
+  -- When user doesn't specify any timeout, use default value
+  if not timeout then timeout = SERIAL_READ_ONE_CHAR_TIMEOUT end
+
   while true do
-    err, data, len = self.sock:read(1, SERIAL_TIMEOUT, 0)
+    -- Reset the timeout to the default one once the first char has been obtained
+    if res:len() == 1 then
+      timeout = SERIAL_READ_ONE_CHAR_TIMEOUT
+    end
+
+    err, data, len = self.sock:read(1, timeout, 0)
 
     if err ~= rs232.RS232_ERR_NOERROR or len == 0 then
       break
@@ -219,6 +236,7 @@ function Switch:_recv()
   end
 
   if res:len() == 0 then
+    self:_print_error("Error: No data has been received", err)
     return nil
   end
 
@@ -309,7 +327,7 @@ function Switch:_goto_admin_main()
   -- We don't know where we are, let's find out :)
   if self.state == Switch.State.UNKNOWN or self.state == Switch.State.PRESS_ANY_KEY then
     -- TODO check write error here
-    self.sock:write("\n", SERIAL_TIMEOUT)
+    self.sock:write("\n", SERIAL_WRITE_ONE_CHAR_TIMEOUT)
 
     -- We need to use low level receive here because of the "Username: " exception
     -- just after the "Press any key to continue" where we can't check the echo of the "\n"
