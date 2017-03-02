@@ -192,14 +192,14 @@ function Switch:_send(cmd)
     end
 
     -- Each character we get should be the echo of what we just sent
-    -- '*' is added as exception here for password echo
+    -- '*' is added as exception here for password echo (it's normal to get the '*' "wrong echo")
     -- If we encounter wrong echo, maybe we just got a garbage line from the switch, for example:
     --  martinsw# *Jan 08 2000 08:19:34: %Port-5: Port gi6 link down
     -- We then flush the write and read buffers, so that we stop reading the garbage line immediately
     -- That way, the next time we read one character, it should be again our echo
     -- TODO: We should only tolerate a given fixed "wrong echo budget"
-    if char ~= char_echo and char_echo ~= '*' then
-      print(string.format("'%s' != '%s'", char, char_echo))
+    if char ~= char_echo and (self.state ~= Switch.State.LOGIN_PASSWORD or char_echo ~= '*') then
+      print(string.format("Command echo error: got '%s', expected '%s'", char_echo, char))
       self.sock:flush()
     end
   end
