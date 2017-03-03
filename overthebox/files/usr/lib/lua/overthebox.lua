@@ -555,35 +555,51 @@ end
 --
 -- Begin of backup config section
 --
+
+-- List config files that will be backuped
+-- We'll backup only text files
 function list_config_files()
   local files = {}
-  local list = io.popen(
-  "( find $(sed -ne '/^[[:space:]]*$/d; /^#/d; p' /etc/sysupgrade.conf " ..
-  "/lib/upgrade/keep.d/* 2>/dev/null) -type f 2>/dev/null; " ..
-  "opkg list-changed-conffiles ) | sort -u"
-  )
-  if list then
-    while true do
-      local ln = list:read("*l")
-      if not ln then
-        break
-      else
-        files[#files+1] = ln
-      end
-    end
-    list:close()
+  local list = io.popen("sysupgrade -l")
+  if not list then
+    log("unable to run sysupgrade -l")
+    return files
   end
+
+  -- Iterate over the config files
+  for ln in list:lines() do
+    -- Check the file type
+    local filetype = get_filetype(ln)
+    if string.find(filetype, "text") == nil then
+      log("skipping file "..ln..", not a text -> "..filetype)
+    else
+      files[#files+1] = ln
+    end
+  end
+  list:close()
   return files
 end
 
+-- Take a file and return the filetype
+function get_filetype(file)
+  local ret, rcode = run("file -b "..file)
+  if not rcode then
+    return "Unknown"
+  end
+
+  return ret
+end
+
+-- Post a backup of a file to the provisionning
 function post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
   local ucic = uci.cursor()
   local device_id = ucic:get("overthebox", "me", "device_id")
   local service_id = ucic:get("overthebox", "me", "service")
   local uri = string.format("devices/%s/service/%s/backups/%s", device_id, service_id, id)
 
-  -- TODO: check response
-  local rcode, _ = POST(uri , {
+  -- If call is successful, response is "OK", else, it will be the error
+  -- message
+  local rcode, response = POST(uri , {
     filename=file,
     mode=mode,
     uid=uid,
@@ -592,51 +608,56 @@ function post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, conte
     symlink=symlink,
     content=content
   })
-  return (rcode == 200)
+  return (rcode == 200), response
 end
 
+-- Launch a backup of a file
 function run_backup(id, file)
   local pstat = sys_stat.lstat(file)
-  if pstat then
-    local mode = string.sub(string.format("%o", pstat.st_mode), -4)
-    local uid = pstat.st_uid
-    local gid = pstat.st_gid
-    local is_symlink = sys_stat.S_ISLNK(pstat.st_mode)
-    local symlink, content = nil
-    if is_symlink ~= 0 then
-      is_symlink = true
-      symlink = require("posix.unistd").readlink(file)
-    else
-      is_symlink = false
-      local fd = io.open(file, "rb")
-      if fd then
-        content = fd:read("*all")
-        fd:close()
-      else
-        return false, "can not read file"
-      end
-    end
-    return post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
+  if not pstat then
+    return false, "can not stat file"
   end
-  return false, "can not stat file"
+
+  local mode = string.sub(string.format("%o", pstat.st_mode), -4)
+  local uid = pstat.st_uid
+  local gid = pstat.st_gid
+  local is_symlink = sys_stat.S_ISLNK(pstat.st_mode)
+  local symlink, content = nil
+
+  if is_symlink ~= 0 then
+    is_symlink = true
+    symlink = require("posix.unistd").readlink(file)
+  else
+    is_symlink = false
+    local fd = io.open(file, "rb")
+    if not fd then
+      return false, "can not read file"
+    end
+    content = fd:read("*all")
+    fd:close()
+  end
+  return post_result_backup(id, file, mode, uid, gid, is_symlink, symlink, content)
 end
 
+-- Create a backupp object on the provisionning
 function create_backup(action_id)
   local rcode, res = POST('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
   '/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
   '/backups',  {device_action_id=action_id or "" })
-  if rcode == 200 then
+  if rcode == 200 and res ~= nil then
     return true, res.backup_id or ""
   end
-  return false, ""
+  return false, res or ""
 end
 
-function send_backup(id, info)
-  -- TODO: use api_ok
+-- Create a backup and send it
+function send_backup(id)
   local api_ok, backup_id = create_backup(id or "")
-  if backup_id == "" then
-    return false, "no backup id found"
+  if not api_ok or backup_id == "" then
+    return false, "error while getting backup_id ".. backup_id
   end
+
+  log("created backup ".. backup_id)
 
   local ret = true
   local err
@@ -645,9 +666,12 @@ function send_backup(id, info)
     if not ret then return ret, err end
   end
 
+  log("backup successfully finished")
+
   return ret, "ok"
 end
 
+-- Get the tar of a backup
 function retrieve_backup(id)
   local rcode, res = GET('devices/'..uci.cursor():get("overthebox", "me", "device_id", {}) ..
   '/service/'..uci.cursor():get("overthebox", "me", "service", {}) ..
@@ -656,29 +680,36 @@ function retrieve_backup(id)
   return (rcode == 200), res
 end
 
+-- Restore a given backup and untar it
 function restore_backup(id, info)
   local backup_id = id
   if info and info.backup_id then
     backup_id = info.backup_id
   end
-  -- do
+  -- Retrieve the tar'ed backup
   local ret, content = retrieve_backup(backup_id)
-  if ret then
-    local fp = io.popen("/sbin/sysupgrade --restore-backup -", "w")
-    if fp then
-      fp:write(content)
-      local rc = {fp:close()}
-      if rc[4] == 0 then
-        return true, "ok"
-      else
-        return false, "sysupgrade has returned an error"
-      end
-    else
-      return false, "can not run /sbin/sysupgrade"
-    end
-  else
-    return ret, content
+  if not ret then
+    return ret, "error while retrieving backup " .. content
   end
+
+  log("got the tar'ed backup ".. backup_id)
+
+  -- Open the process in write mode
+  local fp = io.popen("sysupgrade --restore-backup -", "w")
+  if fp == nil then
+    return false, "can not run sysupgrade"
+  end
+
+  -- Write the content to the process
+  fp:write(content)
+  -- Check the response code
+  local rc = {fp:close()}
+  if rc[4] ~= 0 then
+    return false, "sysupgrade has returned an error "..rc[4]
+  end
+
+  log("restore is successful, rebooting now")
+  return true, "ok"
 end
 --
 -- End of backup config section
