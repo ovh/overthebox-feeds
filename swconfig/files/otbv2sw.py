@@ -5,8 +5,6 @@
 import serial
 import config
 
-from collections import OrderedDict
-
 class State:
     def __init__(self, needle, goto_main_cmd):
         self.needle = needle
@@ -41,3 +39,28 @@ class Sw(serial.Serial):
         self.state = None
 
         self.open()
+
+    def out_filter(self, line):
+        # TODO: Exclude also switch comments, not only empty lines
+        # Comments example (always end by CRLF, but sometimes after prompt, sometimes on a new line)
+        #   *Jan 13 2000 11:25:20: %System-5: New console connection for user admin, source async  ACCEPTED
+        #   *Jan 13 2000 11:32:10: %Port-5: Port gi6 link down
+        #   *Jan 13 2000 11:32:13: %Port-5: Port gi4 link up
+        # But keep them in a separate list so we could get information from them if needed
+        if not line:
+            return False
+        return True
+
+    def recv(self, sent):
+        # First, call self.readlines().
+        # It reads from serial port and gets a list with one line per list item.
+        # Then, exclude our echo, but only if it's found in the first line (index 0)
+        # In each of the list's item, remove any \r or \n, but only at end of line (right strip)
+        # Finally, use filter(out_filter, list) to filter out empty elements and switch comments
+        # We end up with one nice filtered list, and the switch comments are separated in dedicated list
+        return filter(self.out_filter, [l.rstrip("\r\n") for i, l in enumerate(self.readlines())
+            if i != 0 or l.rstrip("\r\n") != sent.rstrip("\n")])
+
+    def send(self, string):
+        self.write(string)
+        return self.recv(string)
