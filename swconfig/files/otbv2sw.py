@@ -7,21 +7,21 @@ import config
 import re
 
 class State:
-    def __init__(self, needle, goto_main_cmd):
-        self.needle = needle
-        self.goto_main_cmd = goto_main_cmd
+    def __init__(self, name, prompt_needle):
+        self.name           = name
+        self.prompt_needle  = prompt_needle
 
 class States:
-    PRESS_ANY_KEY   = State("Press any key to continue",    False)
-    USER_MAIN       = State("> ",                           "enable")
-    ADMIN_MAIN      = State("# ",                           None)
-    CONFIG          = State("(config)# ",                   "exit")
-    CONFIG_VLAN     = State("(config-vlan)# ",              "end")
-    CONFIG_IF       = State("(config-if)# ",                "end")
-    CONFIG_IF_RANGE = State("(config-if-range)# ",          "end")
-    LOGIN_USERNAME  = State("Username: ",                   False)
-    LOGIN_PASSWORD  = State("Password: ",                   False)
-    MORE            = State("--More--",                     False)
+    PRESS_ANY_KEY   = State("Press any key",    "Press any key to continue")
+    USER_MAIN       = State("User prompt",      "> ")
+    ADMIN_MAIN      = State("Admin prompt",     "# ")
+    CONFIG          = State("Config",           "(config)# ")
+    CONFIG_VLAN     = State("Config VLAN",      "(config-vlan)# ")
+    CONFIG_IF       = State("Config IF",        "(config-if)# ")
+    CONFIG_IF_RANGE = State("Config IF Range",  "(config-if-range)# ")
+    LOGIN_USERNAME  = State("Login (username)", "Username: ")
+    LOGIN_PASSWORD  = State("Login (password)", "Password: ")
+    MORE            = State("More",             "--More--")
 
 
 class Sw(serial.Serial):
@@ -38,12 +38,13 @@ class Sw(serial.Serial):
         self.inter_byte_timeout=config.inter_byte_timeout
 
         self.state = None
+        self.hostname = None
         self.last_out = None
         self.last_comments = None
 
         self.open()
 
-    def recv(self, sent):
+    def recv(self):
         self.last_comments = []
         # First, call self.readlines().
         # It reads from serial port and gets a list with one line per list item.
@@ -52,6 +53,13 @@ class Sw(serial.Serial):
         # This will filter out comments and put them in a separated list
         # Finally, use filter(None, list) remove empty elements
         self.last_out = filter(None, [self._filter_comments(l.rstrip("\r\n")) for l in self.readlines()])
+
+        self.state = self._parse_prompt()
+        if self.state:
+            print("Switch state is: '%s'" % (self.state.name))
+        else:
+            print("Switch state is unknown")
+
         return (self.last_out, self.last_comments)
 
     # Filter out all comments and push them in a separated list
@@ -92,7 +100,7 @@ class Sw(serial.Serial):
                 print("Invalid echo: expected %c, got %c" % (char, echo_char))
                 self.flushInput()
 
-        return self.recv(string)
+        return self.recv()
 
     # Send an arbitrary string to the switch and get the answer
     # If bypass_echo_check is True, the echo will be part of the global answer
@@ -103,3 +111,39 @@ class Sw(serial.Serial):
     # Send a command to the switch (\n is automatically appended)
     def send_cmd(self, cmd):
         return self.send_str("%s\n" % (cmd))
+
+    def _parse_prompt(self):
+        first_line, last_line = self.last_out[0], self.last_out[-1]
+
+        # States without hostname information in the prompt
+        for s in [States.LOGIN_USERNAME, States.LOGIN_PASSWORD]:
+            if last_line.startswith(s.prompt_needle):
+                return s
+
+        for s in [States.PRESS_ANY_KEY, States.MORE]:
+            if last_line == s.prompt_needle:
+                return s
+
+        # Hostname determination
+        if not self.hostname and not self._determine_hostname():
+            return None
+
+        # States containing the hostname in the prompt
+        for s in [States.CONFIG, States.CONFIG_VLAN, States.CONFIG_IF,
+                  States.CONFIG_IF_RANGE, States.ADMIN_MAIN, States.USER_MAIN]:
+            if last_line.startswith(self.hostname + s.prompt_needle):
+                return s
+
+        # Unknown state
+        return None
+
+
+    def _determine_hostname(self):
+        m = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', self.last_out[-1])
+        if m and m.group('hostname'):
+            self.hostname = m.group('hostname')
+            print "Hostname '%s' detected" % (self.hostname)
+            return True
+        else:
+            print "Unable to determine hostname :'(" % (self.hostname)
+            return False
