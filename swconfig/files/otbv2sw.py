@@ -37,10 +37,12 @@ class Sw(serial.Serial):
         self.inter_byte_timeout=config.inter_byte_timeout
 
         self.state = None
+        self.last_out = None
+        self.last_comments = None
 
         self.open()
 
-    def out_filter(self, line):
+    def _filter(self, line):
         # TODO: Exclude also switch comments, not only empty lines
         # Comments example (always end by CRLF, but sometimes after prompt, sometimes on a new line)
         #   *Jan 13 2000 11:25:20: %System-5: New console connection for user admin, source async  ACCEPTED
@@ -56,11 +58,34 @@ class Sw(serial.Serial):
         # It reads from serial port and gets a list with one line per list item.
         # Then, exclude our echo, but only if it's found in the first line (index 0)
         # In each of the list's item, remove any \r or \n, but only at end of line (right strip)
-        # Finally, use filter(out_filter, list) to filter out empty elements and switch comments
+        # Finally, use filter(_filter, list) to filter out empty elements and switch comments
         # We end up with one nice filtered list, and the switch comments are separated in dedicated list
-        return filter(self.out_filter, [l.rstrip("\r\n") for i, l in enumerate(self.readlines())
+        return filter(self._filter, [l.rstrip("\r\n") for i, l in enumerate(self.readlines())
             if i != 0 or l.rstrip("\r\n") != sent.rstrip("\n")])
 
-    def send(self, string):
-        self.write(string)
+    def _send(self, string, bypass_echo_check=False):
+        # When sending a command, it's safer to send it char by char, and waiting for the echo
+        # Why? Try to connect to the switch, go to the Username: prompt.
+        # Then, in order to simulate high speed TX, copy "admin" and paste it inside the console
+        # The echo arrives in a random order. The behaviour is completely unreliable
+        echo=""
+        for char in string:
+            self.write(char)
+
+            # If we don't care about echo, don't consume and don't check it
+            if bypass_echo_check:
+                continue
+
+            # Skip Carriage Return (we never send CR, the switch always echo with CR)
+            echo_char = self.read(1)
+            echo_char = echo_char if echo_char != "\r" else self.read(1)
+
+            # Check echo
+            if echo_char != char:
+                print("Invalid echo: expected %c, got %c" % (char, echo_char))
+                self.flushInput()
+
         return self.recv(string)
+
+    def send_cmd(self, cmd):
+        return self._send("%s\n" % (cmd))
