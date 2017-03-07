@@ -108,7 +108,7 @@ function opkg_remove(package)
   return true, ret
 end
 function upgrade()
-  local packages = {'overthebox', 'mptcp', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'bosun', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'glorytun-udp', 'rdisc6'}
+  local packages = {'overthebox', 'mptcp', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'graph', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'glorytun-udp', 'rdisc6'}
   local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
   local retcode = true
   local ret = "install:\n"
@@ -464,15 +464,14 @@ function config()
     uci:set('ipv6', 'ipv6rd', '6rd_ipv6_enable', "0")
   end
 
-  if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-    uci:set('scollector','opentsdb', 'client')
-    uci:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-    uci:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-    uci:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+  if res.graph_conf and exists( res.graph_conf, 'host') then
+    uci:set('graph', 'opentsdb', 'opentsdb')
+    uci:set('graph', 'opentsdb', 'url', res.graph_conf.host )
+    uci:set('graph', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
 
-    uci:save('scollector')
-    uci:commit('scollector')
-    table.insert(ret, 'scollector')
+    uci:save('graph')
+    uci:commit('graph')
+    table.insert(ret, 'graph')
   end
 
   if res.log_conf and exists( res.log_conf, 'host', 'port') then

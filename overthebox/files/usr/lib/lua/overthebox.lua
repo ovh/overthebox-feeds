@@ -282,15 +282,14 @@ function config()
     table.insert(ret, "shadowsocks")
   end
 
-  if res.graph_conf and exists( res.graph_conf, 'host', 'write_token') then
-    ucic:set('scollector','opentsdb', 'client')
-    ucic:set('scollector', 'opentsdb', 'host', res.graph_conf.host )
-    ucic:set('scollector', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
-    ucic:set('scollector', 'opentsdb', 'wrtoken', res.graph_conf.write_token )
+  if res.graph_conf and exists( res.graph_conf, 'host') then
+    ucic:set('graph', 'opentsdb', 'opentsdb')
+    ucic:set('graph', 'opentsdb', 'url', res.graph_conf.host )
+    ucic:set('graph', 'opentsdb', 'freq', (res.graph_conf.write_frequency or 300) )
 
-    ucic:save('scollector')
-    ucic:commit('scollector')
-    table.insert(ret, 'scollector')
+    ucic:save('graph')
+    ucic:commit('graph')
+    table.insert(ret, 'graph')
   end
 
   if res.log_conf and exists( res.log_conf, 'host', 'port') then
@@ -902,7 +901,10 @@ local pkgs = {
     version               = '1.7-30',
   },
   ["bosun"]               = {
-    version               = '0.4.0-0.8',
+    version               = '-',
+  },
+  ["graph"]               = {
+    version               = '0.1-0',
   },
   ["vtund"]               = {
     version               = '-',
