@@ -112,6 +112,50 @@ class Sw(serial.Serial):
     def send_cmd(self, cmd):
         return self.send_str("%s\n" % (cmd))
 
+    # This method takes you from known or unknown state and brings you to "hostname# " prompt
+    # If necessary, it will escape an ongoing "--More--". If necessary, it will login.
+    def _goto_admin_main_prompt(self):
+        # We don't know where we are, let's find out :)
+        if self.state in [None, States.PRESS_ANY_KEY]:
+            # Because we don't know where we are, we don't know if our keystroke will produce an echo or not
+            # So when sending our keystroke, we disable the consumption and check of the echo
+            # This allows us to analyze the full answer ourselves and then determine the state
+            out, _ = self.send_str("\n", True)
+            if not out:
+                print("Didn't get any answer when trying to determine switch state.")
+                return False
+
+        #Now, we know where we are. Let's go to the ADMIN_MAIN state :)
+        ok = None
+
+        # We are already where we want to go. Stop here
+        if self.state == States.ADMIN_MAIN:
+            return True
+
+        if self.state == States.MORE:
+            print("Sending one ETX (CTRL+C) to escape --More-- state")
+            ok, _ = self.send_str("\x03", True)
+
+        # We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
+        elif self.state == States.USER_MAIN:
+            ok, _ = self.send_cmd("enable")
+
+        # We're logged in and in some menus. Just exit them
+        elif self.state in [States.CONFIG, States.CONFIG_VLAN,
+                States.CONFIG_IF, States.CONFIG_IF_RANGE]:
+            ok, _ = self.send_cmd("end")
+
+        # We're in the login prompt. Just login now!
+        elif self.state in [States.LOGIN_USERNAME, States.LOGIN_PASSWORD]:
+            ok = self._login()
+
+        # Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
+        return ok and self.state == States.ADMIN_MAIN
+
+    def _login(self):
+        return False
+
+    # This method analyzes the received output to determine the switch state
     def _parse_prompt(self):
         first_line, last_line = self.last_out[0], self.last_out[-1]
 
@@ -136,7 +180,6 @@ class Sw(serial.Serial):
 
         # Unknown state
         return None
-
 
     def _determine_hostname(self):
         m = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', self.last_out[-1])
