@@ -1,4 +1,4 @@
-# 
+#
 # Copyright (C) 2014-2014 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v3 or later.
@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mptcp
 PKG_VERSION:=1.0.0
-PKG_RELEASE:=6
+PKG_RELEASE:=7
 
 PKG_MAINTAINER:=Mario Krueger <openwrt@xedp3x.de>
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
