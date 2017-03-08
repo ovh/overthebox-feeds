@@ -23,7 +23,7 @@ define Package/overthebox
 	SECTION:=utils
 	CATEGORY:=OVH
 	TITLE:=overthebox tool
-	DEPENDS:= +bosun +dnsmasq-full +glorytun +glorytun-udp +luci-app-overthebox +mptcp +shadowsocks-libev
+	DEPENDS:= +dnsmasq-full +glorytun +glorytun-udp +luci-app-overthebox +mptcp +shadowsocks-libev
 endef
 
 define Package/overthebox/description

@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -e
+logger -p daemon.info -t graph "$*"
+
+URL=$(uci -q get graph."$1".url)
+FREQ=$(uci -q get graph."$1".freq)
+HOST=$(uci -q get system.@system[0].hostname)
+
+[ -z "${URL}" ] && exit 0
+
+_add() {
+	printf "${PERIOD}"'{"metric":"%s","timestamp":'"$TS"',"value":%s,"tags":{"host":"'"$HOST"'"%s}}' "$@"
+	PERIOD=,
+}
+
+_graph() {
+	PERIOD=
+	TS=$(date +%s)
+
+	printf '['
+
+	while read -r IFACE RX _ _ _ _ _ _ _ TX _ ; do
+		case "${IFACE}" in
+		*:)
+			_add "linux.net.bytes" "${RX}" ',"direction":"in","iface":"'"${IFACE%:}"'"'
+			_add "linux.net.bytes" "${TX}" ',"direction":"out","iface":"'"${IFACE%:}"'"'
+			;;
+		esac
+	done < /proc/net/dev
+
+	read -r AVG1 _ _ < /proc/loadavg
+	_add "proc.loadavg.1m" "${AVG1}"
+
+	while read -r NAME VALUE _ ; do
+		case "${NAME}" in
+		MemFree:)
+			_add "os.mem.free" "${VALUE}"
+			;;
+		esac
+	done < /proc/meminfo
+
+	printf ']'
+}
+
+while sleep "${FREQ:-60}"; do
+	_graph | curl -s -m 5 -X POST "${URL}" -H "Content-Type: application/json" -d@-
+done
