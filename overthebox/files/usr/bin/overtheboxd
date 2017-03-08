@@ -107,7 +107,7 @@ while run do
     elseif ret.action == "diagnostic" then
       actionreturn, msg = overthebox.send_diagnostic(ret.id, ret.arguments)
     elseif ret.action == "backup" then
-      actionreturn, msg = overthebox.send_backup(ret.id, ret.arguments)
+      actionreturn, msg = overthebox.send_backup(ret.id)
     elseif ret.action == "restore" then
       actionreturn, msg = overthebox.restore_backup(ret.id, ret.arguments)
       if actionreturn then
