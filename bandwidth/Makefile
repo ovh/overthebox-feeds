@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bandwidth
-PKG_VERSION:=0.6.2
+PKG_VERSION:=0.6.3
 PKG_RELEASE=1
 PKG_MAINTAINER:=Martin Wetterwald <martin.wetterwald@corp.ovh.com>
 

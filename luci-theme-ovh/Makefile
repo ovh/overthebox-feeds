@@ -7,8 +7,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-ovh
-PKG_VERSION:=v0.1
-PKG_RELEASE:=3
+PKG_VERSION:=v0.2
+PKG_RELEASE:=1
 PKG_MAINTAINER:=Simon Lelievre <simon.lelievre@corp.ovh.com>
 PKG_LICENSE:=GPLv2
 
