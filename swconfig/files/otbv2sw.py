@@ -92,17 +92,19 @@ class Sw(serial.Serial):
                 continue
 
             # Skip Carriage Return (we never send CR, the switch always echo with CR)
-            echo_char = self.read(1)
-            echo_char = echo_char if echo_char != "\r" else self.read(1)
+            echo = self.read(1)
+            echo = echo if echo != "\r" else self.read(1)
 
             # Each character we get should be the echo of what we just sent
-            # '*' is added as exception here for password echo ('*' is a correct echo for password)
+            # '*' is added as exception here for password echo ('*' is the correct echo for password)
             # If we encounter wrong echo, maybe we just got a garbage line from the switch
             # In that case we flush the input buffer so that we stop reading the garbage immediately
             # That way, the next time we read one character, it should be again our echo
             # TODO: We should only tolerate a given fixed "wrong echo budget"
-            if echo_char != char and (self.state != States.LOGIN_PASSWORD or echo_char != '*'):
-                print("Invalid echo: expected %c, got %c" % (char, echo_char))
+            # Note that in password echo at the end, there is also a "\n" echo which is considered correct
+            expected = '*' if self.state == States.LOGIN_PASSWORD and echo != char else char
+            if echo != expected:
+                print("Invalid echo: expected %c, got %c" % (expected, echo))
                 self.flushInput()
 
         return self.recv()
