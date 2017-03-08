@@ -11,3 +11,5 @@ stopbits=serial.STOPBITS_ONE
 timeout=0.1
 write_timeout=1
 inter_byte_timeout=0.1
+
+user, password = "admin", "admin"

@@ -95,8 +95,13 @@ class Sw(serial.Serial):
             echo_char = self.read(1)
             echo_char = echo_char if echo_char != "\r" else self.read(1)
 
-            # Check echo
-            if echo_char != char:
+            # Each character we get should be the echo of what we just sent
+            # '*' is added as exception here for password echo ('*' is a correct echo for password)
+            # If we encounter wrong echo, maybe we just got a garbage line from the switch
+            # In that case we flush the input buffer so that we stop reading the garbage immediately
+            # That way, the next time we read one character, it should be again our echo
+            # TODO: We should only tolerate a given fixed "wrong echo budget"
+            if echo_char != char and (self.state != States.LOGIN_PASSWORD or echo_char != '*'):
                 print("Invalid echo: expected %c, got %c" % (char, echo_char))
                 self.flushInput()
 
@@ -115,6 +120,8 @@ class Sw(serial.Serial):
     # This method takes you from known or unknown state and brings you to "hostname# " prompt
     # If necessary, it will escape an ongoing "--More--". If necessary, it will login.
     def _goto_admin_main_prompt(self):
+        self.flushInput()
+
         # We don't know where we are, let's find out :)
         if self.state in [None, States.PRESS_ANY_KEY]:
             # Because we don't know where we are, we don't know if our keystroke will produce an echo or not
@@ -152,9 +159,6 @@ class Sw(serial.Serial):
         # Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
         return ok and self.state == States.ADMIN_MAIN
 
-    def _login(self):
-        return False
-
     # This method analyzes the received output to determine the switch state
     def _parse_prompt(self):
         first_line, last_line = self.last_out[0], self.last_out[-1]
@@ -190,3 +194,43 @@ class Sw(serial.Serial):
         else:
             print "Unable to determine hostname :'(" % (self.hostname)
             return False
+
+    # _login attempts to login to the switch
+    # It can only be called when we are in the LOGIN_USERNAME or LOGIN_PASSWORD state
+    def _login(self):
+        if self.state == States.LOGIN_USERNAME:
+            out, _ = self.send_cmd(config.user)
+            # The switch rejects us immediately if the username doesn't exist
+            if any("Incorrect User Name" in l for l in out):
+                print("The switch claims the username is invalid. Check that the credentials are correct.")
+                return False
+
+            # We should have entered password state as soon as correct username has been sent
+            if self.state != States.LOGIN_PASSWORD:
+                print("Unexpected error after sending username to the switch: we should have entered password state")
+                return False
+            # If we got here, the login has been accepted. Let's continue and send the password below
+
+        # There are 2 possible execution flows:
+        #  1) We've just sent the login above, now it's time to send the password
+        #  2) We arrive directly here as the first if above was skipped
+        # This second case is rare but could occur if the switch's state is the following before launching swconfig:
+        # (Username fully typed in but no Line Feed entered)
+        #  Username: admin
+        # In this case we'll transition from UNKNOWN to LOGIN_PASSWORD state directly
+        if self.state == States.LOGIN_PASSWORD:
+            out, comments = self.send_cmd(config.password)
+            if any("ACCEPTED" in c for c in comments):
+                return True
+
+            if any("REJECTED" in c for c in comments):
+                print("The switch rejected the password. Check that the credentials are correct.")
+                return False
+
+            # It's strange to get here. We succeeded to send the password, but we didn't get ACCEPTED nor REJECTED
+            print("Unexpected error after sending password to the switch: no ACCEPTED nor REJECTED found")
+            return False
+
+        # What? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
+        print("Login method should never have been called now. Bye bye...")
+        assert False
