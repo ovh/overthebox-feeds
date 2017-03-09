@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015 OpenWrt-dist
+# Copyright (C) 2014-2017 Jian Chang <aa65535@live.com>
 #
 # This is free software, licensed under the GNU General Public License v3.
 # See /LICENSE for more information.
@@ -8,48 +8,46 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=2.5.0-1-ovh-3
-PKG_RELEASE:=4
-PKG_SOURCE:=v$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/ovh/overthebox-shadowsocks-libev/archive
+PKG_VERSION:=3.0.4
+PKG_RELEASE:=1
+
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
+PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE)
+PKG_SOURCE_VERSION:=0334e73c2bfa7aa0c13a87f760f8b527d7e90d0d
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.xz
 
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
-PKG_MAINTAINER:=Max Lv <max.c.lv@gmail.com>
+PKG_MAINTAINER:=Jian Chang <aa65535@live.com>
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)/$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)/$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE)
 
 PKG_INSTALL:=1
 PKG_FIXUP:=autoreconf
 PKG_USE_MIPS16:=0
 PKG_BUILD_PARALLEL:=1
-UNPACK_CMD=mkdir -p $(1) && tar xf "$(DL_DIR)/$(PKG_SOURCE)" -C $(1) --strip-components=1
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/shadowsocks-libev/Default
 	SECTION:=net
 	CATEGORY:=Network
-	TITLE:=Lightweight Secured Socks5 Proxy $(2)
+	TITLE:=Lightweight Secured Socks5 Proxy
 	URL:=https://github.com/shadowsocks/shadowsocks-libev
-	VARIANT:=$(1)
-	DEPENDS:=$(3)
+	DEPENDS:=+libev +libudns +libpcre +libpthread +libsodium +libmbedtls
 endef
 
-Package/shadowsocks-libev = $(call Package/shadowsocks-libev/Default,openssl,(OpenSSL),+libopenssl +libpthread)
+Package/shadowsocks-libev = $(Package/shadowsocks-libev/Default)
+Package/shadowsocks-libev-server = $(Package/shadowsocks-libev/Default)
 
 define Package/shadowsocks-libev/description
-Shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and low end boxes.
+Shadowsocks-libev is a lightweight secured socks5 proxy for embedded devices and low end boxes.
 endef
 
-Package/shadowsocks-libev-spec/description = $(Package/shadowsocks-libev/description)
+Package/shadowsocks-libev-server/description = $(Package/shadowsocks-libev/description)
 
-define Package/shadowsocks-libev/conffiles
-/etc/config/shadowsocks
-/etc/shadowsocks.json
-endef
-
-CONFIGURE_ARGS += --disable-documentation
+CONFIGURE_ARGS += --disable-documentation --disable-ssp --disable-assert --with-crypto-library=mbedtls
 
 define Package/shadowsocks-libev/install
 	$(INSTALL_DIR) $(1)/usr/bin
@@ -62,16 +60,10 @@ define Package/shadowsocks-libev/install
 	$(INSTALL_BIN) ./files/shadowsocks.init $(1)/etc/init.d/shadowsocks
 endef
 
-define Package/shadowsocks-libev/postinst
-#!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/shadowsocks stop
-	killall ss-redir 2> /dev/null
-	killall ss-local 2> /dev/null
-	killall ss-tunnel 2> /dev/null
-	/etc/init.d/shadowsocks start
-fi
-exit 0
+define Package/shadowsocks-libev-server/install
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/ss-server $(1)/usr/bin
 endef
 
 $(eval $(call BuildPackage,shadowsocks-libev))
+$(eval $(call BuildPackage,shadowsocks-libev-server))
