@@ -112,7 +112,11 @@
                 accessRules: [
                     {
                         method: "GET",
-                        path: "/*"
+                        path: "/me"
+                    },
+                    {
+                        method: "GET",
+                        path: "/overTheBox*"
                     },
                     {
                         method: "POST",
