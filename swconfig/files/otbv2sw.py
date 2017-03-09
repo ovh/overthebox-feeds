@@ -44,26 +44,39 @@ class Sw(serial.Serial):
 
         self.open()
 
-    def recv(self):
-        self.last_comments = []
+    def recv(self, auto_more):
+        self.last_out, self.last_comments = self._recv()
+
+        # If we're now in a more, ask for MOOOORE to get the full output! :p
+        while auto_more and self.state == States.MORE:
+            self.write(" ") # Sending a space gives us more lines than a LF
+            out, comments = self._recv()
+            self.last_out.extend(out)
+            self.last_comments.extend(comments)
+
+        return (self.last_out, self.last_comments)
+
+    def _recv(self):
         # First, call self.readlines().
         # It reads from serial port and gets a list with one line per list item.
         # In each of the list's item, remove any \r or \n, but only at end of line (right strip)
         # For each line of the output, give it to _filter_comments
         # This will filter out comments and put them in a separated list
         # Finally, use filter(None, list) remove empty elements
-        self.last_out = filter(None, [self._filter_comments(l.rstrip("\r\n")) for l in self.readlines()])
+        comments = []
+        out = filter(None, [self._filter_comments(l.rstrip("\r\n"), comments) for l in self.readlines()])
 
-        self.state = self._parse_prompt()
+        self.state = self._parse_prompt(out)
         if self.state:
             print("Switch state is: '%s'" % (self.state.name))
         else:
             print("Switch state is unknown")
 
-        return (self.last_out, self.last_comments)
+        return (out, comments)
 
     # Filter out all comments and push them in a separated list
-    def _filter_comments(self, line):
+    @staticmethod
+    def _filter_comments(line, comments):
         # Comments example (always end by CRLF, but sometimes after prompt, sometimes on a new line)
         #   *Jan 13 2000 11:25:20: %System-5: New console connection for user admin, source async  ACCEPTED
         #   *Jan 13 2000 11:32:10: %Port-5: Port gi6 link down
@@ -74,12 +87,18 @@ class Sw(serial.Serial):
 
         # If we've found a comment, move it to a dedicated list
         if m and m.group():
-            self.last_comments.append(m.group())
+            comments.append(m.group())
             line = line[:m.span()[0]]
 
         return line
 
-    def _send(self, string, bypass_echo_check=False):
+    # Send an arbitrary string to the switch and get the answer
+    # If bypass_echo_check is True, the echo will be part of the global answer
+    # Otherwise it'll be consumed char by char and will be checked
+    # If auto_more is True, if there's a --More--, we'll keep asking for MOOORE and get the full output :p
+    # Otherwise the More logic is disabled and --More-- will be received in the output
+    # It will be up to the caller to deal with the fact that we're still in a More state
+    def _send(self, string, bypass_echo_check=True, auto_more=False):
         # When sending a command, it's safer to send it char by char, and waiting for the echo
         # Why? Try to connect to the switch, go to the Username: prompt.
         # Then, in order to simulate high speed TX, copy "admin" and paste it inside the console
@@ -107,17 +126,11 @@ class Sw(serial.Serial):
                 print("Invalid echo: expected %c, got %c" % (expected, echo))
                 self.flushInput()
 
-        return self.recv()
+        return self.recv(auto_more)
 
-    # Send an arbitrary string to the switch and get the answer
-    # If bypass_echo_check is True, the echo will be part of the global answer
-    # Otherwise it'll be consumed char by char when checking for the command echo
-    def send_str(self, string, bypass_echo_check=False):
-        return self._send(string, bypass_echo_check)
-
-    # Send a command to the switch (\n is automatically appended)
+    # Send a command to the switch and get the output
     def send_cmd(self, cmd):
-        return self.send_str("%s\n" % (cmd))
+        return self._send("%s\n" % (cmd), False, True)
 
     # This method takes you from known or unknown state and brings you to "hostname# " prompt
     # If necessary, it will escape an ongoing "--More--". If necessary, it will login.
@@ -129,7 +142,7 @@ class Sw(serial.Serial):
             # Because we don't know where we are, we don't know if our keystroke will produce an echo or not
             # So when sending our keystroke, we disable the consumption and check of the echo
             # This allows us to analyze the full answer ourselves and then determine the state
-            out, _ = self.send_str("\n", True)
+            out, _ = self._send("\n")
             if not out:
                 print("Didn't get any answer when trying to determine switch state.")
                 return False
@@ -143,7 +156,7 @@ class Sw(serial.Serial):
 
         if self.state == States.MORE:
             print("Sending one ETX (CTRL+C) to escape --More-- state")
-            ok, _ = self.send_str("\x03", True)
+            ok, _ = self._send("\x03")
 
         # We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
         elif self.state == States.USER_MAIN:
@@ -162,8 +175,8 @@ class Sw(serial.Serial):
         return ok and self.state == States.ADMIN_MAIN
 
     # This method analyzes the received output to determine the switch state
-    def _parse_prompt(self):
-        first_line, last_line = self.last_out[0], self.last_out[-1]
+    def _parse_prompt(self, out):
+        first_line, last_line = out[0], out[-1]
 
         # States without hostname information in the prompt
         for s in [States.LOGIN_USERNAME, States.LOGIN_PASSWORD]:
@@ -175,7 +188,7 @@ class Sw(serial.Serial):
                 return s
 
         # Hostname determination
-        if not self.hostname and not self._determine_hostname():
+        if not self.hostname and not self._determine_hostname(last_line):
             return None
 
         # States containing the hostname in the prompt
@@ -187,14 +200,14 @@ class Sw(serial.Serial):
         # Unknown state
         return None
 
-    def _determine_hostname(self):
-        m = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', self.last_out[-1])
+    def _determine_hostname(self, output_last_line):
+        m = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', output_last_line)
         if m and m.group('hostname'):
             self.hostname = m.group('hostname')
             print "Hostname '%s' detected" % (self.hostname)
             return True
         else:
-            print "Unable to determine hostname :'(" % (self.hostname)
+            print "Unable to determine hostname :'("
             return False
 
     # _login attempts to login to the switch
