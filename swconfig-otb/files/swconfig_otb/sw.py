@@ -29,6 +29,8 @@ class _States(object):
 class Sw(object):
     """Represent a serial connection to a TG-NET S3500-15G-2F switch."""
 
+    _MORE_MAGIC = ["\x08", "\x1b[A\x1b[2K"]
+
     def __init__(self):
         self.sock = serial.Serial()
 
@@ -93,6 +95,11 @@ class Sw(object):
         while auto_more and self.state == _States.MORE:
             self.sock.write(" ") # Sending a space gives us more lines than a LF
             out, comments = self._recv_once()
+
+            if out[0] == self._MORE_MAGIC[0] and out[1].startswith(self._MORE_MAGIC[1]):
+                out.pop(0) # Remove the BackSpace (it occupies a whole line)
+                out[0] = out[0][len(self._MORE_MAGIC[1]):] # Strip the ^[A^[2K from the second line
+
             self.last_out.extend(out)
             self.last_comments.extend(comments)
 
@@ -258,12 +265,11 @@ class Sw(object):
         last_line = out[-1]
 
         # States without hostname information in the prompt
-        for state in [_States.LOGIN_USERNAME, _States.LOGIN_PASSWORD]:
+        for state in [_States.PRESS_ANY_KEY, _States.LOGIN_USERNAME,
+                      _States.LOGIN_PASSWORD, _States.MORE]:
             if last_line.startswith(state.prompt_needle):
-                return state
-
-        for state in [_States.PRESS_ANY_KEY, _States.MORE]:
-            if last_line == state.prompt_needle:
+                if state == _States.MORE:
+                    out.pop() # Remove the --More-- from the output!
                 return state
 
         # Hostname determination
@@ -274,6 +280,7 @@ class Sw(object):
         for state in [_States.CONFIG, _States.CONFIG_VLAN, _States.CONFIG_IF,
                       _States.CONFIG_IF_RANGE, _States.ADMIN_MAIN, _States.USER_MAIN]:
             if last_line.startswith(self.hostname + state.prompt_needle):
+                out.pop() # Remove the prompt from the output :)
                 return state
 
         # Unknown state
