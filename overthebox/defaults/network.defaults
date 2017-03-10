@@ -46,11 +46,10 @@ set network.if6rd.ifname=‘6rd’
 set network.if6rd.multipath='off'
 EOF
 
-CHANGES=$(uci changes network)
-if [ -n "$CHANGES" ]
-then
+if [ -n "$(uci changes network)" ]; then
 	uci commit network
-	reload_config network
+	reload_config
+	/etc/init.d/network reload
 fi
 
 exit 0
