@@ -286,10 +286,16 @@
         var callback = otb.getCallback(arguments);
         otb.nuc.getPublicIp(function(err, ip) {
             otb.nuc.interfacesStatus(function (err, data) {
-                if (!err && data.overthebox && data.overthebox.service_addr && data.overthebox.service_addr === ip) {
-                    callback(err, true);
+                if (!err && data.overthebox) {
+                    if (data.overthebox.service_addr && data.overthebox.service_addr === ip) {
+                        callback(err, "service_ok");
+                    } else if (data.overthebox.wan_addr && data.overthebox.wan_addr === ip) {
+                        callback(err, "service_ko");
+                    } else {
+                        callback(err, "ko");
+                    }
                 } else {
-                    callback(err, false);
+                    callback(err, "ko");
                 }
             });
         });
