@@ -85,16 +85,24 @@ class Sw(object): # pylint: disable=R0903
 
         return (out, coms)
 
-    # Filter out all comments and push them in a separated list
     @staticmethod
     def _filter(line, comments):
-        """Comments always end by CRLF, sometimes after prompt, sometimes on a new line
+        """Remove comments and push them to a separated list
+
+        Comments always end by CRLF, sometimes after prompt, sometimes on a new line
         They start with a '*' and a date in the form '*Jan 13 2000 11:25:20: '
         Then come a type prefix and the message:
-        %System-5: New console connection for user admin, source async  ACCEPTED
-        %Port-5: Port gi6 link down
-        %Port-5: Port gi4 link up"""
+            %System-5: New console connection for user admin, source async  ACCEPTED
+            %Port-5: Port gi6 link down
+            %Port-5: Port gi4 link up
 
+        Args:
+            line: The current line being processed
+            comments: A reference to a list where we can push the comments we find
+
+        Returns:
+            The modified output line (it can become empty if the whole line was a comment)
+        """
         # This regex matches a switch comment
         comment_regex = re.search(r'(\*.*: %.*: .*)', line)
 
@@ -105,14 +113,18 @@ class Sw(object): # pylint: disable=R0903
 
         return line
 
-    # Send an arbitrary string to the switch and get the answer
-    # If bypass_echo_check is True, the echo will be part of the global answer
-    # Otherwise it'll be consumed char by char and will be checked
-    # If auto_more is True and there's a More, we'll keep asking for MOOORE and get the full output
-    # Otherwise the More logic is disabled and --More-- will be received in the output
-    # It will be up to the caller to deal with the fact that we're still in a More state
     def _send(self, string, bypass_echo_check=True, auto_more=False):
-        # When sending a command, it's safer to send it char by char, and waiting for the echo
+        """Send an arbitrary string to the switch and get the answer
+
+        Args:
+            string: The string to send to the switch
+            bypass_echo_check: When True, the echo will be part of the global answer
+                Otherwise it'll be consumed char by char and will be checked
+            auto_more: When true, we'll keep asking for more and get the full output
+                Otherwise the More logic is disabled and --More-- will be received in the output
+                It will be up to the caller to deal with the fact that we're still in a More state
+        """
+        # When sending a command, it's safer to send it char by char, and wait for the echo
         # Why? Try to connect to the switch, go to the Username: prompt.
         # Then, in order to simulate high speed TX, copy "admin" and paste it inside the console.
         # The echo arrives in a random order. The behaviour is completely unreliable.
@@ -142,7 +154,7 @@ class Sw(object): # pylint: disable=R0903
         return self._recv(auto_more)
 
     def send_cmd(self, cmd):
-        """Send a command to the switch, check the echo and get the output.
+        """Send a command to the switch, check the echo and get the full output.
 
         Args:
             cmd: The command to send. Do not add any LF at the end.
@@ -154,9 +166,11 @@ class Sw(object): # pylint: disable=R0903
         """
         return self._send("%s\n" % (cmd), False, True)
 
-    # This method takes you from known or unknown state and brings you to "hostname# " prompt
-    # If necessary, it will escape an ongoing "--More--". If necessary, it will login.
     def _goto_admin_main_prompt(self):
+        """Bring the switch to the known state "hostname# " prompt (from known or unknown state)
+
+        If necessary, it will login, exit some menus, escape an ongoing "--More--"...
+        """
         self.sock.flushInput()
 
         # We don't know where we are, let's find out :)
@@ -196,8 +210,15 @@ class Sw(object): # pylint: disable=R0903
         # Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
         return res and self.state == _States.ADMIN_MAIN
 
-    # This method analyzes the received output to determine the switch state
     def _parse_prompt(self, out):
+        """Analyze the received output to determine the switch state
+
+        Args:
+            out: A list with the output that we'll use to determine the state
+
+        Returns:
+            A state if we found out, or None if we still don't known where we are
+        """
         last_line = out[-1]
 
         # States without hostname information in the prompt
@@ -223,6 +244,7 @@ class Sw(object): # pylint: disable=R0903
         return None
 
     def _determine_hostname(self, output_last_line):
+        """Extract the hostname from the prompt and store it"""
         hostname_regex = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', output_last_line)
         if hostname_regex and hostname_regex.group('hostname'):
             self.hostname = hostname_regex.group('hostname')
@@ -232,9 +254,12 @@ class Sw(object): # pylint: disable=R0903
             print "Unable to determine hostname :'("
             return False
 
-    # _login attempts to login to the switch
     # It can only be called when we are in the LOGIN_USERNAME or LOGIN_PASSWORD state
     def _login(self):
+        """Automatically login into the switch
+
+        Only call me if we are in the LOGIN_USERNAME or LOGIN_PASSWORD state.
+        """
         if self.state == _States.LOGIN_USERNAME:
             out, _ = self.send_cmd(config.user)
             # The switch rejects us immediately if the username doesn't exist
