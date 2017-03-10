@@ -108,7 +108,7 @@
             <div id="passwordSetupProcess">
                 <div class="alert alert-info config">
                     <p><%:Choisissez un mot de passe pour sécuriser l’accès à votre OverTheBox%>.</p>
-                    <p><%:Votre mot de passe doit contenir, au minimum, 8 caractères alphanumériques et contenir au moins une majuscule et une minuscule%>.</p>
+                    <p><%:Votre mot de passe doit contenir, au minimum, 8 caractères alphanumériques%>.</p>
                     <div class="container">
                         <div class="row">
                             <div class="col-md-4">
@@ -116,7 +116,6 @@
                                     <div class="form-group" id="passGpFirst">
                                         <input type="password" class="form-control" id="passwordInput" placeholder="<%:Mot de passe%>">
                                         <label class="control-label control-message" id="passErrorLong"><%:Le mot de passe doit contenir, au minimum, 8 caractères%></label>
-                                        <label class="control-label control-message" id="passErrorComplex"><%:Le mot de passe doit contenir au moins une majuscule et une minuscule%></label>
                                     </div>
                                     <div class="form-group" id="passGpSecond">
                                         <input type="password" class="form-control" id="passwordInput2" placeholder="<%:Confirmez%>">
@@ -420,7 +419,6 @@ Souhaitez-vous associer ce nouveau device?%></p>
         /* === Attach wizzard events === */
         $("div.wizard").wizard("attachEvent", "passwordSetup", "start", function() {
             $("#passErrorLong").hide();
-            $("#passErrorComplex").hide();
             $("#passErrorSame").hide();
 
             // if password is set, skip this wizard step
@@ -435,9 +433,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
             passwordInput.keyup(function() {
                 var isSame = (passwordInput.first().val() === passwordInput.last().val());
                 var isLongEnough = passwordInput.first().val().length > 7;
-                var isComplexEnough = /[a-z]/.test(passwordInput.first().val()) && /[A-Z]/.test(passwordInput.first().val());
                 $("#passErrorLong").hide();
-                $("#passErrorComplex").hide();
                 $("#passErrorSame").hide();
                 if (!isSame && passwordInput.last().val()) {
                     $("#passGpSecond").addClass("has-error");
@@ -447,20 +443,17 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     $("#passGpSecond").removeClass("has-error");
                     $("#passGpSecond").addClass("has-success");
                 }
-                if (!isLongEnough || !isComplexEnough) {
+                if (!isLongEnough) {
                     $("#passGpFirst").addClass("has-error");
                     $("#passGpFirst").removeClass("has-success");
                     if (!isLongEnough) {
                         $("#passErrorLong").show();
                     }
-                    if (!isComplexEnough) {
-                        $("#passErrorComplex").show();
-                    }
                 } else {
                     $("#passGpFirst").removeClass("has-error");
                     $("#passGpFirst").addClass("has-success");
                 }
-                $("#passwordSetSubmit").prop("disabled", !isSame || !isLongEnough || !isComplexEnough);
+                $("#passwordSetSubmit").prop("disabled", !isSame || !isLongEnough);
             }); 
         }).wizard("attachEvent", "passwordSetup", "stop", function() {
             $("#passwordSetupProcess input[type=password]").unbind();
