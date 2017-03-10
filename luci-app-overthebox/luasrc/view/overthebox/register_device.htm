@@ -610,13 +610,17 @@ Souhaitez-vous associer ce nouveau device?%></p>
         $("#testPublicIp").click(function() {
             $("#testPublicIp").prop("disabled", true);
             otb.usingOTB(function (err, status) {
-                if (!err && status) {
+                if (!err && status !== "ko") {
                     dhcpCounter = otb.tryBeforSupport;
                     $("#testPublicIp").hide();
                     $("div.wizard").wizard("next", function() {
                         otb.cleanMessages();
                     });
-                    otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
+                    if (status == "service_ok") {
+                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
+                    } else {
+                        otb.pushMessage($("div#messageContainer"), "warning", "<p><%:Votre installation est terminée, cependant votre connexion n'est pas sécurisée%></p>");
+                    }
                 } else {
                     otb.pushMessage($("div#messageContainer"), "error", "<p><%:Veuillez déconnecter et reconnecter votre ordinateur au réseau%></p>");
                     displaySupport();
