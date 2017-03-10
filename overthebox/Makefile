@@ -50,18 +50,19 @@ endef
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./defaults/overthebox.defaults $(1)/etc/uci-defaults/overthebox.defaults
+	$(INSTALL_BIN) ./defaults/overthebox.defaults $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./defaults/network.defaults $(1)/etc/uci-defaults/otb-network.defaults
 	$(INSTALL_BIN) ./defaults/dnsmasq.defaults $(1)/etc/uci-defaults/otb-dnsmasq.defaults
 	$(INSTALL_BIN) ./defaults/firewall.defaults $(1)/etc/uci-defaults/otb-firewall.defaults
 	$(INSTALL_BIN) ./defaults/power.defaults $(1)/etc/uci-defaults/otb-power.defaults
 	$(INSTALL_BIN) ./defaults/crontab.defaults $(1)/etc/uci-defaults/otb-crontab.defaults
 	$(INSTALL_BIN) ./defaults/download_recovery.defaults $(1)/etc/uci-defaults/otb-recovery.defaults
-	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults/mwan3.defaults
-	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults/dscp.defaults
-	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults/ucitrack.defaults
-	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
-	$(INSTALL_BIN) ./defaults/shadowsocks.defaults $(1)/etc/uci-defaults/shadowsocks.defaults
+	$(INSTALL_BIN) ./defaults/mwan3.defaults $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./defaults/dscp.defaults $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./defaults/shadowsocks.defaults $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./defaults/ZZZ_reload.defaults $(1)/etc/uci-defaults
 endef
 
 define Package/overthebox/postinst
@@ -87,7 +88,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 
 	# Once all defaults are set, we use reload_config that will call
 	# /etc/init.d/{service} reload on all services that had some config changes
-	[ -x /sbin/reload_config ] && /sbin/reload_config ;
+	reload_config
 
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
