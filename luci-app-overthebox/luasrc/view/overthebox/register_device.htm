@@ -73,7 +73,7 @@
             <p><%:Installez facilement votre OverTheBox en 4 étapes%></p>
             <p><%:Vérifier qu'aucun autre modem ne soit branché à votre modem principal%>.</p>
             <svg version="1.1" class="jsFirstScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
-            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>.
+            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>
         </div>
         <div id="connectedMessage">
             <p><%:Installer facilement votre OverTheBox en 4 étapes%></p>
@@ -82,7 +82,7 @@
             <p><%:Votre OverTheBox est associée à un service %><strong id="serviceId"></strong>.</p>
             <p><%:Connectez-vous pour modifier la configuration matérielle%>.</p>
         </div>
-        <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span>.</strong></p>
+        <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></strong></p>
         <button id="registerButton" class="btn btn-primary"><%:S'authentifier%></button>
         <div style="margin-top:20px">
             <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
@@ -156,7 +156,7 @@
                     </form>
                     <div id="releaseService">
                             <p><%:Un appareil est déjà associé à ce service. Il s’agit peut-être de la même OverTheBox si cette dernière a été réinitialisée.
-Souhaitez-vous remplacer la précédente association ?%></p>
+Souhaitez-vous associer ce nouveau device?%></p>
                             <button class="btn no" role="button"><%:Annuler%></button>
                             <button class="btn btn-primary yes" role="button"><%:Continuer%></button>
                         </div>
