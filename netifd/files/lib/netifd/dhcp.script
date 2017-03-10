@@ -136,7 +136,9 @@ setup_uci() {
 					ifup if0
 					ifconfig if0 hw ether "$IF0_MACADDR"
 					# Bring up $IF interface
+					logger -t 'hoplug-test' 'calling 1'
 					/sbin/hotplug-call net
+					logger -t 'hoplug-test' 'done calling 1'
 					ifup $IF
 					pkill -USR1 udhcpc
 					return
@@ -202,7 +204,9 @@ setup_uci() {
 				ifup if0
 				ifconfig if0 hw ether "$IF0_MACADDR"
 				# Bring up $IF interface
+				logger -t 'hoplug-test' 'calling 2'
 				/sbin/hotplug-call net
+				logger -t 'hoplug-test' 'done calling 2'
 				ifup $IF
 			fi
 
@@ -310,7 +314,9 @@ setup_uci() {
 					ifup if0
 					ifconfig if0 hw ether "$IF0_MACADDR"
 					# Bring up $IF interface
+					logger -t 'hoplug-test' 'calling 3'
 					/sbin/hotplug-call net
+					logger -t 'hoplug-test' 'done calling 3'
 					ifup $IF
 				else
 					# ignore dhcp request

@@ -6,4 +6,6 @@
 # Unfortunately, reload_config cannot take an argument :(
 # We may potentially reload services who subscribed to reload_trigger other than "mwan3"
 # But this is fine since reload_service only reload services for conf which really changed
+logger -t 'hoplug-test' 'calling 4'
 reload_config
+logger -t 'hoplug-test' 'done calling 4'
