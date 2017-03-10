@@ -130,9 +130,9 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
         {
 		var status = document.getElementById('dhcpserver_status_text');
 
-		if (mArray.running_dhcp_service)
+		if (!mArray)
 		{
-						
+			return;
 		}
 
 		if (mArray.detected_dhcp_servers)
