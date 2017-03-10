@@ -26,7 +26,7 @@ class _States(object):
     LOGIN_PASSWORD = _State("Login (password)", "Password: ")
     MORE = _State("More", "--More--")
 
-class Sw(object): # pylint: disable=R0903
+class Sw(object):
     """Represent a serial connection to a TG-NET S3500-15G-2F switch."""
 
     def __init__(self):
@@ -40,13 +40,36 @@ class Sw(object): # pylint: disable=R0903
         self.sock.timeout = config.timeout
         self.sock.write_timeout = config.write_timeout
         self.sock.inter_byte_timeout = config.inter_byte_timeout
-
         self.state = None
         self.hostname = None
         self.last_out = None
         self.last_comments = None
 
+    def __enter__(self):
+        self.open_()
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self.close()
+
+    def open_(self):
+        """Open the serial connection and go to the admin main prompt
+
+        Instead of calling me, consider using 'with' statement if that suits your needs
+        """
         self.sock.open()
+        self._goto_admin_main_prompt()
+
+    def close(self):
+        """Close the serial connection and reset the state so this instance could be reused
+
+        Instead of calling me, consider using 'with' statement if that suits your needs
+        """
+        self.sock.close()
+        self.state = None
+        self.hostname = None
+        self.last_out = None
+        self.last_comments = None
 
     def _recv(self, auto_more, timeout):
         """Receive everything. If needed, we'll ask the switch for MOOORE. :p
@@ -59,7 +82,7 @@ class Sw(object): # pylint: disable=R0903
             auto_more: When true, we'll keep asking for more and get the full output
                 Otherwise the More logic is disabled and --More-- will be received in the output
                 It will be up to the caller to deal with the fact that we're still in a More state
-            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+            timeout: If the cmd is known to require a longer Switch CPU processing time than usual,
                 a timeout can be specified. It will be used only for the first read.
         """
         self.sock.timeout = timeout # Increase the timeout to the one specified
@@ -132,7 +155,7 @@ class Sw(object): # pylint: disable=R0903
             auto_more: When true, we'll keep asking for more and get the full output
                 Otherwise the More logic is disabled and --More-- will be received in the output
                 It will be up to the caller to deal with the fact that we're still in a More state
-            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+            timeout: If the cmd is known to require a longer Switch CPU processing time than usual,
                 a timeout can be specified. It will be used only for the first read.
         """
         # When sending a command, it's safer to send it char by char, and wait for the echo
@@ -169,7 +192,7 @@ class Sw(object): # pylint: disable=R0903
 
         Args:
             cmd: The command to send. Do not add any LF at the end.
-            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+            timeout: If the cmd is known to require a longer Switch CPU processing time than usual,
                 a timeout can be specified. It will be used only for the first read.
 
         Returns:
