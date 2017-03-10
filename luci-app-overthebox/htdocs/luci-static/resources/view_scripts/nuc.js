@@ -265,10 +265,10 @@
     Nuc.prototype.getPublicIp = function (/*callback*/) {
         var callback = otb.getCallback(arguments);
         $.ajax({
-            url: "https://api.ipify.org?format=json",
+            url: "https://ipaddr.ovh",
             success: function (data, status) {
-                if ((status === "success") && (data.ip)) {
-                    callback(null, data.ip);
+                if ((status === "success") && (data)) {
+                    callback(null, data);
                 } else {
                     callback(status, false);
                 }
