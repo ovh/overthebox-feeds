@@ -48,14 +48,23 @@ class Sw(object): # pylint: disable=R0903
 
         self.sock.open()
 
-    def _recv(self, auto_more):
+    def _recv(self, auto_more, timeout):
         """Receive everything. If needed, we'll ask the switch for MOOORE. :p
 
         Some commands may activate a pager when the answer becomes too big.
         We would then stay stuck with a --More-- at the bottom.
         This method receives output as many times as needed and gather the whole output.
+
+        Args:
+            auto_more: When true, we'll keep asking for more and get the full output
+                Otherwise the More logic is disabled and --More-- will be received in the output
+                It will be up to the caller to deal with the fact that we're still in a More state
+            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+                a timeout can be specified. It will be used only for the first read.
         """
+        self.sock.timeout = timeout # Increase the timeout to the one specified
         self.last_out, self.last_comments = self._recv_once()
+        self.sock.timeout = config.timeout # Reset the timeout to a lower one for subsequent reads
 
         # If we're now in a more, ask for MOOOORE to get the full output! :p
         while auto_more and self.state == _States.MORE:
@@ -113,7 +122,7 @@ class Sw(object): # pylint: disable=R0903
 
         return line
 
-    def _send(self, string, bypass_echo_check=True, auto_more=False):
+    def _send(self, string, bypass_echo_check=True, auto_more=False, timeout=config.timeout):
         """Send an arbitrary string to the switch and get the answer
 
         Args:
@@ -123,6 +132,8 @@ class Sw(object): # pylint: disable=R0903
             auto_more: When true, we'll keep asking for more and get the full output
                 Otherwise the More logic is disabled and --More-- will be received in the output
                 It will be up to the caller to deal with the fact that we're still in a More state
+            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+                a timeout can be specified. It will be used only for the first read.
         """
         # When sending a command, it's safer to send it char by char, and wait for the echo
         # Why? Try to connect to the switch, go to the Username: prompt.
@@ -151,20 +162,22 @@ class Sw(object): # pylint: disable=R0903
                 print "Invalid echo: expected %c, got %c" % (expected, echo)
                 self.sock.flushInput()
 
-        return self._recv(auto_more)
+        return self._recv(auto_more, timeout)
 
-    def send_cmd(self, cmd):
+    def send_cmd(self, cmd, timeout=config.timeout):
         """Send a command to the switch, check the echo and get the full output.
 
         Args:
             cmd: The command to send. Do not add any LF at the end.
+            timeout: If the command is known to require a longer Switch CPU processing time than usual,
+                a timeout can be specified. It will be used only for the first read.
 
         Returns:
             A tuple (out, comments)
                 out: List of strings of the regular output (no comments inside)
                 comments: List of strings of the switch comments
         """
-        return self._send("%s\n" % (cmd), False, True)
+        return self._send("%s\n" % (cmd), False, True, timeout)
 
     def _goto_admin_main_prompt(self):
         """Bring the switch to the known state "hostname# " prompt (from known or unknown state)
