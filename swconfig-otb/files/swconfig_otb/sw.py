@@ -88,13 +88,13 @@ class Sw(object):
                 a timeout can be specified. It will be used only for the first read.
         """
         self.sock.timeout = timeout # Increase the timeout to the one specified
-        self.last_out, self.last_comments = self._recv_once()
+        self.last_out, self.last_comments = self._recv_once_retry()
         self.sock.timeout = config.READ_TIMEOUT # Reset to a lower timeout for subsequent reads
 
         # If we're now in a more, ask for MOOOORE to get the full output! :p
         while auto_more and self.state == _States.MORE:
             self.sock.write(" ") # Sending a space gives us more lines than a LF
-            out, comments = self._recv_once()
+            out, comments = self._recv_once_retry()
 
             if out[0] == self._MORE_MAGIC[0] and out[1].startswith(self._MORE_MAGIC[1]):
                 out.pop(0) # Remove the BackSpace (it occupies a whole line)
@@ -104,6 +104,17 @@ class Sw(object):
             self.last_comments.extend(comments)
 
         return (self.last_out, self.last_comments)
+
+    def _recv_once_retry(self):
+        """Try to receive once, and retries with increasing timeout if it fails"""
+        for _ in range(config.READ_RETRIES):
+            try:
+                return self._recv_once()
+            except serial.SerialTimeoutException:
+                print "Read failed with timeout %fs. Will retry..." % (self.sock.timeout)
+                self.sock.timeout = self.sock.timeout * 2
+
+        raise serial.SerialTimeoutException("All read attempts timed out. Is the switch dead?")
 
     def _recv_once(self):
         """Receive once, filter output and update switch state by parsing prompt"""
@@ -116,6 +127,11 @@ class Sw(object):
         coms = []
         out = filter(None, [self._filter(l.rstrip("\r\n"), coms) for l in self.sock.readlines()])
 
+        # out should never be empty. Otherwise it means we have a problem...
+        if not out:
+            raise serial.SerialTimeoutException("The read timed out.")
+
+        # However, out may become empty after prompt parsing (prompt will be removed)
         self.state = self._parse_prompt(out)
         if self.state:
             print "Switch state is: '%s'" % (self.state.name)
@@ -222,9 +238,6 @@ class Sw(object):
             # So when sending our keystroke, we disable the consumption and check of the echo
             # This allows us to analyze the full answer ourselves and then determine the state
             out, _ = self._send("\n")
-            if not out:
-                print "Didn't get any answer when trying to determine switch state."
-                return False
 
         #Now, we know where we are. Let's go to the ADMIN_MAIN state :)
         res = None
