@@ -34,14 +34,14 @@ class Sw(object):
     def __init__(self):
         self.sock = serial.Serial()
 
-        self.sock.port = config.port
-        self.sock.baudrate = config.baudrate
-        self.sock.bytesize = config.bytesize
-        self.sock.parity = config.parity
-        self.sock.stopbits = config.stopbits
-        self.sock.timeout = config.timeout
-        self.sock.write_timeout = config.write_timeout
-        self.sock.inter_byte_timeout = config.inter_byte_timeout
+        self.sock.port = config.PORT
+        self.sock.baudrate = config.BAUDRATE
+        self.sock.bytesize = config.BYTESIZE
+        self.sock.parity = config.PARITY
+        self.sock.stopbits = config.STOPBITS
+        self.sock.timeout = config.READ_TIMEOUT
+        self.sock.write_timeout = config.WRITE_TIMEOUT
+        self.sock.inter_byte_timeout = config.INTER_BYTE_TIMEOUT
         self.state = None
         self.hostname = None
         self.last_out = None
@@ -89,7 +89,7 @@ class Sw(object):
         """
         self.sock.timeout = timeout # Increase the timeout to the one specified
         self.last_out, self.last_comments = self._recv_once()
-        self.sock.timeout = config.timeout # Reset the timeout to a lower one for subsequent reads
+        self.sock.timeout = config.READ_TIMEOUT # Reset to a lower timeout for subsequent reads
 
         # If we're now in a more, ask for MOOOORE to get the full output! :p
         while auto_more and self.state == _States.MORE:
@@ -152,7 +152,7 @@ class Sw(object):
 
         return line
 
-    def _send(self, string, bypass_echo_check=True, auto_more=False, timeout=config.timeout):
+    def _send(self, string, bypass_echo_check=True, auto_more=False, timeout=config.READ_TIMEOUT):
         """Send an arbitrary string to the switch and get the answer
 
         Args:
@@ -194,7 +194,7 @@ class Sw(object):
 
         return self._recv(auto_more, timeout)
 
-    def send_cmd(self, cmd, timeout=config.timeout):
+    def send_cmd(self, cmd, timeout=config.READ_TIMEOUT):
         """Send a command to the switch, check the echo and get the full output.
 
         Args:
@@ -304,7 +304,7 @@ class Sw(object):
         Only call me if we are in the LOGIN_USERNAME or LOGIN_PASSWORD state.
         """
         if self.state == _States.LOGIN_USERNAME:
-            out, _ = self.send_cmd(config.user)
+            out, _ = self.send_cmd(config.USER)
             # The switch rejects us immediately if the username doesn't exist
             if any("Incorrect User Name" in l for l in out):
                 print "The switch claims the username is invalid. " \
@@ -326,7 +326,7 @@ class Sw(object):
         #  Username: admin
         # In this case we'll transition from UNKNOWN to LOGIN_PASSWORD state directly
         if self.state == _States.LOGIN_PASSWORD:
-            out, comments = self.send_cmd(config.password)
+            out, comments = self.send_cmd(config.PASSWORD)
             if any("ACCEPTED" in c for c in comments):
                 return True
 
