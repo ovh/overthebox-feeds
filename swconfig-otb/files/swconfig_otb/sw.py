@@ -46,6 +46,7 @@ class Sw(object):
         self.hostname = None
         self.last_out = None
         self.last_comments = None
+        self.vlans = None
 
     def __enter__(self):
         self.open_()
@@ -72,6 +73,7 @@ class Sw(object):
         self.hostname = None
         self.last_out = None
         self.last_comments = None
+        self.vlans = None
 
     def _recv(self, auto_more, timeout):
         """Receive everything. If needed, we'll ask the switch for MOOORE. :p
@@ -353,3 +355,61 @@ class Sw(object):
         # What? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
         print "Login method should never have been called now. Bye bye..."
         assert False
+
+    def parse_vlans(self):
+        """Ask the switch its VLAN state and store it in RAM.
+
+        For a given VID, a port can be either a member or not. If it's a member of the vlan,
+        it's either a tagged or an untagged member. It can't be both.
+
+        Returns:
+            A dictionary of dictionaries. The first dict layer has the VID as key.
+                The second layer has the interface number as key. The value associated with
+                the interface number is False for untagged or True for tagged ports.
+                As an example, VID 1 with gi15 untagged, VID 13 with gi13 untagged and gi15 tagged:
+                    {1: {15: False}, 13: {13: False, 15: True}}
+        """
+        out, _ = self.send_cmd("show vlan static")
+        vlans = {}
+
+        # Skip header and the second line (-----+-----...)
+        for line in out[2:]:
+            row = [r.strip() for r in line.split('|')]
+            vid, untagged, tagged = int(row[0]), row[2], row[3]
+
+            vlans[vid] = {}
+
+            untagged_range = self._str_to_if_range(untagged)
+            tagged_range = self._str_to_if_range(tagged)
+
+            if untagged_range:
+                vlans[vid].update({if_: False for if_ in untagged_range})
+
+            if tagged_range:
+                vlans[vid].update({if_: True for if_ in tagged_range})
+
+        self.vlans = vlans
+
+    @staticmethod
+    def _str_to_if_range(string):
+        """Take an interface range string and generate the expanded version in a list.
+
+        Only the interface ranges starting with 'gi' will be taken into account.
+
+        Args:
+            string: A interface range string (ex 'gi4,gi6,gi8-10,gi16-18,lag2')
+
+        Returns:
+            A list of numbers which is the expansion of the whole range. For example,
+                the above input will give [4, 6, 8, 9, 10, 16, 17, 18]
+        """
+        # Split the string by ','.
+        # Exclude elements that don't start with "gi" (we could have 'lag8-15', or '---').
+        # Then, remove the 'gi' prefix and split by '-'. We end up with a list of lists.
+        # This is a list of the ranges bounds (1 element or 2: start and end bounds).
+        # Then, return a list of all the concatenated expanded ranges.
+        # The trick of using a[0] and a[-1] allows it to work with single numbers as well.
+        # This wouldn't be the case if we had used a[0] and a[1].
+        # If there's only one digit [1], it will compute range(1, 1 + 1) which is 1.
+        range_ = [r[len('gi'):].split('-') for r in string.split(',') if r.startswith('gi')]
+        return [i for r in range_ for i in range(int(r[0]), int(r[-1]) + 1)]
