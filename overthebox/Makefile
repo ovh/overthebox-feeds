@@ -87,7 +87,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 
 	# Once all defaults are set, we use reload_config that will call
 	# /etc/init.d/{service} reload on all services that had some config changes
-	[ -x /sbin/reload_config ] && /sbin/reload_config ;
+	[ -d /var/run/config.check ] || /sbin/reload_config
 
 	# force clear luci cache
 	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
