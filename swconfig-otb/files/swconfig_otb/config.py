@@ -16,3 +16,5 @@ READ_RETRIES = 4
 WRITE_TIMEOUT = 1
 
 USER, PASSWORD = "admin", "admin"
+
+UCI_NAME = 'otbv2sw'
