@@ -44,9 +44,6 @@ class Sw(object):
         self.sock.inter_byte_timeout = config.INTER_BYTE_TIMEOUT
         self.state = None
         self.hostname = None
-        self.last_out = None
-        self.last_comments = None
-        self.vlans = None
 
     def __enter__(self):
         self.open_()
@@ -71,9 +68,6 @@ class Sw(object):
         self.sock.close()
         self.state = None
         self.hostname = None
-        self.last_out = None
-        self.last_comments = None
-        self.vlans = None
 
     def _recv(self, auto_more, timeout):
         """Receive everything. If needed, we'll ask the switch for MOOORE. :p
@@ -90,7 +84,7 @@ class Sw(object):
                 a timeout can be specified. It will be used only for the first read.
         """
         self.sock.timeout = timeout # Increase the timeout to the one specified
-        self.last_out, self.last_comments = self._recv_once_retry()
+        whole_out, all_comments = self._recv_once_retry()
         self.sock.timeout = config.READ_TIMEOUT # Reset to a lower timeout for subsequent reads
 
         # If we're now in a more, ask for MOOOORE to get the full output! :p
@@ -102,10 +96,10 @@ class Sw(object):
                 out.pop(0) # Remove the BackSpace (it occupies a whole line)
                 out[0] = out[0][len(self._MORE_MAGIC[1]):] # Strip the ^[A^[2K from the second line
 
-            self.last_out.extend(out)
-            self.last_comments.extend(comments)
+            whole_out.extend(out)
+            all_comments.extend(comments)
 
-        return (self.last_out, self.last_comments)
+        return (whole_out, all_comments)
 
     def _recv_once_retry(self):
         """Try to receive once, and retries with increasing timeout if it fails"""
@@ -239,7 +233,7 @@ class Sw(object):
             # We don't know where we are: we don't know if our keystroke will produce an echo or not
             # So when sending our keystroke, we disable the consumption and check of the echo
             # This allows us to analyze the full answer ourselves and then determine the state
-            out, _ = self._send("\n")
+            self._send("\n")
 
         #Now, we know where we are. Let's go to the ADMIN_MAIN state :)
         res = None
@@ -357,7 +351,7 @@ class Sw(object):
         assert False
 
     def parse_vlans(self):
-        """Ask the switch its VLAN state and store it in RAM.
+        """Ask the switch its VLAN state and return it
 
         For a given VID, a port can be either a member or not. If it's a member of the vlan,
         it's either a tagged or an untagged member. It can't be both.
@@ -388,7 +382,7 @@ class Sw(object):
             if tagged_range:
                 vlans[vid].update({if_: True for if_ in tagged_range})
 
-        self.vlans = vlans
+        return vlans
 
     @staticmethod
     def _str_to_if_range(string):
