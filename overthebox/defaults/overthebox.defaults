@@ -73,4 +73,10 @@ if mount | grep "on / " | grep ext4 | grep sync &>/dev/null; then
 	mount / -o remount,async
 fi
 
+# Stop the scollector binary
+SCOLLECTOR_PID=$(pgrep -f /usr/bin/scollector)
+if [ -n "$SCOLLECTOR_PID" ]; then
+	kill "$SCOLLECTOR_PID"
+fi
+
 exit 0
