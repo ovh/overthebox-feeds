@@ -5,13 +5,15 @@
 import sys
 import os
 from swconfig_otb.sw import Sw
-from swconfig_otb.config import UCI_NAME
+from swconfig_otb.config import UCI_NAME, MODEL, CPU_PORT, PORTS, VLANS
 
 def _usage():
     sys.exit("%s dev <dev> (help|load <config>|show)" % os.path.basename(sys.argv[0]))
 
 def _help():
-    pass
+    print(
+        "{sw_name}: {sw_name}({sw_type}), ports: {sw_ports} (cpu @ {sw_cpu_port}), vlans: {sw_vlans}"
+    ).format(sw_name=UCI_NAME, sw_type=MODEL, sw_ports=PORTS, sw_cpu_port=CPU_PORT, sw_vlans=VLANS)
 
 def _show():
     pass
