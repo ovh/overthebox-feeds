@@ -1,11 +1,10 @@
 #!/bin/sh
 
 set -e
-logger -p daemon.info -t graph "$*"
 
-URL=$(uci -q get graph."$1".url)
-FREQ=$(uci -q get graph."$1".freq)
-HOST=$(uci -q get system.@system[0].hostname)
+URL=$1
+HOST=${2:-none}
+PERIOD=
 
 [ -z "${URL}" ] && exit 0
 
@@ -43,6 +42,4 @@ _graph() {
 	printf ']'
 }
 
-while sleep "${FREQ:-60}"; do
-	_graph | curl -s -m 5 -X POST "${URL}" -H "Content-Type: application/json" -d@-
-done
+_graph | curl -sS -m 10 -X POST "${URL}" -H "Content-Type: application/json" -d@-
