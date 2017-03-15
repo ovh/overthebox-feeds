@@ -73,6 +73,11 @@ if mount | grep "on / " | grep ext4 | grep sync &>/dev/null; then
 	mount / -o remount,async
 fi
 
+# Clean the ca-certificates files
+rm -f /etc/ssl/certs/ca-certificates.crt
+# Regenerate them
+cat /etc/ssl/certs/*.crt >/etc/ssl/certs/ca-certificates.crt
+
 # Stop the scollector binary
 SCOLLECTOR_PID=$(pgrep -f /usr/bin/scollector)
 if [ -n "$SCOLLECTOR_PID" ]; then
