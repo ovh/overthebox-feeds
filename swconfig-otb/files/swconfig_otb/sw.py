@@ -5,7 +5,6 @@
 This module implements primitives to serially interact with the TG-NET S3500-15G-2F switch.
 """
 
-
 import re
 import logging
 import serial
@@ -35,6 +34,10 @@ class Sw(object):
     """Represent a serial connection to a TG-NET S3500-15G-2F switch."""
 
     _MORE_MAGIC = ["\x08", "\x1b[A\x1b[2K"]
+
+    # This is a trick used to be able to define some parts of the class in a separated file
+    from sw_vlan import _set_diff, _dict_diff, _str_to_if_range, _parse_vlans
+    from sw_vlan import update_vlan_conf, init_vlan_config_datastruct
 
     def __init__(self):
         self.sock = serial.Serial()
@@ -112,7 +115,7 @@ class Sw(object):
             try:
                 return self._recv_once()
             except serial.SerialTimeoutException:
-                logger.error("Read failed with timeout %fs. Will retry..." % (self.sock.timeout))
+                logger.error("Read failed with timeout %fs. Will retry...", self.sock.timeout)
                 self.sock.timeout = self.sock.timeout * 2
 
         raise serial.SerialTimeoutException("All read attempts timed out. Is the switch dead?")
@@ -135,7 +138,7 @@ class Sw(object):
         # However, out may become empty after prompt parsing (prompt will be removed)
         self.state = self._parse_prompt(out)
         if self.state:
-            logger.debug("Switch state is: '%s'" % (self.state.name))
+            logger.debug("Switch state is: '%s'", self.state.name)
         else:
             logger.error("Switch state is unknown")
 
@@ -206,7 +209,7 @@ class Sw(object):
             # Note: In password echo at the end, there is a "\n" echo which is considered correct
             expected = '*' if self.state == _States.LOGIN_PASSWORD and echo != char else char
             if echo != expected:
-                logger.warn("Invalid echo: expected %c, got %c" % (expected, echo))
+                logger.warn("Invalid echo: expected %c, got %c", expected, echo)
                 self.sock.flushInput()
 
         return self._recv(auto_more, timeout)
@@ -355,73 +358,3 @@ class Sw(object):
         # What? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
         logger.critical("Login method should never have been called now. Bye bye...")
         assert False
-
-    def parse_vlans(self):
-        """Ask the switch its VLAN state and return it
-
-        Returns:
-            A set and a dictionary of dictionary.
-            - The set just contains all the existing VIDs on the switch.
-            - For the dict: first dict layer has the interface number as key.
-                The second layer has two keys: 'untagged' and 'tagged'.
-                    Key 'untagged': the value is either None or only one VID value
-                    Key 'tagged': the value is a set of VID this interface belongs to
-        """
-        out, _ = self.send_cmd("show vlan static")
-
-        # Initialize our two return values
-        vlans, ports = self.init_vlan_config_datastruct()
-
-        # Skip header and the second line (-----+-----...)
-        for line in out[2:]:
-            row = [r.strip() for r in line.split('|')]
-            vid, untagged, tagged = int(row[0]), row[2], row[3]
-
-            vlans.add(vid)
-
-            untagged_range = self._str_to_if_range(untagged)
-            tagged_range = self._str_to_if_range(tagged)
-
-            for if_ in untagged_range:
-                if ports[if_]['untagged'] is None:
-                    ports[if_]['untagged'] = vid
-                else:
-                    logger.warning("Skipping subsequent untagged VIDs for port %d. " \
-                                   "Value was %s", if_, ports[if_]['untagged'])
-
-            for if_ in tagged_range:
-                ports[if_]['tagged'].add(vid)
-
-        return vlans, ports
-
-    @staticmethod
-    def init_vlan_config_datastruct():
-        """Initialize an empty vlan config data structure"""
-        vlans = set()
-        ports = {key: {'untagged': None, 'tagged': set()} for key in range(1, config.PORTS + 1)}
-
-        return vlans, ports
-
-    @staticmethod
-    def _str_to_if_range(string):
-        """Take an interface range string and generate the expanded version in a list.
-
-        Only the interface ranges starting with 'gi' will be taken into account.
-
-        Args:
-            string: A interface range string (ex 'gi4,gi6,gi8-10,gi16-18,lag2')
-
-        Returns:
-            A list of numbers which is the expansion of the whole range. For example,
-                the above input will give [4, 6, 8, 9, 10, 16, 17, 18]
-        """
-        # Split the string by ','.
-        # Exclude elements that don't start with "gi" (we could have 'lag8-15', or '---').
-        # Then, remove the 'gi' prefix and split by '-'. We end up with a list of lists.
-        # This is a list of the ranges bounds (1 element or 2: start and end bounds).
-        # Then, return a list of all the concatenated expanded ranges.
-        # The trick of using a[0] and a[-1] allows it to work with single numbers as well.
-        # This wouldn't be the case if we had used a[0] and a[1].
-        # If there's only one digit [1], it will compute range(1, 1 + 1) which is 1.
-        range_ = [r[len('gi'):].split('-') for r in string.split(',') if r.startswith('gi')]
-        return [i for r in range_ for i in range(int(r[0]), int(r[-1]) + 1)]

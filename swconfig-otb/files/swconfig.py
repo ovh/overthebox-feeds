@@ -41,21 +41,8 @@ def _load(args):
     uci_config = uci_to_dict(UCI_CONFIG_FILE)
     vlans_wanted, ports_wanted = _uci_dict_to_vlan_conf(uci_config)
 
-    logger.debug("Wanted VLANs: %s", vlans_wanted)
-    logger.debug("Wanted interfaces configuration: %s", ports_wanted)
-
     with Sw() as switch:
-        vlans, ports = switch.parse_vlans()
-        logger.debug("Current VLANs: %s", vlans)
-        logger.debug("Current interfaces configuration %s", ports)
-
-    added, removed, _ = _set_diff(vlans, vlans_wanted)
-    logger.debug("VIDs Added: %s", added)
-    logger.debug("VIDs Removed: %s", removed)
-
-    _, _, changed, same = _dict_diff(ports, ports_wanted)
-    logger.debug("IFs Changed: %s", changed)
-    logger.debug("IFs Same: %s", same)
+        switch.update_vlan_conf(vlans_wanted, ports_wanted)
 
 def _uci_dict_to_vlan_conf(uci_dict):
     if 'switch' not in uci_dict:
@@ -131,22 +118,6 @@ def _vlan_conf_final_pass(vlans, ports):
     vlans.add(DEFAULT_VLAN)
 
     return vlans, ports
-
-def _set_diff(old, new):
-    intersect = new.intersection(old)
-    added = new - intersect
-    removed = old - intersect
-
-    return added, removed, intersect
-
-def _dict_diff(old, new):
-    set_old, set_new = set(old.keys()), set(new.keys())
-
-    added, removed, intersect = _set_diff(set_old, set_new)
-    changed = set(o for o in intersect if old[o] != new[o])
-    same = set(o for o in intersect if old[o] == new[o])
-
-    return added, removed, changed, same
 
 def _cli():
     if len(sys.argv) < 4:
