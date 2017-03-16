@@ -10,6 +10,10 @@ we connect to the switch via a serial connection.
 import sys
 import os
 
+from swconfig_otb import log
+
+logger = log.init_logger('swconfig')
+
 from swconfig_otb.sw import Sw
 from swconfig_otb.uci import uci_to_dict
 from swconfig_otb.config import UCI_NAME, MODEL, CPU_PORT, PORTS, DEFAULT_VLAN, VLANS
@@ -37,24 +41,31 @@ def _load(args):
     uci_config = uci_to_dict(UCI_CONFIG_FILE)
     vlans_wanted, ports_wanted = _uci_dict_to_vlan_conf(uci_config)
 
-    print 'Wanted vlans and interface configuration:'
-    print vlans_wanted
-    print ports_wanted
-    print
+    logger.debug("Wanted VLANs: %s", vlans_wanted)
+    logger.debug("Wanted interfaces configuration: %s", ports_wanted)
 
     with Sw() as switch:
         vlans, ports = switch.parse_vlans()
-        print 'Current vlans and interface configuration:'
-        print vlans
-        print ports
+        logger.debug("Current VLANs: %s", vlans)
+        logger.debug("Current interfaces configuration %s", ports)
+
+    added, removed, _ = _set_diff(vlans, vlans_wanted)
+    logger.debug("VIDs Added: %s", added)
+    logger.debug("VIDs Removed: %s", removed)
+
+    _, _, changed, same = _dict_diff(ports, ports_wanted)
+    logger.debug("IFs Changed: %s", changed)
+    logger.debug("IFs Same: %s", same)
 
 def _uci_dict_to_vlan_conf(uci_dict):
     if 'switch' not in uci_dict:
-        sys.exit("No 'switch' section found in the UCI config")
+        logger.error("No 'switch' section found in the UCI config")
+        sys.exit()
 
     switches = uci_dict['switch']
     if not any('name' in d and d['name'] == UCI_NAME for _, d in enumerate(switches)):
-        sys.exit("No 'switch' section contained a 'name' key with '%s' in UCI config" % (UCI_NAME))
+        logger.error("No 'switch' section contained a 'name' key with '%s' in UCI config", UCI_NAME)
+        sys.exit()
 
     vlans, ports = Sw.init_vlan_config_datastruct()
 
@@ -74,11 +85,11 @@ def _uci_dict_to_vlan_conf(uci_dict):
             uci_vid, uci_ports = int(uci_vlan['vlan']), uci_vlan['ports'].split()
         except ValueError:
             # Skip this VLAN if we don't understand it (it's not a number)
-            print "Skipping strange VID '%s'" % (uci_vid)
+            logger.warn("Skipping strange VID '%s'", uci_vid)
             continue
 
         if uci_vid in vlans:
-            print "Skipping duplicate VID %d declaration" % (uci_vid)
+            logger.warn("Skipping duplicate VID %d declaration", uci_vid)
             continue
 
         vlans.add(uci_vid)
@@ -94,13 +105,18 @@ def _uci_dict_to_vlan_conf(uci_dict):
                 uci_port = int(uci_port)
             except ValueError:
                 # Skip this port if we don't understand it (it's not a number)
-                print "Skipping strange port '%s'" % (uci_port)
+                logger.warn("Skipping strange port '%s'", uci_port)
                 continue
 
             if tagged:
                 ports[uci_port]['tagged'].add(uci_vid)
-            else:
+
+            # An interface can be untagged only on one single VID. Keep only the first one.
+            elif ports[uci_port]['untagged'] is None:
                 ports[uci_port]['untagged'] = uci_vid
+            else:
+                logger.warn("Skipping subsequent untagged VID %d for if %d, keeping first VID %d",
+                            uci_vid, uci_port, ports[uci_port]['untagged'])
 
     return _vlan_conf_final_pass(vlans, ports)
 
@@ -108,13 +124,29 @@ def _vlan_conf_final_pass(vlans, ports):
     # Make a final pass on all unassigned ifs, assign them to the default VLAN (untagged)
     # This is what the switch would do as well
     for if_ in [k for k, v in ports.iteritems() if v['untagged'] is None and not v['tagged']]:
-        print 'Assigning if %d to default VLAN %d as if was not found in UCI' % (if_, DEFAULT_VLAN)
+        logger.info("Assigning if %d to default VLAN %d since not found in UCI", if_, DEFAULT_VLAN)
         ports[if_]['untagged'] = DEFAULT_VLAN
 
     # Always consider the DEFAULT_VLAN exists as it can't be deleted anyway
     vlans.add(DEFAULT_VLAN)
 
     return vlans, ports
+
+def _set_diff(old, new):
+    intersect = new.intersection(old)
+    added = new - intersect
+    removed = old - intersect
+
+    return added, removed, intersect
+
+def _dict_diff(old, new):
+    set_old, set_new = set(old.keys()), set(new.keys())
+
+    added, removed, intersect = _set_diff(set_old, set_new)
+    changed = set(o for o in intersect if old[o] != new[o])
+    same = set(o for o in intersect if old[o] == new[o])
+
+    return added, removed, changed, same
 
 def _cli():
     if len(sys.argv) < 4:
@@ -124,7 +156,8 @@ def _cli():
         _usage()
 
     if sys.argv[2] != UCI_NAME:
-        sys.exit("Sorry, '%s' is the only supported device" % (UCI_NAME))
+        logger.error("Sorry, '%s' is the only supported device", UCI_NAME)
+        sys.exit()
 
     if sys.argv[3] == 'help':
         _help()

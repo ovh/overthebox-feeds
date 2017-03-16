@@ -5,9 +5,14 @@
 This module implements primitives to serially interact with the TG-NET S3500-15G-2F switch.
 """
 
+
 import re
+import logging
 import serial
 import config
+
+logger = logging.getLogger('swconfig')
+
 
 class _State(object):
     def __init__(self, name, prompt_needle):
@@ -107,7 +112,7 @@ class Sw(object):
             try:
                 return self._recv_once()
             except serial.SerialTimeoutException:
-                print "Read failed with timeout %fs. Will retry..." % (self.sock.timeout)
+                logger.error("Read failed with timeout %fs. Will retry..." % (self.sock.timeout))
                 self.sock.timeout = self.sock.timeout * 2
 
         raise serial.SerialTimeoutException("All read attempts timed out. Is the switch dead?")
@@ -130,9 +135,9 @@ class Sw(object):
         # However, out may become empty after prompt parsing (prompt will be removed)
         self.state = self._parse_prompt(out)
         if self.state:
-            print "Switch state is: '%s'" % (self.state.name)
+            logger.debug("Switch state is: '%s'" % (self.state.name))
         else:
-            print "Switch state is unknown"
+            logger.error("Switch state is unknown")
 
         return (out, coms)
 
@@ -201,7 +206,7 @@ class Sw(object):
             # Note: In password echo at the end, there is a "\n" echo which is considered correct
             expected = '*' if self.state == _States.LOGIN_PASSWORD and echo != char else char
             if echo != expected:
-                print "Invalid echo: expected %c, got %c" % (expected, echo)
+                logger.warn("Invalid echo: expected %c, got %c" % (expected, echo))
                 self.sock.flushInput()
 
         return self._recv(auto_more, timeout)
@@ -243,7 +248,7 @@ class Sw(object):
             return True
 
         if self.state == _States.MORE:
-            print "Sending one ETX (CTRL+C) to escape --More-- state"
+            logger.debug("Sending one ETX (CTRL+C) to escape --More-- state")
             res, _ = self._send("\x03")
 
         # We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
@@ -300,10 +305,10 @@ class Sw(object):
         hostname_regex = re.search(r'(?P<hostname>[^(]+).*(?:>|#) ', output_last_line)
         if hostname_regex and hostname_regex.group('hostname'):
             self.hostname = hostname_regex.group('hostname')
-            print "Hostname '%s' detected" % (self.hostname)
+            logger.debug("Hostname '%s' detected", self.hostname)
             return True
         else:
-            print "Unable to determine hostname :'("
+            logger.error("Unable to determine hostname :'(")
             return False
 
     # It can only be called when we are in the LOGIN_USERNAME or LOGIN_PASSWORD state
@@ -316,14 +321,14 @@ class Sw(object):
             out, _ = self.send_cmd(config.USER)
             # The switch rejects us immediately if the username doesn't exist
             if any("Incorrect User Name" in l for l in out):
-                print "The switch claims the username is invalid. " \
-                      "Check that the credentials are correct."
+                logger.error("The switch claims the username is invalid. " \
+                      "Check that the credentials are correct.")
                 return False
 
             # We should have entered password state as soon as correct username has been sent
             if self.state != _States.LOGIN_PASSWORD:
-                print "Unexpected error after sending username to the switch: " \
-                      "we should have entered password state"
+                logger.error("Unexpected error after sending username to the switch: " \
+                      "we should have entered password state")
                 return False
             # If we got here, the login has been accepted. Let's continue and send the password
 
@@ -340,14 +345,15 @@ class Sw(object):
                 return True
 
             if any("REJECTED" in c for c in comments):
-                print "The switch rejected the password. Check that the credentials are correct."
+                logger.error("The switch rejected the password. " \
+                             "Check that the credentials are correct.")
                 return False
 
-            print "Unexpected error after sending password: no ACCEPTED nor REJECTED found"
+            logger.error("Unexpected error after sending password: no ACCEPTED nor REJECTED found")
             return False
 
         # What? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
-        print "Login method should never have been called now. Bye bye..."
+        logger.critical("Login method should never have been called now. Bye bye...")
         assert False
 
     def parse_vlans(self):
@@ -380,8 +386,8 @@ class Sw(object):
                 if ports[if_]['untagged'] is None:
                     ports[if_]['untagged'] = vid
                 else:
-                    print '   Skipping subsequent untagged VIDs for port %d' % (if_)
-                    print '    Note: value was %s' % (ports[if_]['untagged'])
+                    logger.warning("Skipping subsequent untagged VIDs for port %d. " \
+                                   "Value was %s", if_, ports[if_]['untagged'])
 
             for if_ in tagged_range:
                 ports[if_]['tagged'].add(vid)
