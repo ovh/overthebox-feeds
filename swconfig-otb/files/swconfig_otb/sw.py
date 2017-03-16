@@ -353,36 +353,41 @@ class Sw(object):
     def parse_vlans(self):
         """Ask the switch its VLAN state and return it
 
-        For a given VID, a port can be either a member or not. If it's a member of the vlan,
-        it's either a tagged or an untagged member. It can't be both.
-
         Returns:
-            A dictionary of dictionaries. The first dict layer has the VID as key.
-                The second layer has the interface number as key. The value associated with
-                the interface number is False for untagged or True for tagged ports.
-                As an example, VID 1 with gi15 untagged, VID 13 with gi13 untagged and gi15 tagged:
-                    {1: {15: False}, 13: {13: False, 15: True}}
+            A list and a dictionary of dictionary.
+            - The list is just a list of all the existing VIDs on the switch.
+            - For the dict: first dict layer has the interface number as key.
+                The second layer has two keys: 'untagged' and 'tagged'.
+                    Key 'untagged': the value is either None or only one VID value
+                    Key 'tagged': the value is a set of VID this interface belongs to
         """
         out, _ = self.send_cmd("show vlan static")
-        vlans = {}
+
+        # Initialize our two return values
+        vlans = []
+        ports = {key: {'untagged': None, 'tagged': set()} for key in range(1, config.PORTS + 1)}
 
         # Skip header and the second line (-----+-----...)
         for line in out[2:]:
             row = [r.strip() for r in line.split('|')]
             vid, untagged, tagged = int(row[0]), row[2], row[3]
 
-            vlans[vid] = {}
+            vlans.append(vid)
 
             untagged_range = self._str_to_if_range(untagged)
             tagged_range = self._str_to_if_range(tagged)
 
-            if untagged_range:
-                vlans[vid].update({if_: False for if_ in untagged_range})
+            for if_ in untagged_range:
+                if ports[if_]['untagged'] is None:
+                    ports[if_]['untagged'] = vid
+                else:
+                    print '   Skipping subsequent untagged VIDs for port %d' % (if_)
+                    print '    Note: value was %s' % (ports[if_]['untagged'])
 
-            if tagged_range:
-                vlans[vid].update({if_: True for if_ in tagged_range})
+            for if_ in tagged_range:
+                ports[if_]['tagged'].add(vid)
 
-        return vlans
+        return vlans, ports
 
     @staticmethod
     def _str_to_if_range(string):

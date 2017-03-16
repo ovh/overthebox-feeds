@@ -7,7 +7,7 @@ import shlex
 def uci_to_dict(config_name):
     """Parse an UCI file in a very naive manner and return a dict
 
-    This parser is very primitive and only understand 'config' or 'option' keywords
+    This parser is very primitive and only understands 'config' or 'option' keywords
     """
     ret = {}
     filepath = '/etc/config/' + config_name
