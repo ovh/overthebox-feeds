@@ -354,8 +354,8 @@ class Sw(object):
         """Ask the switch its VLAN state and return it
 
         Returns:
-            A list and a dictionary of dictionary.
-            - The list is just a list of all the existing VIDs on the switch.
+            A set and a dictionary of dictionary.
+            - The set just contains all the existing VIDs on the switch.
             - For the dict: first dict layer has the interface number as key.
                 The second layer has two keys: 'untagged' and 'tagged'.
                     Key 'untagged': the value is either None or only one VID value
@@ -364,15 +364,14 @@ class Sw(object):
         out, _ = self.send_cmd("show vlan static")
 
         # Initialize our two return values
-        vlans = []
-        ports = {key: {'untagged': None, 'tagged': set()} for key in range(1, config.PORTS + 1)}
+        vlans, ports = self.init_vlan_config_datastruct()
 
         # Skip header and the second line (-----+-----...)
         for line in out[2:]:
             row = [r.strip() for r in line.split('|')]
             vid, untagged, tagged = int(row[0]), row[2], row[3]
 
-            vlans.append(vid)
+            vlans.add(vid)
 
             untagged_range = self._str_to_if_range(untagged)
             tagged_range = self._str_to_if_range(tagged)
@@ -386,6 +385,14 @@ class Sw(object):
 
             for if_ in tagged_range:
                 ports[if_]['tagged'].add(vid)
+
+        return vlans, ports
+
+    @staticmethod
+    def init_vlan_config_datastruct():
+        """Initialize an empty vlan config data structure"""
+        vlans = set()
+        ports = {key: {'untagged': None, 'tagged': set()} for key in range(1, config.PORTS + 1)}
 
         return vlans, ports
 

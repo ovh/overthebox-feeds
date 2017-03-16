@@ -12,7 +12,7 @@ import os
 
 from swconfig_otb.sw import Sw
 from swconfig_otb.uci import uci_to_dict
-from swconfig_otb.config import UCI_NAME, MODEL, CPU_PORT, PORTS, VLANS
+from swconfig_otb.config import UCI_NAME, MODEL, CPU_PORT, PORTS, DEFAULT_VLAN, VLANS
 
 UCI_CONFIG_FILE = 'network'
 
@@ -35,13 +35,20 @@ def _load(args):
         sys.exit("Sorry, only '%s' is supported for the config file" % (UCI_CONFIG_FILE))
 
     uci_config = uci_to_dict(UCI_CONFIG_FILE)
-    vlans_wanted = _uci_dict_to_vlan_dict(uci_config)
+    vlans_wanted, ports_wanted = _uci_dict_to_vlan_conf(uci_config)
+
+    print 'Wanted vlans and interface configuration:'
+    print vlans_wanted
+    print ports_wanted
+    print
 
     with Sw() as switch:
-        vlans_current = switch.parse_vlans()
+        vlans, ports = switch.parse_vlans()
+        print 'Current vlans and interface configuration:'
+        print vlans
+        print ports
 
-
-def _uci_dict_to_vlan_dict(uci_dict):
+def _uci_dict_to_vlan_conf(uci_dict):
     if 'switch' not in uci_dict:
         sys.exit("No 'switch' section found in the UCI config")
 
@@ -49,49 +56,65 @@ def _uci_dict_to_vlan_dict(uci_dict):
     if not any('name' in d and d['name'] == UCI_NAME for _, d in enumerate(switches)):
         sys.exit("No 'switch' section contained a 'name' key with '%s' in UCI config" % (UCI_NAME))
 
-    vlan_dict = {}
+    vlans, ports = Sw.init_vlan_config_datastruct()
 
     if 'switch_vlan' not in uci_dict:
-        return vlan_dict
+        return _vlan_conf_final_pass(vlans, ports)
 
-    vlans = uci_dict['switch_vlan']
+    uci_vlans = uci_dict['switch_vlan']
 
     # Browse each 'switch_vlan' section which has a 'device' key with value UCI_NAME
-    uci_vlans = (v for i, v in enumerate(vlans) if 'device' in v and v['device'] == UCI_NAME)
+    uci_vlans = (v for i, v in enumerate(uci_vlans) if 'device' in v and v['device'] == UCI_NAME)
     for uci_vlan in uci_vlans:
         # Skip the switch_vlan section if the keys we care about are missing
         if not ('vlan' in uci_vlan and 'ports' in uci_vlan):
             continue
 
         try:
-            vid, ports = int(uci_vlan['vlan']), uci_vlan['ports'].split()
+            uci_vid, uci_ports = int(uci_vlan['vlan']), uci_vlan['ports'].split()
         except ValueError:
             # Skip this VLAN if we don't understand it (it's not a number)
-            print "Skipping strange VID '%s'" % (vid)
+            print "Skipping strange VID '%s'" % (uci_vid)
             continue
 
-        if vid in vlan_dict:
-            print "Skipping duplicate VID %d declaration" % (vid)
+        if uci_vid in vlans:
+            print "Skipping duplicate VID %d declaration" % (uci_vid)
             continue
 
-        vlan_dict[vid] = {}
+        vlans.add(uci_vid)
 
-        for port in ports:
+        for uci_port in uci_ports:
             tagged = False
 
-            if port[-1] == 't':
-                port = port[:-1]
+            if uci_port[-1] == 't':
+                uci_port = uci_port[:-1]
                 tagged = True
 
-            # Add the port to the VLAN in our vlan_dict
             try:
-                vlan_dict[vid][int(port)] = tagged
+                uci_port = int(uci_port)
             except ValueError:
                 # Skip this port if we don't understand it (it's not a number)
-                print "Skipping strange port '%s'" % (port)
+                print "Skipping strange port '%s'" % (uci_port)
                 continue
 
-    return vlan_dict
+            if tagged:
+                ports[uci_port]['tagged'].add(uci_vid)
+            else:
+                ports[uci_port]['untagged'] = uci_vid
+
+    return _vlan_conf_final_pass(vlans, ports)
+
+def _vlan_conf_final_pass(vlans, ports):
+    # Make a final pass on all unassigned ifs, assign them to the default VLAN (untagged)
+    # This is what the switch would do as well
+    for if_ in [k for k, v in ports.iteritems() if v['untagged'] is None and not v['tagged']]:
+        print 'Assigning if %d to default VLAN %d as if was not found in UCI' % (if_, DEFAULT_VLAN)
+        ports[if_]['untagged'] = DEFAULT_VLAN
+
+    # Always consider the DEFAULT_VLAN exists as it can't be deleted anyway
+    vlans.add(DEFAULT_VLAN)
+
+    return vlans, ports
 
 def _cli():
     if len(sys.argv) < 4:
