@@ -3,7 +3,7 @@ import logging.handlers
 
 def init_logger(name):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     syslog = logging.handlers.SysLogHandler(address='/dev/log')
     stdout = logging.StreamHandler()

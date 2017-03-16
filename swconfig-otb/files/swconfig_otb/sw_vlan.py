@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# pylint: disable=protected-access
 """OTBv2 Switch module, extension for VLANs
 
 This module adds methods to the class Sw, all related to VLAN management
@@ -10,21 +11,77 @@ import swconfig_otb.config as config
 
 logger = logging.getLogger('swconfig')
 
-def update_vlan_conf(self, vlans_wanted, ports_wanted):
-    vlans_current, ports_current = self._parse_vlans()
-    logger.debug("Wanted VLANs: %s", vlans_wanted)
-    logger.debug("Wanted interfaces configuration %s", ports_wanted)
 
-    logger.debug("Current VLANs: %s", vlans_current)
-    logger.debug("Current interfaces configuration %s", ports_current)
+def update_vlan_conf(self, vlans_new, ports_new):
+    vlans_old, ports_old = self._parse_vlans()
+    logger.debug("Wanted VLANs: %s", vlans_new)
+    logger.debug("Wanted interfaces configuration %s", ports_new)
 
-    added, removed = self._set_diff(vlans_current, vlans_wanted)
-    logger.debug("VIDs Added: %s", added)
-    logger.debug("VIDs Removed: %s", removed)
+    logger.debug("Current VLANs: %s", vlans_old)
+    logger.debug("Current interfaces configuration %s", ports_old)
 
-    changed, same = self._dict_diff(ports_current, ports_wanted)
-    logger.debug("IFs Changed: %s", changed)
-    logger.debug("IFs Same: %s", same)
+    vlan_added, vlan_removed = self._set_diff(vlans_old, vlans_new)
+    logger.debug("VIDs to be added: %s", vlan_added)
+    logger.debug("VIDs to be removed: %s", vlan_removed)
+
+    ports_changed = self._dict_diff(ports_old, ports_new)
+    logger.debug("IFs to be updated: %s", ports_changed)
+
+    if not ports_changed and not vlan_added and not vlan_removed:
+        logger.info("Switch VLAN conf is the same as wanted conf. Nothing to do. :)")
+        return
+
+    # Let's make the switch obeeeyyyyy! :p
+    self._goto_admin_main_prompt()
+
+    self.send_cmd('config')
+    for vlan in vlan_removed:
+        logger.info('Deleting VLAN %d', vlan)
+        self.send_cmd('no vlan %d' % (vlan))
+
+    for vlan in vlan_added:
+        logger.info('Creating VLAN %d', vlan)
+        self.send_cmd('vlan %d' % (vlan))
+        self.send_cmd('exit')
+
+    for port_id, vids in ((port_id, ports_new[port_id]) for port_id in ports_changed):
+        logger.info('Configuring interface %d', port_id)
+        self.send_cmd('interface GigabitEthernet %d' % (port_id))
+
+        # This port is at least tagged on one VID. The port will need to be in trunk mode.
+        if vids['tagged']:
+            logger.info(' Putting interface into trunk mode')
+            self.send_cmd('switchport mode trunk')
+
+            # Determine the native VID and set it
+            native_vlan = vids['untagged'] if vids['untagged'] else config.DEFAULT_VLAN
+            logger.info(' Setting interface native VID to %d', native_vlan)
+            self.send_cmd('switchport trunk native vlan %d' % (native_vlan))
+
+            ifv_added, ifv_removed = self._set_diff(ports_old[port_id]['tagged'], vids['tagged'])
+
+            # Remove VIDs this interface doesn't belong to anymore
+            if ifv_removed:
+                ifv_removed_range = ','.join(str(v) for v in ifv_removed)
+                logger.info(' Removing obsolete VIDs %s for this interface', ifv_removed_range)
+                self.send_cmd('switchport trunk allowed vlan remove %s' % (ifv_removed_range))
+
+            # Make the interface belong to new VIDs that it didn't belong to before
+            if ifv_added:
+                ifv_added_range = ','.join(str(v) for v in ifv_added)
+                logger.info(' Adding new VIDs %s for this interface', ifv_added_range)
+                self.send_cmd('switchport trunk allowed vlan add %s' % (ifv_added_range))
+
+        # This port is only untagged, it's never tagged. The port will need to be in access mode.
+        else:
+            logger.info(' Putting interface into access mode')
+            self.send_cmd('switchport mode access')
+            logger.info(' Setting interface VID to %d', vids['untagged'])
+            self.send_cmd('switchport access vlan %d' % (vids['untagged']))
+
+        self.send_cmd('exit')
+    self.send_cmd('end')
+
 
 def _parse_vlans(self):
     """Ask the switch its VLAN state and return it
@@ -110,6 +167,4 @@ def _dict_diff(old, new):
     intersect = set_new.intersection(set_old)
 
     changed = set(o for o in intersect if old[o] != new[o])
-    same = set(o for o in intersect if old[o] == new[o])
-
-    return changed, same
+    return changed

@@ -72,7 +72,7 @@ def _uci_dict_to_vlan_conf(uci_dict):
             uci_vid, uci_ports = int(uci_vlan['vlan']), uci_vlan['ports'].split()
         except ValueError:
             # Skip this VLAN if we don't understand it (it's not a number)
-            logger.warn("Skipping strange VID '%s'", uci_vid)
+            logger.warn("Skipping strange VID '%s'", uci_vlan['vlan'])
             continue
 
         if uci_vid in vlans:
@@ -108,10 +108,9 @@ def _uci_dict_to_vlan_conf(uci_dict):
     return _vlan_conf_final_pass(vlans, ports)
 
 def _vlan_conf_final_pass(vlans, ports):
-    # Make a final pass on all unassigned ifs, assign them to the default VLAN (untagged)
-    # This is what the switch would do as well
-    for if_ in [k for k, v in ports.iteritems() if v['untagged'] is None and not v['tagged']]:
-        logger.info("Assigning if %d to default VLAN %d since not found in UCI", if_, DEFAULT_VLAN)
+    # Make a final pass on all ifs that are not untagged in the conf.
+    # Assign them to the default VLAN (untagged). This is what the switch would do as well
+    for if_ in [k for k, v in ports.iteritems() if v['untagged'] is None]:
         ports[if_]['untagged'] = DEFAULT_VLAN
 
     # Always consider the DEFAULT_VLAN exists as it can't be deleted anyway
