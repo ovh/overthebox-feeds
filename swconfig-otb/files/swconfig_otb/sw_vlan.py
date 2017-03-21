@@ -13,18 +13,42 @@ from swconfig_otb.sw_state import _States
 logger = logging.getLogger('swconfig')
 
 def _create_vid(self, vid):
-    out, comments = self.send_cmd('vlan %d' % (vid))
+    _, comments = self.send_cmd('vlan %d' % (vid))
 
     # The switch didn't even transition to config-vlan state. VLAN creation unsuccessful...
     if self.state != _States.CONFIG_VLAN:
-        logger.error("VLAN '%d' could not be created", vid)
+        logger.error("VLAN %d could not be created", vid)
         return False
 
     self.send_cmd('exit')
 
     if not any("VLAN %d is added" % (vid) in c for c in comments):
-        logger.warning("VLAN '%d' already existed when asking the switch to create it", vid)
+        logger.warning("VLAN %d already existed when asking the switch to create it", vid)
 
+    return True
+
+def _delete_vid(self, vid):
+    out, comments = self.send_cmd('no vlan %d' % (vid))
+
+    # Check whether deletion was forbidden because of voice VLAN
+    if any("VLAN %d: Voice VLAN Can not be allowed to delete" % (vid) in l for l in out):
+        logger.warning("VLAN %d is a voice VLAN so we were not allowed to remove it.", vid)
+        logger.warning("Shooting voice VLAN %d to allow VLAN deletion anyway...", vid)
+        self.send_cmd("no voice-vlan vlan")
+        out, comments = self.send_cmd('no vlan %d' % (vid))
+
+    # Check whether deletion failed because of already inexistent VLAN
+    # Don't consider this to be an error, but log a warning as this is abnormal
+    if any("VLAN %d: VLAN does not exist" % (vid) in l for l in out):
+        logger.warning("VLAN %d was already inexistent when asking the switch to remove it", vid)
+        return True
+
+    # If we didn't get the switch confirmation, consider this is an error
+    if not any("VLAN %d is removed" % (vid) in c for c in comments):
+        logger.error("Didn't get switch confirmation when deleting VLAN %d", vid)
+        return False
+
+    # We got the confirmation :)
     return True
 
 def update_vlan_conf(self, vlans_new, ports_new):
@@ -52,7 +76,8 @@ def update_vlan_conf(self, vlans_new, ports_new):
     self.send_cmd('config')
     for vlan in vlan_removed:
         logger.info('Deleting VLAN %d', vlan)
-        self.send_cmd('no vlan %d' % (vlan))
+        if not self._delete_vid(vlan):
+            raise Exception("An error occurred when deleting VID %d" % (vlan))
 
     for vlan in vlan_added:
         logger.info('Creating VLAN %d', vlan)
