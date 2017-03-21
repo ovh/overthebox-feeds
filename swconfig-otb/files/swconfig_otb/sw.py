@@ -10,7 +10,6 @@ import logging
 import serial
 
 from swconfig_otb.sw_state import _States
-from swconfig_otb.exception import SwitchBadEchoBudgetExceededError
 import swconfig_otb.config as config
 
 logger = logging.getLogger('swconfig')
@@ -22,6 +21,8 @@ class Sw(object):
     _MORE_MAGIC = ["\x08", "\x1b[A\x1b[2K"]
 
     # This is a trick used to be able to define some parts of the class in a separated file
+    from swconfig_otb.sw_except import BadEchoBudgetExceededError
+    from swconfig_otb.sw_except import StateAssertionError, _assert_state
     from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range
     from swconfig_otb.sw_vlan import _parse_vlans, _create_vid, _delete_vid
     from swconfig_otb.sw_vlan import update_vlan_conf, init_vlan_config_datastruct
