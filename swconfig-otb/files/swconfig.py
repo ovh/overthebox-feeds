@@ -71,8 +71,10 @@ def _uci_dict_to_vlan_conf(uci_dict):
 
         try:
             uci_vid, uci_ports = int(uci_vlan['vlan']), uci_vlan['ports'].split()
+            if uci_vid < 1 or uci_vid > VID_MAX:
+                raise ValueError
         except ValueError:
-            # Skip this VLAN if we don't understand it (it's not a number)
+            # Skip this VID if we don't understand it (it's not a number or out of bounds)
             logger.warn("Skipping strange VID '%s'", uci_vlan['vlan'])
             continue
 
