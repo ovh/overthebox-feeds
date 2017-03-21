@@ -7,7 +7,7 @@ This module adds methods to the class Sw, all related to VLAN management
 """
 
 import logging
-import swconfig_otb.config as config
+from swconfig_otb.config import PORT_MIN, PORT_MAX, DEFAULT_VLAN
 
 logger = logging.getLogger('swconfig')
 
@@ -54,7 +54,7 @@ def update_vlan_conf(self, vlans_new, ports_new):
             self.send_cmd('switchport mode trunk')
 
             # Determine the native VID and set it
-            native_vlan = vids['untagged'] if vids['untagged'] else config.DEFAULT_VLAN
+            native_vlan = vids['untagged'] if vids['untagged'] else DEFAULT_VLAN
             logger.info(' Setting interface native VID to %d', native_vlan)
             self.send_cmd('switchport trunk native vlan %d' % (native_vlan))
 
@@ -125,7 +125,7 @@ def _parse_vlans(self):
 def init_vlan_config_datastruct():
     """Initialize an empty vlan config data structure"""
     vlans = set()
-    ports = {key: {'untagged': None, 'tagged': set()} for key in range(1, config.PORTS + 1)}
+    ports = {key: {'untagged': None, 'tagged': set()} for key in range(PORT_MIN, PORT_MAX + 1)}
 
     return vlans, ports
 

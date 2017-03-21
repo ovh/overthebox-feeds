@@ -16,7 +16,8 @@ logger = log.init_logger('swconfig')
 
 from swconfig_otb.sw import Sw
 from swconfig_otb.uci import uci_to_dict
-from swconfig_otb.config import UCI_NAME, MODEL, CPU_PORT, PORTS, DEFAULT_VLAN, VLANS
+from swconfig_otb.config import UCI_NAME, MODEL, PORT_CPU, PORT_MIN, PORT_MAX, PORT_COUNT
+from swconfig_otb.config import DEFAULT_VLAN, VID_MAX
 
 UCI_CONFIG_FILE = 'network'
 
@@ -26,7 +27,7 @@ def _usage():
 def _help():
     print(
         "{name}: {name}({type_}), ports: {ports} (cpu @ {cpu_port}), vlans: {vlans}"
-    ).format(name=UCI_NAME, type_=MODEL, ports=PORTS, cpu_port=CPU_PORT, vlans=VLANS)
+    ).format(name=UCI_NAME, type_=MODEL, ports=PORT_COUNT, cpu_port=PORT_CPU, vlans=VID_MAX)
 
 def _show():
     pass
@@ -90,8 +91,10 @@ def _uci_dict_to_vlan_conf(uci_dict):
 
             try:
                 uci_port = int(uci_port)
+                if uci_port < PORT_MIN or uci_port > PORT_MAX:
+                    raise ValueError
             except ValueError:
-                # Skip this port if we don't understand it (it's not a number)
+                # Skip this port if we don't understand it (it's not a number or out of bounds)
                 logger.warn("Skipping strange port '%s'", uci_port)
                 continue
 
