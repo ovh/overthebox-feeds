@@ -8,6 +8,7 @@ This module adds methods to the class Sw, all related to VLAN management
 
 import logging
 from swconfig_otb.config import PORT_MIN, PORT_MAX, DEFAULT_VLAN
+from swconfig_otb.sw_state import _States
 
 logger = logging.getLogger('swconfig')
 

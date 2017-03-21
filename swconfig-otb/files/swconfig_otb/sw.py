@@ -8,27 +8,12 @@ This module implements primitives to serially interact with the TG-NET S3500-15G
 import re
 import logging
 import serial
-import config
+
+from swconfig_otb.sw_state import _States
+import swconfig_otb.config as config
 
 logger = logging.getLogger('swconfig')
 
-
-class _State(object):
-    def __init__(self, name, prompt_needle):
-        self.name = name
-        self.prompt_needle = prompt_needle
-
-class _States(object):
-    PRESS_ANY_KEY = _State("Press any key", "Press any key to continue")
-    USER_MAIN = _State("User prompt", "> ")
-    ADMIN_MAIN = _State("Admin prompt", "# ")
-    CONFIG = _State("Config", "(config)# ")
-    CONFIG_VLAN = _State("Config VLAN", "(config-vlan)# ")
-    CONFIG_IF = _State("Config IF", "(config-if)# ")
-    CONFIG_IF_RANGE = _State("Config IF Range", "(config-if-range)# ")
-    LOGIN_USERNAME = _State("Login (username)", "Username: ")
-    LOGIN_PASSWORD = _State("Login (password)", "Password: ")
-    MORE = _State("More", "--More--")
 
 class Sw(object):
     """Represent a serial connection to a TG-NET S3500-15G-2F switch."""
