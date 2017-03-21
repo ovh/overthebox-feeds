@@ -10,6 +10,7 @@ import logging
 import serial
 
 from swconfig_otb.sw_state import _States
+from swconfig_otb.exception import SwitchBadEchoBudgetExceededError
 import swconfig_otb.config as config
 
 logger = logging.getLogger('swconfig')
@@ -38,6 +39,7 @@ class Sw(object):
         self.sock.inter_byte_timeout = config.INTER_BYTE_TIMEOUT
         self.state = None
         self.hostname = None
+        self._bad_echo = 0
 
     def __enter__(self):
         self.open_()
@@ -62,6 +64,7 @@ class Sw(object):
         self.sock.close()
         self.state = None
         self.hostname = None
+        self._bad_echo = 0
 
     def _recv(self, auto_more, timeout):
         """Receive everything. If needed, we'll ask the switch for MOOORE. :p
@@ -175,6 +178,7 @@ class Sw(object):
         # Why? Try to connect to the switch, go to the Username: prompt.
         # Then, in order to simulate high speed TX, copy "admin" and paste it inside the console.
         # The echo arrives in a random order. The behaviour is completely unreliable.
+        # (Actually, only the echo arrives out of order. But the switch got it in the right order.)
         for char in string:
             self.sock.write(char)
 
@@ -191,12 +195,19 @@ class Sw(object):
             # If we encounter wrong echo, maybe we just got a garbage line from the switch
             # In that case we flush the input buffer so that we stop reading the garbage immediately
             # That way, the next time we read one character, it should be again our echo
-            # TODO: We should only tolerate a given fixed "wrong echo budget"
+            # We only tolerate a given fixed "wrong echo budget"
             # Note: In password echo at the end, there is a "\n" echo which is considered correct
             expected = '*' if self.state == _States.LOGIN_PASSWORD and echo != char else char
             if echo != expected:
-                logger.warn("Invalid echo: expected %c, got %c", expected, echo)
+                self._bad_echo = self._bad_echo + 1
+                logger.warn("Invalid echo: expected '%c' (%s), got '%c' (%s)",
+                            expected, hex(ord(expected)), echo, hex(ord(echo)))
                 self.sock.flushInput()
+
+                if self._bad_echo > config.BAD_ECHO_BUDGET:
+                    msg = "Bad echo budget exceeded. Giving up."
+                    logger.error(msg)
+                    raise SwitchBadEchoBudgetExceededError(msg)
 
         return self._recv(auto_more, timeout)
 
