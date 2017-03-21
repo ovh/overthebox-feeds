@@ -12,6 +12,20 @@ from swconfig_otb.sw_state import _States
 
 logger = logging.getLogger('swconfig')
 
+def _create_vid(self, vid):
+    out, comments = self.send_cmd('vlan %d' % (vid))
+
+    # The switch didn't even transition to config-vlan state. VLAN creation unsuccessful...
+    if self.state != _States.CONFIG_VLAN:
+        logger.error("VLAN '%d' could not be created", vid)
+        return False
+
+    self.send_cmd('exit')
+
+    if not any("VLAN %d is added" % (vid) in c for c in comments):
+        logger.warning("VLAN '%d' already existed when asking the switch to create it", vid)
+
+    return True
 
 def update_vlan_conf(self, vlans_new, ports_new):
     vlans_old, ports_old = self._parse_vlans()
@@ -42,8 +56,8 @@ def update_vlan_conf(self, vlans_new, ports_new):
 
     for vlan in vlan_added:
         logger.info('Creating VLAN %d', vlan)
-        self.send_cmd('vlan %d' % (vlan))
-        self.send_cmd('exit')
+        if not self._create_vid(vlan):
+            raise Exception("An error occurred when creating VID %d" % (vlan))
 
     for port_id, vids in ((port_id, ports_new[port_id]) for port_id in ports_changed):
         logger.info('Configuring interface %d', port_id)

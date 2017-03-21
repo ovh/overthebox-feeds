@@ -22,7 +22,7 @@ class Sw(object):
 
     # This is a trick used to be able to define some parts of the class in a separated file
     from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range, _parse_vlans
-    from swconfig_otb.sw_vlan import update_vlan_conf, init_vlan_config_datastruct
+    from swconfig_otb.sw_vlan import update_vlan_conf, init_vlan_config_datastruct, _create_vid
 
     def __init__(self):
         self.sock = serial.Serial()
