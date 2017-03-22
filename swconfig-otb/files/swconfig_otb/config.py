@@ -10,10 +10,12 @@ PARITY = serial.PARITY_NONE
 STOPBITS = serial.STOPBITS_ONE
 
 READ_TIMEOUT = 0.1
-INTER_BYTE_TIMEOUT = 0.1
 READ_RETRIES = 4
 BAD_ECHO_BUDGET = 10
 
+# Long write timeout does not impact the execution speed
+# So it's convenient to set a high one: we don't need to implement any retry
+# If the long write timeout is exceeded, we can crash
 WRITE_TIMEOUT = 1
 
 USER, PASSWORD = "admin", "admin"

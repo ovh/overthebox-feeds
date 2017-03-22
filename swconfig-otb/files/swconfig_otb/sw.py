@@ -21,23 +21,26 @@ class Sw(object):
     _MORE_MAGIC = ["\x08", "\x1b[A\x1b[2K"]
 
     # This is a trick used to be able to define some parts of the class in a separated file
-    from swconfig_otb.sw_except import BadEchoBudgetExceededError
+    from swconfig_otb.sw_except import BadEchoBudgetExceededError, LoginError
     from swconfig_otb.sw_except import StateAssertionError, _assert_state
     from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range
     from swconfig_otb.sw_vlan import _parse_vlans, _create_vid, _delete_vid
     from swconfig_otb.sw_vlan import update_vlan_conf, init_vlan_config_datastruct
 
     def __init__(self):
-        self.sock = serial.Serial()
+        try:
+            self.sock = serial.Serial()
+            self.sock.port = config.PORT
+            self.sock.baudrate = config.BAUDRATE
+            self.sock.bytesize = config.BYTESIZE
+            self.sock.parity = config.PARITY
+            self.sock.stopbits = config.STOPBITS
+            self.sock.timeout = config.READ_TIMEOUT
+            self.sock.writeTimeout = config.WRITE_TIMEOUT
+        except(serial.SerialException, ValueError):
+            logger.error("Device %s was not found or cannot be configured", config.PORT)
+            raise
 
-        self.sock.port = config.PORT
-        self.sock.baudrate = config.BAUDRATE
-        self.sock.bytesize = config.BYTESIZE
-        self.sock.parity = config.PARITY
-        self.sock.stopbits = config.STOPBITS
-        self.sock.timeout = config.READ_TIMEOUT
-        self.sock.write_timeout = config.WRITE_TIMEOUT
-        self.sock.inter_byte_timeout = config.INTER_BYTE_TIMEOUT
         self.state = None
         self.hostname = None
         self._bad_echo = 0
@@ -87,7 +90,12 @@ class Sw(object):
 
         # If we're now in a more, ask for MOOOORE to get the full output! :p
         while auto_more and self.state == _States.MORE:
-            self.sock.write(" ") # Sending a space gives us more lines than a LF
+            try:
+                self.sock.write(" ") # Sending a space gives us more lines than a LF
+            except serial.SerialTimeoutException:
+                logger.error("Write timeout has been exceeded. Is the switch dead?")
+                raise
+
             out, comments = self._recv_once_retry()
 
             if out[0] == self._MORE_MAGIC[0] and out[1].startswith(self._MORE_MAGIC[1]):
@@ -108,7 +116,9 @@ class Sw(object):
                 logger.error("Read failed with timeout %fs. Will retry...", self.sock.timeout)
                 self.sock.timeout = self.sock.timeout * 2
 
-        raise serial.SerialTimeoutException("All read attempts timed out. Is the switch dead?")
+        msg = "All read attempts timed out. Is the switch dead or the port already busy?"
+        logger.error(msg)
+        raise serial.SerialTimeoutException(msg)
 
     def _recv_once(self):
         """Receive once, filter output and update switch state by parsing prompt"""
@@ -181,7 +191,11 @@ class Sw(object):
         # The echo arrives in a random order. The behaviour is completely unreliable.
         # (Actually, only the echo arrives out of order. But the switch got it in the right order.)
         for char in string:
-            self.sock.write(char)
+            try:
+                self.sock.write(char)
+            except serial.SerialTimeoutException:
+                logger.error("Writetimeout has been exceeded. Is the switch dead?")
+                raise
 
             # If we don't care about echo, don't consume and don't check it
             if bypass_echo_check:
@@ -206,9 +220,7 @@ class Sw(object):
                 self.sock.flushInput()
 
                 if self._bad_echo > config.BAD_ECHO_BUDGET:
-                    msg = "Bad echo budget exceeded. Giving up."
-                    logger.error(msg)
-                    raise SwitchBadEchoBudgetExceededError(msg)
+                    raise self.BadEchoBudgetExceededError("Bad echo budget exceeded. Giving up.")
 
         return self._recv(auto_more, timeout)
 
@@ -242,31 +254,30 @@ class Sw(object):
             self._send("\n")
 
         #Now, we know where we are. Let's go to the ADMIN_MAIN state :)
-        res = None
 
         # We are already where we want to go. Stop here
         if self.state == _States.ADMIN_MAIN:
-            return True
+            return
 
         if self.state == _States.MORE:
             logger.debug("Sending one ETX (CTRL+C) to escape --More-- state")
-            res, _ = self._send("\x03")
+            self._send("\x03")
 
         # We are logged in and at the "hostname> " prompt. Let's enter "hostname# " prompt
         elif self.state == _States.USER_MAIN:
-            res, _ = self.send_cmd("enable")
+            self.send_cmd("enable")
 
         # We're logged in and in some menus. Just exit them
         elif self.state in [_States.CONFIG, _States.CONFIG_VLAN,
                             _States.CONFIG_IF, _States.CONFIG_IF_RANGE]:
-            res, _ = self.send_cmd("end")
+            self.send_cmd("end")
 
         # We're in the login prompt. Just login now!
         elif self.state in [_States.LOGIN_USERNAME, _States.LOGIN_PASSWORD]:
-            res = self._login()
+            self._login()
 
-        # Only return true if we succeeded to bring the switch to the ADMIN_MAIN state
-        return res and self.state == _States.ADMIN_MAIN
+        # Crash if the switch is not in the ADMIN_MAIN state now
+        self._assert_state(_States.ADMIN_MAIN)
 
     def _parse_prompt(self, out):
         """Analyze the received output to determine the switch state
@@ -312,7 +323,6 @@ class Sw(object):
             logger.error("Unable to determine hostname :'(")
             return False
 
-    # It can only be called when we are in the LOGIN_USERNAME or LOGIN_PASSWORD state
     def _login(self):
         """Automatically login into the switch
 
@@ -322,15 +332,9 @@ class Sw(object):
             out, _ = self.send_cmd(config.USER)
             # The switch rejects us immediately if the username doesn't exist
             if any("Incorrect User Name" in l for l in out):
-                logger.error("The switch claims the username is invalid. " \
-                      "Check that the credentials are correct.")
-                return False
+                raise self.LoginError("The switch claims the username is invalid. " \
+                                      "Check that the credentials are correct.")
 
-            # We should have entered password state as soon as correct username has been sent
-            if self.state != _States.LOGIN_PASSWORD:
-                logger.error("Unexpected error after sending username to the switch: " \
-                      "we should have entered password state")
-                return False
             # If we got here, the login has been accepted. Let's continue and send the password
 
         # There are 2 possible execution flows:
@@ -340,19 +344,22 @@ class Sw(object):
         # (Username fully typed in but no Line Feed entered)
         #  Username: admin
         # In this case we'll transition from UNKNOWN to LOGIN_PASSWORD state directly
-        if self.state == _States.LOGIN_PASSWORD:
-            out, comments = self.send_cmd(config.PASSWORD)
-            if any("ACCEPTED" in c for c in comments):
-                return True
 
-            if any("REJECTED" in c for c in comments):
-                logger.error("The switch rejected the password. " \
-                             "Check that the credentials are correct.")
-                return False
+        # We should have entered password state now
+        try:
+            self._assert_state(_States.LOGIN_PASSWORD)
+        except self.StateAssertionError:
+            logger.error("Unexpected error during login phase: " \
+                         "we should have entered password state now")
+            raise
 
-            logger.error("Unexpected error after sending password: no ACCEPTED nor REJECTED found")
-            return False
+        out, comments = self.send_cmd(config.PASSWORD)
+        if any("ACCEPTED" in c for c in comments):
+            return
 
-        # What? Have I been called in a state that is not LOGIN_USERNAME nor LOGIN_PASSWORD?
-        logger.critical("Login method should never have been called now. Bye bye...")
-        assert False
+        if any("REJECTED" in c for c in comments):
+            raise self.LoginError("The switch rejected the password. " \
+                                  "Check that the credentials are correct.")
+
+        raise self.LoginError("Unexpected error after sending password: " \
+                              "no ACCEPTED nor REJECTED found")
