@@ -13,24 +13,17 @@ from swconfig_otb.sw_state import _States
 logger = logging.getLogger('swconfig')
 
 def _create_vid(self, vid):
-    # Crash immediately if we're not in the config state
-    self._assert_state(_States.CONFIG)
-
-    _, comments = self.send_cmd('vlan %d' % (vid))
-
-    # The switch didn't even transition to config-vlan state. VLAN creation unsuccessful...
     try:
-        self._assert_state(_States.CONFIG_IF_RANGE)
+        _, comments = self.send_cmd('vlan %d' % (vid), assert_state=_States.CONFIG_VLAN)
     except self.StateAssertionError:
+        # The switch didn't even transition to config-vlan state. VLAN creation unsuccessful...
         logger.error("VLAN %d could not be created", vid)
         raise
 
-    self.send_cmd('exit')
+    self.send_cmd('exit', assert_state=_States.CONFIG)
 
     if not any("VLAN %d is added" % (vid) in c for c in comments):
         logger.warning("VLAN %d already existed when asking the switch to create it", vid)
-
-    return True
 
 def _delete_vid(self, vid):
     out, comments = self.send_cmd('no vlan %d' % (vid))
@@ -57,7 +50,9 @@ def _delete_vid(self, vid):
     return True
 
 def update_vlan_conf(self, vlans_new, ports_new):
+    logger.info("Gathering VLAN facts...")
     vlans_old, ports_old = self._parse_vlans()
+
     logger.debug("Wanted VLANs: %s", vlans_new)
     logger.debug("Wanted interfaces configuration %s", ports_new)
 
@@ -78,7 +73,7 @@ def update_vlan_conf(self, vlans_new, ports_new):
     # Let's make the switch obeeeyyyyy! :p
     self._goto_admin_main_prompt()
 
-    self.send_cmd('config')
+    self.send_cmd('config', assert_state=_States.CONFIG)
     for vlan in vlan_removed:
         logger.info('Deleting VLAN %d', vlan)
         if not self._delete_vid(vlan):
@@ -86,12 +81,14 @@ def update_vlan_conf(self, vlans_new, ports_new):
 
     for vlan in vlan_added:
         logger.info('Creating VLAN %d', vlan)
-        if not self._create_vid(vlan):
+        try:
+            self._create_vid(vlan)
+        except self.StateAssertionError:
             raise self.VlanError("An error occurred when creating VID %d", vlan)
 
     for port_id, vids in ((port_id, ports_new[port_id]) for port_id in ports_changed):
         logger.info('Configuring interface %d', port_id)
-        self.send_cmd('interface GigabitEthernet %d' % (port_id))
+        self.send_cmd('interface GigabitEthernet %d' % (port_id), assert_state=_States.CONFIG_IF)
 
         # This port is at least tagged on one VID. The port will need to be in trunk mode.
         if vids['tagged']:
@@ -124,8 +121,8 @@ def update_vlan_conf(self, vlans_new, ports_new):
             logger.info(' Setting interface VID to %d', vids['untagged'])
             self.send_cmd('switchport access vlan %d' % (vids['untagged']))
 
-        self.send_cmd('exit')
-    self.send_cmd('end')
+        self.send_cmd('exit', assert_state=_States.CONFIG)
+    self.send_cmd('end', assert_state=_States.ADMIN_MAIN)
 
 
 def _parse_vlans(self):

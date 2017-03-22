@@ -224,20 +224,27 @@ class Sw(object):
 
         return self._recv(auto_more, timeout)
 
-    def send_cmd(self, cmd, timeout=config.READ_TIMEOUT):
+    def send_cmd(self, cmd, timeout=config.READ_TIMEOUT, **kwargs):
         """Send a command to the switch, check the echo and get the full output.
 
         Args:
             cmd: The command to send. Do not add any LF at the end.
             timeout: If the cmd is known to require a longer Switch CPU processing time than usual,
                 a timeout can be specified. It will be used only for the first read.
+            assert_state: If needed, pass a kwarg 'assert_state'.
+                After the send and reception of the answer are complete,
+                we'll crash if the switch's state is not the one specified.
 
         Returns:
             A tuple (out, comments)
                 out: List of strings of the regular output (no comments inside)
                 comments: List of strings of the switch comments
         """
-        return self._send("%s\n" % (cmd), False, True, timeout)
+        ret = self._send("%s\n" % (cmd), False, True, timeout)
+        if 'assert_state' in kwargs:
+            self._assert_state(kwargs['assert_state'])
+
+        return ret
 
     def _goto_admin_main_prompt(self):
         """Bring the switch to the known state "hostname# " prompt (from known or unknown state)
