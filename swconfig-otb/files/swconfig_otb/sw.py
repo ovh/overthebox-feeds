@@ -254,13 +254,14 @@ class Sw(object):
         self.sock.flushInput()
 
         # We don't know where we are, let's find out :)
-        if self.state in [None, _States.PRESS_ANY_KEY]:
-            # We don't know where we are: we don't know if our keystroke will produce an echo or not
-            # So when sending our keystroke, we disable the consumption and check of the echo
-            # This allows us to analyze the full answer ourselves and then determine the state
+        if self.state is None:
             self._send("\n")
 
-        #Now, we know where we are. Let's go to the ADMIN_MAIN state :)
+        # Now, we know where we are. Let's go to the ADMIN_MAIN state :)
+
+        # If the state is press any key, let's press a key!
+        if self.state == _States.PRESS_ANY_KEY:
+            self._send("\n")
 
         # We are already where we want to go. Stop here
         if self.state == _States.ADMIN_MAIN:
