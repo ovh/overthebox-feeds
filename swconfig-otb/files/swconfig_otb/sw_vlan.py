@@ -54,9 +54,8 @@ def update_vlan_conf(self, vlans_new, ports_new):
     vlans_old, ports_old = self._parse_vlans()
 
     logger.debug("Wanted VLANs: %s", vlans_new)
-    logger.debug("Wanted interfaces configuration %s", ports_new)
-
     logger.debug("Current VLANs: %s", vlans_old)
+    logger.debug("Wanted interfaces configuration %s", ports_new)
     logger.debug("Current interfaces configuration %s", ports_old)
 
     vlan_added, vlan_removed = self._set_diff(vlans_old, vlans_new)

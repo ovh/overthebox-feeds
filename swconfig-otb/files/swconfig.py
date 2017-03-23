@@ -100,15 +100,30 @@ def _uci_dict_to_vlan_conf(uci_dict):
                 logger.warn("Skipping strange port '%s'", uci_port)
                 continue
 
-            if tagged:
-                ports[uci_port]['tagged'].add(uci_vid)
-
             # An interface can be untagged only on one single VID. Keep only the first one.
-            elif ports[uci_port]['untagged'] is None:
-                ports[uci_port]['untagged'] = uci_vid
-            else:
+            if not tagged and ports[uci_port]['untagged'] is not None:
                 logger.warn("Skipping subsequent untagged VID %d for if %d, keeping first VID %d",
                             uci_vid, uci_port, ports[uci_port]['untagged'])
+
+            # Special case when there is '17 17t' or '17t 17' in the config for the same VLAN
+            # (Port is tagged on a VID which is also its untagged VID (native VLAN)
+            # The switch discards the tagged VID in this case, so we do the same
+            elif tagged and ports[uci_port]['untagged'] == uci_vid or \
+                 (not tagged and uci_vid in ports[uci_port]['tagged']):
+                logger.warn("Skipping tagged VID %d for if %d which is also its native VLAN",
+                            uci_vid, uci_port)
+                # Both following lines are only useful when '17t 17' (in that order).
+                # When '17 17t', they don't do anything, but the if makes us skip the tagged one
+                ports[uci_port]['untagged'] = uci_vid
+                ports[uci_port]['tagged'].discard(uci_vid)
+
+            # This is a tagged VID, let's add it to the allowed VID list
+            elif tagged:
+                ports[uci_port]['tagged'].add(uci_vid)
+
+            # This is an untagged VID
+            else:
+                ports[uci_port]['untagged'] = uci_vid
 
     return _vlan_conf_final_pass(vlans, ports)
 
