@@ -129,7 +129,11 @@ class Sw(object):
         # This will filter out switch comments and put them into a separated list
         # Finally, use filter(None, list) to remove empty elements
         coms = []
-        out = filter(None, [self._filter(l.rstrip("\r\n"), coms) for l in self.sock.readlines()])
+        try:
+            out = filter(None, [self._filter(l.rstrip("\r\n"), coms) for l in self.sock.readlines()])
+        except serial.SerialException:
+            logger.error("The switch port seems to be busy. Aborting")
+            raise
 
         # out should never be empty. Otherwise it means we have a problem...
         if not out:
