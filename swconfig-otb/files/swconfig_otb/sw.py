@@ -23,7 +23,7 @@ class Sw(object):
     # This is a trick used to be able to define some parts of the class in a separated file
     from swconfig_otb.sw_except import BadEchoBudgetExceededError, LoginError
     from swconfig_otb.sw_except import StateAssertionError, _assert_state
-    from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range
+    from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range, _integer_set_to_string_range
     from swconfig_otb.sw_vlan import _parse_vlans, _create_vid, _delete_vid
     from swconfig_otb.sw_vlan import update_vlan_conf, init_vlan_config_datastruct
 

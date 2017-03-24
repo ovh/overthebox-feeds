@@ -69,15 +69,45 @@ def update_vlan_conf(self, vlans_new, ports_new):
         logger.info("Switch VLAN conf is the same as wanted conf. Nothing to do. :)")
         return
 
-    # Let's make the switch obeeeyyyyy! :p
+    # Browse each interface that we need to change
+    # Compute what need to be done for each interface
+    # At the same time group interfaces by "same changes that need to be done"
+    if_actions = {}
+    for port_id, vids in ((port_id, ports_new[port_id]) for port_id in ports_changed):
+        mode = 'trunk' if vids['tagged'] else 'access'
+        untagged = vids['untagged'] if vids['untagged'] else DEFAULT_VLAN
+
+        if mode == 'trunk':
+            # Compute the tagged VIDs we need to remove / add for this interface
+            ifv_added, ifv_removed = self._set_diff(ports_old[port_id]['tagged'], vids['tagged'])
+            # Convert the VID we want to remove / add to a VID range (ex: 1-7,8,100)
+            tagged_removed = self._integer_set_to_string_range(ifv_removed)
+            tagged_added = self._integer_set_to_string_range(ifv_added)
+
+        # If the mode is 'access', we don't care what tagged VIDs need to be removed/added
+        # Setting an interface mode to access will already discard all tagged VIDs...
+        # So we set both to empty strings, this increases the grouping ratio for access mode ifs :)
+        else:
+            tagged_removed = tagged_added = ''
+
+        # Construct our key, a tuple representing the actions to do for the interface
+        # It can be inserted into a dict as key since it's hashable
+        key = (mode, untagged, tagged_removed, tagged_added)
+
+        # If this tuple of actions does not exist yet, create it as a new key to our dict
+        # Then, assign to this key the value "empty set", and return this set
+        # If it exists, just return the set
+        # Then, whether the key existed or not, append to the interfaces set the current if
+        # That way, we group interfaces by "same actions needed to be done"
+        if_actions.setdefault(key, set()).add(port_id)
+
+    logger.debug("Actions needed to be done on interfaces: %s", if_actions)
+
+    # We know what needs to be done. Let's make the switch obeeeyyyyy! :p
     self._goto_admin_main_prompt()
-
     self.send_cmd('config', assert_state=_States.CONFIG)
-    for vlan in vlan_removed:
-        logger.info('Deleting VLAN %d', vlan)
-        if not self._delete_vid(vlan):
-            raise self.VlanError("An error occurred when deleting VID %d", vlan)
 
+    # Create VLAN that didn't exist before but should do now
     for vlan in vlan_added:
         logger.info('Creating VLAN %d', vlan)
         try:
@@ -85,44 +115,43 @@ def update_vlan_conf(self, vlans_new, ports_new):
         except self.StateAssertionError:
             raise self.VlanError("An error occurred when creating VID %d", vlan)
 
-    for port_id, vids in ((port_id, ports_new[port_id]) for port_id in ports_changed):
-        logger.info('Configuring interface %d', port_id)
-        self.send_cmd('interface GigabitEthernet %d' % (port_id), assert_state=_States.CONFIG_IF)
+    # Execute the actions we computed before for each interface range
+    for actions, ifs in if_actions.iteritems():
+        if_range = self._integer_set_to_string_range(ifs)
 
-        # This port is at least tagged on one VID. The port will need to be in trunk mode.
-        if vids['tagged']:
-            logger.info(' Putting interface into trunk mode')
-            self.send_cmd('switchport mode trunk')
+        logger.info("Configuring if range %s", if_range)
+        self.send_cmd('interface range GigabitEthernet %s' % (if_range),
+                      assert_state=_States.CONFIG_IF_RANGE)
 
-            # Determine the native VID and set it
-            native_vlan = vids['untagged'] if vids['untagged'] else DEFAULT_VLAN
-            logger.info(' Setting interface native VID to %d', native_vlan)
-            self.send_cmd('switchport trunk native vlan %d' % (native_vlan))
+        mode, untagged, tagged_removed, tagged_added = actions
 
-            ifv_added, ifv_removed = self._set_diff(ports_old[port_id]['tagged'], vids['tagged'])
+        logger.info(" Setting mode into %s mode", mode)
+        self.send_cmd('switchport mode %s' % (mode))
 
-            # Remove VIDs this interface doesn't belong to anymore
-            if ifv_removed:
-                ifv_removed_range = ','.join(str(v) for v in ifv_removed)
-                logger.info(' Removing obsolete VIDs %s for this interface', ifv_removed_range)
-                self.send_cmd('switchport trunk allowed vlan remove %s' % (ifv_removed_range))
+        if mode == 'trunk':
+            logger.info(" Setting native VID to %d", untagged)
+            self.send_cmd('switchport trunk native vlan %d' % (untagged))
 
-            # Make the interface belong to new VIDs that it didn't belong to before
-            if ifv_added:
-                ifv_added_range = ','.join(str(v) for v in ifv_added)
-                logger.info(' Adding new VIDs %s for this interface', ifv_added_range)
-                self.send_cmd('switchport trunk allowed vlan add %s' % (ifv_added_range))
+            if tagged_removed:
+                logger.info(' Removing obsolete VIDs %s', tagged_removed)
+                self.send_cmd('switchport trunk allowed vlan remove %s' % (tagged_removed))
 
-        # This port is only untagged, it's never tagged. The port will need to be in access mode.
+            if tagged_added:
+                logger.info(' Adding new VIDs %s', tagged_added)
+                self.send_cmd('switchport trunk allowed vlan add %s' % (tagged_added))
         else:
-            logger.info(' Putting interface into access mode')
-            self.send_cmd('switchport mode access')
-            logger.info(' Setting interface VID to %d', vids['untagged'])
-            self.send_cmd('switchport access vlan %d' % (vids['untagged']))
+            logger.info(" Setting VID to %d", untagged)
+            self.send_cmd('switchport access vlan %d' % (untagged))
 
         self.send_cmd('exit', assert_state=_States.CONFIG)
-    self.send_cmd('end', assert_state=_States.ADMIN_MAIN)
 
+    # Delete VLAN that shouldn't exist any more
+    for vlan in vlan_removed:
+        logger.info('Deleting VLAN %d', vlan)
+        if not self._delete_vid(vlan):
+            raise self.VlanError("An error occurred when deleting VID %d", vlan)
+
+    self.send_cmd('end', assert_state=_States.ADMIN_MAIN)
 
 def _parse_vlans(self):
     """Ask the switch its VLAN state and return it
@@ -193,6 +222,39 @@ def _str_to_if_range(string):
     # If there's only one digit [1], it will compute range(1, 1 + 1) which is 1.
     range_ = [r[len('gi'):].split('-') for r in string.split(',') if r.startswith('gi')]
     return [i for r in range_ for i in range(int(r[0]), int(r[-1]) + 1)]
+
+@staticmethod
+def _integer_set_to_string_range(set_):
+    list_ = sorted(set_)
+
+    if not list_:
+        return ''
+
+    range_ = []
+    current_range = [list_[0], list_[0]]
+
+    for item in list_[1:]:
+        # A new range is starting, let's commit
+        if item != current_range[1] + 1:
+            _integer_set_to_string_range_(current_range, range_)
+            current_range = [item, item]
+        else:
+            current_range[1] = current_range[1] + 1
+
+    # Handle the last range
+    _integer_set_to_string_range_(current_range, range_)
+
+    return ",".join((str(r) for r in range_))
+
+def _integer_set_to_string_range_(current_range, range_):
+    range_width = current_range[1] - current_range[0]
+
+    if range_width > 1:
+        range_.append("{}-{}".format(*current_range))
+    elif range_width == 1:
+        range_.extend(current_range)
+    else:
+        range_.append(current_range[0])
 
 @staticmethod
 def _set_diff(old, new):
