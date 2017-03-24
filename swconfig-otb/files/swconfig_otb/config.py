@@ -9,14 +9,20 @@ BYTESIZE = serial.EIGHTBITS
 PARITY = serial.PARITY_NONE
 STOPBITS = serial.STOPBITS_ONE
 
-READ_TIMEOUT = 0.1
-READ_RETRIES = 4
+READ_TIMEOUT = 0.05
+
+# After 10 minutes of idle time, the switch will auto-logout
+# The CLI is then blocked during 8 seconds
+# If our script is launched during those 8 seconds, we need to ensure we'll at least wait 8 seconds
+# READ_RETRIES = ceil(log_2((8/READ_TIMEOUT) + 1) - 1)
+READ_RETRIES = 7
+
 BAD_ECHO_BUDGET = 10
 
 # Long write timeout does not impact the execution speed
 # So it's convenient to set a high one: we don't need to implement any retry
 # If the long write timeout is exceeded, we can crash
-WRITE_TIMEOUT = 1
+WRITE_TIMEOUT = 8
 
 USER, PASSWORD = "admin", "admin"
 

@@ -109,7 +109,7 @@ class Sw(object):
 
     def _recv_once_retry(self):
         """Try to receive once, and retries with increasing timeout if it fails"""
-        for _ in range(config.READ_RETRIES):
+        for _ in range(config.READ_RETRIES + 1):
             try:
                 return self._recv_once()
             except serial.SerialTimeoutException:
