@@ -176,8 +176,8 @@ def _parse_vlans(self):
 
         vlans.add(vid)
 
-        untagged_range = self._str_to_if_range(untagged)
-        tagged_range = self._str_to_if_range(tagged)
+        untagged_range = self._if_str_to_integer_set(untagged)
+        tagged_range = self._if_str_to_integer_set(tagged)
 
         for if_ in untagged_range:
             if ports[if_]['untagged'] is None:
@@ -200,8 +200,8 @@ def init_vlan_config_datastruct():
     return vlans, ports
 
 @staticmethod
-def _str_to_if_range(string):
-    """Take an interface range string and generate the expanded version in a list.
+def _if_str_to_integer_set(string):
+    """Take an interface range string and generate the expanded version in a set.
 
     Only the interface ranges starting with 'gi' will be taken into account.
 
@@ -209,8 +209,8 @@ def _str_to_if_range(string):
         string: A interface range string (ex 'gi4,gi6,gi8-10,gi16-18,lag2')
 
     Returns:
-        A list of numbers which is the expansion of the whole range. For example,
-            the above input will give [4, 6, 8, 9, 10, 16, 17, 18]
+        A set of numbers which is the expansion of the whole range. For example,
+            the above input will give set([4, 6, 8, 9, 10, 16, 17, 18])
     """
     # Split the string by ','.
     # Exclude elements that don't start with "gi" (we could have 'lag8-15', or '---').
@@ -221,7 +221,7 @@ def _str_to_if_range(string):
     # This wouldn't be the case if we had used a[0] and a[1].
     # If there's only one digit [1], it will compute range(1, 1 + 1) which is 1.
     range_ = [r[len('gi'):].split('-') for r in string.split(',') if r.startswith('gi')]
-    return [i for r in range_ for i in range(int(r[0]), int(r[-1]) + 1)]
+    return set([i for r in range_ for i in range(int(r[0]), int(r[-1]) + 1)])
 
 @staticmethod
 def _integer_set_to_string_range(set_):

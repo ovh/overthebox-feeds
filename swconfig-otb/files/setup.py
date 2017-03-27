@@ -10,4 +10,5 @@ setup(name='swconfig_otb',
           'pyserial',
       ],
       packages=['swconfig_otb'],
+      test_suite='tests',
       zip_safe=False)
