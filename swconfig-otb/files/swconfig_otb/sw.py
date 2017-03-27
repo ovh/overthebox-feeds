@@ -8,6 +8,7 @@ This module implements primitives to serially interact with the TG-NET S3500-15G
 import re
 import logging
 import serial
+import subprocess
 
 from swconfig_otb.sw_state import _States
 import swconfig_otb.config as config
@@ -21,7 +22,7 @@ class Sw(object):
     _MORE_MAGIC = ["\x08", "\x1b[A\x1b[2K"]
 
     # This is a trick used to be able to define some parts of the class in a separated file
-    from swconfig_otb.sw_except import BadEchoBudgetExceededError, LoginError
+    from swconfig_otb.sw_except import BadEchoBudgetExceededError, LoginError, SerialPortBusyError
     from swconfig_otb.sw_except import StateAssertionError, _assert_state
     from swconfig_otb.sw_vlan import _set_diff, _dict_diff, _str_to_if_range, _integer_set_to_string_range
     from swconfig_otb.sw_vlan import _parse_vlans, _create_vid, _delete_vid
@@ -57,6 +58,13 @@ class Sw(object):
 
         Instead of calling me, consider using 'with' statement if that suits your needs
         """
+        # Check whether the serial TTY is already open by another process
+        lsof = subprocess.Popen(['lsof', self.sock.port], stdout=subprocess.PIPE)
+        lsof.communicate()
+        if lsof.returncode == 0:
+            raise self.SerialPortBusyError("Serial TTY '%s' is already open by another process. " \
+                                           "Aborting." % (self.sock.port))
+
         self.sock.open()
         self._goto_admin_main_prompt()
 

@@ -14,6 +14,9 @@ class AbstractSwitchException(Exception):
         logger.error(self.message)
 
 
+class SerialPortBusyError(AbstractSwitchException):
+    """Serial TTY port is already open by another process"""
+    pass
 
 class BadEchoBudgetExceededError(AbstractSwitchException):
     """Wrong echo budget has been exceeded
