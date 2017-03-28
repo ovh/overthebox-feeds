@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-swconfig-otb
-PKG_VERSION:=0.1
+PKG_VERSION:=1.0
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Martin Wetterwald <martin.wetterwald@corp.ovh.com>
 PKG_LICENSE:=MIT
@@ -14,7 +14,7 @@ define Package/python-swconfig-otb
   SECTION:=lang
   CATEGORY:=Languages
   TITLE:=Tools to manage OVH OverTheBox switches
-  DEPENDS:=+python-setuptools
+  DEPENDS:=+python-light +python-logging +python-pyserial
 endef
 
 define Package/python-swconfig-otb/description
