@@ -61,7 +61,7 @@
 
 <div id="registerWizard" class="register" style="display:none">
     <h1>Bienvenue dans votre espace OverTheBox</h1>
-    
+
     <div id="gettingDeviceId" class="alert alert-info">
         <p><%:Waiting for device ID%> ...</p>
         <div id="isConnectedSpinner"></div>
@@ -150,7 +150,7 @@
                                 <a href="https://www.ovhtelecom.fr/commande/overthebox.xml?quantity=0&serviceQuantity=1" class="btn btn-primary" target="_blank"><%:Commander%></a>
                             </div>
                         </div>
-                        
+
                         <button id="serviceActivateSubmit" type="submit" class="btn btn-primary"><%:Associer%> <span id="associateServiceSpinner"></span></button>
                     </form>
                     <div id="releaseService">
@@ -178,7 +178,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                 <svg version="1.1" id="firstModemScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
                 <div class="alert alert-info not-ready">
                     <p><%:Auncun modem n'a été detecté sur votre OverTheBox. Veuillez le brancher%>.</p>
-                    
+
                 </div>
                 <div class="alert alert-info config">
                      <p><%:Il est obligatoire de désactiver le DHCP de votre modem afin qu'OverTheBox puisse fonctionner%>.<span rel="tooltip" class="help" title="<h4>DHCP</h4><p><%:C'est un protocole qui permet à un organe réseau d'obtenir dynamiquement une adresse IP. Cela permet de simplifier la configuration réseau.%></p><p><%:Par abus de langage, on appelle DHCP le server qui attribue dynamiquement ces adresses IP.%></p>">?</span></p>
@@ -354,7 +354,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                 otb.cleanMessages();
             });
         }
-        
+
         if (otb.serviceId) {
             $("#notConnectedMessage").hide();
             $("#serviceId").text(otb.serviceId);
@@ -366,7 +366,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
             Cookies.remove("consumerKey");
             window.location.reload();
         });
-        
+
         // bind all "next" buttons
         $(".next").click(next);
 
@@ -381,7 +381,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     console.log(data);
                 }
             });
-            
+
         });
         otb.api.consumerKey = Cookies.get("consumerKey");
 
@@ -456,7 +456,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     $("#passGpFirst").addClass("has-success");
                 }
                 $("#passwordSetSubmit").prop("disabled", !isSame || !isLongEnough);
-            }); 
+            });
         }).wizard("attachEvent", "passwordSetup", "stop", function() {
             $("#passwordSetupProcess input[type=password]").unbind();
         });
@@ -549,7 +549,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                 $("#releaseService").show();
                 $("#serviceActivateSubmit").hide();
             }
-            
+
         });
 
         // Service not available => cancel
