@@ -11,7 +11,7 @@ LUCI_DEPENDS:=+luci-base +libubus-lua
 
 PKG_BUILD_DEPENDS:=iwinfo
 
-PKG_VERSION:=v1.0
+PKG_VERSION:=v1.1
 PKG_RELEASE:=1
 
 include ../luci/luci.mk

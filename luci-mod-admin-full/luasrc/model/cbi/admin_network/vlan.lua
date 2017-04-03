@@ -272,7 +272,7 @@ m.uci:foreach("network", "switch",
 
 		-- Build per-port off/untagged/tagged choice lists.
 		local pt
-		for pt = 0, num_ports - 1 do
+		for pt = 1, num_ports do
 			local title
 			if pt == cpu_port then
 				title = translate("CPU")
