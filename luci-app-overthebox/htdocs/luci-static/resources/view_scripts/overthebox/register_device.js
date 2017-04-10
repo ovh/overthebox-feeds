@@ -171,7 +171,7 @@
     * Activate Service if needed
     * @param   {String} serviceId Service to activate
     * @param {Function} callback  Callback function
-    * @return {Function} poller stoping function 
+    * @return {Function} poller stoping function
     */
     window.otb.activateService = function (serviceId /*, callback*/) {
         var callback = otb.getCallback(arguments);
@@ -191,7 +191,7 @@
      * Wait for n modems to be connected
      * @param   {number} num Number of modems to check
      * @param {Function} callback Callback function
-     * @return {Function} poller stoping function 
+     * @return {Function} poller stoping function
      */
     window.otb.waitForModem = function(num /*, callback*/) {
         var callback = otb.getCallback(arguments);
@@ -217,7 +217,7 @@
      * @param   {number} dhcpCheckDelay    Delay for searching a DHCP server
      * @param   {number} dhcpCheckInterval Time between each check
      * @param {Function} callback Callback function
-     * @return {Function} poller stoping function 
+     * @return {Function} poller stoping function
      */
     window.otb.checkDHCP = function(dhcpCheckDelay, dhcpCheckInterval /*, callback*/) {
         var callback = otb.getCallback(arguments);
@@ -243,7 +243,7 @@
                                         poller();
                                         if (dhcp.activeDhcpList) {
                                             ips = dhcp.activeDhcpList.map(function (dhcpDetail) {
-                                                return dhcpDetail.ip;
+                                                return dhcpDetail.router;
                                             });
                                         }
                                         otb.pushMessage($("div#messageContainer"), "error", ["<p>", otb.translations.get("register-device@dhcp_activated", {detail: ips.join(", ")}), "</p>"].join(""));
@@ -311,7 +311,7 @@
     /**
      * Display activation button if needed
      * @param {Function} callback Callback function invoked only if no activation is needed
-     * @return {Function} poller stoping function 
+     * @return {Function} poller stoping function
      */
     window.otb.gotoServiceActivation = function(/*callback*/) {
         var callback = otb.getCallback(arguments);

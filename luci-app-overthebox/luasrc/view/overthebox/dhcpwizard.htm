@@ -162,7 +162,6 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 							var html = '<fieldset id="desactivate_dhcp_field" class="cbi-section">';
 
 							content = "";
-							//content += '<legend style="color: red;"><%:DHCP server still active%></legend>';
 							content += '<table width="100%" cellspacing="10">';
 	                                                content += '<tr><td width="33%"><%:IP Address%></td>';
 	                                                content += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
@@ -218,7 +217,6 @@ local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
 								var html = '<fieldset id="activate_button_field" class="cbi-section">';
 
 								var content = "";
-								//content += '<legend><%:Checking for active DHCP...%></legend>';
 								content += '<table width="100%" cellspacing="10">';
 								content += '<tr><td><%:Please wait%> ' + Math.round(timeout - (timestamp - lastcheck)) + ' <%:seconds%></td></tr>';
 		                                                content += '</table>';
