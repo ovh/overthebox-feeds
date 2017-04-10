@@ -42,28 +42,36 @@
                             var lastlease = parseInt(dhcp.timestamp, 10);
                             var lastcheck = parseInt(dhcp.lastcheck, 10);
                             var timestamp = Math.round(Date.now() / 1000) + (self.tsOffset !== undefined ? self.tsOffset : 0);
-                            //var leaseDuring = parseInt(dhcp.lease, 10);
+
                             if (self.tsOffset === undefined) {
                                 forceChecking = true;
                                 // compute timestamp offset between client and server
                                 self.tsOffset = lastcheck - timestamp;
                             }
 
+                            // If we have a lastlease timestamp but never checked
+                            // say we found it, in order to do the first check
                             if (lastlease && !lastcheck) {
                                 found = true;
                                 activeDhcpList.push(dhcp);
                                 return;
                             }
-                            if (lastlease > lastcheck) {
+                            // If we got a lease after the last checking
+                            // say we found it
+                            if (lastlease >= lastcheck) {
                                 found = true;
                                 activeDhcpList.push(dhcp);
                                 return;
                             }
+                            // If the timeout is not reached
+                            // say we're still checking
                             if (timestamp - lastcheck < timeout) {
                                 checking = true;
                                 return;
                             }
 
+                            // The default value is :
+                            // say we didn't find it!
                         });
 
                         var dhcpStatus = "notFound";
@@ -135,7 +143,7 @@
     /**
      * Check if serviceActivation is needed
      * @param {Function} callback Callback function
-     * @return {Function} poller stoping function 
+     * @return {Function} poller stoping function
      */
     Nuc.prototype.needServiceActivation = function(/*callback*/) {
         var callback = otb.getCallback(arguments);

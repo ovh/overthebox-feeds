@@ -47,28 +47,8 @@
 					temp += '</a>'
 				}
 
-				/*
-				var color = "rgb(240, 144, 144)";
-				if (mArray.overthebox.socks_service) 
-				{
-					color = "rgb(144, 240, 144)";
-					if (mArray.overthebox.tun_service)
-					{
-						color = "rgb(144, 240, 144)";
-					}
-					else
-					{
-						color = "rgb(224,224,224)";
-					}
-				}
-				else
-				{
-					color = "rgb(240, 144, 144)";
-				}
-				*/
-
 				temp += '<li id="networkRootNode"><table><tr><td><a href="#">';
-				
+
 				var equipmentIcon = '<img src="<%=resource%>/overthebox.png" style:"top: 0px;" />';
 				var title = String.format("OverTheBox (%s)", mArray.overthebox.wan_addr || mArray.overthebox.local_addr);
 				var statusMessageClass = "";
@@ -119,11 +99,11 @@
 
 				if (mArray.overthebox.socks_service == false)
 				{
-					temp += String.format('Socks service is not running');
+					statusMessage += 'Socks service is not running<br/>';
 				}
 				if (mArray.overthebox.tun_service == false)
 				{
-					temp += String.format('TUN service is not running');
+					statusMessage += 'TUN service is not running';
 				}
 
 				if(statusMessage !== "")
