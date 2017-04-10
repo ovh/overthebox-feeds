@@ -167,6 +167,7 @@
 	<span class="popover_text"></span>
 </div>
 <a class="btn btn-small" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>"><%:Configuration assistant%></a>
+<a class="btn btn-small pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>#dhcpDesactivateMore"><%:Add a new connection%></a>
 <%
 if not service_id then
 	if luci.dispatcher.context.requestpath[#luci.dispatcher.context.requestpath] == "activate" then
@@ -185,7 +186,6 @@ elseif has_service_confirmation then
 else
 	%>
 		<fieldset class="cbi-section">
-		<!--	<legend><%:OverTheBox overview%></legend> -->
 			<table width="100%" cellspacing="10">
 				<tr><td width="33%"><%:Device ID%></td><td><%=device_id or translate("Registering your device, please wait...")%></td></tr>
 				<% if service_id then %>
