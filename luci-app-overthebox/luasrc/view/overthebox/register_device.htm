@@ -242,6 +242,9 @@ Souhaitez-vous associer ce nouveau device?%></p>
                             </button>
                         </li>
                     </ol>
+                    <div style="margin-top:20px">
+                        <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
+                    </div>
                 </div>
                 <div class="alert alert-info done">
                     <p><%:Le serveur DHCP de votre modem supplémentaire est bien désactivé%>.</p>
@@ -249,9 +252,6 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     <button id="modemAdd" role="button" class="btn btn-primary"><%:Ajouter un modem%></button>
                     <a class="btn btn-primary pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
                     </ul>
-                </div>
-                <div style="margin-top:20px">
-                    <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
                 </div>
             </div>
 
@@ -306,7 +306,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
         };
         otb.translations.add("register-device@linked_device", "<%:associé à%>");
         otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé%>");
-        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> (IP du serveur DHCP: <strong><a href='http://{{detail}}' target='_blank'>{{detail}}</a></strong>)");
+        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> (IP du modem: <strong><a href='http://{{detail}}' target='_blank'>{{detail}}</a></strong>)");
         otb.translations.add("register-device@service_activation_error", "<%:L'activation de votre service n'a pas abouti%>");
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
         otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
@@ -548,6 +548,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     if (err) {
                         $("#serviceActivateSubmit").prop("disabled", false);
                     } else {
+                        otb.cleanMessages();
                         activateServicePoller();
                         activateServicePoller = window.otb.gotoServiceActivation(next);
                     }
@@ -738,7 +739,8 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     if (data.found) {
                         $("div#dhcpDesactivateMoreProcess .config").show();
                         $("div#dhcpDesactivateMoreProcess .not-ready").hide();
-                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Un nouveau modem a été détecté%></p>");
+                        var modemIp = data.modems[data.modems.length-1].gateway;
+                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Un nouveau modem a été détecté%> (IP du modem: <strong><a href='http://"+modemIp+"' target='_blank'>"+modemIp+"</a></strong>)</p>");
                     } else {
                         $("div#dhcpDesactivateMoreProcess .config").hide();
                         $("div#dhcpDesactivateMoreProcess .not-ready").show();
@@ -794,14 +796,11 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     default:
                         dhcpCounter = otb.tryBeforSupport;
                         dhcpAdditionalCheckButton.prop("disabled", false);
+                        dhcpAdditionalCheckButton.find("span.percent").text("");
                         $("div#dhcpDesactivateMoreProcess .config").hide();
                         $("#gotoAdditionalModem").prop("disabled", true);
-                        $("div#dhcpDesactivateMoreProcess .done").show();
-                        dhcpAdditionalCheckButton.find("span.percent").text("");
-                        for (var i = 1; i<=4; i++) {
-                            otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "current");
-                            otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "to-be-plugged");
-                        }
+
+                        $("div.wizard").wizard("goto", "dhcpDesactivateMore", function() {});
                 }
             });
 
