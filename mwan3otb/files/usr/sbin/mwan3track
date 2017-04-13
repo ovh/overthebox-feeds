@@ -302,8 +302,8 @@ os.execute("mkdir -p /tmp/tracker/if")
 local nb_up = tonumber(opts["u"])
 local nb_down = tonumber(opts["o"])
 
-local score = nb_up + nb_down
-local init_score = score
+local init_score = nb_up + nb_down
+local score = init_score
 local host_up_count = 0
 local lost = 0
 
@@ -388,115 +388,6 @@ function pingstats:push(value)
   pingstats.last = value
 end
 
--- Bandwith stats
-local bw_stats = {}
-bw_stats.values = {}
-bw_stats.command = "/usr/bin/luci-bwc"
-function bw_stats:collect()
-  -- run bandwidth monitor
-  local handle = io.popen(string.format("%s -i %s", bw_stats.command, interface.name))
-  if not handle then return 0 end
-  local result = handle:read("*a")
-  handle:close()
-  -- store rsult in table
-  if result then
-    bw_stats.values = json.decode("["..string.gsub(result, '[\r\n]', '').."]")
-  end
-  return bw_stats.values
-end
-
-function bw_stats:avgdownload(timestamp)
-  local sum = 0
-  local count = 0
-
-  local mintimestamp
-  local maxtimestamp
-  local minvalue
-  local maxvalue
-
-  for index = #bw_stats.values, 1, -1 do
-    if bw_stats.values[index][1] >= timestamp then
-      if mintimestamp == nil then
-        mintimestamp = bw_stats.values[index][1]
-      end
-      if maxtimestamp == nil then
-        maxtimestamp = bw_stats.values[index][1]
-      end
-      mintimestamp = math.min(mintimestamp, bw_stats.values[index][1])
-      maxtimestamp = math.max(maxtimestamp, bw_stats.values[index][1])
-      if minvalue == nil then
-        minvalue = bw_stats.values[index][2]
-      end
-      if maxvalue == nil then
-        maxvalue = bw_stats.values[index][2]
-      end
-      minvalue = math.min(minvalue, bw_stats.values[index][2])
-      maxvalue = math.max(maxvalue, bw_stats.values[index][2])
-
-      sum = sum + bw_stats.values[index][2]
-      count = count + 1
-    end
-  end
-  if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
-    local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
-    bw_stats.maxdownloadvalue = math.max(bw_stats.maxdownloadvalue, value)
-    return value
-  else
-    return nil
-  end
-end
-
-function bw_stats:avgupload(timestamp)
-  local sum = 0
-  local count = 0
-
-  local mintimestamp
-  local maxtimestamp
-  local minvalue
-  local maxvalue
-
-  for index = #bw_stats.values, 1, -1 do
-    if bw_stats.values[index][1] >= timestamp then
-      if mintimestamp == nil then
-        mintimestamp = bw_stats.values[index][1]
-      end
-      if maxtimestamp == nil then
-        maxtimestamp = bw_stats.values[index][1]
-      end
-      mintimestamp = math.min(mintimestamp, bw_stats.values[index][1])
-      maxtimestamp = math.max(maxtimestamp, bw_stats.values[index][1])
-      if minvalue == nil then
-        minvalue = bw_stats.values[index][4]
-      end
-      if maxvalue == nil then
-        maxvalue = bw_stats.values[index][4]
-      end
-      minvalue = math.min(minvalue, bw_stats.values[index][4])
-      maxvalue = math.max(maxvalue, bw_stats.values[index][4])
-
-      sum = sum + bw_stats.values[index][4]
-      count = count + 1
-    end
-  end
-  if count > 1 and maxvalue > minvalue and maxtimestamp > mintimestamp then
-    local value = math.floor((((maxvalue - minvalue) / (maxtimestamp - mintimestamp)) * 8) / 1024)
-    bw_stats.maxuploadvalue = math.max(bw_stats.maxuploadvalue, value)
-    return value
-  else
-    return nil
-  end
-end
-
-bw_stats.maxdownloadvalue = 512
-function bw_stats:maxdownload()
-  return bw_stats.maxdownloadvalue
-end
-
-bw_stats.maxuploadvalue = 128
-function bw_stats:maxupload()
-  return bw_stats.maxuploadvalue
-end
-
 -- Service API helpers
 
 function POST(uri, data)
@@ -546,31 +437,21 @@ end
   shaper.ratefactor     = tonumber(uci:get("network", shaper.interface, "ratefactor")) or 1 -- 0.9 mean 90%
   -- Shaper timers
   shaper.reloadtimestamp    = 0   -- Time when signal to (re)load qos was received
-  shaper.qostimestam        = nil -- Time of when QoS was enabled, nil mean that QoS is disabled
-  shaper.losttimestamp      = nil -- Time when we lost the first ping
+  shaper.qostimestamp       = nil -- Time of when QoS was enabled, nil mean that QoS is disabled
 end)()
 
 -- Shaper functions
 
-function shaper:ping(ok)
-  if not ok then
-    if shaper.interface ~= "tun0" then
-      if shaper.losttimestamp == nil then
-        shaper.losttimestamp = os.time()
-      end
-      bw_stats:collect()
+function shaper:ping()
+  -- When tun0 started (or is notified about a new tracker), notify all trackers to start their QoS
+  if shaper.interface == "tun0" then
+    if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
+      shaper:enableQos()
+      run('pkill -USR1 -f "mwan3track -i"')
     end
-  else
-    -- When tun0 started (or is notified about a new tracker), notify all trackers to start their QoS
-    if shaper.interface == "tun0" then
-      if shaper.qostimestamp == nil or (shaper.reloadtimestamp > shaper.qostimestamp) then
-        shaper:enableQos()
-        run('pkill -USR1 -f "mwan3track -i"')
-      end
-      -- Notify tun0 that a new tracker as started pinging
-    elseif shaper.reloadtimestamp == 0 then
-      run('pkill -USR2 -f "mwan3track -i tun0"')
-    end
+    -- Notify tun0 that a new tracker as started pinging
+  elseif shaper.reloadtimestamp == 0 then
+    run('pkill -USR2 -f "mwan3track -i tun0"')
   end
 end
 
@@ -709,7 +590,6 @@ function write_stats()
   if shaper then
     result[interface.name].qostimestamp       = shaper.qostimestamp
     result[interface.name].reloadtimestamp    = shaper.reloadtimestamp
-    result[interface.name].losttimestamp      = shaper.losttimestamp
     result[interface.name].upload             = shaper.upload
     result[interface.name].download           = shaper.download
     result[interface.name].qosmode            = shaper.mode
@@ -738,65 +618,36 @@ while true do
       end
 
       -- Update shaper
-      shaper:ping(true)
+      shaper:ping()
       pingstats:push(tonumber(msg))
       debug("check: "..servers[i].." OK "..string.format("%.2f ms", pingstats.last))
     else
       lost = lost + 1
 
       log(msg)
-      shaper:ping(false)
       debug("check: "..servers[i].." failed")
     end
     write_stats()
     shaper:update()
   end
 
-  if host_up_count < tonumber( opts["r"]) then
+  if host_up_count < tonumber(opts["r"]) then
     score = score - 1
     if score < nb_up then score = 0 end
     if score == nb_up then
-      if shaper.losttimestamp == nil then
-        log(string.format("Interface %s (%s) is offline (losttimestamp is nil)", opts["i"], opts["d"]))
-        -- exec hotplug iface
-        run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
-        -- Set interface info as obsolet
-        interface.timestamp = nil
-        -- clear QoS on interface down
-        if shaper.mode ~= "off" then
-          shaper:disableQos()
-        end
-        score = 0
-      else
-        local dlspeed = bw_stats:avgdownload(shaper.losttimestamp - 2)
-        local upspeed = bw_stats:avgupload(shaper.losttimestamp - 2)
-        if (dlspeed ~= nil and dlspeed < shaper.mindownload) and (upspeed ~= nil and upspeed < shaper.minupload) then
-          log(string.format("Interface %s (%s) is offline (unsuficient bandwith to keep alive)", opts["i"], opts["d"]))
-          -- exec hotplug iface
-          run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
-          -- clear QoS on interface down
-          if shaper.mode ~= "off" then
-            shaper:disableQos()
-          end
-          shaper.losttimestamp = nil
-
-          score = 0
-        else
-          if dlspeed ~= nil and upspeed ~= nil then
-            log(string.format("Interface %s (%s) lost his tracker but we still have some traffic (up %s kbit/s, dn %s kbit/s)", opts["i"], opts["d"], dlspeed, upspeed))
-            shaper.losttimestamp = os.time()
-          else
-            log(string.format("Interface %s (%s) lost his tracker (no bandwith stats yet)", opts["i"], opts["d"]))
-          end
-
-          lost = 0
-          score = score + 1
-        end
+      log(string.format("Interface %s (%s) is offline", opts["i"], opts["d"]))
+      -- exec hotplug iface
+      run(string.format("/usr/sbin/track.sh ifdown %s %s", opts["i"], opts["d"]))
+      -- Set interface info as obsolet
+      interface.timestamp = nil
+      -- clear QoS on interface down
+      if shaper.mode ~= "off" then
+        shaper:disableQos()
       end
+      score = 0
     end
   else
     if score < init_score and lost > 0 then
-      shaper.losttimestamp = nil
       log(string.format("Lost %d ping(s) on interface %s (%s)", (lost * opts["c"]), opts["i"], opts["d"]))
     end
 
