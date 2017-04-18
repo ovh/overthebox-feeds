@@ -7,7 +7,7 @@ local wa = require "luci.tools.webadmin"
 local ut = require "luci.util"
 local sys = require "luci.sys"
 
-local mud = (uci:get("glorytun", "tun0") == "mud" and uci:get("glorytun", "tun0", "enable") == "1")
+local mud = (uci:get("glorytun", "tun0") == "mud" and uci:get("glorytun", "tun0", "enable") == "1") or (uci:get("glorytun", "xtun0") == "mud" and uci:get("glorytun", "xtun0", "enable") == "1")
 
 m = Map("dscp", translate("Differentiated services"),
 	translate("Traffic may be classified by many different parameters, such as source address, destination address or traffic type and assigned to a specific traffic class."))
