@@ -61,7 +61,7 @@
 
 <div id="registerWizard" class="register" style="display:none">
     <h1>Bienvenue dans votre espace OverTheBox</h1>
-    
+
     <div id="gettingDeviceId" class="alert alert-info">
         <p><%:Waiting for device ID%> ...</p>
         <div id="isConnectedSpinner"></div>
@@ -73,7 +73,7 @@
             <p><%:Installez facilement votre OverTheBox en 4 étapes%></p>
             <p><%:Vérifier qu'aucun autre modem ne soit branché à votre modem principal%>.</p>
             <svg version="1.1" class="jsFirstScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
-            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>
+            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>
         </div>
         <div id="connectedMessage">
             <p><%:Installer facilement votre OverTheBox en 4 étapes%></p>
@@ -82,7 +82,7 @@
             <p><%:Votre OverTheBox est associée à un service %><strong id="serviceId"></strong>.</p>
             <p><%:Connectez-vous pour modifier la configuration matérielle%>.</p>
         </div>
-        <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé ver une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></strong></p>
+        <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></strong></p>
         <button id="registerButton" class="btn btn-primary"><%:S'authentifier%></button>
         <div style="margin-top:20px">
             <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
@@ -150,14 +150,14 @@
                                 <a href="https://www.ovhtelecom.fr/commande/overthebox.xml?quantity=0&serviceQuantity=1" class="btn btn-primary" target="_blank"><%:Commander%></a>
                             </div>
                         </div>
-                        
+
                         <button id="serviceActivateSubmit" type="submit" class="btn btn-primary"><%:Associer%> <span id="associateServiceSpinner"></span></button>
                     </form>
                     <div id="releaseService">
                             <p><%:Un appareil est déjà associé à ce service. Il s’agit peut-être de la même OverTheBox si cette dernière a été réinitialisée.
 Souhaitez-vous associer ce nouveau device?%></p>
-                            <button class="btn no" role="button"><%:Annuler%></button>
-                            <button class="btn btn-primary yes" role="button"><%:Continuer%></button>
+                            <button class="btn no" role="button"><%:Non%></button>
+                            <button class="btn btn-primary yes" role="button"><%:Oui%></button>
                         </div>
                 </div>
                 <div class="alert alert-info done">
@@ -168,7 +168,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     <div id="needActivate">
                         <p><%:Votre service doit être activé. Cela peut prendre quelques minutes.%></p>
                         <p class="progression"><%:Patientez%> <span></span></p>
-                        <button id="serviceLinked" role="button" class="btn btn-primary" href="#"><%:Activer Le service%></a>
+                        <button id="serviceLinked" role="button" class="btn btn-primary" href="#"><%:Activer le service%></a>
                     </div>
                 </div>
             </div>
@@ -177,11 +177,13 @@ Souhaitez-vous associer ce nouveau device?%></p>
             <div id="dhcpDesactivateProcess">
                 <svg version="1.1" id="firstModemScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
                 <div class="alert alert-info not-ready">
-                    <p><%:Auncun modem n'a été detecté sur votre OverTheBox. Veuillez le brancher%>.</p>
-                    
+                    <p><%:Aucun modem n'a été détecté sur votre OverTheBox. Veuillez le brancher%>.</p>
+
                 </div>
                 <div class="alert alert-info config">
-                     <p><%:Il est obligatoire de désactiver le DHCP de votre modem afin qu'OverTheBox puisse fonctionner%>.<span rel="tooltip" class="help" title="<h4>DHCP</h4><p><%:C'est un protocole qui permet à un organe réseau d'obtenir dynamiquement une adresse IP. Cela permet de simplifier la configuration réseau.%></p><p><%:Par abus de langage, on appelle DHCP le server qui attribue dynamiquement ces adresses IP.%></p>">?</span></p>
+                    <p><%:Votre modem a été correctement détecté%>.</p>
+
+                    <p><%:Il est obligatoire de désactiver le DHCP de votre modem afin qu'OverTheBox puisse fonctionner%>.<span rel="tooltip" class="help" title="<h4>DHCP</h4><p><%:C'est un protocole qui permet à un organe réseau d'obtenir dynamiquement une adresse IP. Cela permet de simplifier la configuration réseau.%></p><p><%:Par abus de langage, on appelle DHCP le serveur qui attribue dynamiquement ces adresses IP.%></p>">?</span></p>
                     <p><%:Les étapes à suivre%>:</p>
                     <ol>
                         <li>
@@ -193,21 +195,23 @@ Souhaitez-vous associer ce nouveau device?%></p>
                             <%:Vérifier que votre DHCP est désactivé%><br>
                             <span class="note"><%:Cette opération dure en moyenne 30 secondes%>.</span><br>
                             <button id="mainDhcpCheck" role="button" class="btn btn-primary jsDhcpCheck">
-                                <%:Vérifier%>
+                                <%:Vérification du DHCP%>
                                 <span class="percent"></span>
                             </button>
-                            <button id="skip" role="button" class="btn btn-primary next" href="#"><%:Skip%></button>
                         </li>
                     </ol>
                 </div>
                 <div class="alert alert-info done">
-                    <p><%:Afin qu'OverTheBox soit opérationelle et que votre réseau soit sécurisé, reconnectez votre ordinateur à l'OverThebox%>.</p>
-                    <p><%:Procédez ainci%>:</p>
+                    <p><%:Afin qu'OverTheBox soit opérationnelle et que votre réseau soit sécurisé, reconnectez votre ordinateur à l'OverThebox%>.</p>
+                    <p><%:Procédez ainsi%>:</p>
                     <p><strong><%:En Ethernet RJ45%> : </strong><%:Débranchez et rebranchez le câble RJ45%></p>
-                    <p><strong><%:En Wifi%> : </strong><%:Coupez le Wifi et réactivez-le%></p>
+                    <p><strong><%:En WiFi%> : </strong><%:Coupez le WiFi et réactivez-le%></p>
+                    <p>Puis testez :</p>
                     <button id="testPublicIp" role="button" class="btn btn-primary" href="#"><%:Tester%></a>
-                    <button id="skip" role="button" class="btn btn-primary next" href="#"><%:Skip%></button>
                     <button id="gotoAdditionalModem" role="button" class="btn btn-primary next" href="#"><%:Continuer%></a>
+                </div>
+                <div style="margin-top:20px">
+                    <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
                 </div>
             </div>
 
@@ -215,10 +219,11 @@ Souhaitez-vous associer ce nouveau device?%></p>
             <div id="dhcpDesactivateMoreProcess">
                 <svg version="1.1" id="additionalModemScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
                 <div class="alert alert-info not-ready">
-                    <p><%:Si vous souhaitez ajouter une connexion, branchez votre modem supplémentaire selon le schéma, sinon quittez l'assistant.%></p>
-                    <p><%:Afin de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
-                    <button id="modemPlugged" role="button" class="btn btn-primary"><%:J'ai  branché mon modem%></button>
-                    <a class="btn btn-primary pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
+                    <p><%:Si vous souhaitez ajouter une connexion, branchez votre modem supplémentaire selon le schéma et patientez quelques instants. La détection est automatique, vous serez automatiquement redirigé vers l'étape suivante.%></p>
+                    <p><%:Si vous n'avez plus d'autres connexions à rajouter, vous pouvez quitter l'assistant, l'installation est terminée.%></p>
+                    <br/>
+                    <p><%:Envie de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
+                    <a style="display:block;width:20%;margin:0 auto;" class="btn btn-primary" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
                 </div>
                 <div class="alert alert-info config">
                     <p><%:Les étapes à suivre pour désactiver le DHCP%>:</p>
@@ -232,11 +237,14 @@ Souhaitez-vous associer ce nouveau device?%></p>
                             <%:Vérifier que votre DHCP est désactivé%><br>
                             <span class="note"><%:Cette opération dure en moyenne 30 secondes.%></span><br>
                             <button id="additionalDhcpCheck" role="button" class="btn btn-primary jsDhcpCheck">
-                                <%:Vérifier%>
+                                <%:Vérification du DHCP%>
                                 <span class="percent"></span>
                             </button>
                         </li>
                     </ol>
+                    <div style="margin-top:20px">
+                        <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
+                    </div>
                 </div>
                 <div class="alert alert-info done">
                     <p><%:Le serveur DHCP de votre modem supplémentaire est bien désactivé%>.</p>
@@ -298,7 +306,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
         };
         otb.translations.add("register-device@linked_device", "<%:associé à%>");
         otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé%>");
-        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> <strong>({{detail}})</strong>");
+        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> (IP du modem: <strong><a href='http://{{detail}}' target='_blank'>{{detail}}</a></strong>)");
         otb.translations.add("register-device@service_activation_error", "<%:L'activation de votre service n'a pas abouti%>");
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
         otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
@@ -354,7 +362,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                 otb.cleanMessages();
             });
         }
-        
+
         if (otb.serviceId) {
             $("#notConnectedMessage").hide();
             $("#serviceId").text(otb.serviceId);
@@ -366,7 +374,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
             Cookies.remove("consumerKey");
             window.location.reload();
         });
-        
+
         // bind all "next" buttons
         $(".next").click(next);
 
@@ -381,7 +389,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     console.log(data);
                 }
             });
-            
+
         });
         otb.api.consumerKey = Cookies.get("consumerKey");
 
@@ -456,7 +464,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     $("#passGpFirst").addClass("has-success");
                 }
                 $("#passwordSetSubmit").prop("disabled", !isSame || !isLongEnough);
-            }); 
+            });
         }).wizard("attachEvent", "passwordSetup", "stop", function() {
             $("#passwordSetupProcess input[type=password]").unbind();
         });
@@ -540,6 +548,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     if (err) {
                         $("#serviceActivateSubmit").prop("disabled", false);
                     } else {
+                        otb.cleanMessages();
                         activateServicePoller();
                         activateServicePoller = window.otb.gotoServiceActivation(next);
                     }
@@ -549,7 +558,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                 $("#releaseService").show();
                 $("#serviceActivateSubmit").hide();
             }
-            
+
         });
 
         // Service not available => cancel
@@ -594,6 +603,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
 
         //Activate service
         $("#serviceLinked").click(function () {
+            otb.cleanMessages();
             $("#serviceLinked").prop("disabled", true);
             otb.activateService(otb.serviceId, function(err, status) {
                 if (!err) {
@@ -654,6 +664,28 @@ Souhaitez-vous associer ce nouveau device?%></p>
                         $("div#dhcpDesactivateProcess .not-ready").show();
                     }
                 });
+                // Launch a check to see if the DHCP is still active
+                searchDhcp = otb.checkDHCP(otb.dhcpCheckDelay, otb.dhcpCheckInterval, function (err, dhcp) {
+                    switch (dhcp.status) {
+                        case "found":
+                            dhcpMainCheckButton.prop("disabled", false);
+                            dhcpMainCheckButton.find("span.percent").text("");
+                            displaySupport();
+                            break;
+                        case "checking":
+                            dhcpMainCheckButton.find("span.percent").text(dhcp.message);
+                            break;
+                        default:
+                            dhcpCounter = otb.tryBeforSupport;
+                            dhcpMainCheckButton.prop("disabled", false);
+                            $("div#dhcpDesactivateProcess .config").hide();
+                            $("#gotoAdditionalModem").prop("disabled", true);
+                            $("div#dhcpDesactivateProcess .done").show();
+                            $("#gotoAdditionalModem").prop("disabled", false);
+                            dhcpMainCheckButton.find("span.percent").text("");
+                            otb.setRoute("ip-check");
+                    }
+                });
             }
         }).wizard("attachEvent", "dhcpDesactivate", "stop", function() {
             waitForModem();
@@ -707,7 +739,8 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     if (data.found) {
                         $("div#dhcpDesactivateMoreProcess .config").show();
                         $("div#dhcpDesactivateMoreProcess .not-ready").hide();
-                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Un nouveau modem a été détecté%></p>");
+                        var modemIp = data.modems[data.modems.length-1].gateway;
+                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Un nouveau modem a été détecté%> (IP du modem: <strong><a href='http://"+modemIp+"' target='_blank'>"+modemIp+"</a></strong>)</p>");
                     } else {
                         $("div#dhcpDesactivateMoreProcess .config").hide();
                         $("div#dhcpDesactivateMoreProcess .not-ready").show();
@@ -763,14 +796,11 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     default:
                         dhcpCounter = otb.tryBeforSupport;
                         dhcpAdditionalCheckButton.prop("disabled", false);
+                        dhcpAdditionalCheckButton.find("span.percent").text("");
                         $("div#dhcpDesactivateMoreProcess .config").hide();
                         $("#gotoAdditionalModem").prop("disabled", true);
-                        $("div#dhcpDesactivateMoreProcess .done").show();
-                        dhcpAdditionalCheckButton.find("span.percent").text("");
-                        for (var i = 1; i<=4; i++) {
-                            otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "current");
-                            otb.svgRemoveClass($("#additionalModemScheme .jsModem" + i), "to-be-plugged");
-                        }
+
+                        $("div.wizard").wizard("goto", "dhcpDesactivateMore", function() {});
                 }
             });
 

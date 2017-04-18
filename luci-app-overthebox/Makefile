@@ -9,9 +9,19 @@ include $(TOPDIR)/rules.mk
 LUCI_TITLE:=LuCI Support for the OverTheBox project
 LUCI_DEPENDS:=+luci-app-mwan3otb +bandwidth
 
-PKG_VERSION:=v1.1
+PKG_VERSION:=v1.2
 PKG_RELEASE:=1
 
 include ../luci/luci.mk
+
+define Package/overthebox/postinst
+#!/bin/sh
+if [ -z $${IPKG_INSTROOT} ] ; then
+	# force clear luci cache
+	rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
+
+	exit 0
+fi
+endef
 
 # call BuildPackage - OpenWrt buildroot signature
