@@ -1,6 +1,8 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+. /lib/functions.sh
+
 if ! uci -q get mwan3.voip.use_policy &>/dev/null; then
 	uci -q batch <<-EOF >/dev/null
 	set mwan3.voip='rule'
@@ -134,5 +136,19 @@ if ! uci -q get mwan3.voip.dest_ip &>/dev/null; then
 		uci delete mwan3.netconfchecksum
 	fi
 fi
+
+_setup_timeout() {
+	if [ "$(uci -q get "mwan3.$1.edited")" != 1 ]; then
+		uci -q batch <<-EOF
+		set mwan3.$1.timeout=3
+		set mwan3.$1.up=6
+		EOF
+	fi
+}
+
+config_load mwan3
+config_foreach _setup_timeout interface
+
+uci -q commit mwan3
 
 exit 0
