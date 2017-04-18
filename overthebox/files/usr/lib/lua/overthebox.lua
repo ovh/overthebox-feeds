@@ -19,7 +19,17 @@ local table, setmetatable, getmetatable = table, setmetatable, getmetatable
 
 local uci = require("luci.model.uci")
 local debug = false
-local VERSION = "<VERSION>"
+
+function get_version()
+  local file = io.open("/etc/otb-version", "r")
+  if not file then return nil end
+  local version = file:read("*line")
+  file:close()
+  return version
+end
+
+local VERSION = get_version() or "0.0.0"
+
 module "overthebox"
 _VERSION = VERSION
 local api_url = 'https://provisionning.overthebox.net:4443/'

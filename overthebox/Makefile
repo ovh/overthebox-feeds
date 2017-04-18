@@ -39,11 +39,6 @@ endef
 define Build/Prepare
 endef
 
-define Build/Configure
-	sed -i -e "s/<VERSION>/$(OTB_VERSION)/" ./files/usr/lib/lua/overthebox.lua
-	sed -i -e "s/<VERSION>/$(OTB_VERSION)/" ./files/usr/bin/overthebox_emergency_action
-endef
-
 define Build/Compile
 endef
 
