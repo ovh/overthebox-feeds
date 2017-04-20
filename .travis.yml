@@ -6,14 +6,9 @@ addons:
   apt:
     packages:
     - libxml-parser-perl
-before_script:
-- apt-cache show libc6
-- eval "$(gimme 1.5)"
-- wget https://plik.root.gg/clients/linux-amd64/plik && chmod +x ./plik
-- echo 'URL = "https://plik.root.gg"' > ~/.plikrc
 script:
 - ./build-packages.sh
-- find sdk -name '*.ipk' | xargs ./plik
+- find sdk -name '*.ipk' -execdir curl -T {} https://transfer.sh/{} \; -exec echo \;
 deploy:
   provider: releases
   api_key:
