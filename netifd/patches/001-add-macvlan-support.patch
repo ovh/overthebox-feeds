@@ -1,0 +1,75 @@
+diff --git a/config.c b/config.c
+index 5d3db9f..d7ea629 100644
+--- a/config.c
++++ b/config.c
+@@ -72,6 +72,48 @@ config_parse_bridge_interface(struct uci_section *s)
+ 	return 0;
+ }
+ 
++static int
++config_parse_macvlan_interface(struct uci_section *s)
++{
++	const char *ifname = NULL, *macaddr, *mode;
++
++	ifname	= uci_lookup_option_string(uci_ctx, s, "interface");
++	if (!ifname) {
++		ifname  = uci_lookup_option_string(uci_ctx, s, "ifname");
++		if (!ifname) {
++			D(INTERFACE, "Failed to create macvlan for interface '%s' missing master 'interface'\n", s->e.name);
++			return -EINVAL;
++		}
++	}
++	macaddr	= uci_lookup_option_string(uci_ctx, s, "macaddr");
++	if (!macaddr) {
++		D(INTERFACE, "Failed to create macvlan for interface '%s' missing virtual 'macaddr'\n", s->e.name);
++		return -EINVAL;
++	}
++	mode	= uci_lookup_option_string(uci_ctx, s, "mode");
++	if (!mode) {
++		mode = "private";
++	}
++
++	blobmsg_add_string(&b, "ifname", ifname);
++	blobmsg_add_string(&b, "macaddr", macaddr);
++	blobmsg_add_string(&b, "mode", mode);
++
++	uci_to_blob(&b, s, macvlan_device_type.config_params);
++	if (!device_create(s->e.name, &macvlan_device_type, b.head)) {
++		D(INTERFACE, "Failed to create macvlan for interface '%s'\n", s->e.name);
++		return -EINVAL;
++	}
++
++	blob_buf_init(&b, 0);
++	blobmsg_add_string(&b, "ifname", s->e.name);
++	blobmsg_add_string(&b, "interface", ifname);
++	blobmsg_add_string(&b, "macaddr", macaddr);
++	blobmsg_add_string(&b, "mode", mode);
++
++	return 0;
++}
++
+ static void
+ config_parse_interface(struct uci_section *s, bool alias)
+ {
+@@ -79,6 +118,7 @@ config_parse_interface(struct uci_section *s, bool alias)
+ 	const char *type = NULL, *disabled;
+ 	struct blob_attr *config;
+ 	bool bridge = false;
++	bool macvlan = false;
+ 
+ 	disabled = uci_lookup_option_string(uci_ctx, s, "disabled");
+ 	if (disabled && !strcmp(disabled, "1"))
+@@ -94,6 +134,13 @@ config_parse_interface(struct uci_section *s, bool alias)
+ 
+ 		bridge = true;
+ 	}
++	if (type && !strcmp(type, "macvlan")) {
++		if (config_parse_macvlan_interface(s))
++			return;
++
++		macvlan = true;
++	}
++
+ 
+ 	uci_to_blob(&b, s, &interface_attr_list);
+ 
