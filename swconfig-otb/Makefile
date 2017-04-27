@@ -14,7 +14,7 @@ define Package/python-swconfig-otb
   SECTION:=lang
   CATEGORY:=Languages
   TITLE:=Tools to manage OVH OverTheBox switches
-  DEPENDS:=+python-light +python-setuptools +python-logging +python-pyserial
+  DEPENDS:=+python-light +python-setuptools +python-logging +python-pyserial +lsof
 endef
 
 define Package/python-swconfig-otb/description
