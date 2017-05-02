@@ -10,7 +10,7 @@ LUCI_TITLE:=LuCI Support for the OverTheBox project
 LUCI_DEPENDS:=+luci-app-mwan3otb +bandwidth
 
 PKG_VERSION:=v1.2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include ../luci/luci.mk
 
