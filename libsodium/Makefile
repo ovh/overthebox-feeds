@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libsodium
-PKG_VERSION:=1.0.11
+PKG_VERSION:=1.0.12
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://download.libsodium.org/libsodium/releases
-PKG_MD5SUM:=b58928d035064b2a46fb564937b83540
+PKG_MD5SUM:=c308e3faa724b630b86cc0aaf887a5d4
 
 PKG_FIXUP:=libtool autoreconf
 PKG_USE_MIPS16:=0
@@ -28,6 +28,7 @@ define Package/libsodium
   SECTION:=libs
   CATEGORY:=Libraries
   TITLE:=P(ortable|ackageable) NaCl-based crypto library
+  DEPENDS:=+libpthread
   URL:=https://github.com/jedisct1/libsodium
   MAINTAINER:=Damiano Renfer <damiano.renfer@gmail.com>
 endef

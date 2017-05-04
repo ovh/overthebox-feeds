@@ -9,17 +9,17 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun-udp
 PKG_VERSION:=0.0.89-mud
-PKG_RELEASE:=6
+PKG_RELEASE:=7
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
-PKG_BUILD_DIR:=glorytun-$(PKG_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/glorytun-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
 	SECTION:=net
 	CATEGORY:=Network
-	DEPENDS:=+kmod-tun +libsodium +ip +iptables +@BUSYBOX_DEFAULT_PKILL
+	DEPENDS:=+kmod-tun +libsodium +librt
 	TITLE:=Glorytun
 	URL:=https://github.com/angt/glorytun
 	SUBMENU:=VPN

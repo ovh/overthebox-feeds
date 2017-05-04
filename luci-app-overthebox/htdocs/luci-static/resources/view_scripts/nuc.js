@@ -276,7 +276,7 @@
             url: "https://ipaddr.ovh",
             success: function (data, status) {
                 if ((status === "success") && (data)) {
-                    callback(null, data);
+                    callback(null, data.trim());
                 } else {
                     callback(status, false);
                 }
