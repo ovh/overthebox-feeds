@@ -277,6 +277,14 @@ function config()
       ucic:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
     end
 
+    if exists( res.shadow_conf, 'reuse_port' ) then
+      ucic:set('shadowsocks','proxy','reuse_port',  res.shadow_conf.reuse_port)
+    end
+
+    if exists( res.shadow_conf, 'fast_open' ) then
+      ucic:set('shadowsocks','proxy','fast_open',  res.shadow_conf.fast_open)
+    end
+
     ucic:save('shadowsocks')
     ucic:commit('shadowsocks')
     table.insert(ret, "shadowsocks")
