@@ -421,7 +421,9 @@ _validate_conf() {
 		'password:string'    \
 		'method:string'      \
 		'timeout:uinteger'   \
-		'server:host'        \
+		'server:host'		 \
+		'reuse_port:bool'	 \
+		'fast_open:bool'	 \
 		'monitoring_ip:host' || {
 			_log 3 "Cannot validate uci configuration. Are the types correct? ABORTED reload or start action."
 			return 1
@@ -440,6 +442,20 @@ _generate_conf() {
 	config_get timeout "$1" timeout ""
 	config_get method "$1" method ""
 
+	config_get_bool reuse_port "$1" reuse_port 0
+	if [ "$reuse_port" -eq 1 ]; then
+		reuse_port="true"
+	else
+		reuse_port="false"
+	fi
+
+	config_get_bool fast_open "$1" fast_open 0
+	if [ "$fast_open" -eq 1 ]; then
+		fast_open="true"
+	else
+		fast_open="false"
+	fi
+
 	cat <<END > $conf
 {
 	"server": "$server",
@@ -448,6 +464,8 @@ _generate_conf() {
 	"password": "$password",
 	"timeout": $timeout,
 	"method": "$method",
+	"reuse_port": $reuse_port,
+	"fast_open": $fast_open,
 	"dscp": {
 END
 
