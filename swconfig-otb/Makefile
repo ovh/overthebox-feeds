@@ -6,18 +6,19 @@ PKG_RELEASE:=1
 PKG_MAINTAINER:=Martin Wetterwald <martin.wetterwald@corp.ovh.com>
 PKG_LICENSE:=MIT
 
+PKG_BUILD_DEPENDS:=python python-setuptools
+
 include $(INCLUDE_DIR)/package.mk
 $(call include_mk, python-package.mk)
 
-define Package/python-swconfig-otb
-  SUBMENU:=Python
-  SECTION:=lang
-  CATEGORY:=Languages
+define Package/$(PKG_NAME)
+  SECTION:=OVH
+  CATEGORY:=OverTheBox
   TITLE:=Tools to manage OVH OverTheBox switches
-  DEPENDS:=+python-light +python-setuptools +python-logging +python-pyserial +lsof
+  DEPENDS:=+python-light +python-logging +python-pyserial +lsof
 endef
 
-define Package/python-swconfig-otb/description
+define Package/$(PKG_NAME)/description
 	A python module to manage OVH OverTheBox switches
 endef
 
@@ -26,19 +27,16 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(call Build/Compile/PyMod,, \
-		install --no-compile --prefix="/usr" --root=$(PKG_INSTALL_DIR), \
-	)
+	$(call Build/Compile/PyMod,,install --prefix=/usr --root="$(PKG_INSTALL_DIR)")
 endef
 
-define Package/python-swconfig-otb/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)
 	$(CP) $(PKG_INSTALL_DIR)$(PYTHON_PKG_DIR)/* $(1)$(PYTHON_PKG_DIR)
-
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/lib/network
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig.py $(1)/usr/bin/swconfig
 	$(CP) $(PKG_BUILD_DIR)/switch.sh $(1)/lib/network/
 endef
 
-$(eval $(call BuildPackage,python-swconfig-otb))
+$(eval $(call BuildPackage,$(PKG_NAME)))
