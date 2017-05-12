@@ -6,16 +6,19 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
+MY_DEPENDS := overthebox python-swconfig-otb \
+	luaposix luasec luasocket \
+	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
+	rng-tools ss strace tcpdump-mini \
+	luci luci-lib-json luci-theme-bootstrap \
+	libustream-mbedtls luci-lib-px5g px5g
+
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
-DEPENDS:=+overthebox +python-swconfig-otb
-TITLE:=vlan
+DEPENDS:=$(foreach p,$(MY_DEPENDS),+$(p))
+TITLE:=$(PKG_NAME)
 PKGARCH:=all
-endef
-
-define Package/$(PKG_NAME)/description
-vlan
 endef
 
 define Build/Compile
