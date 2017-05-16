@@ -119,8 +119,8 @@ case "$ACTION" in
 
 		_add_dnsmasq_upstream $INTERFACE
 
-		_log 7 "multipath $INTERFACE $MULTIPATH"
-		multipath $INTERFACE $MULTIPATH
+		_log 7 "multipath $DEVICE $MULTIPATH"
+		multipath $DEVICE $MULTIPATH
 
 		# Notify OverTheBox API
 		otb_notify_ifup $INTERFACE &
@@ -128,8 +128,8 @@ case "$ACTION" in
 	ifdown)
 		_log 7 "ifdown device $INTERFACE"
 
-		_log 7 "multipath $INTERFACE off"
-		multipath $INTERFACE off
+		_log 7 "multipath $DEVICE off"
+		multipath $DEVICE off
 
 		_remove_dnsmasq_upstream $INTERFACE
 
