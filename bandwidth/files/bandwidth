@@ -88,8 +88,8 @@ case $1 in
 		arp_populate_iptables
 		;;
 
-		#Updates iptables with devices currently found on the LAN
-		"ipt-update")
+	#Updates iptables with devices currently found on the LAN
+	"ipt-update")
 		iptables -w -t mangle -F $txname
 		iptables -w -t mangle -F $rxname
 		arp_populate_iptables
