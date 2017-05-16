@@ -449,18 +449,11 @@ if [ $ACTION == "ifup" ]; then
 	[ -n "$DEVICE" ] || exit 0
 fi
 
-[ -x /usr/sbin/ip ] || exit 1
-[ -x /usr/sbin/ipset ] || exit 1
-[ -x /usr/sbin/iptables ] || exit 1
-[ -x /usr/bin/logger ] || exit 1
-
-local IP IPS IPT LOG
-
-IP="/usr/sbin/ip -4"
-IPS="/usr/sbin/ipset"
-IPT="/usr/sbin/iptables -t mangle -w"
-IPTN="/usr/sbin/iptables -t nat -w"
-LOG="/usr/bin/logger -t mwan3 -p"
+IP="ip -4"
+IPS="ipset"
+IPT="iptables -t mangle -w"
+IPTN="iptables -t nat -w"
+LOG="logger -t mwan3 -p"
 
 case "$ACTION" in
 	ifup|ifdown)
