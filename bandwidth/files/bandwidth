@@ -3,7 +3,7 @@
 
 txname="BANDWIDTH-TX"
 rxname="BANDWIDTH-RX"
-iif="lan"
+iif="$(uci -q get network.lan.ifname)"
 leasefile="/tmp/dhcp.leases"
 traf_tmp="/tmp/bandwidth_traf_$$.tmp"
 tx_tmp="/tmp/bandwidth_tx_$$.tmp"
