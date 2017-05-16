@@ -9,8 +9,8 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := overthebox python-swconfig-otb \
 	luaposix luasec luasocket \
 	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
-	rng-tools ss strace tcpdump-mini \
-	luci luci-lib-json luci-theme-bootstrap \
+	bash rng-tools ss strace tcpdump-mini conntrackd \
+	luci luci-lib-json luci-theme-bootstrap ca-certificates \
 	libustream-mbedtls luci-lib-px5g px5g
 
 define Package/$(PKG_NAME)
