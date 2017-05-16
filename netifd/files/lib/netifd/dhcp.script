@@ -326,24 +326,25 @@ setup_uci() {
 	fi
 
 	if [ "$ISPUBLIC" != "true" ]; then
-		/bin/touch /etc/config/dhcpdiscovery
-		uci set "dhcpdiscovery.$INTERFACE=lease"
-		uci set "dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)"
-		env | while read -r line ; do
-			name=${line%=*}
-			[ "$name" = "$line" ] && continue
-			case "$name" in
-				SHLVL|HOME|TERM|PWD|BOOT_IMAGE|PATH)
-					/bin/false
-				;;
-				*)
-					value=
-					eval value="\$$name"
-					uci set "dhcpdiscovery.$INTERFACE.$name=$value"
-				;;
-			esac
-		done
-		uci commit dhcpdiscovery
+		touch /etc/config/dhcpdiscovery
+
+		uci -q batch <<-EOF
+		set dhcpdiscovery.$INTERFACE=lease
+		set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
+		set dhcpdiscovery.$INTERFACE.lease=$lease
+		set dhcpdiscovery.$INTERFACE.ip=$ip
+		set dhcpdiscovery.$INTERFACE.siaddr=$siaddr
+		set dhcpdiscovery.$INTERFACE.subnet=$subnet
+		set dhcpdiscovery.$INTERFACE.timezone=$timezone
+		set dhcpdiscovery.$INTERFACE.router=$router
+		set dhcpdiscovery.$INTERFACE.hostname=$hostname
+		set dhcpdiscovery.$INTERFACE.domain=$domain
+		set dhcpdiscovery.$INTERFACE.ipttl=$ipttl
+		set dhcpdiscovery.$INTERFACE.mtu=$mtu
+		set dhcpdiscovery.$INTERFACE.broadcast=$broadcast
+		set dhcpdiscovery.$INTERFACE.serverid=$serverid
+		commit dhcpdiscovery
+		EOF
 	fi
 }
 
