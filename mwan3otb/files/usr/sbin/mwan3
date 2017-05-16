@@ -2,10 +2,10 @@
 . /lib/functions.sh
 . /lib/functions/procd.sh
 
-IP="/usr/sbin/ip -4"
-IPS="/usr/sbin/ipset"
-IPT="/usr/sbin/iptables -t mangle -w"
-IPTN="/usr/sbin/iptables -t nat -w"
+IP="ip -4"
+IPS="ipset"
+IPT="iptables -t mangle -w"
+IPTN="iptables -t nat -w"
 
 help()
 {
