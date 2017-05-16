@@ -1,0 +1,252 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+[ -n "$router" ] || exit
+
+case "$1" in
+	renew|bound)
+		;;
+	*)
+		exit 0
+		;;
+esac
+
+MACPREFIX="42:42:42"
+ISPUBLIC=
+
+# bridge mode ?
+owipcalc "$ip" quiet private || ISPUBLIC=1
+
+if [ -z "$ISPUBLIC" ]; then
+	touch /etc/config/dhcpdiscovery
+
+	uci -q batch <<- EOF
+	set dhcpdiscovery.$interface=lease
+	set dhcpdiscovery.$interface.timestamp=$(date +%s)
+	set dhcpdiscovery.$interface.lease=$lease
+	set dhcpdiscovery.$interface.ip=$ip
+	set dhcpdiscovery.$interface.subnet=$subnet
+	set dhcpdiscovery.$interface.timezone=$timezone
+	set dhcpdiscovery.$interface.router=$router
+	set dhcpdiscovery.$interface.hostname=$hostname
+	set dhcpdiscovery.$interface.domain=$domain
+	set dhcpdiscovery.$interface.ipttl=$ipttl
+	set dhcpdiscovery.$interface.mtu=$mtu
+	set dhcpdiscovery.$interface.broadcast=$broadcast
+	commit dhcpdiscovery
+	EOF
+fi
+
+[ "$interface" = if0 ] || exit
+
+if [ -z "$ISPUBLIC" ]; then
+	uci show network | grep '\.gateway=' | grep -v '@route' | grep "'$router'" && exit
+
+	# Initialize the lan base interface
+	if [ "$(uci get -q network.lan.proto)" != "static" ]; then
+		IF="lan"
+		uci set network.$IF="interface"
+		uci set network.$IF.ifname="$IF"
+		uci set network.$IF.type="macvlan"
+		uci set network.$IF.interface="eth0"
+		uci set network.$IF.proto="static"
+		uci set network.$IF.ipaddr="$ip"
+		uci set network.$IF.netmask="$subnet"
+		uci set network.$IF.multipath="off"
+		uci set network.$IF.metric="0"
+		# Save and clear current mac address of if0
+		MACADDR=$(uci get network.if0.macaddr)
+		uci delete network.if0.macaddr
+		MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+		IF0_MACADDR="$MACPREFIX$MACSUFFIX"
+		uci set network.if0.macaddr="$IF0_MACADDR"
+		# Transfer mac address to $IF
+		uci set network.$IF.macaddr="$MACADDR"
+		# Save settings
+		uci commit network
+		uci commit firewall
+		# Force update of if0 mac address
+		ifup if0
+		ifconfig if0 hw ether "$IF0_MACADDR"
+		# Bring up $IF interface
+		/sbin/hotplug-call net
+		ifup $IF
+		pkill -USR1 udhcpc
+		return
+	fi
+
+	# Find a free interface index
+	IND=0
+	IF="if$IND"
+	while uci -q get network.$IF 1>/dev/null; do
+		IND=$((IND + 1))
+		IF="if$IND"
+	done
+
+	# Save and clear current mac address of if0
+	MACADDR=$(uci get network.if0.macaddr)
+	uci delete network.if0.macaddr
+	MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+	IF0_MACADDR="$MACPREFIX$MACSUFFIX"
+	uci set network.if0.macaddr="$IF0_MACADDR"
+
+	# Convert info from dhcp server to a static interface
+	uci set network.$IF="interface"
+	uci set network.$IF.ifname="$IF"
+	uci set network.$IF.type="macvlan"
+	uci set network.$IF.interface="eth0"
+	uci set network.$IF.proto="static"
+	uci set network.$IF.ipaddr="$ip"
+	uci set network.$IF.netmask="$subnet"
+	uci set network.$IF.multipath="on"
+	uci set network.$IF.gateway="$router"
+	uci set network.$IF.dns="$dns"
+	uci set network.$IF.metric="$IND"
+	uci set network.$IF.macaddr="$MACADDR"
+
+	# Setup firewall
+	LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
+	if [ -z "$LANZONE" ]; then
+		uci add firewall zone
+		uci set firewall.@zone[-1].name='mptcp'
+		uci set firewall.@zone[-1].input='DROP'
+		uci set firewall.@zone[-1].forward='DROP'
+		uci set firewall.@zone[-1].output='ACCEPT'
+		uci set firewall.@zone[-1].masq='1'
+		uci set firewall.@zone[-1].network=''
+
+		uci add firewall forwarding
+		uci set firewall.@forwarding[-1].src='mptcp'
+		uci set firewall.@forwarding[-1].dest='lan'
+
+		uci add firewall forwarding
+		uci set firewall.@forwarding[-1].src='lan'
+		uci set firewall.@forwarding[-1].dest='mptcp'
+
+		LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
+	fi
+	LANIFS=$(uci get "$LANZONE.network")
+	uci set "$LANZONE.network=$LANIFS $IF"
+
+	# Save settings
+	uci commit network
+	uci commit firewall
+	# Force update of if0 mac address
+	ifup if0
+	ifconfig if0 hw ether "$IF0_MACADDR"
+	# Bring up $IF interface
+	/sbin/hotplug-call net
+	ifup $IF
+
+else # bridge mode
+
+	if uci show network | grep '\.ipaddr=' | grep "'$ip'"; then
+		# ignore dhcp request
+		pkill -USR1 udhcpc
+		exit 0
+	fi
+
+	if [ "$(uci get -q network.lan.proto)" != "static" ]; then
+		IF="lan"
+		uci set network.$IF="interface"
+		uci set network.$IF.ifname="$IF"
+		uci set network.$IF.type="macvlan"
+		uci set network.$IF.interface="eth0"
+		uci set network.$IF.proto="static"
+		uci set network.$IF.ipaddr="192.168.99.1"
+		uci set network.$IF.netmask="255.255.255.0"
+		uci set network.$IF.multipath="off"
+		uci set network.$IF.metric="0"
+		# start a dhcp server
+		uci set dhcp.$IF=dhcp
+		uci set dhcp.$IF.interface="lan"
+		uci set dhcp.$IF.ignore="0"
+		uci set dhcp.$IF.force="1"
+		uci set dhcp.$IF.start="50"
+		uci set dhcp.$IF.limit="200"
+		uci set dhcp.$IF.leasetime="12h"
+	fi
+
+	# Get mac address of the router
+	if /sbin/ifconfig "$INTERFACE" "$ip" netmask "$subnet"; then
+		DHCPMACADDR=$(/usr/bin/arping "$router" -c 1 -w 1000 -I "$INTERFACE" | grep reply | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}')
+		# Clear subinterface ip
+		/sbin/ifconfig "$INTERFACE" 0 2>/dev/null
+	fi
+
+	# Find a free interface index
+	IND=0
+	IF="if$IND"
+	while uci -q get network.$IF 1>/dev/null; do
+		IND=$((IND + 1))
+		IF="if$IND"
+	done
+
+	# Save and clear current mac address of if0
+	MACADDR=$(uci get network.if0.macaddr)
+	uci delete network.if0.macaddr
+	MACSUFFIX=$(hexdump -n3 -e'3/1 ":%02x"' /dev/urandom)
+	IF0_MACADDR="$MACPREFIX$MACSUFFIX"
+	uci set network.if0.macaddr="$IF0_MACADDR"
+
+	# if we found mac address of the modem create the new interface
+	if [ -n "$DHCPMACADDR" ]; then
+		# Convert info from dhcp server to a static interface
+		uci set network.$IF="interface"
+		uci set network.$IF.ifname="$IF"
+		uci set network.$IF.type="macvlan"
+		uci set network.$IF.interface="eth0"
+		uci set network.$IF.proto="static" # Should be dhcp to support dynamic ip, but we officialy does not support bridge mode
+		uci set network.$IF.multipath="on"
+		uci set network.$IF.ipaddr="$ip"
+		uci set network.$IF.netmask="$subnet"
+		uci set network.$IF.gateway="$router"
+		uci set network.$IF.dns="$dns"
+		uci set network.$IF.metric="$IND"
+		uci set network.$IF.macaddr="$MACADDR"
+
+		# Setup firewall
+		LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
+		if [ -z "$LANZONE" ]; then
+				uci add firewall zone
+				uci set firewall.@zone[-1].name='mptcp'
+				uci set firewall.@zone[-1].input='ACCEPT'
+				uci set firewall.@zone[-1].forward='ACCEPT'
+				uci set firewall.@zone[-1].output='ACCEPT'
+				uci set firewall.@zone[-1].masq='1'
+				uci set firewall.@zone[-1].network=''
+
+				uci add firewall forwarding
+				uci set firewall.@forwarding[-1].src='mptcp'
+				uci set firewall.@forwarding[-1].dest='lan'
+				uci add firewall forwarding
+				uci set firewall.@forwarding[-1].src='mptcp'
+				uci set firewall.@forwarding[-1].dest='vpn'
+
+				uci add firewall forwarding
+				uci set firewall.@forwarding[-1].src='lan'
+				uci set firewall.@forwarding[-1].dest='mptcp'
+				uci add firewall forwarding
+				uci set firewall.@forwarding[-1].src='vpn'
+				uci set firewall.@forwarding[-1].dest='mptcp'
+
+				LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
+		fi
+		LANIFS=$(uci get "$LANZONE.network")
+		uci set "$LANZONE.network=$LANIFS $IF"
+
+		# Save settings
+		uci commit network
+		uci commit firewall
+		# Force update of if0 mac address
+		ifup if0
+		ifconfig if0 hw ether "$IF0_MACADDR"
+		# Bring up $IF interface
+		/sbin/hotplug-call net
+		ifup $IF
+	else
+		# ignore dhcp request
+		pkill -USR1 udhcpc
+		return
+	fi
+fi
