@@ -276,11 +276,11 @@ if table.getn(servers) == 0 then
   arguments:usage()
 end
 
-icmp_method = function(s) return ping.send_ping(s , opts["i"], tonumber(opts["t"]) * 1000, 4) end
+icmp_method = function(s) return ping.send_ping(s , opts["d"], tonumber(opts["t"]) * 1000, 4) end
 method = icmp_method
 
 if opts["m"] == "dns" then
-  method = function(s) return dns_request(s, opts["i"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
+  method = function(s) return dns_request(s, opts["d"], tonumber(opts["t"]), "tracker.overthebox.ovh", string.char(127,6,8,4)) end
 end
 
 local fn = "/var/run/mwan3track-"..opts["i"]..".pid"
