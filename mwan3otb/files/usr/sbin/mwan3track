@@ -322,7 +322,7 @@ interface.country   = false
 interface.timestamp = nil
 
 function updateInterfaceInfos()
-  local wanaddr = get_public_ip(interface.name)
+  local wanaddr = get_public_ip(interface.device)
   if wanaddr then
     debug("wan address is: "..wanaddr)
     interface.timestamp = os.time()
