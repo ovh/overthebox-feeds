@@ -328,7 +328,7 @@ function updateInterfaceInfos()
     interface.timestamp = os.time()
     if interface.wanaddr ~= wanaddr then
       interface.wanaddr = wanaddr
-      res = get_asn(interface.name, interface.wanaddr)
+      res = get_asn(interface.device, interface.wanaddr)
       if res then
         if res.as_description ~= nil then
           interface.whois = string.match(res.as_description, "[^%s]+")
@@ -430,6 +430,7 @@ end
 (function ()
   local uci = libuci.cursor()
   shaper.interface      = opts["i"]
+  shaper.device         = opts["d"]
   shaper.mode           = uci:get("network", shaper.interface, "trafficcontrol") or "off" -- auto, static
   shaper.mindownload    = tonumber(uci:get("network", shaper.interface, "mindownload")) or 512 -- kbit/s
   shaper.minupload      = tonumber(uci:get("network", shaper.interface, "minupload")) or 128 -- kbit/s
@@ -562,7 +563,7 @@ function shaper:sendQosToApi()
     local rcode, res = PUT("qos", {
       interface = shaper.interface,
       metric    = uci:get("network", shaper.interface, "metric"),
-      wan_ip    = interface.wanaddr or get_public_ip(shaper.interface),
+      wan_ip    = interface.wanaddr or get_public_ip(shaper.device),
       downlink  = tostring(shaper.download),
       uplink    = tostring(shaper.upload)
     })
