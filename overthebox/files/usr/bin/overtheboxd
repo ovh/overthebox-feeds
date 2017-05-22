@@ -55,21 +55,15 @@ while run do
     local msg
     debug("I do : "..ret.action)
 
-    if ret.action == "update" then
-      actionreturn, msg = overthebox.opkg_update()
-    elseif ret.action == "upgradable" then
-      actionreturn, msg = overthebox.opkg_upgradable()
-    elseif ret.action == "upgrade" then
+    if ret.action == "upgrade" then
       if ret.arguments and ret.arguments.release_channel then
         if not overthebox.check_release_channel( ret.arguments.release_channel ) then
           overthebox.update_release_channel()
         end
       end
-      local return_upgrade, msg_upgrade
-      local return_update, msg_update = overthebox.opkg_update()
-      return_upgrade, msg_upgrade, additional_actions = overthebox.upgrade()
-      actionreturn = return_update and return_upgrade
-      msg = "Updating repos:\n" .. msg_update .. "\nUpgrading packages:\n" .. msg_upgrade
+      local msg_upgrade
+      actionreturn, msg_upgrade = overthebox.upgrade()
+      msg = "Upgrading packages:\n" .. msg_upgrade
     elseif ret.action == "updateReleaseChannel" then
       actionreturn, msg = overthebox.update_release_channel()
     elseif ret.action == "sysupgrade" then
