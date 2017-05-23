@@ -423,6 +423,7 @@ _validate_conf() {
 		'timeout:uinteger'   \
 		'server:host'		 \
 		'reuse_port:bool'	 \
+		'disable_sni:bool'	 \
 		'fast_open:bool'	 \
 		'monitoring_ip:host' || {
 			_log 3 "Cannot validate uci configuration. Are the types correct? ABORTED reload or start action."
@@ -449,6 +450,13 @@ _generate_conf() {
 		reuse_port="false"
 	fi
 
+	config_get_bool disable_sni "$1" disable_sni 0
+	if [ "$disable_sni" -eq 1 ]; then
+		disable_sni="true"
+	else
+		disable_sni="false"
+	fi
+
 	config_get_bool fast_open "$1" fast_open 0
 	if [ "$fast_open" -eq 1 ]; then
 		fast_open="true"
@@ -465,6 +473,7 @@ _generate_conf() {
 	"timeout": $timeout,
 	"method": "$method",
 	"reuse_port": $reuse_port,
+	"disable_sni": $disable_sni,
 	"fast_open": $fast_open,
 	"dscp": {
 END
