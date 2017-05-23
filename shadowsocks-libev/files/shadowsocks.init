@@ -456,18 +456,19 @@ _generate_conf() {
 		fast_open="false"
 	fi
 
-	cat <<END > $conf
-{
-	"server": "$server",
-	"server_port": $port,
-	"local_port": $lport,
-	"password": "$password",
-	"timeout": $timeout,
-	"method": "$method",
-	"reuse_port": $reuse_port,
-	"fast_open": $fast_open,
-	"dscp": {
-END
+	cat > "$conf" <<-EOF
+	{
+		"server": "$server",
+		"server_port": $port,
+		"local_port": $lport,
+		"password": "$password",
+		"timeout": $timeout,
+		"method": "$method",
+		"reuse_port": $reuse_port,
+		"fast_open": $fast_open,
+		"disable_sni": true,
+		"dscp": {
+	EOF
 
 	# The CS0 (default DSCP) listener is already handled by local_port in json
 	# So we purposely start at 1 here
@@ -477,7 +478,11 @@ END
 		[ "$i" -gt 1 ] && printf ",\n" >> "$conf"
 		printf '\t\t"%d": "CS%d"' "$(( lport + i ))" "$i" >> "$conf"
 	done
-	printf "\n\t}\n}" >> "$conf"
+
+	cat >> "$conf" <<-EOF
+		}
+	}
+	EOF
 }
 
 # If the param "monitoring_ip" is there, we need to add an ipt rule to nat/OUTPUT
