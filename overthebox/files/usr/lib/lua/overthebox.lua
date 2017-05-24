@@ -318,7 +318,7 @@ function config()
     end
 
     if exists( res.shadow_conf, 'fast_open' ) then
-      ucic:set('shadowsocks','proxy','reuse_port', tostring(res.shadow_conf.fast_open))
+      ucic:set('shadowsocks','proxy','fast_open', tostring(res.shadow_conf.fast_open))
     end
 
     ucic:save('shadowsocks')
