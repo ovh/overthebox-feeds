@@ -82,9 +82,6 @@ multipath "$DEVICE" "$mode"
 
 # IPv4 Updates:
 
-local ipaddr
-local gateway
-local subnet
 network_get_ipaddr	ipaddr	"$INTERFACE" || exit 1
 network_get_gateway gateway "$INTERFACE" || exit 1
 network_get_subnet	subnet "$INTERFACE" || exit 1
