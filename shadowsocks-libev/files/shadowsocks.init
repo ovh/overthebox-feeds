@@ -418,15 +418,16 @@ _update_socks_hook_one_if() {
 # Missing params are not an error
 # $1 is a ref to the shadowsocks uci section (type =client)
 _validate_conf() {
+	local port lport password method timeout server reuse_port fast_open
 	uci_validate_section shadowsocks client "$1" \
 		'port:port'          \
 		'lport:port'         \
 		'password:string'    \
 		'method:string'      \
 		'timeout:uinteger'   \
-		'server:host'		 \
-		'reuse_port:bool'	 \
-		'fast_open:bool'	 \
+		'server:host'        \
+		'reuse_port:bool'    \
+		'fast_open:bool'     \
 		'monitoring_ip:host' || {
 			_log 3 "Cannot validate uci configuration. Are the types correct? ABORTED reload or start action."
 			return 1
@@ -436,7 +437,7 @@ _validate_conf() {
 # Generate the JSON configuration file that ss-redir binary can understand
 # $1 is a ref to the shadowsocks uci section (type =client)
 _generate_conf() {
-	local conf server port lport password timeout method
+	local conf server port lport password timeout method reuse_port fast_open
 	config_get conf "$1" conf "/etc/shadowsocks.json"
 	config_get server "$1" server "127.0.0.1"
 	config_get port "$1" port ""
