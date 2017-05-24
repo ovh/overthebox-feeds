@@ -6,7 +6,7 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := overthebox python-swconfig-otb \
+MY_DEPENDS := overthebox swconfig \
 	luaposix luasec luasocket \
 	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
 	bash rng-tools ss strace tcpdump-mini conntrack conntrackd \

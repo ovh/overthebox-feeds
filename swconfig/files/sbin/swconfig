@@ -1,0 +1,18 @@
+#!/bin/sh
+
+next=
+name=
+
+for i in "$@"; do
+	[ "$next" = 1 ] && name=$i
+	[ "$i"  = dev ] && next=1
+done
+
+case "${name}" in
+	otb*)
+		swconfig-otb "$@"
+		;;
+	*)
+		swconfig-lede "$@"
+		;;
+esac
