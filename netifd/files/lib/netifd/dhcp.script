@@ -110,7 +110,7 @@ setup_uci() {
 			if [ -z "$KNOWN_ROUTER" ]; then
 
 				# Initialize the lan base interface
-				if [ "$(uci get -q network.lan.proto)" != "static" ]; then
+				if [ "$(uci -q get network.lan.proto)" != "static" ]; then
 					IF="lan"
 					uci set network.$IF="interface"
 					uci set network.$IF.ifname="$IF"
@@ -214,7 +214,7 @@ setup_uci() {
 
 			if [ -z "$KNOWN_WANIP" ]; then
 
-				if [ "$(uci get -q network.lan.proto)" != "static" ]; then
+				if [ "$(uci -q get network.lan.proto)" != "static" ]; then
 					IF="lan"
 					uci set network.$IF="interface"
 					uci set network.$IF.ifname="$IF"
