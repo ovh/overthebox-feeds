@@ -7,13 +7,7 @@ PKG_RELEASE:=0
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := overthebox python-swconfig-otb \
-	luaposix luasec luasocket \
-	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
-	bash rng-tools ss strace tcpdump-mini conntrack conntrackd \
-	luci luci-lib-json luci-theme-bootstrap ca-certificates \
-	libustream-mbedtls luci-lib-px5g px5g
-
-MY_DEPENDS += kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
+	kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
 	fuse-utils luci-app-samba samba36-server \
 	luci-app-statistics \
 	htop bmon rsync netcat svfs screen
