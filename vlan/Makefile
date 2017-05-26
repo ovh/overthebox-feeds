@@ -6,7 +6,7 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := overthebox python-swconfig-otb
+MY_DEPENDS := overthebox TARGET_x86:python-swconfig-otb
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
