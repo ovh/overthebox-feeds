@@ -13,7 +13,7 @@ define Package/$(PKG_NAME)
   CATEGORY:=OverTheBox
   TITLE:=simpletracker
   DEPENDS:=+bind-dig
-  PKGARCH:=all 
+  PKGARCH:=all
 endef
 
 define Package/$(PKG_NAME)/description
