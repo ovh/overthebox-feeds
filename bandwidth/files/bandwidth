@@ -1,9 +1,11 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+iif="$(uci -q get network.lan.ifname)"
+[ -z "$iif" ] && exit 1
+
 txname="BANDWIDTH-TX"
 rxname="BANDWIDTH-RX"
-iif="$(uci -q get network.lan.ifname)"
 leasefile="/tmp/dhcp.leases"
 traf_tmp="/tmp/bandwidth_traf_$$.tmp"
 tx_tmp="/tmp/bandwidth_tx_$$.tmp"
