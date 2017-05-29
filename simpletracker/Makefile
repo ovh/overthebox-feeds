@@ -4,6 +4,7 @@ PKG_NAME:=simpletracker
 PKG_VERSION:=1.0
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Kevin Lanvin <kevin.lanvin@corp.ovh.com>
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
