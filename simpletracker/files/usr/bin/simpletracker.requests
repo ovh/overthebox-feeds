@@ -1,0 +1,50 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# WARNING : Make sure you already called init() function in simpletracker.init before using these methods
+
+#$1=<interface>
+# shellcheck disable=SC2039
+# shellcheck disable=SC2007
+_get_interface_ip() {
+	ubus -S call network.interface.if1 status | jsonfilter -e "$['ipv4-address'].*.address"
+}
+
+_extract_ip_latency() {
+	echo "$1" "$6"
+}
+
+# $1=<interface> , $2=<resolver_address> , $3=<domain> , $4=<timeout> 
+# check the dns on each ip for the given interface until a request gets a response
+# shellcheck disable=SC2086 
+dns_request() {
+	local interface_ips=$( _get_interface_ip "$1" )
+	local response
+	local result
+	for i in $interface_ips; do
+		response=$( dig -b "$i" "$3" @"$2" +time="$4" +short +identify )
+		[ $? = 0 ] && _extract_ip_latency $response && return
+	done
+	echo "$ERROR_CODE"
+}
+
+
+# $1=<address> , $2=<interface> , $3=<timeout> , $4=<result>
+# Returns -1 if something wrong happened.
+ping_request() {
+	local response
+	response=$( ping -c 1 -I "$2" -W "$3" "$1" )
+	if [ $? != 0 ]; then
+		echo "$ERROR_CODE"
+	else 
+		echo "$response" | cut -d '/' -s -f5
+	fi
+}
+
+# $1=<interface>
+is_up() {
+	local result="$( ubus -S call network.interface."$1" status | jsonfilter -e "$.up" )"
+	[ "$result" = false ] && echo "false" && return
+	[ "$result" = true ] && echo "true" && return
+	log "Error during ubus call on interface '$1'"
+	echo "$ERROR_CODE"
+}

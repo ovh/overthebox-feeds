@@ -1,0 +1,24 @@
+#!/bin/sh /etc/rc.common
+
+validate_section() {
+	uci_validate_section simpletracker track_interface "$1" \
+		'method:string:dns' \
+		'host:string:51.254.49.132' \
+		'interface:interface' \
+		'timeout:timeout:2' \
+		'toto:toto'
+}
+
+
+start_instance() {
+	echo "Start verification" > toto
+	validate_section "$1" || echo "Cannot read uci configuration" && return
+}
+
+
+
+
+start_service() {
+	config_load simpletracker
+	config_foreach start_instance track_interface
+}
