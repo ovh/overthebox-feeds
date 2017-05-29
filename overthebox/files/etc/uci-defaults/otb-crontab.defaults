@@ -30,19 +30,20 @@ _crontab_del_if_exists(){
 	_crontab_clean "$1"
 }
 
-
+# Download the latest recovery file every week
+# Set a random sleep to avoid too many requests at the same time
 _crontab_add_if_not_exists "/usr/bin/overthebox_download_recovery" \
-	'00 02 * * 0 { /bin/sleep $(( $(tr -cd 0-9 </dev/urandom | head -c 3) * 7 )) && /usr/bin/overthebox_download_recovery; } &>/dev/null'
+	"00 02 * * 0 { /usr/bin/overthebox_download_recovery cron; } &>/dev/null"
 
-_crontab_del_if_exists "/usr/bin/overtheboxd"
-
+# Add a checkup every 2h to ensure that all the services are running properly
 _crontab_add_if_not_exists "/usr/bin/overthebox_checkup" \
-	'00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null'
+	"00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null"
 
+# Every 6h, run an emergency action in case something goes wrong with the overthebox daemon
+# Add a random sleep to avoid too many requests at the same time
+_crontab_del_if_exists "/usr/bin/overthebox_emergency_action"
 _crontab_add_if_not_exists "/usr/bin/overthebox_emergency_action" \
-	'00 */6 * * * { /usr/bin/overthebox_emergency_action ; } &>/dev/null'
-
-_crontab_del_if_exists "No such file or directory"
+	"00 */6 * * * { /usr/bin/overthebox_emergency_action cron; } &>/dev/null"
 
 
 chmod 600 /etc/crontabs/root
