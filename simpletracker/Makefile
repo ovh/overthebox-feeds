@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=tracker
+PKG_NAME:=simpletracker
 PKG_VERSION:=1.0
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Kevin Lanvin <kevin.lanvin@corp.ovh.com>
