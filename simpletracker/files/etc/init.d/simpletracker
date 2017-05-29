@@ -1,4 +1,8 @@
 #!/bin/sh /etc/rc.common
+START=90
+STOP=10
+
+USE_PROCD=1
 
 validate_section() {
 	uci_validate_section simpletracker track_interface "$1" \
