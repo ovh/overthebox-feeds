@@ -547,6 +547,7 @@ local diags = {
   tc = { cmd = 'tc qdisc show' },
   ping = { cmd = 'ping -c {{count}} {{ip}}', default = { ip = '213.186.33.99', count = 2 }},
   dmidecode = { cmd = 'dmidecode -s baseboard-serial-number' },
+  mptcp_capable = { cmd = 'overthebox_mptcp_check' },
   uptime = { cmd = 'uptime' },
 }
 
