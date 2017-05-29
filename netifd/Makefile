@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=netifd
 PKG_VERSION:=2015-08-25
-PKG_RELEASE=62
+PKG_RELEASE=63
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=http://git.openwrt.org/project/netifd.git
