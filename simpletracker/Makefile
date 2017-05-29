@@ -19,6 +19,9 @@ define Package/$(PKG_NAME)/description
 	A module to track OTB connections
 endef
 
+define Build/Prepare
+endef
+
 define Build/Compile
 endef
 
