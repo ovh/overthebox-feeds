@@ -171,29 +171,7 @@ setup_uci() {
 				uci set network.$IF.metric="$IND"
 				uci set network.$IF.macaddr="$MACADDR"
 
-				# Setup firewall
-				LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
-				if [ -z "$LANZONE" ]; then
-					uci add firewall zone
-					uci set firewall.@zone[-1].name='mptcp'
-					uci set firewall.@zone[-1].input='DROP'
-					uci set firewall.@zone[-1].forward='DROP'
-					uci set firewall.@zone[-1].output='ACCEPT'
-					uci set firewall.@zone[-1].masq='1'
-					uci set firewall.@zone[-1].network=''
-
-					uci add firewall forwarding
-					uci set firewall.@forwarding[-1].src='mptcp'
-					uci set firewall.@forwarding[-1].dest='lan'
-
-					uci add firewall forwarding
-					uci set firewall.@forwarding[-1].src='lan'
-					uci set firewall.@forwarding[-1].dest='mptcp'
-
-					LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
-				fi
-				LANIFS=$(uci get "$LANZONE.network")
-				uci set "$LANZONE.network=$LANIFS $IF"
+				uci add_list firewall.mptcp.network="$IF"
 
 				# Save settings
 				uci commit network
@@ -273,35 +251,7 @@ setup_uci() {
 					uci set network.$IF.metric="$IND"
 					uci set network.$IF.macaddr="$MACADDR"
 
-					# Setup firewall
-					LANZONE=$(uci show firewall | grep ".name='mptcp'" |sed -e "s/.name=.*//")
-					if [ -z "$LANZONE" ]; then
-							uci add firewall zone
-							uci set firewall.@zone[-1].name='mptcp'
-							uci set firewall.@zone[-1].input='ACCEPT'
-							uci set firewall.@zone[-1].forward='ACCEPT'
-							uci set firewall.@zone[-1].output='ACCEPT'
-							uci set firewall.@zone[-1].masq='1'
-							uci set firewall.@zone[-1].network=''
-
-							uci add firewall forwarding
-							uci set firewall.@forwarding[-1].src='mptcp'
-							uci set firewall.@forwarding[-1].dest='lan'
-							uci add firewall forwarding
-							uci set firewall.@forwarding[-1].src='mptcp'
-							uci set firewall.@forwarding[-1].dest='vpn'
-
-							uci add firewall forwarding
-							uci set firewall.@forwarding[-1].src='lan'
-							uci set firewall.@forwarding[-1].dest='mptcp'
-							uci add firewall forwarding
-							uci set firewall.@forwarding[-1].src='vpn'
-							uci set firewall.@forwarding[-1].dest='mptcp'
-
-							LANZONE=$(uci show firewall | grep ".name='mptcp'" | sed -e "s/.name=.*//")
-					fi
-					LANIFS=$(uci get "$LANZONE.network")
-					uci set "$LANZONE.network=$LANIFS $IF"
+					uci add_list firewall.mptcp.network="$IF"
 
 					# Save settings
 					uci commit network

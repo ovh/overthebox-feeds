@@ -51,7 +51,6 @@ endef
 
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
-	$(INSTALL_DIR) $(1)/etc/uci-defaults
 endef
 
 define Package/overthebox/postinst
