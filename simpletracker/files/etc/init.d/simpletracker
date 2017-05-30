@@ -8,15 +8,23 @@ validate_section() {
 	uci_validate_section simpletracker track_interface "$1" \
 		'method:string:dns' \
 		'host:string:51.254.49.132' \
-		'interface:interface' \
-		'timeout:timeout:2' \
-		'toto:toto'
+		'interface:string' \
+		'timeout:integer:2'
 }
 
 
-start_instance() {
-	echo "Start verification" > toto
-	validate_section "$1" || echo "Cannot read uci configuration" && return
+start_track_interface() {
+	validate_section "$1" || { 
+		echo "Cannot read uci configuration"
+		return
+	}
+
+	procd_open_instance
+	procd_set_param command /usr/bin/track_interface.sh -m "$method" -d "tracker.overthebox.ovh" -t "$timeout" -h "$host" "$interface"
+	procd_set_param respawn  0 3 0
+	procd_set_param stdout 1
+	procd_set_param user root
+	procd_close_instance
 }
 
 
@@ -24,5 +32,5 @@ start_instance() {
 
 start_service() {
 	config_load simpletracker
-	config_foreach start_instance track_interface
+	config_foreach start_track_interface track_interface
 }

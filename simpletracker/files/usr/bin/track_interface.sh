@@ -13,7 +13,7 @@ log() {
 	logger -p user.notice -s -t "simpletracker" "$@"
 }
 
-. ./simpletracker.requests
+. /usr/bin/simpletracker.requests
 
 # Check arguments
 while getopts "m:t:h:d:" opt; do
@@ -54,7 +54,7 @@ _check_dns_interface() {
 		log "Network unreachable on interface '$interface' with dns method."
 		exit 1
 	fi
-	echo "$result"
+	echo "$result" ms
 	exit 0
 }
 
