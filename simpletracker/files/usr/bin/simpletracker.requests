@@ -2,6 +2,7 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 # WARNING : Make sure you already called init() function in simpletracker.init before using these methods
 
+ERROR_CODE='-1'
 #$1=<interface>
 # shellcheck disable=SC2039
 # shellcheck disable=SC2007
@@ -43,8 +44,6 @@ ping_request() {
 # $1=<interface>
 is_up() {
 	local result="$( ubus -S call network.interface."$1" status | jsonfilter -e "$.up" )"
-	[ "$result" = false ] && echo "false" && return
-	[ "$result" = true ] && echo "true" && return
-	log "Error during ubus call on interface '$1'"
-	echo "$ERROR_CODE"
+	[ "$result" != false ] && [ "$result" != true ] && echo "$ERROR_CODE" && return
+	echo "$result"
 }
