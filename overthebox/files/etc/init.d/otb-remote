@@ -90,7 +90,7 @@ start_instance() {
 	[ -n "$forwarded_port" ] || return 1
 	[ -n "$server_public_key" ] || return 1
 
-	internal_lan_ip=$(uci get -q network.lan.ipaddr) || return
+	internal_lan_ip=$(uci -q get network.lan.ipaddr) || return
 
 	grep -q -s /etc/dropbear /proc/mounts || mount_ssh_dir
 	[ ! -e "$sshkey" ] && return
@@ -120,7 +120,7 @@ start_instance() {
 
 start_service() {
 	# do not start ssh tunnel if customer does not want it.
-	[ "$(uci get -q overthebox.me.forbidremote)" = "1" ] && return
+	[ "$(uci -q get overthebox.me.forbidremote)" = "1" ] && return
 
 	config_load 'overthebox'
 	config_foreach start_instance 'remote'
