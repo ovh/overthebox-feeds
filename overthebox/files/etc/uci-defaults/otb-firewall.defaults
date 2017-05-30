@@ -5,7 +5,7 @@
 search_uci_section() {
 	Z=$1
 	shift
-	for I in $( uci show firewall -X | sed -n "s/=$Z$//p" )
+	for I in $( uci -X show firewall | sed -n "s/=$Z$//p" )
 	do
 		OK="1"
 		for R in "$@"

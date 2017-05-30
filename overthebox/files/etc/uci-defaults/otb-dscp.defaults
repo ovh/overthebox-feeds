@@ -14,7 +14,7 @@ EOF
 search_uci_section() {
 	Z=$1
 	shift
-	for I in $( uci show dscp -X | sed -n "s/=$Z$//p" )
+	for I in $( uci -X show dscp | sed -n "s/=$Z$//p" )
 	do
 		OK="1"
 		for R in "$@"
