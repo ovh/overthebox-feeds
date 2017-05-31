@@ -27,7 +27,7 @@ then
 	fi
 fi
 
-URL=$(uci get -q overthebox.me.image_url || echo "http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-squashfs.img.gz")
+URL=$(uci -q get overthebox.me.image_url || echo "http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-squashfs.img.gz")
 
 wget "$URL" -O /tmp/openwrt-x86-64-combined.img.gz ${q}
 
