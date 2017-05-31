@@ -41,20 +41,25 @@ interface="$1"
 # Calls check_ping_interface_for_destination until one destination answers. If no destinations answers, return Error code
 _check_ping_interface() {
 	local result=$( ping_request "$host" "$interface" "$timeout" )
-		if [ "$result" = "$ERROR_CODE" ];then
-			log "Network unreachable on interface '$interface' with ping method"
-			exit 1
-		fi
+	if [ "$result" = "$ERROR_CODE" ];then
+		log "Network unreachable on interface '$interface' with ping method";
+		./scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE"
+		exit 1
+	fi
+	./scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$result";
 	echo "$result"
+	exit 0
 }
 
 _check_dns_interface() {
 	local result=$( dns_request "$interface" "$host" "$domain" "$timeout" )
 	if [ "$result" = "$ERROR_CODE" ];then
 		log "Network unreachable on interface '$interface' with dns method."
+		./scripts/dns_infos.sh -i "$interface" -h "$host" -l "$latency";
 		exit 1
 	fi
-	echo "$result" ms
+	./scripts/dns_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE";
+	echo "$result"
 	exit 0
 }
 
@@ -62,7 +67,12 @@ _check_dns_interface() {
 check_interface() {
 	# check if interface is up
 	local up=$( is_up "$interface" )
-	[ "$up" = "$ERROR_CODE" ] && log "Error while using ubus call on interface '$interface'" && exit 1
+	if [ "$up" = "$ERROR_CODE" ];then
+	   log "Error while using ubus call on interface '$interface'"
+	   ./script/interface_status.sh -i "$interface" -s DOWN;
+	   exit 1
+   fi
+   ./script/interface_status.sh -i "$interface" -s UP;
 	# check connectivity using selected method
 	[ "$method" = "dns" ] && _check_dns_interface
 	_check_ping_interface
