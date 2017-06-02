@@ -5,15 +5,16 @@ name=$0
 ERROR_CODE='-1'
 
 usage() {
-    printf "Usage : %s: [-i INTERFACE] [-l LATENCY] [-h host]\n" "$name"
+    printf "Usage : %s: [-i INTERFACE] [-l LATENCY] [-h HOST] [-p PUBLIC_IP ]\n" "$name"
 	exit 1
 }
 
-while getopts "i:l:h:" opt; do
+while getopts "i:l:h:p:" opt; do
 	case $opt in
 		i) interface="$OPTARG";;
 		h) host="$OPTARG";;
 		l) latency="$OPTARG";;
+		p) pub_ip="$OPTARG";;
 		*) usage;;
 	esac
 done
@@ -21,10 +22,11 @@ done
 [ -z "$interface" ] && usage
 [ -z "$host" ] && usage
 [ -z "$latency" ] && usage
+[ -z "$pub_ip" ] && usage
 
 if [ "$latency" = "$ERROR_CODE" ];then
-	echo DNS failed
+	echo DNS failed >> /root/logs
 	exit 1
 fi
-echo DNS through "$interface" on "$host" spent "$latency" ms
+echo DNS through "$interface" on "$host" spent "$latency" ms. Public ip : "$pub_ip" >> /root/logs
 exit 0

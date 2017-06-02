@@ -9,7 +9,7 @@ usage() {
 	exit 1
 }
 
-while getopts "i:l:h:" opt; do
+while getopts "i:s:" opt; do
 	case $opt in
 		i) interface="$OPTARG";;
 		s) status="$OPTARG";;
@@ -21,8 +21,8 @@ done
 [ -z "$status" ] && usage
 
 if [ "$status" = "DOWN" ];then
-	echo Interface "$interface" is DOWN
+	echo Interface "$interface" is DOWN >> /root/logs
 	exit 1
 fi
-echo Interface "$interface" is UP
+echo Interface "$interface" is UP >> /root/logs
 exit 0

@@ -11,7 +11,7 @@ _get_interface_ip() {
 }
 
 _extract_ip_latency() {
-	echo "$6"
+	echo "$1" "$6"
 }
 
 # $1=<interface> , $2=<resolver_address> , $3=<domain> , $4=<timeout> 
@@ -37,7 +37,7 @@ ping_request() {
 	if [ $? != 0 ]; then
 		echo "$ERROR_CODE"
 	else 
-		echo "$response" | cut -d '/' -s -f5
+		echo "$response" | cut -d '/' -s -f 4 
 	fi
 }
 

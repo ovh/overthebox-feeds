@@ -43,11 +43,10 @@ _check_ping_interface() {
 	local result=$( ping_request "$host" "$interface" "$timeout" )
 	if [ "$result" = "$ERROR_CODE" ];then
 		log "Network unreachable on interface '$interface' with ping method";
-		./scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE"
+		/usr/bin/scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE"
 		exit 1
 	fi
-	./scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$result";
-	echo "$result"
+	/usr/bin/scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$result";
 	exit 0
 }
 
@@ -55,11 +54,18 @@ _check_dns_interface() {
 	local result=$( dns_request "$interface" "$host" "$domain" "$timeout" )
 	if [ "$result" = "$ERROR_CODE" ];then
 		log "Network unreachable on interface '$interface' with dns method."
-		./scripts/dns_infos.sh -i "$interface" -h "$host" -l "$latency";
+		/usr/bin/scripts/dns_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE";
 		exit 1
 	fi
-	./scripts/dns_infos.sh -i "$interface" -h "$host" -l "$ERROR_CODE";
-	echo "$result"
+	local latency
+	local pub_ip
+	local index=0
+	for i in $result;do
+		[ $index = 0 ] && pub_ip=$i
+		[ $index = 1 ] && latency=$i
+		index=$(( index + 1 ))
+	done
+	/usr/bin/scripts/dns_infos.sh -i "$interface" -h "$host" -l "$latency" -p "$pub_ip";
 	exit 0
 }
 
@@ -69,10 +75,10 @@ check_interface() {
 	local up=$( is_up "$interface" )
 	if [ "$up" = "$ERROR_CODE" ];then
 	   log "Error while using ubus call on interface '$interface'"
-	   ./script/interface_status.sh -i "$interface" -s DOWN;
+	   /usr/bin/scripts/interface_status.sh -i "$interface" -s DOWN;
 	   exit 1
    fi
-   ./script/interface_status.sh -i "$interface" -s UP;
+   /usr/bin/scripts/interface_status.sh -i "$interface" -s UP;
 	# check connectivity using selected method
 	[ "$method" = "dns" ] && _check_dns_interface
 	_check_ping_interface
