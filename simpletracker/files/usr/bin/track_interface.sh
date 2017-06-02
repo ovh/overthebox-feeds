@@ -74,11 +74,11 @@ check_interface() {
 	# check if interface is up
 	local up=$( is_up "$interface" )
 	if [ "$up" = "$ERROR_CODE" ];then
-	   log "Error while using ubus call on interface '$interface'"
-	   /usr/bin/scripts/interface_status.sh -i "$interface" -s DOWN;
-	   exit 1
-   fi
-   /usr/bin/scripts/interface_status.sh -i "$interface" -s UP;
+		log "Error while using ubus call on interface '$interface'"
+		/usr/bin/scripts/interface_status.sh -i "$interface" -s DOWN;
+		exit 1
+	fi
+	/usr/bin/scripts/interface_status.sh -i "$interface" -s UP;
 	# check connectivity using selected method
 	[ "$method" = "dns" ] && _check_dns_interface
 	_check_ping_interface

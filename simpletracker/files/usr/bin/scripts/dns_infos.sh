@@ -5,7 +5,7 @@ name=$0
 ERROR_CODE='-1'
 
 usage() {
-    printf "Usage : %s: [-i INTERFACE] [-l LATENCY] [-h HOST] [-p PUBLIC_IP ]\n" "$name"
+	printf "Usage : %s: [-i INTERFACE] [-l LATENCY] [-h HOST] [-p PUBLIC_IP ]\n" "$name"
 	exit 1
 }
 

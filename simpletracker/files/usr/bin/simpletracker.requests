@@ -14,9 +14,9 @@ _extract_ip_latency() {
 	echo "$1" "$6"
 }
 
-# $1=<interface> , $2=<resolver_address> , $3=<domain> , $4=<timeout> 
+# $1=<interface> , $2=<resolver_address> , $3=<domain> , $4=<timeout>
 # check the dns on each ip for the given interface until a request gets a response
-# shellcheck disable=SC2086 
+# shellcheck disable=SC2086
 dns_request() {
 	local interface_ips=$( _get_interface_ip "$1" )
 	local response
@@ -36,8 +36,8 @@ ping_request() {
 	response=$( ping -c 1 -I "$2" -W "$3" "$1" )
 	if [ $? != 0 ]; then
 		echo "$ERROR_CODE"
-	else 
-		echo "$response" | cut -d '/' -s -f 4 
+	else
+		echo "$response" | cut -d '/' -s -f 4
 	fi
 }
 
