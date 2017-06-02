@@ -28,5 +28,4 @@ if [ "$latency" = "$ERROR_CODE" ];then
 	echo DNS failed >> /root/logs
 	exit 1
 fi
-echo DNS through "$interface" on "$host" spent "$latency" ms. Public ip : "$pub_ip" >> /root/logs
 exit 0
