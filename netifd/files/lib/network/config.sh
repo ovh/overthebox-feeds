@@ -1,6 +1,4 @@
 #!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
 # Copyright (C) 2011 OpenWrt.org
 
 . /usr/share/libubox/jshn.sh
