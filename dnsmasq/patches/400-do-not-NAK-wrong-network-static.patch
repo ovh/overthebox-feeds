@@ -1,8 +1,8 @@
 diff --git a/src/rfc2131.c b/src/rfc2131.c
-index 9f69ed5..050a45f 100644
+index a679470..6033044 100644
 --- a/src/rfc2131.c
 +++ b/src/rfc2131.c
-@@ -1166,6 +1166,9 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
+@@ -1200,6 +1200,9 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
  	  
  	  if (!(context = narrow_context(context, mess->yiaddr, tagif_netid)))
  	    {
