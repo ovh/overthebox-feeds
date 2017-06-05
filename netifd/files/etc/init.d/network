@@ -1,5 +1,4 @@
 #!/bin/sh /etc/rc.common
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 START=20
 STOP=90
@@ -22,7 +21,6 @@ start_service() {
 	procd_set_param watch network.interface
 	[ -e /proc/sys/kernel/core_pattern ] && {
 		procd_set_param limits core="unlimited"
-		echo '/tmp/%e.%p.%s.%t.core' > /proc/sys/kernel/core_pattern
 	}
 	procd_close_instance
 }
@@ -33,9 +31,10 @@ reload_service() {
 	/sbin/wifi reload_legacy
 }
 
-stop() {
+stop_service() {
 	/sbin/wifi down
-	procd_kill network ''
+	ifdown -a
+	sleep 1
 }
 
 service_running() {
@@ -137,14 +136,6 @@ service_triggers()
 	validate_switch_section
 	validate_switch_vlan
 	procd_close_validate
-}
-
-restart() {
-	ifdown -a
-	sleep 1
-	trap '' TERM
-	stop "$@"
-	start "$@"
 }
 
 shutdown() {

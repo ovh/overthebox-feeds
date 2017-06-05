@@ -1,6 +1,3 @@
-#!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
 [ ifup = "$ACTION" ] && {
 	uci_toggle_state network "$INTERFACE" up 1
 	[ -n "$DEVICE" ] && {
