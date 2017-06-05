@@ -1,0 +1,80 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+[ -z "$router" ] && exit 0
+[ "$INTERFACE" = if0 ] || exit 0
+
+case "$1" in
+renew|bound)
+	;;
+*)
+	exit 0
+	;;
+esac
+
+_macaddr=$(cat /sys/class/net/if0/address)
+_ifname=$(uci -q get network.if0.ifname)
+
+touch /etc/config/dhcpdiscovery
+
+uci -q batch <<-EOF
+set dhcpdiscovery.$INTERFACE=lease
+set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
+set dhcpdiscovery.$INTERFACE.lease=$lease
+set dhcpdiscovery.$INTERFACE.ip=$ip
+set dhcpdiscovery.$INTERFACE.siaddr=$siaddr
+set dhcpdiscovery.$INTERFACE.subnet=$subnet
+set dhcpdiscovery.$INTERFACE.timezone=$timezone
+set dhcpdiscovery.$INTERFACE.router=$router
+set dhcpdiscovery.$INTERFACE.hostname=$hostname
+set dhcpdiscovery.$INTERFACE.domain=$domain
+set dhcpdiscovery.$INTERFACE.ipttl=$ipttl
+set dhcpdiscovery.$INTERFACE.mtu=$mtu
+set dhcpdiscovery.$INTERFACE.broadcast=$broadcast
+set dhcpdiscovery.$INTERFACE.serverid=$serverid
+commit dhcpdiscovery
+EOF
+
+KNOWN_ROUTER=$(uci show network | grep '\.gateway=' | grep -v '@route' | grep "'$router'")
+
+if [ -z "$KNOWN_ROUTER" ]; then
+
+	if [ "$(uci -q get network.lan.proto)" != "static" ]; then
+		uci -q batch <<-EOF
+		set network.lan.proto=static
+		set network.lan.ipaddr=$ip
+		set network.lan.netmask=$subnet
+		set network.lan_dev.macaddr=$_macaddr
+		set network.if0_dev.macaddr=auto.lan
+		commit network
+		EOF
+	else
+		_id=1
+		while uci -q get network.if$_id > /dev/null; do _id=$((_id+1)); done
+
+		uci -q batch <<-EOF
+		set network.if${_id}_dev=device
+		set network.if${_id}_dev.name=if$_id
+		set network.if${_id}_dev.type=macvlan
+		set network.if${_id}_dev.ifname=$_ifname
+		set network.if${_id}_dev.macaddr=$_macaddr
+		set network.if${_id}=interface
+		set network.if${_id}.ifname=if$_id
+		set network.if${_id}.type=macvlan
+		set network.if${_id}.proto=static
+		set network.if${_id}.ipaddr=$ip
+		set network.if${_id}.netmask=$subnet
+		set network.if${_id}.multipath=on
+		set network.if${_id}.gateway=$router
+		set network.if${_id}.dns=$dns
+		set network.if${_id}.metric=$_id
+		set network.if0_dev.macaddr=auto.if$_id
+		add_list firewall.mptcp.network=if$_id
+		commit network
+		commit firewall
+		EOF
+	fi
+
+	/etc/init.d/network reload
+	/etc/init.d/firewall reload
+fi
