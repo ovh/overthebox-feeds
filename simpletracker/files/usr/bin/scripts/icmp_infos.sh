@@ -20,6 +20,7 @@ done
 [ -z "$interface" ] && usage
 [ -z "$host" ] && usage
 [ -z "$latency" ] && usage
+
 if [ "$latency" = "$ERROR_CODE" ];then
 	echo Ping failed >> /root/logs
 	exit 1

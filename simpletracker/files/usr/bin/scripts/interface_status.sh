@@ -22,9 +22,9 @@ done
 
 if [ "$status" = "DOWN" ];then
 	echo Interface "$interface" is DOWN >> /root/logs
-	ubus call -S simpletracker interface_up "{'interface':'$interface','up':false}"
+	# ubus call -S simpletracker interface_up "{'interface':'$interface','up':false}"
 	exit 1
 fi
 echo Interface "$interface" is UP >> /root/logs
-ubus call -S simpletracker interface_up "{'interface':'$interface','up':true}"
+# ubus call -S simpletracker interface_up "{'interface':'$interface','up':true}"
 exit 0
