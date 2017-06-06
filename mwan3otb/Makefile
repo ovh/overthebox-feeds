@@ -19,7 +19,7 @@ define Package/mwan3otb
    SECTION:=net
    CATEGORY:=Network
    SUBMENU:=Routing and Redirection
-   DEPENDS:=+ip +ipset +iptables +iptables-mod-conntrack-extra +iptables-mod-ipopt +luabitop
+   DEPENDS:=+ip +ipset +iptables +iptables-mod-conntrack-extra +iptables-mod-ipopt
    CONFLICTS:=mwan3
    TITLE:=Multiwan hotplug script with connection tracking support - overthebox version
    MAINTAINER:=Jeroen Louwes <jeroen.louwes@gmail.com>
