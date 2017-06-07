@@ -33,31 +33,31 @@ fi
 
 # Test UDP DNS tracker
 /usr/bin/track_interface_udp-dns.sh -i if1 -t 2 -h 51.254.49.133 -d tracker.overthebox.ovh
-log=$( loread -e simpletracker | tail -n 1 | grep DNS )
+log=$( logread -e simpletracker | tail -n 1 | grep DNS )
 logfail=$( echo "$log" | grep FAIL )
 if [ -z "$log" ]; then
-	echo DNS ERROR
+	echo UDP DNS ERROR
 elif [ -n "$logfail" ]; then
-	echo DNS FAIL
+	echo UDP DNS FAIL
 else
-	echo DNS OK
+	echo UDP DNS OK
 fi
 
 # Test TCP DNS tracker
 /usr/bin/track_interface_tcp-dns.sh -i if1 -t 2 -h 51.254.49.133 -d tracker.overthebox.ovh
-log=$( loread -e simpletracker | tail -n 1 | grep DNS )
+log=$( logread -e simpletracker | tail -n 1 | grep DNS )
 logfail=$( echo "$log" | grep FAIL )
 if [ -z "$log" ]; then
-	echo DNS ERROR
+	echo TCP DNS ERROR
 elif [ -n "$logfail" ]; then
-	echo DNS FAIL
+	echo TCP DNS FAIL
 else
-	echo DNS OK
+	echo TCP DNS OK
 fi
 
 # Test TCP CURL tracker
 /usr/bin/track_interface_tcp-curl.sh -i if1 -t 2 -h ifconfig.ovh
-log=$( loread -e simpletracker | tail -n 1 | grep CURL )
+log=$( logread -e simpletracker | tail -n 1 | grep CURL )
 logfail=$( echo "$log" | grep FAIL )
 if [ -z "$log" ]; then
 	echo CURL ERROR
