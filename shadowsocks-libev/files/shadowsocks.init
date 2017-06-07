@@ -33,9 +33,6 @@ _log() {
 	logger -st $PROG_NAME-initd -p "$1" "$2"
 }
 
-# Needed because we use network_get_subnet
-. /lib/functions/network.sh
-
 # Instances counter to avoid more than one shadowsocks
 SINGLETON_SS_COUNT=0
 
@@ -356,6 +353,7 @@ _populate_ipset_socks_bypass_wan_one() {
 	config_get ifname "$1" ifname
 
 	# Fetch IP/Netmask but skip interfaces with no IP
+	. /lib/functions/network.sh
 	network_get_subnet subnet "$ifname" || return 0
 
 	# Find the network address and check everything is valid :)
