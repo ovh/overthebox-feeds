@@ -46,10 +46,10 @@ _dispatch() {
 			/usr/bin/track_interface_udp-dns.sh -i "$interface" -h "$host" -t "$timeout" -d "$domain"
 			exit 0;;
 		tcp-dns)
-			/usr/bin/track_interface_tcp-dns.sh
+			/usr/bin/track_interface_tcp-dns.sh -i "$interface" -h "$host" -t "$timeout" -d "$domain"
 			exit 0;;
 		tcp-curl)
-			/usr/bin/track_interface_tcp-curl.sh
+			/usr/bin/track_interface_tcp-curl.sh -i "$interface" -h "$host" -t "$timeout"
 			exit 0;;
 		*) echo "How the fuck did you get there ?"
 			exit 1
