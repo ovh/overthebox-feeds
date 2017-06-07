@@ -8,11 +8,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.34
-PKG_RELEASE=7
+PKG_VERSION:=0.0.35
+PKG_RELEASE=1
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
-PKG_MD5SUM:=94b26771867d45e00a766d6aa73fe942
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -38,6 +37,8 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) files/glorytun.init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) files/glorytun.defaults $(1)/etc/uci-defaults/$(PKG_NAME).defaults
+	$(INSTALL_DIR) $(1)/etc/config
+	touch $(1)/etc/config/glorytun
 endef
 
 define Package/$(PKG_NAME)/postinst
