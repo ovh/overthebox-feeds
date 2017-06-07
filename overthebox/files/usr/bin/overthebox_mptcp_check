@@ -2,11 +2,12 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
+. /lib/functions/network.sh
 
 check_interface() {
 	local ifname output gateway
 	config_get ifname "$1" ifname
-	config_get gateway "$1" gateway
+	network_get_gateway gateway "$1"
 	if [ -z "$gateway" ]; then
 		return 0
 	fi
