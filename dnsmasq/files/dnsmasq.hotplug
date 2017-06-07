@@ -1,6 +1,0 @@
-#!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-[ "$ACTION" = ifup ] || exit 0
-
-/etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq start
