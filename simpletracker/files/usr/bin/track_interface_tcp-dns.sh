@@ -21,10 +21,11 @@ _extract_latency() {
 }
 
 log() {
-	logger -p user.notice -s -t "simpletracker" "$@"
+	logger -p user.notice -t "simpletracker" "$@"
 }
 
 # Get interface ip
+# shellcheck disable=SC2039,SC2007
 interface_ip="$( ubus -S call network.interface.if1 status | jsonfilter -e "$['ipv4-address'].*.address")"
 
 # DNS Request

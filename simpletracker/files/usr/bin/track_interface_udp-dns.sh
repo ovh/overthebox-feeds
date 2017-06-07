@@ -21,7 +21,7 @@ _extract_latency() {
 }
 
 log() {
-	logger -p user.notice -s -t "simpletracker" "$@"
+	logger -p user.notice -t "simpletracker" "$@"
 }
 
 # Get interface ip

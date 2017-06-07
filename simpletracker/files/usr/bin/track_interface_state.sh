@@ -8,7 +8,7 @@
 ##############################################
 
 log() {
-	logger -p user.notice -s -t "simpletracker" "$@"
+	logger -p user.notice -t "simpletracker" "$@"
 }
 
 

@@ -2,7 +2,7 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 log() {
-	logger -p user.notice -s -t "simpletracker" "$@"
+	logger -p user.notice -t "simpletracker" "$@"
 }
 
 # Check arguments
