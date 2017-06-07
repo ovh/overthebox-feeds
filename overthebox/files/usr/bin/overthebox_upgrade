@@ -1,10 +1,12 @@
-#!/usr/bin/env lua
--- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
+#!/bin/sh
 
-local overthebox = require("overthebox")
+set -e
 
-local _, ret = overthebox.opkg_update()
-print (ret)
+METAPKG=$(cut -f2 -d+ /etc/otb-version)
 
-_, ret = overthebox.upgrade()
-print(ret)
+opkg update -V1
+opkg upgrade -V1 "${METAPKG:-sticky}"
+
+opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade -V1
+
+[ -d /var/run/config.check ] || reload_config

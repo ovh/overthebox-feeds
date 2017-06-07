@@ -99,53 +99,6 @@ function restartmwan3()
   return true, ret
 end
 
-
-function opkg_update()
-  local ret = run("opkg update 2>&1")
-  return true, ret
-end
-
-function opkg_upgradable()
-  local ret = run("opkg list-upgradable")
-  return true, ret
-end
-function opkg_install(package)
-  local ret = run("opkg install "..package.. " --force-overwrite 2>&1" ) -- to fix
-  return true, ret
-end
-function opkg_remove(package)
-  local ret = run("opkg remove "..package )
-  return true, ret
-end
-function upgrade()
-  local packages = {'overthebox', 'mptcp', 'netifd', 'luci-base', 'luci-mod-admin-full', 'luci-app-overthebox', 'mwan3otb', 'luci-app-mwan3otb', 'shadowsocks-libev', 'graph', 'luci-theme-ovh', 'dnsmasq-full', 'sqm-scripts', 'luci-app-sqm', 'e2fsprogs', 'e2freefrag', 'dumpe2fs', 'resize2fs', 'tune2fs', 'libsodium', 'glorytun', 'glorytun-udp', 'rdisc6'}
-  local unwantedPackages = {'luci-app-qos', 'qos-scripts'}
-  local retcode = true
-  local ret = "install:\n"
-  for i = 1, #packages do
-    -- install package
-    local p = packages[i]
-    local c, r = opkg_install(p)
-    if c == false then
-      retcode = false
-    end
-    ret = ret ..  p .. ": \n" .. r .."\n"
-  end
-
-  ret = ret .. "\nuninstall:\n"
-  for i = 1, #unwantedPackages do
-    -- install package
-    local p = unwantedPackages[i]
-    local c, r = opkg_remove(p)
-    if c == false then
-      retcode = false
-    end
-    ret = ret ..  p .. ": \n" .. r .."\n"
-  end
-
-  return retcode, ret
-end
-
 -- function run execute a program
 -- return stdout and status code
 function run(command)
@@ -155,10 +108,16 @@ function run(command)
   return result, rc[4]
 end
 
+function upgrade()
+  local ret = run("overthebox_upgrade")
+  return true, ret
+end
+
 function sysupgrade()
   local ret = run("overthebox_last_upgrade -f")
   return true, ret
 end
+
 function reboot()
   local ret = run("reboot")
   return true, ret
@@ -577,9 +536,7 @@ while running do
           update_release_channel()
         end
       end
-      actionreturn, msg = opkg_update()
-      actionreturn, tmsg = upgrade()
-      msg = msg .. "\n" .. tmsg
+      actionreturn, msg = upgrade()
     elseif ret.action == "updateReleaseChannel" then
       actionreturn, msg = update_release_channel()
     elseif ret.action == "sysupgrade" then
