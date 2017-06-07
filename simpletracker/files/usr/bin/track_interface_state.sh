@@ -7,6 +7,11 @@
 # Result can be either UP or DOWN
 ##############################################
 
+log() {
+	logger -p user.notice -s -t "simpletracker" "$@"
+}
+
+
 # Check arguments
 while getopts "i:" opt; do
 	case $opt in
@@ -21,11 +26,13 @@ result="$( ubus -S call network.interface."$interface" status | jsonfilter -e "$
 # Script call
 if [ "$result" = false ];then
 	/usr/bin/scripts/interface_status.sh -i "$interface" -s DOWN
+	log FAIL STATE: "$interface" is down
 elif [ "$result" = true ]; then
 	/usr/bin/scripts/interface_status.sh -i "$interface" -s UP
+	log STATE: "$interface" is up
 else
 	# Should never be executed
-	echo "Dafuk ?"
+	log FAIL STATE: "$interface" is undefined
 	exit 1
 fi
 
