@@ -1,7 +1,7 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-
+. /lib/functions/network.sh
 # Check arguments
 while getopts "i:t:h:d:" opt; do
 	case $opt in
@@ -25,8 +25,8 @@ log() {
 }
 
 # Get interface ip
-# shellcheck disable=SC2039,SC2007
-interface_ip="$( ubus -S call network.interface.if1 status | jsonfilter -e "$['ipv4-address'].*.address")"
+network_flush_cache
+network_get_ipaddrs interface_ip "$interface"
 
 # DNS Request
 # Script call

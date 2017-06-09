@@ -7,6 +7,8 @@
 # Result can be either UP or DOWN
 ##############################################
 
+. /lib/functions/network.sh
+
 log() {
 	logger -p user.notice -t "simpletracker" "$@"
 }
@@ -21,7 +23,8 @@ while getopts "i:" opt; do
 done
 
 # Ubus call to retrieve interface status
-result="$( ubus -S call network.interface."$interface" status | jsonfilter -e "$.up" )"
+network_flush_cache
+network_is_up "$interface" && result=true || result=false
 
 # Script call
 if [ "$result" = false ];then
