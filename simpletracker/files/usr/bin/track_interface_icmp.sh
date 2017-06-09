@@ -23,7 +23,7 @@ while getopts "i:t:h:" opt; do
 done
 
 # Ping
-response=$( ping -c 1 -I "$interface" -W "$timeout" "$host" )
+response=$( ping -c 1 -I "$interface" -W "$timeout" "$host" 2>&1)
 
 # Script call
 if [ $? != 0 ]; then

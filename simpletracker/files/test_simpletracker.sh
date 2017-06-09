@@ -108,7 +108,6 @@ test_tcp_curl
 echo ----- if1 gets down
 ubus call -S network.interface down '{"interface":"if1"}'
 test_state
-echo $result
 [ "$result" = "$ERROR_CODE" ] && echo STATE ERROR
 [ "$result" = "$FAIL_CODE" ] && echo STATE OK
 [ "$result" = "$OK_CODE" ] && echo STATE FAIL
@@ -128,6 +127,5 @@ test_tcp_curl
 [ "$result" = "$ERROR_CODE" ] && echo CURL ERROR
 [ "$result" = "$FAIL_CODE" ] && echo CURL OK
 [ "$result" = "$OK_CODE" ] && echo CURL FAIL
+echo ----- if1 gets up
 ubus call -S network.interface up '{"interface":"if1"}'
-
-

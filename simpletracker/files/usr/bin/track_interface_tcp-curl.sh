@@ -5,6 +5,11 @@ log() {
 	logger -p user.notice -t "simpletracker" "$@"
 }
 
+usage() {
+	printf "Usage : %S: [-i INTERFACE] [-h HOST] [-t TIMEOUT]\n" "$0"
+	exit 1
+}
+
 # Check arguments
 while getopts "i:t:h:" opt; do
 	case $opt in
@@ -16,12 +21,12 @@ while getopts "i:t:h:" opt; do
 done
 
 # Script call
-response="$( curl --interface "$interface" -m "$timeout" "$host")"
-if [ $? = 0 ] ; then
+response="$( curl -s --interface "$interface" -m "$timeout" "$host" )"
+if [ -n "$response" ] ; then
 	/usr/bin/scripts/curl_infos.sh -i "$interface" -h "$host" -p "$response" &
 	log CURL: "$interface" to "$host"
 	exit 0
 fi
 /usr/bin/scripts/curl_infos.sh -i "$interface" -h "$host" -p "-1" &
 log FAIL CURL: "$interface" to "$host"
-
+exit 0

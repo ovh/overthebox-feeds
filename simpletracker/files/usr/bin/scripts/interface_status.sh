@@ -2,7 +2,6 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 name=$0
-ERROR_CODE='-1'
 
 usage() {
     printf "Usage : %s: [-i INTERFACE] [-s STATUS ]\n" "$name"
@@ -23,7 +22,7 @@ done
 if [ "$status" = "DOWN" ];then
 	echo Interface "$interface" is DOWN >> /root/logs
 	# ubus call -S simpletracker interface_up "{'interface':'$interface','up':false}"
-	exit 1
+	exit 0
 fi
 echo Interface "$interface" is UP >> /root/logs
 # ubus call -S simpletracker interface_up "{'interface':'$interface','up':true}"
