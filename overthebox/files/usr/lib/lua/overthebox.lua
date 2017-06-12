@@ -113,7 +113,7 @@ function config()
 
     ucic:set('network', res.glorytun_conf.dev, 'interface')
     ucic:set('network', res.glorytun_conf.dev, 'ifname', res.glorytun_conf.dev)
-    if res.tun_conf.app == 'glorytun' then
+    if res.tun_conf.app == 'glorytun' or res.tun_conf.app == 'glorytun_hybrid' then
       ucic:set('network', res.glorytun_conf.dev, 'proto', 'static')
       ucic:set('network', res.glorytun_conf.dev, 'ipaddr', res.glorytun_conf.ip_local)
       ucic:set('network', res.glorytun_conf.dev, 'netmask', '255.255.255.0')
@@ -147,6 +147,20 @@ function config()
             ucic:set('network', conf.dev, 'metric', conf.metric)
             ucic:set('network', conf.dev, 'txqueuelen', conf.txqueuelen or res.glorytun_conf.txqueuelen or '1000')
             ucic:set('network', conf.dev, 'mtu', conf.mtu or res.glorytun_conf.mtu)
+          elseif res.tun_conf.app == 'glorytun_hybrid' and res.glorytun_mud_conf and exists( res.glorytun_mud_conf, 'server', 'port', 'key', 'dev', 'ip_peer', 'ip_local', 'mtu' ) then
+            ucic:set('glorytun', conf.dev, 'mud')
+            ucic:set('glorytun', conf.dev, 'server',  res.glorytun_mud_conf.server)
+            ucic:set('glorytun', conf.dev, 'port',    res.glorytun_mud_conf.port)
+            ucic:set('glorytun', conf.dev, 'key',     res.glorytun_mud_conf.key)
+            ucic:set('glorytun', conf.dev, 'mtu',     res.glorytun_mud_conf.mtu)
+
+            ucic:set('network', conf.dev, 'proto', 'static')
+            ucic:set('network', conf.dev, 'ipaddr', res.glorytun_mud_conf.ip_local)
+            ucic:set('network', conf.dev, 'netmask', '255.255.255.0')
+            ucic:set('network', conf.dev, 'gateway', res.glorytun_mud_conf.ip_peer)
+            ucic:set('network', conf.dev, 'metric', conf.metric or res.glorytun_mud_conf.metric)
+            ucic:set('network', conf.dev, 'txqueuelen', res.glorytun_mud_conf.txqueuelen or '1000')
+            ucic:delete('network', conf.dev, 'mtu')
           end
           ucic:set('network', conf.dev, 'multipath', 'off')
           ucic:delete('network', conf.dev, 'auto')
@@ -203,7 +217,29 @@ function config()
     res.tun_conf.app = "none"
   end
 
-  if res.tun_conf.app == 'glorytun_mud' then
+  if res.tun_conf.app == 'glorytun_hybrid' then
+    -- enable Glorytun TCP only for tun0
+    ucic:foreach("glorytun", "tunnel",
+    function (e)
+      if e["dev"] == "tun0" then
+        ucic:set('glorytun', e[".name"], 'enable', '1')
+      else
+        ucic:set('glorytun', e[".name"], 'enable', '0')
+      end
+    end
+    )
+    -- enable MUD for only xtun0 interface
+    ucic:foreach("glorytun", "mud",
+    function (e)
+      if e["dev"] == "xtun0" then
+        ucic:set('glorytun', e[".name"], 'enable', '1')
+      else
+        ucic:set('glorytun', e[".name"], 'enable', '0')
+      end
+    end
+    )
+    ucic:set('mwan3', 'socks', 'dest_ip', res.glorytun_conf.server)
+  elseif res.tun_conf.app == 'glorytun_mud' then
     -- Activate MUD
     ucic:foreach("glorytun", "mud",
     function (e)
@@ -275,6 +311,14 @@ function config()
       ucic:set('shadowsocks','proxy','track_timeout', res.shadow_conf.track_timeout)
       ucic:set('shadowsocks','proxy','track_interval', res.shadow_conf.track_interval)
       ucic:set('shadowsocks','proxy','track_retry', res.shadow_conf.track_retry)
+    end
+
+    if exists( res.shadow_conf, 'reuse_port' ) then
+      ucic:set('shadowsocks','proxy','reuse_port', tostring(res.shadow_conf.reuse_port))
+    end
+
+    if exists( res.shadow_conf, 'fast_open' ) then
+      ucic:set('shadowsocks','proxy','fast_open', tostring(res.shadow_conf.fast_open))
     end
 
     ucic:save('shadowsocks')
@@ -503,6 +547,7 @@ local diags = {
   tc = { cmd = 'tc qdisc show' },
   ping = { cmd = 'ping -c {{count}} {{ip}}', default = { ip = '213.186.33.99', count = 2 }},
   dmidecode = { cmd = 'dmidecode -s baseboard-serial-number' },
+  mptcp_capable = { cmd = 'overthebox_mptcp_check' },
   uptime = { cmd = 'uptime' },
 }
 

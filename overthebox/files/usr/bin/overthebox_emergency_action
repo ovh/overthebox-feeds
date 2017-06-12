@@ -5,11 +5,11 @@
 
 local json  = require "luci.json"
 local sys   = require "luci.sys"
+local math  = require "math"
 
 local p   = require 'posix'
 local sig = require "posix.signal"
 
-local json      = require("luci.json")
 local uci       = require("luci.model.uci")
 
 local http  = require("socket.http")
@@ -20,6 +20,8 @@ local os    = require("os")
 local string    = require("string")
 
 local VERSION = "<VERSION>"
+
+math.randomseed(os.time())
 
 api_url = 'https://provisionning.overthebox.net:4443/'
 
@@ -546,6 +548,12 @@ end
 running = true
 debugmode = true
 
+-- If overthebox_emergency_action is ran with the "cron" argument, we wait a
+-- random delay between 0 and 15 minutes before executing the script
+if arg[1] == "cron" then
+  p.sleep(math.random(900))
+end
+
 while running do
   local rcode, ret = status()
   if rcode == 401 then
@@ -621,5 +629,3 @@ while running do
     running = false
   end
 end
-
-

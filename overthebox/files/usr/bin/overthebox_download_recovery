@@ -54,6 +54,15 @@ valid_checksum() {
 	return 0
 }
 
+# If the script is ran with the "cron" argument, sleep a random delay between 0
+# and 2 hours before running the script
+if [ "$1" = "cron" ]; then
+	# Delete all non numeric characters from urandom
+	# Get only the first 5 characters
+	# Delete leading zeroes ( because modulo operator doesn't work with leading zeroes )
+	/bin/sleep $(( $(tr -cd 0-9 < /dev/urandom 2> /dev/null | head -c 5 | sed 's/^0*//') % 7200 ))
+fi
+
 # Create the recovery dir
 mkdir -p ${RECOVERY_DIR}
 

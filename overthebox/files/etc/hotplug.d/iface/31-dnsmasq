@@ -27,18 +27,10 @@ case "$mode" in
 esac
 
 # Get lan subnet
-local lansubnet
 network_get_subnet lansubnet lan
 
 eval "$(ipcalc.sh "$lansubnet")"
-local lannet=$NETWORK
-
-# Create option
-local if_ipaddr
-local if_gateway
-local if_network
-local if_netmask
-local if_dnservers
+lannet=$NETWORK
 
 network_get_ipaddr  if_ipaddr  "$INTERFACE"
 network_get_gateway if_gateway "$INTERFACE"
