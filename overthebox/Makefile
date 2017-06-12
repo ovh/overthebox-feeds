@@ -20,7 +20,7 @@ OTB_VERSION?=$(PKG_VERSION)-$(PKG_RELEASE)
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
-	mptcp shadowsocks-libev luaposix luasec luasocket \
+	mptcp shadowsocks-libev luaposix luasec luasocket file \
 	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
 	bash rng-tools ss strace tcpdump-mini conntrack conntrackd \
 	luci luci-lib-json luci-theme-bootstrap ca-certificates \
