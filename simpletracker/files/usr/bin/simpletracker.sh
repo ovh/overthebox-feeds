@@ -32,24 +32,24 @@ usage() {
 
 _check_method_argument() {
 	for i in $( _available_methods ); do
-		[ "$i" = "$method" ] && echo "$OK_CODE"
+		[ "$i" = "$SIMPLETRACKER_METHOD" ] && echo "$OK_CODE" && return
 	done
 	echo "$ERROR_CODE"
 }
 
 _dispatch() {
-	case "$method" in
+	case "$SIMPLETRACKER_METHOD" in
 		icmp)
-			/usr/bin/track_interface_icmp.sh -i "$interface" -h "$host" -t "$timeout"
+			/usr/bin/track_interface_icmp.sh
 			exit 0;;
 		udp-dns)
-			/usr/bin/track_interface_udp-dns.sh -i "$interface" -h "$host" -t "$timeout" -d "$domain"
+			/usr/bin/track_interface_udp-dns.sh
 			exit 0;;
 		tcp-dns)
-			/usr/bin/track_interface_tcp-dns.sh -i "$interface" -h "$host" -t "$timeout" -d "$domain"
+			/usr/bin/track_interface_tcp-dns.sh
 			exit 0;;
 		tcp-curl)
-			/usr/bin/track_interface_tcp-curl.sh -i "$interface" -h "$host" -t "$timeout"
+			/usr/bin/track_interface_tcp-curl.sh
 			exit 0;;
 		*) echo "How the fuck did you get there ?"
 			exit 1
@@ -58,7 +58,7 @@ _dispatch() {
 
 check_interface() {
 	# check if interface is up
-	/usr/bin/track_interface_state.sh -i "$interface"
+	/usr/bin/track_interface_state.sh
 	# check connectivity using selected method
 	_dispatch
 }
@@ -66,22 +66,28 @@ check_interface() {
 # Check arguments
 while getopts "m:t:h:d:" opt; do
 	case $opt in
-		m) method="$OPTARG";;
-		t) timeout="$OPTARG";;
-		h) host="$OPTARG";;
-		d) domain="$OPTARG";;
+		m) SIMPLETRACKER_METHOD="$OPTARG";;
+		t) SIMPLETRACKER_TIMEOUT="$OPTARG";;
+		h) SIMPLETRACKER_HOST="$OPTARG";;
+		d) SIMPLETRACKER_DOMAIN="$OPTARG";;
 		*) usage;;
 	esac
 done
 shift $((OPTIND - 1))
 [ -z "$1" ] && usage
-interface="$1"
+SIMPLETRACKER_INTERFACE="$1"
 # check method to check connectivity
-[ -z "$method" ] && usage
+[ -z "$SIMPLETRACKER_METHOD" ] && usage
 [ "$( _check_method_argument )" = "$ERROR_CODE" ] && usage
 # check timeout
-[ -z "$timeout" ] && usage
+[ -z "$SIMPLETRACKER_TIMEOUT" ] && usage
 # check host
-[ -z "$host" ] && usage
+[ -z "$SIMPLETRACKER_HOST" ] && usage
+
+export SIMPLETRACKER_INTERFACE
+export SIMPLETRACKER_METHOD
+export SIMPLETRACKER_TIMEOUT
+export SIMPLETRACKER_HOST
+export SIMPLETRACKER_DOMAIN
 
 check_interface

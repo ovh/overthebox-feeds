@@ -11,28 +11,18 @@ log() {
 	logger -p user.notice -t "simpletracker" "$@"
 }
 
-
-# Check arguments
-while getopts "i:t:h:" opt; do
-	case $opt in
-		t) timeout="$OPTARG";;
-		h) host="$OPTARG";;
-		i) interface="$OPTARG";;
-		*) usage;;
-	esac
-done
-
 # Ping
-response=$( ping -c 1 -I "$interface" -W "$timeout" "$host" 2>&1)
+response=$( ping -c 1 -I "$SIMPLETRACKER_INTERFACE" -W "$SIMPLETRACKER_TIMEOUT" "$SIMPLETRACKER_HOST" 2>&1)
 
 # Script call
 if [ $? != 0 ]; then
-	/usr/bin/scripts/icmp_infos.sh -i "$interface" -h "$host" -l "-1" &
-	log FAIL ICMP: "$interface" to "$host"
+	/usr/bin/scripts/icmp_infos.sh
+	log FAIL ICMP: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST"
 else
-	result=$( echo "$response" | cut -d '/' -s -f 5)
-	/usr/bin/scripts/icmp_infos.sh -i "$interface" -h "$host" -l "$result" &
-	log ICMP: "$interface" to "$host"
+	SIMPLETRACKER_INTERFACE_LATENCY=$( echo "$response" | cut -d '/' -s -f 5)
+	export SIMPLETRACKER_INTERFACE_LATENCY
+	/usr/bin/scripts/icmp_infos.sh
+	log ICMP: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST"
 fi
 
 exit 0

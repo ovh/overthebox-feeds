@@ -13,29 +13,19 @@ log() {
 	logger -p user.notice -t "simpletracker" "$@"
 }
 
-
-# Check arguments
-while getopts "i:" opt; do
-	case $opt in
-		i) interface="$OPTARG";;
-		*) echo fail;;
-	esac
-done
-
-# Ubus call to retrieve interface status
+# Retrieve interface state
 network_flush_cache
-network_is_up "$interface" && result=true || result=false
+network_is_up "$SIMPLETRACKER_INTERFACE" && SIMPLETRACKER_INTERFACE_STATE="UP" || SIMPLETRACKER_INTERFACE_STATE="DOWN"
 
-# Script call
-if [ "$result" = false ];then
-	/usr/bin/scripts/interface_status.sh -i "$interface" -s DOWN
-	log FAIL STATE: "$interface" is down
-elif [ "$result" = true ]; then
-	/usr/bin/scripts/interface_status.sh -i "$interface" -s UP
-	log STATE: "$interface" is up
+# Logging
+if [ "$SIMPLETRACKER_INTERFACE_STATE" = "DOWN" ];then
+	log FAIL STATE: "$SIMPLETRACKER_INTERFACE" is down
+elif [ "$SIMPLETRACKER_INTERFACE_STATE" = "UP" ]; then
+	log STATE: "$SIMPLETRACKER_INTERFACE" is up
 else
 	# Should never be executed
-	log FAIL STATE: "$interface" is undefined
+	log FAIL STATE: "$SIMPLETRACKER_INTERFACE" is undefined
 	exit 1
 fi
-
+export "$SIMPLETRACKER_INTERFACE_STATE"
+/usr/bin/scripts/interface_status.sh

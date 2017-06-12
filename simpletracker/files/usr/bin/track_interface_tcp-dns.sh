@@ -2,16 +2,6 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions/network.sh
-# Check arguments
-while getopts "i:t:h:d:" opt; do
-	case $opt in
-		t) timeout="$OPTARG";;
-		h) host="$OPTARG";;
-		i) interface="$OPTARG";;
-		d) domain="$OPTARG";;
-		*) usage;;
-	esac
-done
 
 _extract_pub_ip() {
 	echo "$1"
@@ -26,21 +16,28 @@ log() {
 
 # Get interface ip
 network_flush_cache
-network_get_ipaddrs interface_ip "$interface"
+network_get_ipaddrs interface_ip "$SIMPLETRACKER_INTERFACE"
 
 # DNS Request
 # Script call
 for i in $interface_ip; do
-	response="$( dig -b "$i" "$domain" @"$host" +time="$timeout" +short +identify +tcp )"
+	response="$( dig -b "$i" "$SIMPLETRACKER_DOMAIN" @"$SIMPLETRACKER_HOST" +time="$SIMPLETRACKER_TIMEOUT" +short +identify +tcp )"
 	if [ $? = 0 ] ; then
 		# shellcheck disable=SC2086
-		pub_ip=$( _extract_pub_ip $response )
+		SIMPLETRACKER_INTERFACE_PUBLIC_IP=$( _extract_pub_ip $response )
 		# shellcheck disable=SC2086
-		latency=$( _extract_latency $response )
-		/usr/bin/scripts/dns_infos.sh -i "$interface" -h "$host" -d "$domain" -l "$latency" -p "$pub_ip" &
-		log DNS: "$interface" to "$host" for "$domain"
+		SIMPLETRACKER_INTERFACE_LATENCY=$( _extract_latency $response )
+		export SIMPLETRACKER_INTERFACE_PUBLIC_IP
+		export SIMPLETRACKER_INTERFACE_LATENCY
+		/usr/bin/scripts/dns_infos.sh
+		log DNS: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST" for "$SIMPLETRACKER_DOMAIN"
 		exit 0
 	fi
 done
-/usr/bin/scripts/dns_infos.sh -i "$interface" -h "$host" -d "$domain" -l "-1" -p "-1" &
-log FAIL DNS: "$interface" to "$host" for "$domain"
+
+SIMPLETRACKER_INTERFACE_PUBLIC_IP="ERROR"
+SIMPLETRACKER_INTERFACE_LATENCY="ERROR"
+export SIMPLETRACKER_INTERFACE_PUBLIC_IP
+export SIMPLETRACKER_INTERFACE_LATENCY
+/usr/bin/scripts/dns_infos.sh
+log FAIL DNS: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST" for "$SIMPLETRACKER_DOMAIN"

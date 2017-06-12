@@ -5,28 +5,15 @@ log() {
 	logger -p user.notice -t "simpletracker" "$@"
 }
 
-usage() {
-	printf "Usage : %S: [-i INTERFACE] [-h HOST] [-t TIMEOUT]\n" "$0"
-	exit 1
-}
-
-# Check arguments
-while getopts "i:t:h:" opt; do
-	case $opt in
-		t) timeout="$OPTARG";;
-		h) host="$OPTARG";;
-		i) interface="$OPTARG";;
-		*) usage;;
-	esac
-done
-
 # Script call
-response="$( curl -s --interface "$interface" -m "$timeout" "$host" )"
+response="$( curl -s --interface "$SIMPLETRACKER_INTERFACE" -m "$SIMPLETRACKER_TIMEOUT" "$SIMPLETRACKER_HOST" )"
 if [ -n "$response" ] ; then
-	/usr/bin/scripts/curl_infos.sh -i "$interface" -h "$host" -p "$response" &
-	log CURL: "$interface" to "$host"
-	exit 0
+	SIMPLETRACKER_INTERFACE_PUBLIC_IP="$response"
+	log CURL: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST"
+else
+	SIMPLETRACKER_INTERFACE_PUBLIC_IP="ERROR"
+	log FAIL CURL: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST"
 fi
-/usr/bin/scripts/curl_infos.sh -i "$interface" -h "$host" -p "-1" &
-log FAIL CURL: "$interface" to "$host"
+export SIMPLETRACKER_INTERFACE_PUBLIC_IP
+/usr/bin/scripts/curl_infos.sh
 exit 0
