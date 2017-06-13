@@ -27,8 +27,12 @@ then
 	fi
 fi
 
-URL=$(uci -q get overthebox.me.image_url || echo "http://downloads.overthebox.ovh/stable/x86/64/openwrt-x86-64-combined-squashfs.img.gz")
+URL=$(uci -q get overthebox.me.image_url)
+TMP=/tmp/upgrade.img.gz
 
-wget "$URL" -O /tmp/openwrt-x86-64-combined.img.gz ${q}
+if [ -z "$URL" ]; then
+	echo no image to download
+	exit 1
+fi
 
-sysupgrade /tmp/openwrt-x86-64-combined.img.gz
+wget "$URL" -O "$TMP" "$q" && sysupgrade "$TMP"
