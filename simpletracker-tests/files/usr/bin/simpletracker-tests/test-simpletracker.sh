@@ -17,4 +17,5 @@ _restore_scripts() {
 
 _install_scripts
 /usr/bin/simpletracker-tests/test-normal.sh
+/usr/bin/simpletracker-tests/test-ifdown.sh
 _restore_scripts
