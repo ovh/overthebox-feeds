@@ -1,7 +1,7 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-if [ "$SIMPLETRACKER_INTERFACE_LATENCY" = "ERROR" ];then
+if [ "$SIMPLETRACKER_INTERFACE_LATENCY" = "FAIL" ];then
 	echo FAIL DNS through "$SIMPLETRACKER_INTERFACE" on "$SIMPLETRACKER_HOST" >> /root/logs
 	exit 1
 fi

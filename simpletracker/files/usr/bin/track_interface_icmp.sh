@@ -16,6 +16,7 @@ response=$( ping -c 1 -I "$SIMPLETRACKER_INTERFACE" -W "$SIMPLETRACKER_TIMEOUT" 
 
 # Script call
 if [ $? != 0 ]; then
+	SIMPLETRACKER_INTERFACE_LATENCY="FAIL"
 	/usr/bin/scripts/icmp_infos.sh
 	log FAIL ICMP: "$SIMPLETRACKER_INTERFACE" to "$SIMPLETRACKER_HOST"
 else
