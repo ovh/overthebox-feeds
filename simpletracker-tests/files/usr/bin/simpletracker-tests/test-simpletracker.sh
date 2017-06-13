@@ -3,7 +3,7 @@
 
 _install_scripts() {
 	mkdir -p /usr/bin/scripts/save
-	mv /usr/bin/scripts/*.sh /usr/bin/scripts/save/
+	cp /usr/bin/scripts/*.sh /usr/bin/scripts/save/
 	cp /usr/bin/simpletracker-tests/scripts/*.sh /usr/bin/scripts/
 	chmod +x /usr/bin/scripts/*
 }
