@@ -26,4 +26,11 @@ define Package/$(PKG_NAME)/install
 	$(CP) ./files/* $(1)/
 endef
 
+define Package/$(PKG_NAME)/postinst
+#!/bin/sh
+chmod +x /usr/bin/track_*.sh
+chmod +x /usr/bin/simpletracker.sh
+chmod +x /usr/bin/scripts/*.sh
+endef
+
 $(eval $(call BuildPackage,$(PKG_NAME)))
