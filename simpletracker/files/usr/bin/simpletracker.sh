@@ -17,7 +17,7 @@ OK_CODE='0'
 
 # list available tracking methods
 _available_methods() {
-	echo "icmp" "tcp_dns" "udp-dns" "tcp-curl"
+	echo "icmp" "tcp-dns" "udp-dns" "tcp-curl"
 }
 
 usage() {
