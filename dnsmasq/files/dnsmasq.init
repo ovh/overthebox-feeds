@@ -572,13 +572,64 @@ dhcp_add() {
 		dhcp_option_append "option6:dns-server,$dnss" "$networkid"
 	fi
 
+	has_dns_option=0
+	has_router_option=0
+
 	dhcp_option_add "$cfg" "$networkid"
+
+	if [ "$has_router_option" = "0" ]; then
+		local router
+		network_get_gateway router "$net"
+		if [ -n "$router" ]; then
+			dhcp_option_append "option:router,$router" "$net" ""
+		else
+			local ipaddr
+			network_get_ipaddr ipaddr "$net"
+			dhcp_option_append "option:router,$ipaddr" "$net" ""
+		fi
+	fi
+	if [ "$has_dns_option" = "0" ]; then
+		local dnsservers dns
+		network_get_dnsserver dnsservers "$net"
+		for dnssserver in $dnsservers;
+		do
+			dns="$dns,$dnssserver"
+		done
+		if [ -n "$dns" ]; then
+			dhcp_option_append "option:dns-server$dns" "$net" ""
+		else
+			local ipaddr
+			network_get_ipaddr ipaddr "$net"
+			dhcp_option_append "option:dns-server,$ipaddr" "$net" ""
+		fi
+	fi
 }
 
 dhcp_option_append() {
 	local option="$1"
 	local networkid="$2"
 	local force="$3"
+
+	case $option in
+		3,*)
+			has_router_option=1
+			;;
+		option:3,*)
+			has_router_option=1
+			;;
+		option:router,*)
+			has_router_option=1
+			;;
+		6,*)
+			has_dns_option=1
+			;;
+		option:6,*)
+			has_dns_option=1
+			;;
+		option:dns-server,*)
+			has_dns_option=1
+			;;
+	esac
 
 	xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$option"
 }
