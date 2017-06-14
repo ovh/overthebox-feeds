@@ -456,6 +456,7 @@ dhcp_add() {
 		DNS_SERVERS="$DNS_SERVERS $dnsserver"
 	}
 
+	dnsmasq_device_list="${dnsmasq_device_list} $ifname"
 	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && {
 		# Many ISP do not have useful names for DHCP customers (your WAN).
 		dhcp_this_host_add "$net" "$ifname" "$ADD_WAN_FQDN"
@@ -977,7 +978,17 @@ dnsmasq_start()
 		append_bool "$cfg" quietdhcp "--quiet-dhcp6"
 
 	elif [ "$DNSMASQ_DHCP_VER" -gt 0 ] ; then
+		dnsmasq_device_list=""
 		config_foreach filter_dnsmasq dhcp dhcp_add "$cfg"
+		# List all system devices
+		. /usr/share/libubox/jshn.sh
+		json_load "$(ubus call network.device status)"
+		json_get_keys system_device_list
+		for device in $system_device_list; do
+			if ! list_contains dnsmasq_device_list "$device"; then
+				xappend "--no-dhcp-interface=$device"
+			fi
+		done
 	fi
 
 
