@@ -723,6 +723,14 @@ dhcp_relay_add() {
 	fi
 }
 
+dnsmasq_interface_name_add() {
+	local name="$1"
+	local ifname
+
+	config_get ifname "$1" ifname
+	append_interface_name "$name" "$ifname"
+}
+
 dnsmasq_start()
 {
 	local cfg="$1" disabled resolvfile user_dhcpscript
@@ -989,6 +997,12 @@ dnsmasq_start()
 				xappend "--no-dhcp-interface=$device"
 			fi
 		done
+
+		# Setup network interface dns and reverse
+		config_load network
+		config_foreach dnsmasq_interface_name_add interface
+		config_load dhcp
+
 	fi
 
 
