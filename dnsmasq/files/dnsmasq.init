@@ -363,6 +363,7 @@ dhcp_add() {
 		DNS_SERVERS="$DNS_SERVERS $dnsserver"
 	}
 
+	dnsmasq_device_list="${dnsmasq_device_list} $ifname"
 	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && return 0
 
 	# Do not support non-static interfaces for now
@@ -757,7 +758,17 @@ dnsmasq_start()
 
 	config_get odhcpd_is_active odhcpd maindhcp
 	if [ "$odhcpd_is_active" != "1" ]; then
+		dnsmasq_device_list=""
 		config_foreach filter_dnsmasq dhcp dhcp_add "$cfg"
+		# List all system devices
+		. /usr/share/libubox/jshn.sh
+		json_load "$(ubus call network.device status)"
+		json_get_keys system_device_list
+		for device in $system_device_list; do
+			if ! list_contains dnsmasq_device_list "$device"; then
+				xappend "--no-dhcp-interface=$device"
+			fi
+		done
 	fi
 
 	echo >> $CONFIGFILE_TMP
