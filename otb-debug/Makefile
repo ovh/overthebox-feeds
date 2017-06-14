@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=vlan-bash
+PKG_NAME:=otb-debug
 PKG_VERSION:=0.6
 PKG_RELEASE:=0
 
