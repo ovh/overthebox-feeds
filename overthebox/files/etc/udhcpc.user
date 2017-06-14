@@ -13,7 +13,7 @@ renew|bound)
 esac
 
 _macaddr=$(cat /sys/class/net/if0/address)
-_ifname=$(uci -q get network.if0.ifname)
+_ifname=$(uci -q get network.if0_dev.ifname)
 
 touch /etc/config/dhcpdiscovery
 
