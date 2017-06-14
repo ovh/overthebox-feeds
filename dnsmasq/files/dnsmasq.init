@@ -488,7 +488,15 @@ dhcp_cname_add() {
 	config_get target "$cfg" target
 	[ -n "$target" ] || return 0
 
+	# Test for duplicated cname
+	if list_contains cname_list "${cname}"; then
+		logger -t dnsmasq \
+			"Ignoring duplicated cname '${cname}'"
+		return 0
+	fi
 	xappend "--cname=${cname},${target}"
+	# Append cname entry in cnames list for later dup checks
+	cname_list="${cname_list} ${cname}"
 }
 
 dhcp_hostrecord_add() {
