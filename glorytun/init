@@ -58,7 +58,7 @@ start_instance() {
 		keepalive count 3 idle 10 interval 1 \
 		mptcp
 
-	procd_set_param respawn 15 30 0
+	procd_set_param respawn 0 30 0
 
 	procd_set_param stdout 1
 	procd_set_param stderr 1
