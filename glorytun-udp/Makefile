@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun-udp
 PKG_VERSION:=0.0.89-mud
-PKG_RELEASE:=7
+PKG_RELEASE:=8
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/glorytun-$(PKG_VERSION)
@@ -17,12 +17,12 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/glorytun-$(PKG_VERSION)
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
-	SECTION:=net
-	CATEGORY:=Network
-	DEPENDS:=+kmod-tun +libsodium +librt
-	TITLE:=Glorytun
-	URL:=https://github.com/angt/glorytun
-	SUBMENU:=VPN
+SECTION:=net
+CATEGORY:=Network
+DEPENDS:=+kmod-tun +libsodium +librt
+TITLE:=Glorytun
+URL:=https://github.com/angt/glorytun
+SUBMENU:=VPN
 endef
 
 TARGET_CFLAGS += -std=c99 -D_GNU_SOURCE
@@ -34,18 +34,11 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_BIN) start $(1)/usr/sbin/$(PKG_NAME)-start
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) files/glorytun.init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) files/glorytun.defaults $(1)/etc/uci-defaults/$(PKG_NAME).defaults
-endef
-
-define Package/$(PKG_NAME)/postinst
-#!/bin/sh
-if [ -z $${IPKG_INSTROOT} ] ; then
-	( . /etc/uci-defaults/$(PKG_NAME).defaults ) && rm -f /etc/uci-defaults/$(PKG_NAME).defaults
-	[ -x /etc/init.d/$(PKG_NAME) ] && /etc/init.d/$(PKG_NAME) restart;
-fi
+	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/etc/config
+	touch $(1)/etc/config/glorytun
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

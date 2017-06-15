@@ -7,7 +7,7 @@ STOP=10
 
 USE_PROCD=1
 PROG_NAME=glorytun-udp
-PROG=/usr/sbin/${PROG_NAME}
+PROG=/usr/sbin/${PROG_NAME}-start
 
 _log() {
 	logger -p daemon.info -t ${PROG_NAME} "$@"
@@ -15,20 +15,6 @@ _log() {
 
 _err() {
 	logger -p daemon.err -t ${PROG_NAME} "$@"
-}
-
-BIND_ARGS=
-
-setup_bind_args() {
-	config_get multipath "$1" multipath
-	if [ "${multipath}" = "on" -o "${multipath}" = "master" ]; then
-		local ipaddr
-		network_get_ipaddr ipaddr "$1"
-		if [ -n "${ipaddr}" ]; then
-			_log "add interface $1"
-			BIND_ARGS="${BIND_ARGS}${ipaddr},"
-		fi
-	fi
 }
 
 validate_section() {
@@ -57,13 +43,6 @@ start_instance() {
 	[ -n "${dev}" ] || return 1
 	[ -n "${mtu}" ] || return 1
 
-	. /lib/functions/network.sh
-
-	config_load network
-	config_foreach setup_bind_args interface
-
-	[ -n "${BIND_ARGS}" ] || return 1
-
 	echo "$key" > /tmp/${PROG_NAME}.key
 	key=""
 
@@ -78,10 +57,9 @@ start_instance() {
 		dev "$dev" \
 		bind-port "$port" \
 		mtu "$mtu" \
-		bind "$BIND_ARGS" \
 		v4only
 
-	procd_set_param respawn 15 30 0
+	procd_set_param respawn 0 30 0
 
 	procd_set_param stdout 1
 	procd_set_param stderr 1
