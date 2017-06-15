@@ -291,6 +291,10 @@ dhcp_host_add() {
 	config_get leasetime "$cfg" leasetime
 	dhcp_host_tag_list="${dhcp_host_tag_list} ${tag}"
 	xappend "--dhcp-host=$macs${duid:+,id:$duid}${networkid:+,net:$networkid}${broadcast:+,set:needs-broadcast}${tag:+,set:$tag}${ip:+,$ip${hostid:+,[::$hostid]}}${name:+,$name}${leasetime:+,$leasetime}"
+	# We populate ipsets with mac address of host to apply iptables filters on macvlan network interfaces sharing the same root device whereas they will NACK each others
+	ipset create "dnsmasq_${tag}_hosts" hash:mac -exist
+	ipset add "dnsmasq_${tag}_hosts" "$macs" -exist
+	ipset add dnsmasq_known_hosts "$macs" -exist
 }
 
 dhcp_tag_add() {
@@ -422,6 +426,10 @@ dhcp_add() {
 			dhcp_option_append "option:dns-server,$ipaddr" "$net" ""
 		fi
 	fi
+	# Tell iptables to accept DHCP request from this known host
+	ipset create "dnsmasq_${networkid}_hosts" hash:mac -exist
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_${networkid}_hosts" src -j ACCEPT
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_known_hosts" src -j DROP
 }
 
 dhcp_create_static() {
@@ -478,6 +486,10 @@ dhcp_create_static() {
 		network_get_ipaddr ipaddr "$net"
 		dhcp_option_append "option:dns-server,$ipaddr" "$net" ""
 	fi
+	# Tell iptables to accept DHCP request from this known host
+	ipset create "dnsmasq_${networkid}_hosts" hash:mac -exist
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_${networkid}_hosts" src -j ACCEPT
+	iptables -w -A dnsmasq -i "$ifname" -j DROP
 }
 
 dhcp_option_append() {
@@ -832,6 +844,7 @@ dnsmasq_start()
 	}
 
 	dhcp_host_tag_list=""
+	ipset create dnsmasq_known_hosts hash:mac
 	config_foreach filter_dnsmasq host dhcp_host_add "$cfg"
 	echo >> $CONFIGFILE_TMP
 	config_foreach filter_dnsmasq boot dhcp_boot_add "$cfg"
@@ -955,6 +968,31 @@ dnsmasq_stop()
 	rm -f ${BASEDHCPSTAMPFILE}.${cfg}.*.dhcp
 }
 
+setup_iptables()
+{
+	if ! iptables -w -N dnsmasq 2>/dev/null; then
+		iptables -w -F dnsmasq
+	fi
+	if ! iptables -w -C INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq 2>/dev/null; then
+		iptables -w -I INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq
+	fi
+	cleanup_ipset
+}
+
+cleanup_iptables()
+{
+	iptables -w -D INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq
+	iptables -F dnsmasq
+	iptables -X dnsmasq
+}
+
+cleanup_ipset()
+{
+	for ipset in $(ipset -n list | grep dnsmasq_); do
+		ipset destroy "$ipset"
+	done
+}
+
 service_triggers()
 {
 	procd_add_reload_trigger "dhcp"
@@ -986,6 +1024,7 @@ start_service() {
 	}
 
 	config_load dhcp
+	setup_iptables
 
 	if [ -n "$instance" ]; then
 		[ "$instance_found" -gt 0 ] || return
@@ -1022,4 +1061,7 @@ stop_service() {
 	else
 		config_foreach dnsmasq_stop dnsmasq
 	fi
+
+	cleanup_iptables
+	cleanup_ipset
 }
