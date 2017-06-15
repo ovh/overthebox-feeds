@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+BIND_ARGS=
+
+_setup_bind_args() {
+	multipath=
+	config_get multipath "$1" multipath
+	if [ "$multipath" = "on"  ] || [ "$multipath" = "master" ]; then
+		ipaddr=
+		network_get_ipaddr ipaddr "$1"
+		[ -n "$ipaddr" ] && BIND_ARGS="${BIND_ARGS}${ipaddr},"
+	fi
+}
+
+config_load network
+config_foreach _setup_bind_args interface
+
+[ -n "$BIND_ARGS" ] && exec glorytun-udp "$@" bind "$BIND_ARGS"
