@@ -39,7 +39,6 @@ endef
 
 define Package/overthebox/conffiles
 /etc/config/overthebox
-/etc/config/network
 /etc/config/dscp
 endef
 
@@ -51,7 +50,6 @@ endef
 
 define Package/overthebox/install
 	$(CP) ./files/* $(1)/
-	$(INSTALL_DIR) $(1)/etc/uci-defaults
 endef
 
 define Package/overthebox/postinst
