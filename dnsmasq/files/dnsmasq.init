@@ -476,6 +476,7 @@ dhcp_add() {
 	config_get leasetime "$cfg" leasetime 12h
 	config_get options "$cfg" options
 	config_get_bool dynamicdhcp "$cfg" dynamicdhcp 1
+	config_get tag "$cfg" tag
 
 	config_get dhcpv4 "$cfg" dhcpv4
 	config_get dhcpv6 "$cfg" dhcpv6
@@ -492,6 +493,9 @@ dhcp_add() {
 
 	start="$( dhcp_calc "$start" )"
 	nettag="${networkid:+set:${networkid},}"
+	if [ -n "$tag" ]; then
+		nettag="${nettag}tag:$tag,"
+	fi
 
 	if [ "$limit" -gt 0 ] ; then
 		limit=$((limit-1))
