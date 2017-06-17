@@ -51,10 +51,10 @@ function create_socket(interface, kind)
     s = socket.udp()
     if s then ok, err = s:setsockname('*', 0) end
   elseif kind == "raw" then
-    local fd = -1
     s = socket.udp() -- this is not a typo
-    fd, err = p.socket(p.AF_INET, p.SOCK_RAW, p.IPPROTO_ICMP)
-    if fd >= 0 then
+    ok, err = p.socket(p.AF_INET, p.SOCK_RAW, p.IPPROTO_ICMP)
+    if ok then
+      local fd = ok
       ok, err = p.fcntl(fd, p.F_SETFL, p.O_RDWR+p.O_NONBLOCK)
       s:setfd(fd)
     end
