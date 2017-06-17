@@ -48,6 +48,20 @@ if [ -z "$KNOWN_ROUTER" ]; then
 		set network.if0_dev.macaddr=auto.lan
 		commit network
 		EOF
+
+		uci -q batch <<-EOF
+		set dhcp.lan=dhcp
+		set dhcp.lan.interface='lan'
+		set dhcp.lan.start='10'
+		set dhcp.lan.limit='150'
+		set dhcp.lan.leasetime='12h'
+		set dhcp.lan.force='true'
+		add_list dhcp.lan.tag='!known-othernet'
+		add_list dhcp.lan.interface_name='lan'
+		add_list dhcp.lan.interface_name='overthebox'
+		add_list dhcp.lan.interface_name='overthebox.ovh'
+		commit dhcp
+		EOF
 	else
 		_id=1
 		while uci -q get network.if$_id > /dev/null; do _id=$((_id+1)); done
@@ -72,6 +86,20 @@ if [ -z "$KNOWN_ROUTER" ]; then
 		add_list firewall.mptcp.network=if$_id
 		commit network
 		commit firewall
+		EOF
+
+		uci -q batch <<-EOF
+		set dhcp.if${_id}=dhcp
+		set dhcp.if${_id}.interface='if${_id}'
+		set dhcp.if${_id}.start='1'
+		set dhcp.if${_id}.leasetime='12h'
+		set dhcp.if${_id}.dynamicdhcp='0'
+		set dhcp.if${_id}.force='true'
+		set dhcp.if${_id}_gw=tag
+		add_list dhcp.if${_id}_gw.dhcp_option='1,$subnet'
+		add_list dhcp.if${_id}_gw.dhcp_option='3,$router'
+		add_list dhcp.if${_id}_gw.dhcp_option='6,$dns'
+		commit dhcp
 		EOF
 	fi
 
