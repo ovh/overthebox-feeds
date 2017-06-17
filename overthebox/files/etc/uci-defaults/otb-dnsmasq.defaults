@@ -1,29 +1,6 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# Disable caching of negative "no such domain" responses
-uci -q delete dhcp.@dnsmasq[0].nonegcache
-# Ask all servers for a response, take the fastest successful one
-uci set dhcp.@dnsmasq[0].all_servers='1'
-# Set the size of the cache
-uci set dhcp.@dnsmasq[0].cachesize='8192'
-# Tell dnsmasq that there might be other DHCP servers in the network
-uci -q get network.if0 >/dev/null && uci set dhcp.@dnsmasq[0].authoritative='0'
-
-# Custom option to filter AAAA responses as IPv6 is not yet enabled
-uci set dhcp.@dnsmasq[0].filter_aaaa='1'
-# Disable Router Advertisements
-uci -q delete dhcp.lan.ra
-uci -q delete dhcp.lan.ra_default
-uci -q delete dhcp.lan.ra_management
-uci -q delete dhcp.lan.ra_preference
-# Disable DHCPv6 server
-uci -q delete dhcp.lan.dhcpv6
-
-if grep overthebox.ovh /etc/dnsmasq.conf 1>/dev/null 2>/dev/null; then
-	sed -i.bak '/overthebox.ovh/d' /etc/dnsmasq.conf
-fi
-
 if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci add dhcp cname
 	uci set dhcp.@cname[-1].cname='overthebox'
@@ -33,7 +10,20 @@ if ! uci show dhcp | grep 'overthebox' 1>/dev/null 2>/dev/null; then
 	uci set dhcp.@cname[-1].target='lan'
 fi
 
-uci commit dhcp
+uci -q batch <<-EOF
+set dhcp.@dnsmasq[0].cachesize='8192'
+set dhcp.@dnsmasq[0].filter_aaaa='1'
+set dhcp.@dnsmasq[0].all_servers='1'
+set dhcp.@dnsmasq[0].authoritative='1'
+set dhcp.@dnsmasq[0].quietdhcp='1'
+delete dhcp.@dnsmasq[0].nonegcache
+delete dhcp.lan.ra
+delete dhcp.lan.ra_default
+delete dhcp.lan.ra_management
+delete dhcp.lan.ra_preference
+delete dhcp.lan.dhcpv6
+commit dhcp
+EOF
 
 exit 0
 

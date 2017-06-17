@@ -18,6 +18,16 @@ _setup() {
 config_load firewall
 config_foreach _setup zone
 
+uci -q batch <<-EOF
+add firewall rule
+set firewall.@rule[-1].name=Allow-DHCP-Request
+set firewall.@rule[-1].src=wan
+set firewall.@rule[-1].proto=udp
+set firewall.@rule[-1].dest_port=67
+set firewall.@rule[-1].target=ACCEPT
+set firewall.@rule[-1].family=ipv4
+EOF
+
 uci -q commit firewall
 
 exit 0
