@@ -275,7 +275,7 @@ dhcp_host_add() {
 		name=""
 	fi
 
-	config_get tag "$cfg" tag
+	config_get tag "$cfg" tag "lan"
 
 	if [ "$DHCPv6CAPABLE" -eq 1 ]; then
 		config_get duid "$cfg" duid
@@ -289,8 +289,12 @@ dhcp_host_add() {
 	[ "$broadcast" = "0" ] && broadcast=
 
 	config_get leasetime "$cfg" leasetime
-
+	dhcp_host_tag_list="${dhcp_host_tag_list} ${tag}"
 	xappend "--dhcp-host=$macs${duid:+,id:$duid}${networkid:+,net:$networkid}${broadcast:+,set:needs-broadcast}${tag:+,set:$tag}${ip:+,$ip${hostid:+,[::$hostid]}}${name:+,$name}${leasetime:+,$leasetime}"
+	# We populate ipsets with mac address of host to apply iptables filters on macvlan network interfaces sharing the same root device whereas they will NACK each others
+	ipset create "dnsmasq_${tag}_hosts" hash:mac -exist
+	ipset add "dnsmasq_${tag}_hosts" "$macs" -exist
+	ipset add dnsmasq_known_hosts "$macs" -exist
 }
 
 dhcp_tag_add() {
@@ -363,6 +367,8 @@ dhcp_add() {
 		DNS_SERVERS="$DNS_SERVERS $dnsserver"
 	}
 
+	dnsmasq_device_list="${dnsmasq_device_list} $ifname"
+	dnsmasq_interface_list="${dnsmasq_interface_list} $net"
 	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && return 0
 
 	# Do not support non-static interfaces for now
@@ -389,13 +395,128 @@ dhcp_add() {
 	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
 	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
 
+	has_dns_option=0
+	has_router_option=0
+
 	dhcp_option_add "$cfg" "$networkid"
+
+	if [ "$has_router_option" = "0" ]; then
+		local router
+		network_get_gateway router "$net"
+		if [ -n "$router" ]; then
+			dhcp_option_append "option:router,$router" "$net" ""
+		else
+			local ipaddr
+			network_get_ipaddr ipaddr "$net"
+			dhcp_option_append "option:router,$ipaddr" "$net" ""
+		fi
+	fi
+	if [ "$has_dns_option" = "0" ]; then
+		local dnsservers dns
+		network_get_dnsserver dnsservers "$net"
+		for dnssserver in $dnsservers;
+		do
+			dns="$dns,$dnssserver"
+		done
+		if [ -n "$dns" ]; then
+			dhcp_option_append "option:dns-server$dns" "$net" ""
+		else
+			local ipaddr
+			network_get_ipaddr ipaddr "$net"
+			dhcp_option_append "option:dns-server,$ipaddr" "$net" ""
+		fi
+	fi
+	# Tell iptables to accept DHCP request from this known host
+	ipset create "dnsmasq_${networkid}_hosts" hash:mac -exist
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_${networkid}_hosts" src -j ACCEPT
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_known_hosts" src -j DROP
+}
+
+dhcp_create_static() {
+	local net="$1"
+	networkid="$net"
+
+	network_get_subnet subnet "$net" || return 0
+	network_get_device ifname "$net" || return 0
+	network_get_protocol proto "$net" || return 0
+
+	[ "$cachelocal" = "0" ] && network_get_dnsserver dnsserver "$net" && {
+		DNS_SERVERS="$DNS_SERVERS $dnsserver"
+	}
+	dnsmasq_device_list="${dnsmasq_device_list} $ifname"
+	dnsmasq_interface_list="${dnsmasq_interface_list} $net"
+
+	# Do not support non-static interfaces for now
+	[ static = "$proto" ] || return 0
+
+	netmask="${subnet##*/}"
+
+	start="0"
+	limit=""
+	leasetime=""
+	options=""
+	dynamicdhcp="0"
+
+	leasetime="${leasetime:-12h}"
+	start="$(dhcp_calc "${start:-100}")"
+	limit="${limit:-150}"
+	[ "$limit" -gt 0 ] && limit=$((limit-1))
+	eval "$(ipcalc.sh "${subnet%%/*}" $netmask $start $limit)"
+	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
+	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
+
+	local router dnsservers dns
+	network_get_gateway router "$net"
+	network_get_dnsserver dnsservers "$net"
+	if [ -n "$router" ]; then
+		dhcp_option_append "option:router,$router" "$net" ""
+	else
+		local ipaddr
+		network_get_ipaddr ipaddr "$net"
+		dhcp_option_append "option:router,$ipaddr" "$net" ""
+	fi
+	for dnssserver in $dnsservers;
+	do
+		dns="$dns,$dnssserver"
+	done
+	if [ -n "$dns" ]; then
+		dhcp_option_append "option:dns-server$dns" "$net" ""
+	else
+		local ipaddr
+		network_get_ipaddr ipaddr "$net"
+		dhcp_option_append "option:dns-server,$ipaddr" "$net" ""
+	fi
+	# Tell iptables to accept DHCP request from this known host
+	ipset create "dnsmasq_${networkid}_hosts" hash:mac -exist
+	iptables -w -A dnsmasq -i "$ifname" -m set --match-set "dnsmasq_${networkid}_hosts" src -j ACCEPT
+	iptables -w -A dnsmasq -i "$ifname" -j DROP
 }
 
 dhcp_option_append() {
 	local option="$1"
 	local networkid="$2"
 	local force="$3"
+
+	case $option in
+		3,*)
+			has_router_option=1
+			;;
+		option:3,*)
+			has_router_option=1
+			;;
+		option:router,*)
+			has_router_option=1
+			;;
+		6,*)
+			has_dns_option=1
+			;;
+		option:6,*)
+			has_dns_option=1
+			;;
+		option:dns-server,*)
+			has_dns_option=1
+			;;
+	esac
 
 	xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$option"
 }
@@ -488,7 +609,15 @@ dhcp_cname_add() {
 	config_get target "$cfg" target
 	[ -n "$target" ] || return 0
 
+	# Test for duplicated cname
+	if list_contains cname_list "${cname}"; then
+		logger -t dnsmasq \
+			"Ignoring duplicated cname '${cname}'"
+		return 0
+	fi
 	xappend "--cname=${cname},${target}"
+	# Append cname entry in cnames list for later dup checks
+	cname_list="${cname_list} ${cname}"
 }
 
 dhcp_hostrecord_add() {
@@ -529,6 +658,14 @@ dhcp_relay_add() {
 		network_get_device ifname "$interface" || return
 		xappend "--dhcp-relay=$local_addr,$server_addr,$ifname"
 	fi
+}
+
+dnsmasq_interface_name_add() {
+	local name="$1"
+	local ifname
+
+	config_get ifname "$1" ifname
+	xappend "--interface-name=$name,$ifname"
 }
 
 dnsmasq_start()
@@ -706,6 +843,8 @@ dnsmasq_start()
 		append EXTRA_MOUNT $tftp_root
 	}
 
+	dhcp_host_tag_list=""
+	ipset create dnsmasq_known_hosts hash:mac
 	config_foreach filter_dnsmasq host dhcp_host_add "$cfg"
 	echo >> $CONFIGFILE_TMP
 	config_foreach filter_dnsmasq boot dhcp_boot_add "$cfg"
@@ -749,7 +888,32 @@ dnsmasq_start()
 
 	config_get odhcpd_is_active odhcpd maindhcp
 	if [ "$odhcpd_is_active" != "1" ]; then
+		dnsmasq_device_list=""
+		dnsmasq_interface_list=""
 		config_foreach filter_dnsmasq dhcp dhcp_add "$cfg"
+
+		# Create a static DHCP on interface with hosts and no dhcp defined
+		for tag in $dhcp_host_tag_list; do
+			if ! list_contains dnsmasq_interface_list "$tag"; then
+				dhcp_create_static "$tag"
+			fi
+		done
+
+		# List all system devices
+		. /usr/share/libubox/jshn.sh
+		json_load "$(ubus call network.device status)"
+		json_get_keys system_device_list
+		for device in $system_device_list; do
+			if ! list_contains dnsmasq_device_list "$device"; then
+				xappend "--no-dhcp-interface=$device"
+			fi
+		done
+
+		# Setup network interface dns and reverse
+		config_load network
+		config_foreach dnsmasq_interface_name_add interface
+		config_load dhcp
+
 	fi
 
 	echo >> $CONFIGFILE_TMP
@@ -804,6 +968,31 @@ dnsmasq_stop()
 	rm -f ${BASEDHCPSTAMPFILE}.${cfg}.*.dhcp
 }
 
+setup_iptables()
+{
+	if ! iptables -w -N dnsmasq 2>/dev/null; then
+		iptables -w -F dnsmasq
+	fi
+	if ! iptables -w -C INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq 2>/dev/null; then
+		iptables -w -I INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq
+	fi
+	cleanup_ipset
+}
+
+cleanup_iptables()
+{
+	iptables -w -D INPUT -p udp --dport 67:68 --sport 67:68 -j dnsmasq
+	iptables -F dnsmasq
+	iptables -X dnsmasq
+}
+
+cleanup_ipset()
+{
+	for ipset in $(ipset -n list | grep dnsmasq_); do
+		ipset destroy "$ipset"
+	done
+}
+
 service_triggers()
 {
 	procd_add_reload_trigger "dhcp"
@@ -835,6 +1024,7 @@ start_service() {
 	}
 
 	config_load dhcp
+	setup_iptables
 
 	if [ -n "$instance" ]; then
 		[ "$instance_found" -gt 0 ] || return
@@ -871,4 +1061,7 @@ stop_service() {
 	else
 		config_foreach dnsmasq_stop dnsmasq
 	fi
+
+	cleanup_iptables
+	cleanup_ipset
 }
