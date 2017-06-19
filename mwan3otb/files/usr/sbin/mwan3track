@@ -51,7 +51,11 @@ function create_socket(interface, kind)
     s = socket.udp()
     if s then ok, err = s:setsockname('*', 0) end
   elseif kind == "raw" then
-    s = socket.udp() -- this is not a typo
+    s = socket.udp()
+    -- this is not a typo, we use udp socket from luasocket to build a raw one.
+    -- this is a temporary hack :)
+    local bad_fd = s:getfd()
+    if bad_fd and bad_fd >= 0 then p.close(bad_fd) end
     ok, err = p.socket(p.AF_INET, p.SOCK_RAW, p.IPPROTO_ICMP)
     if ok then
       local fd = ok
