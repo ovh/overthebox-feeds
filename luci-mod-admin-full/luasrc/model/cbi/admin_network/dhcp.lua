@@ -245,6 +245,18 @@ tag = s:option(ListValue, "tag", translate("Gateway"))
 tag:value("", "Default")
 tag.rmempty  = true
 
+m.uci:foreach("network", "interface",
+  function(section)
+    if section["multipath"] == "on" or section["multipath"] == "master" or section["multipath"] == "backup" or section["multipath"] == "handover" then
+      local value = section[".name"]
+      local label = section["label"]
+      if section["label"] then
+        label = section["label"] .. ' (' .. value .. ')'
+      end
+      tag:value(value, label)
+    end
+end)
+
 m.uci:foreach("dhcp", "tag",
 	function(section)
 		local name = section[".name"]
