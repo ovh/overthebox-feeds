@@ -24,7 +24,8 @@ MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
 	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
 	bash rng-tools ss strace tcpdump-mini conntrack conntrackd \
 	luci luci-lib-json luci-theme-bootstrap ca-certificates \
-	libustream-mbedtls luci-lib-px5g px5g kmod-ipt-raw ip-full
+	libustream-mbedtls luci-lib-px5g px5g kmod-ipt-raw ip-full \
+	iptables-mod-trace
 
 define Package/overthebox
 SECTION:=utils
