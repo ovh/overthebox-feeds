@@ -1,0 +1,8 @@
+#!/usr/bin/env lua
+-- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
+local os = require 'os'
+local overthebox = require 'overthebox'
+-- overthebox.debug = true
+if overthebox.update_confmwan() ~= false then
+  return os.execute("/usr/sbin/mwan3 restart")
+end
