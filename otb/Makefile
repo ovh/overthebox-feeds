@@ -6,7 +6,8 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := overthebox TARGET_x86:python-swconfig-otb usb-modeswitch
+MY_DEPENDS := overthebox TARGET_x86:python-swconfig-otb \
+    usb-modeswitch bmon bwm-ng
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
