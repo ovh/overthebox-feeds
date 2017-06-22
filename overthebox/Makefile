@@ -25,7 +25,7 @@ MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
 	bash rng-tools ss strace tcpdump-mini conntrack conntrackd \
 	luci luci-lib-json luci-theme-bootstrap ca-certificates \
 	libustream-mbedtls luci-lib-px5g px5g kmod-ipt-raw ip-full \
-	iptables-mod-trace
+	iptables-mod-trace otb-qos
 
 define Package/overthebox
 SECTION:=utils
@@ -63,9 +63,6 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	for file in /etc/sysctl.d/*.conf; do
 		sysctl -p "$$file"
 	done
-
-	[ -x /etc/init.d/qos ] && /etc/init.d/qos enable ;
-	[ -x /etc/init.d/dscp ] && /etc/init.d/dscp enable ;
 
 	# Once all defaults are set, we use reload_config that will call
 	# /etc/init.d/{service} reload on all services that had some config changes
