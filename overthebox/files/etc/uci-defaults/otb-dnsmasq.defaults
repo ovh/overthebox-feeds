@@ -7,7 +7,7 @@ uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
-set dhcp.@dnsmasq[0].authoritative='0'
+set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra

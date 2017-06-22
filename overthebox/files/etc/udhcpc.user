@@ -73,20 +73,6 @@ if [ -z "$KNOWN_ROUTER" ]; then
 		commit network
 		commit firewall
 		EOF
-
-		uci -q batch <<-EOF
-		set dhcp.if${_id}=dhcp
-		set dhcp.if${_id}.interface='if${_id}'
-		set dhcp.if${_id}.start='1'
-		set dhcp.if${_id}.leasetime='12h'
-		set dhcp.if${_id}.dynamicdhcp='0'
-		set dhcp.if${_id}.force='true'
-		set dhcp.if${_id}_gw=tag
-		add_list dhcp.if${_id}_gw.dhcp_option='1,$subnet'
-		add_list dhcp.if${_id}_gw.dhcp_option='3,$router'
-		add_list dhcp.if${_id}_gw.dhcp_option='6,$dns'
-		commit dhcp
-		EOF
 	fi
 
 	/etc/init.d/network reload
