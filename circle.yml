@@ -2,6 +2,7 @@ machine:
     timezone: Europe/Paris
     environment:
         OTB_PATH: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH
+        OTB_FEED: $HOME/$CIRCLE_PROJECT_REPONAME
 
 dependencies:
     override:
