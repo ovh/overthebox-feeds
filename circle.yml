@@ -1,0 +1,32 @@
+machine:
+    timezone: Europe/Paris
+    environment:
+        OTB_PATH: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH
+
+dependencies:
+    override:
+        - sudo apt-get update
+        - sudo apt-get install -yq build-essential git unzip ncurses-dev libz-dev libssl-dev python subversion gettext gawk wget curl rsync perl
+        - git clone https://github.com/ovh/overthebox ~/overthebox || true
+        - git -C ~/overthebox fetch --all
+        - git -C ~/overthebox checkout origin/master -B master
+        - cd ~/overthebox && sh build.sh prepare package/{compile,install,index} -j2 :
+            timeout: 7200
+    cache_directories:
+        - "~/overthebox"
+
+compile:
+    override:
+        - make -C ~/overthebox/source target/install -j2 :
+            timeout: 7200
+
+test:
+    override:
+        - "true"
+
+deployment:
+    dev:
+        branch: /.*/
+        commands:
+            - ssh deploy@$OTB_HOST mkdir -p deploy/$OTB_PATH
+            - rsync -av --delete-after ~/overthebox/source/bin/ deploy@$OTB_HOST:deploy/$OTB_PATH
