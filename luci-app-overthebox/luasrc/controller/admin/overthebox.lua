@@ -43,14 +43,13 @@ function index()
 	entry({"admin", "overthebox", "dhcp_status"}, call("dhcp_status")).leaf = true
 	entry({"admin", "overthebox", "dhcp_recheck"}, call("action_dhcp_recheck")).leaf = true
 	entry({"admin", "overthebox", "dhcp_skiptimer"}, call("action_dhcp_skip_timer")).leaf = true
-	entry({"admin", "overthebox", "dhcp_start_server"}, call("action_dhcp_start_server")).leaf = true
 	entry({"admin", "overthebox", "activate_service"}, call("action_activate")).leaf = true
 	entry({"admin", "overthebox", "need_activate_service"},  call("need_activate")).leaf = true
 	entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
 	entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
 	entry({"admin", "overthebox", "update_conf"}, call("action_update_conf")).leaf = true
 end
-	
+
 function action_passwd()
 	local result = {}
 	result["status"] = false
@@ -383,7 +382,6 @@ end
 
 function action_activate(service)
 	local result = require('overthebox').confirm_service(service)
-	action_dhcp_start_server()
 	action_dhcp_recheck()
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
@@ -428,15 +426,8 @@ function action_dhcp_skip_timer()
 	luci.http.write_json("OK")
 end
 
-function action_dhcp_start_server()
-        local result = require('overthebox').create_dhcp_server()
-	luci.http.prepare_content("application/json")
-	luci.http.write_json(result)
-end
-
 function action_update_conf()
         local result = require('overthebox').update_confmwan()
         luci.http.prepare_content("application/json")
         luci.http.write_json(result)
 end
-
