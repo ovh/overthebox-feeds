@@ -1,21 +1,104 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+. /lib/functions.sh
+
 uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
 set dhcp.@dnsmasq[0].authoritative='0'
 set dhcp.@dnsmasq[0].quietdhcp='1'
-add_list dhcp.@dnsmasq[0].notinterface='if0'
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra
 delete dhcp.lan.ra_default
 delete dhcp.lan.ra_management
 delete dhcp.lan.ra_preference
 delete dhcp.lan.dhcpv6
-commit dhcp
 EOF
 
-exit 0
+#################################
+# Migration from openwrt to lede
+#################################
 
+config_load dhcp
+
+# Add tags on lan
+lan_tag=$(uci -q get dhcp.lan.tag)
+if [ "$lan_tag" != "!known-othernet" ]; then
+	uci -q batch <<-EOF
+	set dhcp.lan.force='true'
+	add_list dhcp.lan.tag='!known-othernet'
+	add_list dhcp.lan.interface_name='lan'
+	add_list dhcp.lan.interface_name='overthebox'
+	add_list dhcp.lan.interface_name='overthebox.ovh'
+	add_list dhcp.@dnsmasq[0].notinterface='if0'
+	EOF
+fi
+
+# Remove the old cnames, it is now configured on the lan dhcp-range
+delete_old_cnames() {
+	config_get cname "$1" cname
+	[ "${cname%%.*}" = "overthebox" ] && uci -q delete "dhcp.$1"
+}
+config_foreach delete_old_cnames cname
+
+# Remove the old hostrecords
+delete_old_hostrecords() {
+	config_get name "$1" name
+	case $name in
+		lan|loopback|tun0|xtun0|if*) uci -q delete "dhcp.$1";;
+	esac
+}
+config_foreach delete_old_hostrecords hostrecord
+
+# Setup the static ranges, and gateway tags
+create_static_ranges() {
+	interface="$1"
+
+	# Skip well formatted tags, e.g. XXX_gw
+	[ "${interface##*_}" = "gw" ] && return 0
+
+	config_get options "$interface" dhcp_option
+
+	uci -q batch <<-EOF
+	delete dhcp.${interface}
+	set dhcp.${interface}=dhcp
+	set dhcp.${interface}.interface='$interface'
+	set dhcp.${interface}.start='1'
+	set dhcp.${interface}.leasetime='12h'
+	set dhcp.${interface}.dynamicdhcp='0'
+	set dhcp.${interface}.force='true'
+	EOF
+
+	# Create the new tags
+	uci -q set "dhcp.${interface}_gw=tag"
+	for option in $options; do
+		option=${option##*:}
+		uci -q add_list "dhcp.${interface}_gw.dhcp_option=$option"
+	done
+
+	# Cleanup the old dhcp
+	cleanup_dhcp() {
+		config_get ifname "$1" interface
+		[ "$ifname" = "$interface" ] && uci -q delete "dhcp.$1"
+	}
+	config_foreach cleanup_dhcp dhcp
+
+	# Change the host configuration to use the new tag
+	update_host_tag() {
+		config_get tag "$1" tag
+		[ "$tag" = "$interface" ] && uci -q set "dhcp.$1.tag=${interface}_gw"
+	}
+	config_foreach update_host_tag host
+}
+config_load dhcp
+config_foreach create_static_ranges tag
+
+##################################
+# / Migration from openwrt to lede
+##################################
+
+uci -q commit dhcp
+
+exit 0
