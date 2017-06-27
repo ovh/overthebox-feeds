@@ -132,8 +132,8 @@ function interfaces_status()
 	end
 	-- Add DHCP infos by parsing dnsmask config file
 	mArray.overthebox.dhcpd = {}
-	dnsmasq = ut.trim(sys.exec("cat /var/etc/dnsmasq.conf"))
-	for itf, range_start, range_end, mask, leasetime in dnsmasq:gmatch("range=(%w+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%w+)") do
+	dnsmasq = ut.trim(sys.exec("cat /var/etc/dnsmasq.conf*"))
+	for itf, range_start, range_end, mask, leasetime in dnsmasq:gmatch("range=[%w,]*set:(%w+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%d+\.%d+\.%d+\.%d+),(%w+)") do
 		mArray.overthebox.dhcpd[itf] = {}
 		mArray.overthebox.dhcpd[itf].interface = itf
 		mArray.overthebox.dhcpd[itf].range_start = range_start
