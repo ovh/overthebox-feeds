@@ -1703,15 +1703,6 @@ function update_confmwan()
   return result, interfaces
 end
 
-function list_running_dhcp()
-  local result = {}
-  local dhcpd = (sys.exec("cat /var/etc/dnsmasq.conf | grep dhcp-range | cut -c12- | cut -f1 -d','"))
-  for line in string.gmatch(dhcpd,'[^\r\n]+') do
-    result[line] = true
-  end
-  return result
-end
-
 function ipv6_discover(interface)
   local interface = interface or 'eth0'
   local result = {}

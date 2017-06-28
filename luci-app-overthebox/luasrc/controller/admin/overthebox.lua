@@ -366,10 +366,10 @@ function dhcp_status()
                 end
         )
 	-- List our DHCP service
-	result.running_dhcp_service = require('overthebox').list_running_dhcp()
+	result.running_dhcp_service = {}
         uci:foreach("dhcp", "dhcp",
                 function (section)
-                        if result.running_dhcp_service[section[".name"]] then
+                        if (section["dynamicdhcp"] ~= "0") and (section["ignore"] ~= "1") then
                                 result.running_dhcp_service[section[".name"]] = section
                                 result.running_dhcp_service[section[".name"]].ipaddr = uci:get("network", section[".name"], "ipaddr")
                         end
