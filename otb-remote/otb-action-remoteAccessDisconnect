@@ -1,0 +1,20 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+remote_access_id="$(otb_json_get "$1" 'arguments.remote_access_id')"
+uci_id=$(echo "$remote_access_id" | tr - _)
+
+luci_user=$(uci -q get otb-remote."${uci_id}".luci_user) || true
+[ -n "$luci_user" ] && deluser "$luci_user"
+
+uci -q batch <<EOF
+delete otb-remote.${uci_id}
+commit otb-remote
+EOF
+
+/etc/init.d/otb-remote restart
