@@ -1,0 +1,52 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+config=$(otb_device_get config)
+
+cat > /tmp/config <<EOF
+$config
+EOF
+
+_get() {
+    otb_json_get "$config" "$1"
+}
+
+CONFIG_FILES="
+    /etc/config/system
+    /etc/config/graph
+    /etc/config/glorytun
+"
+for file in $CONFIG_FILES; do
+    [ -f "$file" ] || touch "$file"
+done
+
+dev=$(_get glorytun_mud_conf.dev)
+
+uci -q batch << EOF
+set glorytun.$dev=mud
+set glorytun.$dev.enable=1
+set glorytun.$dev.dev=$dev
+set glorytun.$dev.server=$(_get glorytun_mud_conf.server)
+set glorytun.$dev.port=$(_get glorytun_mud_conf.port)
+set glorytun.$dev.key=$(_get glorytun_mud_conf.key)
+set glorytun.$dev.mtu=$(_get glorytun_mud_conf.mtu)
+
+set system.@system[0].log_ip=$(_get log_conf.host)
+set system.@system[0].log_port=$(_get log_conf.port)
+set system.@system[0].log_proto=$(_get log_conf.protocol)
+set system.@system[0].log_prefix=$(_get log_conf.key)
+
+set graph.opentsdb=opentsdb
+set graph.opentsdb.url=$(_get graph_conf.host)
+set graph.opentsdb.freq=$(_get graph_conf.write_frequency)
+
+commit
+EOF
+
+# not here..
+[ -d /var/run/config.check ] || reload_config

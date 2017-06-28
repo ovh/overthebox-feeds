@@ -1,0 +1,35 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+for file_path in $OTB_EVENTS_DIRECTORY/*; do
+	[ -f "$file_path" ] || continue
+	filename=$(basename "$file_path")
+	file_info=${filename%-*}
+	name=${file_info%%-*}
+	timestamp=${file_info##*-}
+
+	details=$(cat "$file_path")
+	[ -z "$details" ] && details='{}'
+
+	# shellcheck disable=SC2016
+	event=$(jq -n -c --arg name "$name" \
+					 --arg timestamp "$timestamp" \
+					 --argjson details "$details" \
+					 '{
+						event_name: $name,
+						timestamp: $timestamp|tonumber,
+						details: $details,
+					 }'
+	)
+
+	echo "Sending $name event"
+	otb_device_post "events" --data "$event"
+	echo
+
+	rm "$file_path"
+done

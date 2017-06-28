@@ -1,0 +1,14 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+url=$(grep reboot_core /etc/opkg/distfeeds.conf | cut -d' ' -f3)
+file=latest.img.gz
+
+cd /tmp
+
+curl -sS -m 5 "${url}/../${file}"     -o "${file}"
+curl -sS -m 5 "${url}/../${file}.sig" -o "${file}.sig"
+
+usign -V -m "${file}" -P /etc/opkg/keys && sysupgrade "${file}"

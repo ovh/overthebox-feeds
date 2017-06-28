@@ -1,0 +1,97 @@
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+: ${OTB_DEVICE_ID:=$(uci -q get overthebox.me.device_id)}
+: ${OTB_SERVICE_ID:=$(uci -q get overthebox.me.service_id)}
+: ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
+: ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
+: ${OTB_EVENTS_DIRECTORY:="/tmp/otb-events"}
+
+otb_alert() {
+	logger -t otb -p 1 "$*" || true
+}
+
+otb_crit() {
+	logger -t otb -p 2 "$*" || true
+}
+
+otb_err() {
+	logger -t otb -p 3 "$*" || true
+}
+
+otb_warn() {
+	logger -t otb -p 4 "$*" || true
+}
+
+otb_notice() {
+	logger -t otb -p 5 "$*" || true
+}
+
+otb_info() {
+	logger -t otb -p 6 "$*" || true
+}
+
+otb_debug()  {
+	# shellcheck disable=SC2015
+	[ -n "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
+}
+
+# shellcheck disable=SC2016
+otb_pretty_print() {
+	# Try to pretty print as json
+	local pretty_output=$(jq -e -n --argjson output "$1" '$output' 2>/dev/null)
+	if [ $? -eq "0" ]; then
+		echo "$pretty_output"
+	else
+		echo "$1"
+	fi
+}
+
+otb_json_get() {
+	jq -r -n --argjson content "$1" "\$content.$2"
+}
+
+otb_call() {
+	method=$1
+	path=$2
+	shift 2
+	otb_debug "call: $method $path $*"
+	curl --silent --show-error --max-time 5 \
+		-X "$method" \
+		-H "Content-Type: application/json" \
+		-H "X-Auth-OVH: $OTB_TOKEN" \
+		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
+		"https://provisionning.overthebox.net:4443/$path" \
+		"$@"
+}
+
+otb_device_post() {
+	subpath=$1
+	shift 1
+	otb_call POST "devices/$OTB_DEVICE_ID/$subpath" "$@"
+}
+
+otb_device_get() {
+	subpath=$1
+	shift 1
+	otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
+}
+
+otb_service_post() {
+	subpath=$1
+	shift 1
+	otb_device_post "service/$OTB_SERVICE_ID/$subpath" "$@"
+}
+
+otb_service_get() {
+	subpath=$1
+	shift 1
+	otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
+}
+
+otb_save_event() {
+	name=$1
+	details=$2
+	timestamp=$(date +%s)
+	mkdir -p "$OTB_EVENTS_DIRECTORY"
+	echo "$details" > "$OTB_EVENTS_DIRECTORY/$name-$timestamp-$RANDOM"
+}

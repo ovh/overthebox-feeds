@@ -1,0 +1,27 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# set -e
+
+opkg update -V1
+
+# upgrade old version
+VERSION=$(cat /etc/otb-version)
+PACKAGE=${VERSION%-*}
+
+opkg install --force-reinstall -V1 "${PACKAGE:-otb}"
+
+for file in /etc/uci-defaults/otb*.defaults; do
+	[ -f "$file" ] || continue
+	( . "$file" ) && rm -f "$file"
+done
+
+for file in /etc/sysctl.d/*.conf; do
+	[ -f "$file" ] || continue
+	sysctl -p "$file"
+done
+
+# not here..
+[ -d /var/run/config.check ] || reload_config
+
+rm -fr /tmp/luci-indexcache /tmp/luci-modulecache

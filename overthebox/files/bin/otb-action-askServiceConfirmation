@@ -1,0 +1,14 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+json=$(otb_device_get service)
+service_id=$(otb_json_get "$json" service)
+
+# Save the service name
+uci -q set overthebox.me.service_id="$service_id"
+uci commit
+
+otb_device_post "service/$service_id/confirm"

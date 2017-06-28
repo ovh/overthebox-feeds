@@ -1,6 +1,0 @@
-#!/usr/bin/env lua
--- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
-
-local overthebox = require 'overthebox'
--- overthebox.debug = true
-overthebox.notify_ifup(arg[1])

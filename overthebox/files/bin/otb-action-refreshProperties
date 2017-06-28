@@ -1,0 +1,131 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# shellcheck disable=SC1091
+. /lib/functions.sh
+. /lib/functions/network.sh
+. /lib/overthebox
+
+# Global var containing the interfaces as json
+INTERFACES=""
+
+# shellcheck disable=SC2016
+_get_packages() {
+	# Only return the kernel for now
+	local version=$(opkg info kernel | grep Version | cut -d' ' -f2)
+	jq -n -c --arg kernel_version "$version" '[{ name: "kernel", version: $kernel_version }]'
+}
+
+_get_interface_json() {
+	local dns gateway ipaddr netmask \
+		ifname metric multipath proto if_label \
+		traffic_control upload download
+
+	network_get_dnsserver dns "$1"
+	network_get_gateway gateway "$1"
+	network_get_ipaddr ipaddr "$1"
+	network_get_subnet netmask "$1"
+
+	config_get ifname "$1" ifname
+	config_get metric "$1" metric
+	config_get multipath "$1" multipath
+	config_get proto "$1" proto
+	config_get if_label "$1" label
+	config_get traffic_control "$1" trafficcontrol
+	config_get upload "$1" upload "0"
+	config_get download "$1" download "0"
+
+	# Get the public ip for the interface if the gateway is defined
+	local public_ip
+	if [ -n "$gateway" ]; then
+		public_ip=$(curl -s --max-time 1 --interface "$ifname" ifconfig.ovh)
+	fi
+
+	local dns_servers
+	if [ -n "$dns" ]; then
+		# shellcheck disable=SC2016
+		dns_servers=$(jq -n -c --arg dns "$dns" '$dns | split(" ")')
+	else
+		dns_servers='[]'
+	fi
+
+	# shellcheck disable=SC2016
+	jq -n -c --argjson dns_servers "$dns_servers" \
+		--arg gateway "$gateway" \
+		--arg ifname "$ifname" \
+		--arg interface "$interface" \
+		--arg ipaddr "$ipaddr" \
+		--arg macaddr "$macaddr" \
+		--arg metric "$metric" \
+		--arg multipath "$multipath" \
+		--arg netmask "$netmask" \
+		--arg proto "$proto" \
+		--arg public_ip "$public_ip" \
+		--arg if_label "$if_label" \
+		--arg traffic_control "$traffic_control" \
+		--arg upload "$upload" \
+		--arg download "$download" \
+		'{
+	public_ip: $public_ip,
+	ip: $ipaddr,
+	netmask: $netmask,
+	gateway: $gateway,
+	name: $ifname,
+	label: $if_label,
+	traffic_control: $traffic_control,
+	upload: $upload|tonumber,
+	download: $download|tonumber,
+	dns_servers: $dns_servers,
+	multipath_status: $multipath,
+}'
+}
+
+# shellcheck disable=SC2016
+_get_interface() {
+	local json=$(_get_interface_json "$1")
+	otb_debug "$(printf "\nInterface $1 properties:\n%s" "$(otb_pretty_print "$json")")"
+	INTERFACES=$(jq -n -c --argjson interfaces "$INTERFACES" --argjson interface "$json" '$interfaces + [$interface]')
+}
+
+# shellcheck disable=SC2016
+_get_mounts() {
+	local mounts="[]"
+	while read -r dev mount_point fs options _ _ ; do
+		mounts=$(\
+			jq -n -c --argjson mounts "$mounts" \
+			--arg dev "$dev" \
+			--arg mount_point "$mount_point" \
+			--arg fs "$fs" \
+			--arg options "$options" \
+			'$mounts + [{
+				device: $dev,
+				fs: $fs,
+				mount_point: $mount_point,
+				options: $options,
+			}]' \
+		)
+	done < /proc/mounts
+	otb_debug "$(printf "\nMounts :\n%s" "$(otb_pretty_print "$mounts")")"
+	echo "$mounts"
+}
+
+_properties() {
+	INTERFACES="[]"
+	config_load network
+	config_foreach _get_interface interface ret
+
+	local packages=$(_get_packages)
+	local mounts=$(_get_mounts)
+
+	# shellcheck disable=SC2016
+	jq -n -c --argjson interfaces "$INTERFACES" \
+		--argjson packages "$packages" \
+		--argjson mounts "$mounts" \
+		'{
+			interfaces: $interfaces,
+			packages: $packages,
+			mounts: $mounts,
+		}'
+}
+
+otb_device_post properties --data "$(_properties)"

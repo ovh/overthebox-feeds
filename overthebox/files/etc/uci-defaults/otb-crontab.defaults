@@ -39,13 +39,6 @@ _crontab_add_if_not_exists "/usr/bin/overthebox_download_recovery" \
 _crontab_add_if_not_exists "/usr/bin/overthebox_checkup" \
 	"00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null"
 
-# Every 6h, run an emergency action in case something goes wrong with the overthebox daemon
-# Add a random sleep to avoid too many requests at the same time
-_crontab_del_if_exists "/usr/bin/overthebox_emergency_action"
-_crontab_add_if_not_exists "/usr/bin/overthebox_emergency_action" \
-	"00 */6 * * * { /usr/bin/overthebox_emergency_action cron; } &>/dev/null"
-
-
 chmod 600 /etc/crontabs/root
 chown root:root /etc/crontabs/root
 /etc/init.d/cron restart

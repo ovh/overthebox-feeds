@@ -121,9 +121,6 @@ case "$ACTION" in
 
 		_log 7 "multipath $DEVICE $MULTIPATH"
 		multipath $DEVICE $MULTIPATH
-
-		# Notify OverTheBox API
-		otb_notify_ifup $INTERFACE &
 		;;
 	ifdown)
 		_log 7 "ifdown device $INTERFACE"
@@ -134,9 +131,6 @@ case "$ACTION" in
 		_remove_dnsmasq_upstream $INTERFACE
 
 		_update_route $DEVICE $INTERFACE "delete"
-
-		# Notify OverTheBox API
-		otb_notify_ifdown $INTERFACE &
 		;;
 esac
 
