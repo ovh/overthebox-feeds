@@ -6,14 +6,14 @@
 opkg update -V1
 opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade -V1
 
-for file in /etc/uci-defaults/otb*.defaults; do
+for file in /etc/uci-defaults/*; do
 	[ -f "$file" ] || continue
 	( . "$file" ) && rm -f "$file"
 done
+
+uci -q commit
 
 for file in /etc/sysctl.d/*.conf; do
 	[ -f "$file" ] || continue
 	sysctl -p "$file"
 done
-
-rm -fr /tmp/luci-indexcache /tmp/luci-modulecache

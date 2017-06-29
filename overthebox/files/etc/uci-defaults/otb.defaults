@@ -26,8 +26,9 @@ if grep "\s*LogFile on" /etc/conntrackd/conntrackd.conf; then
 	sed -i.bak '/[[:space:]]*LogFile on/c\        LogFile off' /etc/conntrackd/conntrackd.conf
 	/etc/init.d/conntrackd restart
 	rm -f /tmp/log/conntrackd-stats.log
-	rm -rf /tmp/luci-*
 fi
+
+rm -rf /tmp/luci-*
 
 for dns in $(uci show network | grep "\.dns=" | cut -f2 -d'=' | sed s/\'//g)
 do
