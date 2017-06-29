@@ -36,6 +36,17 @@ set glorytun.$dev.port=$(_get glorytun_mud_conf.port)
 set glorytun.$dev.key=$(_get glorytun_mud_conf.key)
 set glorytun.$dev.mtu=$(_get glorytun_mud_conf.mtu)
 
+set network.$dev=interface
+set network.$dev.ifname=$dev
+set network.$dev.proto=static
+set network.$dev.ipaddr=$(_get glorytun_mud_conf.ip_local)
+set network.$dev.netmask=255.255.255.0
+set network.$dev.gateway=$(_get glorytun_mud_conf.ip_peer)
+set network.$dev.metric=$(_get glorytun_mud_conf.metric)
+set network.$dev.txqueuelen=1000
+set network.$dev.type=tunnel
+set network.$dev.multipath=off
+
 set shadowsocks.proxy=client
 set shadowsocks.proxy.server=$(_get shadow_conf.server)
 set shadowsocks.proxy.port=$(_get shadow_conf.port)
