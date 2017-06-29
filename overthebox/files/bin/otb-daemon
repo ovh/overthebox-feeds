@@ -12,6 +12,8 @@ export OTB_DEVICE_ID OTB_TOKEN OTB_DEBUG OTB_SERVICE_ID
 otb_save_event start
 
 while true; do
+	reload_config
+
 	# Send the otb events
 	otb-send-events
 

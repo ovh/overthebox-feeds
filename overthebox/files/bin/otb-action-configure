@@ -73,6 +73,3 @@ set graph.opentsdb.freq=$(_get graph_conf.write_frequency)
 
 commit
 EOF
-
-# not here..
-[ -d /var/run/config.check ] || reload_config
