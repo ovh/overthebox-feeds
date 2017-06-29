@@ -609,14 +609,6 @@ function API(uri, method, data)
     print()
   end
 
-  if ( headers and type(headers) == "table" and headers["x-otb-client-ip"] and headers["x-otb-client-ip"]:match("(%d+)%.(%d+)%.(%d+)%.(%d+)") ) then
-    fd = io.open("/tmp/wanip", "w")
-    if fd then
-      fd:write(headers["x-otb-client-ip"])
-      fd:close()
-    end
-  end
-
   -- Sometimes something's wrong and we have nil code
   -- We warn and change the value of code so we can at least use it later
   if code == nil then

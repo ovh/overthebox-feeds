@@ -93,15 +93,19 @@ function interfaces_status()
 	mArray.overthebox["service_addr"]	= uci:get("shadowsocks", "proxy", "server") or "0.0.0.0"
 	mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
 	mArray.overthebox["wan_addr"]		= "0.0.0.0"
-	local wanaddr = ut.trim(sys.exec("cat /tmp/wanip"))
-	if string.match(wanaddr, "^%d+\.%d+\.%d+\.%d+$") then
-		if logged then
-			mArray.overthebox["wan_addr"] = wanaddr
-		else
-			mArray.overthebox["wan_addr"] = wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
+
+	-- wanaddr
+	local f = io.open("/tmp/otb-daemon-headers", "rb")
+	if f then
+		local content = f:read("*all")
+		f:close()
+		local ip = string.match(content, "X%-Otb%-Client%-Ip: (%d+%.%d+%.%d+%.%d+)", 0)
+		if ip then
+			mArray.overthebox["wan_addr"] = ip
 		end
 	end
-	mArray.overthebox["remote_addr"]	= luci.http.getenv("REMOTE_ADDR") or ""
+
+	mArray.overthebox["remote_addr"]        = luci.http.getenv("REMOTE_ADDR") or ""
 	mArray.overthebox["remote_from_lease"]	= false
 	 local leases=tools.dhcp_leases()
 	for _, value in pairs(leases) do
