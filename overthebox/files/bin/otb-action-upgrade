@@ -3,10 +3,8 @@
 
 # set -e
 
-. /etc/os-release
-
 opkg update -V1
-opkg upgrade -V1 "$ID"
+opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade -V1
 
 for file in /etc/uci-defaults/otb*.defaults; do
 	[ -f "$file" ] || continue
