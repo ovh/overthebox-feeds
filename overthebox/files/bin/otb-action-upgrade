@@ -16,7 +16,4 @@ for file in /etc/sysctl.d/*.conf; do
 	sysctl -p "$file"
 done
 
-# not here..
-[ -d /var/run/config.check ] || reload_config
-
 rm -fr /tmp/luci-indexcache /tmp/luci-modulecache
