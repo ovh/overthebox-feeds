@@ -1,7 +1,7 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 : ${OTB_DEVICE_ID:=$(uci -q get overthebox.me.device_id)}
-: ${OTB_SERVICE_ID:=$(uci -q get overthebox.me.service_id)}
+: ${OTB_SERVICE_ID:=$(uci -q get overthebox.me.service)}
 : ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
 : ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
 : ${OTB_EVENTS_DIRECTORY:="/tmp/otb-events"}
