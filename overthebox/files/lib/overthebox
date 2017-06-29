@@ -5,6 +5,7 @@
 : ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
 : ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
 : ${OTB_EVENTS_DIRECTORY:="/tmp/otb-events"}
+: ${OTB_HEADERS_FILE:="/tmp/otb-daemon-headers"}
 
 otb_alert() {
 	logger -t otb -p 1 "$*" || true
@@ -60,6 +61,7 @@ otb_call() {
 		-H "Content-Type: application/json" \
 		-H "X-Auth-OVH: $OTB_TOKEN" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
+		--dump-header "$OTB_HEADERS_FILE" \
 		"https://provisionning.overthebox.net:4443/$path" \
 		"$@"
 }
