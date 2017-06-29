@@ -324,16 +324,20 @@ function multipath_bandwidth()
 	result["wans"] = {};
 	result["tuns"] = {};
 
-	for _, dev in luci.util.vspairs(luci.sys.net.devices()) do
-		if dev ~= "lo" then
-			local multipath = uci:get("network", dev, "multipath")
-			if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
-				result["wans"][dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
-			elseif uci:get("network", dev, "type") == "tunnel" then
-				result["tuns"][dev] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+	uci:foreach("network", "interface",
+		function (section)
+			local interface = section[".name"]
+			local dev = section["ifname"]
+			if dev ~= "lo" then
+				local multipath = section["multipath"]
+				if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
+					result["wans"][interface] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+				elseif section["type"] == "tunnel" then
+					result["tuns"][interface] = "[" .. string.gsub((luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)), '[\r\n]', '') .. "]"
+				end
 			end
 		end
-	end
+	)
 
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(result)
