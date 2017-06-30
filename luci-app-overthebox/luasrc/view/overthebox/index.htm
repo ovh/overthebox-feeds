@@ -24,7 +24,7 @@
 	local device_id		= uci:get("overthebox", "me", "device_id")
 	local service_id	= uci:get("overthebox", "me", "service")
 	local has_service_confirmation = false
-	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
+	if uci:get("overthebox", "me", "needs_activation") == "true" then
 		has_service_confirmation = true
 	end
 %>
