@@ -30,7 +30,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 
 _log() {
 	# 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
-	logger -st $PROG_NAME-initd -p "$1" "$2"
+	logger -t $PROG_NAME-initd -p "$@"
 }
 
 # Instances counter to avoid more than one shadowsocks
