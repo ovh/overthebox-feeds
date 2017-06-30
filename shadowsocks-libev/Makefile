@@ -9,13 +9,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=3.0.6.1
-PKG_RELEASE:=2
+PKG_VERSION:=3.0.7
+PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE)
-PKG_SOURCE_VERSION:=2734365a82ab30d144d4891deb5f12214cd82941
+PKG_SOURCE_VERSION:=c11b2c08e4aecaa01f7bc4e93d311f9945d84363
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.xz
 
 PKG_LICENSE:=GPLv3
@@ -52,7 +52,6 @@ CONFIGURE_ARGS += --disable-documentation --disable-ssp --disable-assert
 
 define Package/shadowsocks-libev/conffiles
 /etc/config/shadowsocks
-/etc/shadowsocks.json
 endef
 
 define Package/shadowsocks-libev/install
@@ -60,27 +59,14 @@ define Package/shadowsocks-libev/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/ss-{local,redir,tunnel} $(1)/usr/bin
 	$(INSTALL_BIN) ./files/shadowsocks.track $(1)/usr/bin/ss-redir-track
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_CONF) ./files/shadowsocks.conf $(1)/etc/shadowsocks.json
+	$(INSTALL_BIN) ./files/shadowsocks.init $(1)/etc/init.d/shadowsocks
 	$(INSTALL_DIR) $(1)/etc/config
 	touch  $(1)/etc/config/shadowsocks
-	$(INSTALL_BIN) ./files/shadowsocks.init $(1)/etc/init.d/shadowsocks
 endef
 
 define Package/shadowsocks-libev-server/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/ss-server $(1)/usr/bin
-endef
-
-define Package/shadowsocks-libev/postinst
-#!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/shadowsocks stop
-	killall ss-redir 2> /dev/null
-	killall ss-local 2> /dev/null
-	killall ss-tunnel 2> /dev/null
-	/etc/init.d/shadowsocks start
-fi
-exit 0
 endef
 
 $(eval $(call BuildPackage,shadowsocks-libev))
