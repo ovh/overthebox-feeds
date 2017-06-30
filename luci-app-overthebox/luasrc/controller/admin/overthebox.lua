@@ -389,17 +389,17 @@ function dhcp_status()
 end
 
 function action_activate(service)
-	local result = require('overthebox').confirm_service(service)
+	sys.exec("otb-confirm-service")
 	action_dhcp_recheck()
 	luci.http.prepare_content("application/json")
-	luci.http.write_json(result)
+	luci.http.write_json({})
 end
 
 function need_activate()
 	local result = { };
 	local uci = luci.model.uci.cursor()
 	luci.http.prepare_content("application/json")
-	if uci:get("overthebox", "me", "askserviceconfirmation") == "1" then
+	if uci:get("overthebox", "me", "needs_activation") == "true" then
 		result["active"] = false
 	else
 		result["active"] = true
