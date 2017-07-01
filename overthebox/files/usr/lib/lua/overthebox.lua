@@ -587,11 +587,6 @@ function update_confmwan()
             ucic:set("mwan3", "CS7_Reserved", "use_policy", name)
           end
         end
-        if list_qos[1][i] == "stun0" then
-          if ucic:get("mwan3", "CS1_Scavenger", "edited") ~= "1" then
-            ucic:set("mwan3", "CS1_Scavenger", "use_policy", name)
-          end
-        end
       end
     end
   end
