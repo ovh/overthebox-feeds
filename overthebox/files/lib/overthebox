@@ -69,25 +69,25 @@ otb_call() {
 otb_device_post() {
 	subpath=$1
 	shift 1
-	otb_call POST "devices/$OTB_DEVICE_ID/$subpath" "$@"
+	[ -n "$OTB_DEVICE_ID" ] && otb_call POST "devices/$OTB_DEVICE_ID/$subpath" "$@"
 }
 
 otb_device_get() {
 	subpath=$1
 	shift 1
-	otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
+	[ -n "$OTB_DEVICE_ID" ] && otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
 }
 
 otb_service_post() {
 	subpath=$1
 	shift 1
-	otb_device_post "service/$OTB_SERVICE_ID/$subpath" "$@"
+	[ -n "$OTB_SERVICE_ID" ] && otb_device_post "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
 otb_service_get() {
 	subpath=$1
 	shift 1
-	otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
+	[ -n "$OTB_SERVICE_ID" ] && otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
 otb_save_event() {

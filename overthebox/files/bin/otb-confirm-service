@@ -6,12 +6,9 @@ set -e
 # shellcheck disable=SC1091
 . /lib/overthebox
 
-service_id=$(uci -q get overthebox.me.service)
-[ -z "$service_id" ] && return 1
-
-otb_device_post "service/$service_id/confirm"
+otb_service_post confirm
 
 uci -q batch << EOF
 delete overthebox.me.needs_activation
-commit
+commit overthebox
 EOF
