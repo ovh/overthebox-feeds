@@ -6,8 +6,7 @@ PKG_RELEASE:=0
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/stedolan/jq/releases/download/$(PKG_NAME)-$(PKG_VERSION)
 
-PKG_FIXUP:=autoreconf -i
-PKG_INSTALL:=1
+PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -17,9 +16,11 @@ CATEGORY:=OverTheBox
 TITLE:=$(PKG_NAME)
 endef
 
+CONFIGURE_ARGS += --disable-maintainer-mode --disable-docs
+
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/jq $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/jq $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
