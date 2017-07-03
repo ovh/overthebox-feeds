@@ -8,45 +8,82 @@ set -e
 
 config=$(otb_device_get config)
 
-cat > /tmp/config <<EOF
-$config
-EOF
-
 _get() {
     otb_json_get "$config" "$1"
 }
 
-CONFIG_FILES="
-    /etc/config/system
-    /etc/config/graph
-    /etc/config/glorytun
-"
-for file in $CONFIG_FILES; do
-    [ -f "$file" ] || touch "$file"
+for conf in glorytun shadowsocks graph; do
+	> /etc/config/"$conf"
+	uci -q revert "$conf"
 done
 
-dev=$(_get glorytun_mud_conf.dev)
+_setup_glorytun() {
+	jq -r '@text "
+	set glorytun.\(.dev)=tunnel
+	set glorytun.\(.dev).enable=1
+	set glorytun.\(.dev).dev=\(.dev)
+	set glorytun.\(.dev).server=\(.server)
+	set glorytun.\(.dev).port=\(.port)
+	set glorytun.\(.dev).key=\(.key)
 
-uci -q batch << EOF
-set glorytun.$dev=mud
-set glorytun.$dev.enable=1
-set glorytun.$dev.dev=$dev
-set glorytun.$dev.server=$(_get glorytun_mud_conf.server)
-set glorytun.$dev.port=$(_get glorytun_mud_conf.port)
-set glorytun.$dev.key=$(_get glorytun_mud_conf.key)
-set glorytun.$dev.mtu=$(_get glorytun_mud_conf.mtu)
+	delete network.\(.dev)
+	set network.\(.dev)=interface
+	set network.\(.dev).ifname=\(.dev)
+	set network.\(.dev).proto=static
+	set network.\(.dev).ipaddr=\(.ip_local)
+	set network.\(.dev).netmask=255.255.255.0
+	set network.\(.dev).gateway=\(.ip_peer)
+	set network.\(.dev).metric=\(.metric)
+	set network.\(.dev).txqueuelen=1000
+	set network.\(.dev).mtu=\(.mtu)
+	set network.\(.dev).type=tunnel
+	set network.\(.dev).multipath=off
+	add_list firewall.wan.network=\(.dev)
+	set mwan3.socks.dest_ip=\(.server)
+	"'
+}
 
-set network.$dev=interface
-set network.$dev.ifname=$dev
-set network.$dev.proto=static
-set network.$dev.ipaddr=$(_get glorytun_mud_conf.ip_local)
-set network.$dev.netmask=255.255.255.0
-set network.$dev.gateway=$(_get glorytun_mud_conf.ip_peer)
-set network.$dev.metric=$(_get glorytun_mud_conf.metric)
-set network.$dev.txqueuelen=1000
-set network.$dev.type=tunnel
-set network.$dev.multipath=off
+_setup_glorytun_mud() {
+	jq -r '@text "
+	set glorytun.\(.dev)=mud
+	set glorytun.\(.dev).enable=1
+	set glorytun.\(.dev).dev=\(.dev)
+	set glorytun.\(.dev).server=\(.server)
+	set glorytun.\(.dev).port=\(.port)
+	set glorytun.\(.dev).key=\(.key)
+	set glorytun.\(.dev).mtu=\(.mtu)
 
+	delete network.\(.dev)
+	set network.\(.dev)=interface
+	set network.\(.dev).ifname=\(.dev)
+	set network.\(.dev).proto=static
+	set network.\(.dev).ipaddr=\(.ip_local)
+	set network.\(.dev).netmask=255.255.255.0
+	set network.\(.dev).gateway=\(.ip_peer)
+	set network.\(.dev).metric=\(.metric)
+	set network.\(.dev).txqueuelen=1000
+	set network.\(.dev).type=tunnel
+	set network.\(.dev).multipath=off
+	add_list firewall.wan.network=\(.dev)
+	set mwan3.socks.dest_ip=\(.server)
+	"'
+}
+
+case "$(_get tun_conf.app)" in
+	glorytun)
+		_get glorytun_conf | _setup_glorytun
+		echo "$config" | jq ".glorytun_conf+.glorytun_conf.additional_interfaces[0]" | _setup_glorytun
+		;;
+	glorytun_hybrid)
+		_get glorytun_conf | _setup_glorytun
+		echo "$config" | jq ".glorytun_mud_conf+{dev:.glorytun_conf.additional_interfaces[0].dev}" | _setup_glorytun_mud
+		;;
+	glorytun_mud)
+		_get glorytun_mud_conf | _setup_glorytun_mud
+		;;
+esac | uci -q batch
+
+uci -q batch <<EOF
 set shadowsocks.proxy=client
 set shadowsocks.proxy.server=$(_get shadow_conf.server)
 set shadowsocks.proxy.port=$(_get shadow_conf.port)
