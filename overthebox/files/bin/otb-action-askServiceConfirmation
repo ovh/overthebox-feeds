@@ -13,5 +13,5 @@ service_id=$(otb_json_get "$json" service)
 uci -q batch << EOF
 set overthebox.me.service=$service_id
 set overthebox.me.needs_activation=true
-commit
+commit overthebox
 EOF
