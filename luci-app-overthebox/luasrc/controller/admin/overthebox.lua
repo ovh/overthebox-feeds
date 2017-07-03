@@ -365,10 +365,11 @@ end
 
 function dhcp_status()
         local uci = luci.model.uci.cursor()
+        local uci_tmp = luci.model.uci.cursor("/tmp/dhcpdiscovery")
         local result = {}
 	-- Get alien dhcp list
         result.detected_dhcp_servers = {}
-        uci:foreach("dhcpdiscovery", "lease",
+        uci_tmp:foreach("dhcpdiscovery", "lease",
                 function (section)
                         result.detected_dhcp_servers[section[".name"]] = section
                 end
@@ -408,18 +409,18 @@ function need_activate()
 end
 
 function action_dhcp_recheck()
-	sys.exec("uci set dhcpdiscovery.if0.lastcheck=`date +%s`")
-	sys.exec("uci delete dhcpdiscovery.if0.siaddr")
-	sys.exec("uci delete dhcpdiscovery.if0.serverid")
-	-- workaround for time jump at first startup
-	local uci = luci.model.uci.cursor()
+	local uci = luci.model.uci.cursor("/tmp/dhcpdiscovery")
+	uci:set("dhcpdiscovery", "if0", "lastcheck", os.time())
+	uci:delete("dhcpdiscovery", "if0", "siaddr")
+	uci:delete("dhcpdiscovery", "if0", "serverid")
+
 	local timestamp = uci:get("dhcpdiscovery", "if0", "timestamp")
 	local lastcheck = uci:get("dhcpdiscovery", "if0", "lastcheck")
 	if timestamp and lastcheck and (tonumber(timestamp) > tonumber(lastcheck)) then
-		sys.exec("uci set dhcpdiscovery.if0.timestamp=" .. lastcheck)
+		uci:set("dhcpdiscovery", "if0", "timestamp", lastcheck)
 	end
 
-	sys.exec("uci commit")
+	uci:commit("dhcpdiscovery")
 	sys.exec("pkill -USR1 udhcpc")
 
 	luci.http.prepare_content("application/json")
@@ -427,7 +428,10 @@ function action_dhcp_recheck()
 end
 
 function action_dhcp_skip_timer()
-	sys.exec("uci delete dhcpdiscovery.if0.timestamp")
+	local uci = luci.model.uci.cursor("/tmp/dhcpdiscovery")
+	uci:delete("dhcpdiscovery", "if0", "timestamp")
+	uci:commit("dhcpdiscovery")
+
 	sys.exec("pkill -USR1 \"dhcpc -p /var/run/udhcpc-if0.pid\"")
 
 	luci.http.prepare_content("application/json")

@@ -24,7 +24,7 @@ local sys = require "luci.sys"
 local uci = require "luci.model.uci".cursor()
 
 
-local has_dhcpdiscovery = fs.access("/etc/config/dhcpdiscovery")
+local has_dhcpdiscovery = fs.access("/tmp/dhcpdiscovery/dhcpdiscovery")
 %>
 
 <!-- begin of DHCP Wizard section -->
