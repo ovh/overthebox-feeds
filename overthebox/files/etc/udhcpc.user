@@ -15,9 +15,11 @@ esac
 _macaddr=$(cat /sys/class/net/if0/address)
 _ifname=$(uci -q get network.if0_dev.ifname)
 
-touch /etc/config/dhcpdiscovery
+UCI_TMP_DIR="/tmp/dhcpdiscovery"
+mkdir -p "$UCI_TMP_DIR"
+touch "$UCI_TMP_DIR/dhcpdiscovery"
 
-uci -q batch <<-EOF
+uci -q -c "$UCI_TMP_DIR" batch <<-EOF
 set dhcpdiscovery.$INTERFACE=lease
 set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
 set dhcpdiscovery.$INTERFACE.lease=$lease
