@@ -30,5 +30,7 @@ deployment:
     dev:
         branch: /.*/
         commands:
-            - ssh deploy@$OTB_HOST mkdir -p deploy/$OTB_PATH
-            - rsync -av --delete-after ~/overthebox/source/bin/ deploy@$OTB_HOST:deploy/$OTB_PATH
+          # Create the final directory and link the directory to upload
+          - mkdir -p "$HOME/$OTB_PATH" && ln -s "$HOME/overthebox/source/bin/" "$HOME/$OTB_PATH"
+          # rsync the whole directory with the remote server
+          - rsync -avL --delete-after -e "ssh -q -p ${OTB_RSYNC_PORT:-22}" "$HOME/$CIRCLE_PROJECT_USERNAME" "$OTB_USER@$OTB_HOST:$REMOTE_DIR"
