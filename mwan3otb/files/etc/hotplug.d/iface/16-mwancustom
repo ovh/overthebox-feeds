@@ -43,7 +43,9 @@ _update_route() {
 
 	# Get IP and gateway
 	local ip=$(uci -q get shadowsocks.proxy.server)
-	local gw=$(uci -q get network.$interface.gateway)
+	. /lib/functions/network.sh
+	local gw
+	network_get_gateway gw $interface
 	if [ -z "$ip" -o -z "$gw" ]; then
 		_log 4 "missing IP ($ip) or gateway ($gw)"
 		return 1
