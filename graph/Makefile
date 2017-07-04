@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=graph
-PKG_VERSION:=0.1
+PKG_VERSION:=0.2
 PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk

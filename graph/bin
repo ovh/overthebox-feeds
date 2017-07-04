@@ -4,6 +4,7 @@ set -e
 
 URL=$1
 HOST=${2:-none}
+FREQ=${3:-60}
 PERIOD=
 
 [ -z "${URL}" ] && exit 0
@@ -42,4 +43,7 @@ _graph() {
 	printf ']'
 }
 
-_graph | curl -sS -m 10 -X POST "${URL}" -H "Content-Type: application/json" -d@-
+while true; do
+	_graph | curl -sS -m 10 -X POST "${URL}" -H "Content-Type: application/json" -d@-
+	sleep "$FREQ"
+done
