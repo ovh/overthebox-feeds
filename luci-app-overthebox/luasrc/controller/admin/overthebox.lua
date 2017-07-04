@@ -47,7 +47,6 @@ function index()
 	entry({"admin", "overthebox", "need_activate_service"},  call("need_activate")).leaf = true
 	entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
 	entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
-	entry({"admin", "overthebox", "update_conf"}, call("action_update_conf")).leaf = true
 end
 
 function action_passwd()
@@ -432,10 +431,4 @@ function action_dhcp_skip_timer()
 
 	luci.http.prepare_content("application/json")
 	luci.http.write_json("OK")
-end
-
-function action_update_conf()
-        local result = require('overthebox').update_confmwan()
-        luci.http.prepare_content("application/json")
-        luci.http.write_json(result)
 end
