@@ -33,9 +33,6 @@ _log() {
 	logger -t $PROG_NAME-initd -p "$@"
 }
 
-# Instances counter to avoid more than one shadowsocks
-SINGLETON_SS_COUNT=0
-
 IPT="iptables -w -t nat"
 CHAINS="socks_hook socks_decision socks_bypass_for_mwan socks_redir socks_emitted_by_myself"
 
@@ -128,7 +125,6 @@ _shadow_cable() {
 # Call me only once at startup, never during reload.
 # I make sure I'm called once even if the conf has several shadowsocks
 _shadow_init_once() {
-	_check_singleton_ok || return 0
 	# If the config cannot be validated, abort the starting operation altogether
 	_validate_conf "$1" || return 0
 	# Launch shadowsocks first to minimize the time during which traffic is routed to a non-listening-yet-process
@@ -205,7 +201,6 @@ _launch_tracker() {
 # This is fine :) Our reload is a partial reload for iptables and ipset
 # For a full reload, we can use restart
 _shadow_reload_once() {
-	_check_singleton_ok || return 0
 	# If the config cannot be validated, abort the reloading operation altogether
 	# The shadowsocks with the previous working config continues to run, but no reload is performed.
 	_validate_conf "$1" || return 0
@@ -416,6 +411,7 @@ _update_socks_hook_one_if() {
 # Missing params are not an error
 # $1 is a ref to the shadowsocks uci section (type =client)
 _validate_conf() {
+	[ "$1" = proxy ] || return 1
 	local port lport password method timeout server reuse_port fast_open
 	uci_validate_section shadowsocks client "$1" \
 		'port:port'          \
@@ -560,16 +556,4 @@ _ipt_clean_all() {
 	# This very one ipset should not exist, but it could if we crash during a reload
 	# We are a cleaning function, just clean everything to restore a neat system state
 	ipset -q destroy socks_staging
-}
-
-# When called by a config_foreach,
-# we would crash if more than one shadowsocks instance is defined.
-# We don't support multiple instances, so we only execute for the first one.
-_check_singleton_ok() {
-	SINGLETON_SS_COUNT=$((SINGLETON_SS_COUNT+1))
-	if [ $SINGLETON_SS_COUNT -gt 1 ]; then
-		_log 3 "Oh oh... We only support one shadowsocks instance. Aborting second start or reload attempt."
-		return 1
-	fi
-	return 0
 }
