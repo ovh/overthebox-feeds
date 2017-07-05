@@ -69,10 +69,8 @@ start_service() {
 }
 
 reload_service() {
-	# We don't want to reload if we are not running :)
-	# We should return 0 here otherwise init system will consider reload didn't work
-	# And it will fallback asking us to start instead!
-	_running || return 0
+	# Start the service if the reload is asked and the service is not yet started
+	_running || start_service && return 0
 
 	_log 6 "Reloading service..."
 	config_load shadowsocks
