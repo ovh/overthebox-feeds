@@ -4,6 +4,7 @@ START=95
 STOP=10
 PROG_NAME=ss-redir
 PROG=/usr/bin/$PROG_NAME
+PROG_CONF=/tmp/shadowsocks.conf
 TRACKER=/usr/bin/ss-redir-track
 USE_PROCD=1
 EXTRA_COMMANDS="ifup ifdown"
@@ -137,7 +138,7 @@ _shadow_init_once() {
 # This function launches one shadowsocks per CPU
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_shadow() {
-	local conf cpu_count
+	local cpu_count
 
 	# Determine the number of CPU cores
 	if [ -f /proc/cpuinfo ] && command -v awk &> /dev/null; then
@@ -158,12 +159,10 @@ _launch_shadow() {
 		cpu_count=1
 	fi
 
-	config_get conf "$1" conf "/etc/shadowsocks.json"
-
 	for i in $(seq 1 $cpu_count); do
 		procd_open_instance
-		procd_set_param command "$PROG" -c "$conf" -b 0.0.0.0
-		procd_set_param file "$conf"
+		procd_set_param command "$PROG" -c "$PROG_CONF" -b 0.0.0.0
+		procd_set_param file "$PROG_CONF"
 		procd_set_param limits nofile="51200 51200"
 		procd_set_param respawn
 		procd_set_param stderr 1
@@ -174,8 +173,7 @@ _launch_shadow() {
 # This function launches the shadowsocks tracker
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_tracker() {
-	local conf lport monitoring_ip track_timeout track_interval track_retry
-	config_get conf "$1" conf "/etc/shadowsocks.json"
+	local lport monitoring_ip track_timeout track_interval track_retry
 	config_get lport "$1" lport ""
 	config_get monitoring_ip "$1" monitoring_ip ""
 	config_get track_timeout "$1" track_timeout "5"
@@ -186,7 +184,6 @@ _launch_tracker() {
 	if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
 		procd_open_instance
 		procd_set_param command "$TRACKER" -t "$track_timeout" -v "$track_interval" -r "$track_retry" "$monitoring_ip"
-		procd_set_param file "$conf"
 		procd_set_param respawn
 		procd_set_param stderr 1
 		procd_close_instance
@@ -428,11 +425,20 @@ _validate_conf() {
 		}
 }
 
+_generate_dscp_conf() {
+	# The CS0 (default DSCP) listener is already handled by local_port in json
+	# So we purposely start at 1 here
+	# In the config, we specify a distinct listening port for each DSCP CS.
+	for i in $(seq 1 $MAX_DSCP_CS); do
+		[ "$i" -gt 1 ] && printf ","
+		printf '\n    "%d": "CS%d"' "$(( $1 + i ))" "$i"
+	done
+}
+
 # Generate the JSON configuration file that ss-redir binary can understand
 # $1 is a ref to the shadowsocks uci section (type =client)
 _generate_conf() {
-	local conf server port lport password timeout method reuse_port fast_open
-	config_get conf "$1" conf "/etc/shadowsocks.json"
+	local server port lport password timeout method reuse_port fast_open
 	config_get server "$1" server "127.0.0.1"
 	config_get port "$1" port ""
 	config_get lport "$1" lport ""
@@ -454,31 +460,18 @@ _generate_conf() {
 		fast_open="false"
 	fi
 
-	cat > "$conf" <<-EOF
+	cat > "$PROG_CONF" <<-EOF
 	{
-		"server": "$server",
-		"server_port": $port,
-		"local_port": $lport,
-		"password": "$password",
-		"timeout": $timeout,
-		"method": "$method",
-		"reuse_port": $reuse_port,
-		"fast_open": $fast_open,
-		"disable_sni": true,
-		"dscp": {
-	EOF
-
-	# The CS0 (default DSCP) listener is already handled by local_port in json
-	# So we purposely start at 1 here
-	# In the config, we specify a distinct listening port for each DSCP CS.
-	for i in $(seq 1 $MAX_DSCP_CS); do
-		# Why didn't the JSON spec accept trailing comma at the end :'(
-		[ "$i" -gt 1 ] && printf ",\n" >> "$conf"
-		printf '\t\t"%d": "CS%d"' "$(( lport + i ))" "$i" >> "$conf"
-	done
-
-	cat >> "$conf" <<-EOF
-		}
+	  "server": "$server",
+	  "server_port": $port,
+	  "local_port": $lport,
+	  "password": "$password",
+	  "timeout": $timeout,
+	  "method": "$method",
+	  "reuse_port": $reuse_port,
+	  "fast_open": $fast_open,
+	  "disable_sni": true,
+	  "dscp": {$(_generate_dscp_conf "$lport")}
 	}
 	EOF
 }
