@@ -3,6 +3,12 @@
 
 touch /etc/config/ucitrack
 
+if ! uci -q get ucitrack.@network[0]; then
+	uci add ucitrack network
+fi
+uci -q set ucitrack.@network[0].exec='/usr/bin/otb_update_confmwan'
+uci commit ucitrack
+
 if ! uci -q get ucitrack.@dscp[0]; then
 	uci add ucitrack dscp
 	uci add_list ucitrack.@dscp[-1].init="dscp"
