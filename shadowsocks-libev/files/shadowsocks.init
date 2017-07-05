@@ -66,17 +66,6 @@ start_service() {
 	config_foreach _shadow_init_once client
 }
 
-reload_service() {
-	# We don't want to reload if we are not running :)
-	# We should return 0 here otherwise init system will consider reload didn't work
-	# And it will fallback asking us to start instead!
-	_running || return 0
-
-	_log 6 "Reloading service..."
-	config_load shadowsocks
-	config_foreach _shadow_reload_once client
-}
-
 stop_service() {
 	_log 6 "Stopping service..."
 	_ipt_clean_all
@@ -188,20 +177,6 @@ _launch_tracker() {
 		procd_set_param stderr 1
 		procd_close_instance
 	fi
-}
-
-
-# Reload shadowsocks (make sure we are called one time per reload)
-# $1 is a ref to the shadowsocks uci section (type =client)
-# It should be noted that we update the configuration file when reloading (.json)
-# But the binary ss-redir will never know it. Its config in RAM won't be updated
-# This is fine :) Our reload is a partial reload for iptables and ipset
-# For a full reload, we can use restart
-_shadow_reload_once() {
-	# If the config cannot be validated, abort the reloading operation altogether
-	# The shadowsocks with the previous working config continues to run, but no reload is performed.
-	_validate_conf "$1" || return 0
-	_update_conf_and_ipt "$1"
 }
 
 # $1 is a ref to the shadowsocks uci section (type =client)
