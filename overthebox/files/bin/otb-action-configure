@@ -76,7 +76,11 @@ case "$(_get tun_conf.app)" in
 		;;
 	glorytun_hybrid)
 		_get glorytun_conf | _setup_glorytun
-		echo "$config" | jq ".glorytun_mud_conf+{dev:.glorytun_conf.additional_interfaces[0].dev}" | _setup_glorytun_mud
+		echo "$config" | jq ".glorytun_mud_conf+{
+				dev:.glorytun_conf.additional_interfaces[0].dev,
+				table:.glorytun_conf.additional_interfaces[0].table,
+				metric:.glorytun_conf.additional_interfaces[0].metric,
+			}" | _setup_glorytun_mud
 		;;
 	glorytun_mud)
 		_get glorytun_mud_conf | _setup_glorytun_mud
