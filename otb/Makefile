@@ -6,7 +6,7 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := $(notdir $(wildcard ../otb-*)) \
+MY_DEPENDS = $(notdir $(wildcard ../otb-*)) \
     overthebox TARGET_x86:python-swconfig-otb \
     usb-modeswitch bmon bwm-ng iptables-mod-trace \
     kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
