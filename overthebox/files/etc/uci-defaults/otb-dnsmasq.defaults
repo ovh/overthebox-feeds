@@ -7,7 +7,7 @@ uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
-set dhcp.@dnsmasq[0].authoritative='0'
+set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra
@@ -23,16 +23,15 @@ EOF
 
 config_load dhcp
 
-# Add tags on lan
-lan_tag=$(uci -q get dhcp.lan.tag)
-if [ "$lan_tag" != "!known-othernet" ]; then
+# Update the lan configuration
+lan_option=$(uci -q get dhcp.lan.force)
+if [ "$lan_option" != "true" ]; then
 	uci -q batch <<-EOF
 	set dhcp.lan.force='true'
-	add_list dhcp.lan.tag='!known-othernet'
 	add_list dhcp.lan.interface_name='lan'
 	add_list dhcp.lan.interface_name='overthebox'
 	add_list dhcp.lan.interface_name='overthebox.ovh'
-	add_list dhcp.@dnsmasq[0].notinterface='if0'
+	add_list dhcp.@dnsmasq[0].interface='lan'
 	EOF
 fi
 
