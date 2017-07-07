@@ -40,6 +40,7 @@ _setup_glorytun() {
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
 	del_list firewall.wan.network=\(.dev)
+	set network.\(.dev).tracking=true
 	add_list firewall.wan.network=\(.dev)
 	set mwan3.socks.dest_ip=\(.server)
 	"'
@@ -68,6 +69,7 @@ _setup_glorytun_mud() {
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
 	del_list firewall.wan.network=\(.dev)
+	set network.\(.dev).tracking=true
 	add_list firewall.wan.network=\(.dev)
 	set mwan3.socks.dest_ip=\(.server)
 	"'
