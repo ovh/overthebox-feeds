@@ -1,6 +1,5 @@
 #!/bin/sh
 . /lib/functions.sh
-. /lib/functions/procd.sh
 
 IP="ip -4"
 IPS="ipset"
@@ -16,12 +15,12 @@ Available commands:
 	start           Load iptables rules, ip rules and ip routes
 	stop            Unload iptables rules, ip rules and ip routes
 	restart         Reload iptables rules, ip rules and ip routes
-        ifup <iface>    Load rules and routes for specific interface
-        ifdown <iface>  Unload rules and routes for specific interface
-        interfaces      Show interfaces status
-        policies        Show policies status
-        rules           Show rules status
-        status          Show all status
+	ifup <iface>    Load rules and routes for specific interface
+	ifdown <iface>  Unload rules and routes for specific interface
+	interfaces      Show interfaces status
+	policies        Show policies status
+	rules           Show rules status
+	status          Show all status
 
 EOF
 }
@@ -35,8 +34,6 @@ ifdown()
 	if [ -n "$2" ]; then
 		echo "Error: Too many arguments. Usage: mwan3 ifdown <interface>" && exit 0
 	fi
-
-	procd_kill mwan3track.$1
 
 	ACTION=ifdown INTERFACE=$1 /sbin/hotplug-call iface
 }
@@ -57,7 +54,7 @@ ifup()
 
 	config_get enabled "$1" enabled 0
 
-	device=$(uci -p /var/state get network.$1.ifname 2>/dev/null)
+	device=$(uci -q get network.$1.ifname)
 
 	if [ -n "$device" ] ; then
 		[ "$enabled" -eq 1 ] && ACTION=ifup INTERFACE=$1 DEVICE=$device /sbin/hotplug-call iface
@@ -75,7 +72,7 @@ interfaces()
 	check_iface_status()
 	{
 		let iface_id++
-		device=$(uci -p /var/state get network.$1.ifname) &> /dev/null
+		device=$(uci -q get network.$1.ifname)
 
 		if [ -z "$device" ]; then
 			echo " interface $1 is unknown"
@@ -174,11 +171,6 @@ start()
 stop()
 {
 	local ipset route rule table
-
-	for itf in `ps -w | grep mwan3track | grep -v grep | sed '/.*\/usr\/sbin\/mwan3track -i \([^ ]*\) .*$/!d;s//\1/'`
-	do
-		procd_kill mwan3track.$itf
-	done
 
 	for route in $($IP route list table all | sed -n 's/.*table \([^ ]*\) .*/\1/p' |  awk '{print $1}' | awk '{for(i=1;i<=NF;i++) if($i+0>0) if($i+0<100) {print;break}}'); do
 		$IP route flush table $route &> /dev/null
