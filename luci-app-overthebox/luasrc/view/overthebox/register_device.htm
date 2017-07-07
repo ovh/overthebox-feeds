@@ -61,7 +61,6 @@
 
 <div id="registerWizard" class="register" style="display:none">
     <h1>Bienvenue dans votre espace OverTheBox</h1>
-
     <div id="gettingDeviceId" class="alert alert-info">
         <p><%:Waiting for device ID%> ...</p>
         <div id="isConnectedSpinner"></div>
@@ -70,19 +69,21 @@
     <!-- When not connected -->
     <div id="requireConnexion" class="alert alert-info">
         <div id="notConnectedMessage">
-            <p><%:Installez facilement votre OverTheBox en 4 étapes%></p>
-            <p><%:Vérifier qu'aucun autre modem ne soit branché à votre modem principal%>.</p>
+            <p><%:Installez facilement votre OverTheBox en 4 étapes%>.</p>
+            <p><%:Avant toute chose, veuillez vérifier qu'aucun autre modem ne soit branché au modem 1 (voir schéma ci dessous)%>.</p>
+            <p><strong><%:Attention : %></strong><%:Chaque modems doit posséder une IP différente%>.</p>
             <svg version="1.1" class="jsFirstScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
-            <p><%:Pour associer OverTheBox à un service, merci de bien vouloir commencer par vous authentifier%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>
+            <p><%:Pour commencer, il vous faut renseigner vos identifiants clients afin d'associer votre équipement OverTheBox à l'abonnement OverTheBox.%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></p>
         </div>
         <div id="connectedMessage">
-            <p><%:Installer facilement votre OverTheBox en 4 étapes%></p>
-            <p><%:Vérifier qu'aucun autre modem ne soit branché à votre modem principal%>.</p>
+            <p><%:Installez facilement votre OverTheBox en 4 étapes%></p>
+            <p><%:Avant toute chose, veuillez vérifier qu'aucun autre modem ne soitt branché au modem 1 (voir schéma ci dessous)%>.</p>
+            <p><%:Attention : Chaque modems doit posséder une IP différente%>.</p>
             <svg version="1.1" class="jsFirstScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
             <p><%:Votre OverTheBox est associée à un service %><strong id="serviceId"></strong>.</p>
             <p><%:Connectez-vous pour modifier la configuration matérielle%>.</p>
         </div>
-        <p><strong><%:Vous allez être redirigé vers une page d'authentification%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></strong></p>
+        <p><strong><%:Vous allez être redirigé vers une page d'authentification.%><span rel="tooltip" class="help" title="<h4>Authentification</h4><p><%:vous allez être redirigé vers une page nommée <strong>Permission to access your account</strong>. Veuillez cliquer sur le bouton <strong>Authorize Access</strong> pour vous authentifier.%></p>">?</span></strong></p>
         <button id="registerButton" class="btn btn-primary"><%:S'authentifier%></button>
         <div style="margin-top:20px">
             <a id="overviewMode" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>#force"><%:Quitter l'assistant%></a>
@@ -107,7 +108,8 @@
             <!-- Password -->
             <div id="passwordSetupProcess">
                 <div class="alert alert-info config">
-                    <p><%:Choisissez un mot de passe pour sécuriser l’accès à votre OverTheBox%>.</p>
+                    <p><%:Afin de protéger l'accès à votre équipement OverTheBox, nous vous invitons à définir un mot de passe%>.</p>
+                    <p><%:Ce dernier vous sera demandé à chaque tentative d'accès à l'interface overthebox.ovh%>.</p>
                     <p><%:Votre mot de passe doit contenir, au minimum, 8 caractères alphanumériques%>.</p>
                     <div class="container">
                         <div class="row">
@@ -137,14 +139,13 @@
                         <div class="form-group serviceList">
                             <label class="serviceList form-control-label" for="serviceList"><%:Sélectionnez le service que vous souhaitez associer à votre OverTheBox%></label>
                             <p class="uniqueService">
-                                <%:Associez votre service OTB%>
+                                <%:Associez cet équipement OverTheBox à votre abonnement OTB%>
                                 <strong class="customerDescription"></strong>
-                                (<em class="serviceName"></em>)
-                                <%:à l'OverTheBox.%>
+                                (<em class="serviceName"></em>).
                             </p>
                             <div class="noService">
                                 <p>
-                                    <%:Aucun service OverTheBox n'a été trouvé sur votre compte%>.
+                                    <%:Aucun abonnement OverTheBox n'a été trouvé sur votre compte%>.
                                     <%:Rendez-vous sur la page de commande de service%>.
                                     </p>
                                 <a href="https://www.ovhtelecom.fr/commande/overthebox.xml?quantity=0&serviceQuantity=1" class="btn btn-primary" target="_blank"><%:Commander%></a>
@@ -154,15 +155,15 @@
                         <button id="serviceActivateSubmit" type="submit" class="btn btn-primary"><%:Associer%> <span id="associateServiceSpinner"></span></button>
                     </form>
                     <div id="releaseService">
-                            <p><%:Un appareil est déjà associé à ce service. Il s’agit peut-être de la même OverTheBox si cette dernière a été réinitialisée.
-Souhaitez-vous associer ce nouveau device?%></p>
+                            <p><%:L'abonnement OTB selectionné est déjà associé à un équipement. Cela peut être du au fait que cet abonnement ait déjà été utilisé précédemment ou que vous venez de réinitialiser l'équipement OverTheBox.%></p>
+                            <p><%:Souhaitez vous confirmer cette association?%></p>
                             <button class="btn no" role="button"><%:Non%></button>
                             <button class="btn btn-primary yes" role="button"><%:Oui%></button>
                         </div>
                 </div>
                 <div class="alert alert-info done">
                     <div class="skip">
-                        <p><%:Votre matériel est déjà lié au service%> <span></span>.</p>
+                        <p><%:Votre équipement est déjà lié à l'abonnement%> <span></span>.</p>
                         <button role="button" class="btn btn-primary next" href="#"><%:Continuer%></a>
                     </div>
                     <div id="needActivate">
@@ -181,10 +182,10 @@ Souhaitez-vous associer ce nouveau device?%></p>
 
                 </div>
                 <div class="alert alert-info config">
-                    <p><%:Votre modem a été correctement détecté%>.</p>
+                    <p><%:Votre modem a été détecté%>.</p>
 
-                    <p><%:Il est obligatoire de désactiver le DHCP de votre modem afin qu'OverTheBox puisse fonctionner%>.<span rel="tooltip" class="help" title="<h4>DHCP</h4><p><%:C'est un protocole qui permet à un organe réseau d'obtenir dynamiquement une adresse IP. Cela permet de simplifier la configuration réseau.%></p><p><%:Par abus de langage, on appelle DHCP le serveur qui attribue dynamiquement ces adresses IP.%></p>">?</span></p>
-                    <p><%:Les étapes à suivre%>:</p>
+                    <p><%:Il est obligatoire de désactiver le DHCP de ce dernier afin qu'OverTheBox puisse fonctionner%>.<span rel="tooltip" class="help" title="<h4>DHCP</h4><p><%:C'est un protocole qui permet à un organe réseau d'obtenir dynamiquement une adresse IP. Cela permet de simplifier la configuration réseau.%></p><p><%:Par abus de langage, on appelle DHCP le serveur qui attribue dynamiquement ces adresses IP.%></p>">?</span></p>
+                    <p><%:Les étapes à suivre %>:</p>
                     <ol>
                         <li>
                             <%:Désactivez le DHCP de votre modem%><br>
@@ -192,7 +193,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                             <a href="https://www.ovh.com/fr/g2238.1" target="_blank"><%:Suivez le guide%></a>
                         </li>
                         <li>
-                            <%:Vérifier que votre DHCP est désactivé%><br>
+                            <%:Vérifier que votre DHCP soit désactivé%><br>
                             <span class="note"><%:Cette opération dure en moyenne 30 secondes%>.</span><br>
                             <button id="mainDhcpCheck" role="button" class="btn btn-primary jsDhcpCheck">
                                 <%:Vérification du DHCP%>
@@ -202,8 +203,8 @@ Souhaitez-vous associer ce nouveau device?%></p>
                     </ol>
                 </div>
                 <div class="alert alert-info done">
-                    <p><%:Afin qu'OverTheBox soit opérationnelle et que votre réseau soit sécurisé, reconnectez votre ordinateur à l'OverThebox%>.</p>
-                    <p><%:Procédez ainsi%>:</p>
+                    <p><%:Afin que le système OverTheBox soit opérationnel et que votre réseau soit sécurisé, vous devez renouveler l'adressage IP de votre ordinateur%>.</p>
+                    <p><%:Procédez ainsi %>:</p>
                     <p><strong><%:En Ethernet RJ45%> : </strong><%:Débranchez et rebranchez le câble RJ45%></p>
                     <p><strong><%:En WiFi%> : </strong><%:Coupez le WiFi et réactivez-le%></p>
                     <p>Puis testez :</p>
@@ -219,14 +220,14 @@ Souhaitez-vous associer ce nouveau device?%></p>
             <div id="dhcpDesactivateMoreProcess">
                 <svg version="1.1" id="additionalModemScheme" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500px"></svg>
                 <div class="alert alert-info not-ready">
-                    <p><%:Si vous souhaitez ajouter une connexion, branchez votre modem supplémentaire selon le schéma et patientez quelques instants. La détection est automatique, vous serez automatiquement redirigé vers l'étape suivante.%></p>
-                    <p><%:Si vous n'avez plus d'autres connexions à rajouter, vous pouvez quitter l'assistant, l'installation est terminée.%></p>
+                    <p><%:Si vous souhaitez ajouter une connexion au système OverTheBox, branchez votre modem supplémentaire selon le schéma et patientez quelques instants. La détection est automatique, vous serez alors redirigé vers l'étape suivante.%></p>
+                    <p><%:Si vous n'avez plus d'autres connexions à ajouter, vous pouvez quitter l'assistant, l'installation est terminée.%></p>
                     <br/>
-                    <p><%:Envie de garantir une qualité de service optimale, personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
+                    <p><%:Besoin de garantir une qualité de service optimale? Personnalisez la répartition de votre trafic en fonction de vos applications et de votre bande passante%>. <a target="_blank" href="https://www.ovh.com/fr/g2246.0"><%:Suivez le guide%></a></p>
                     <a style="display:block;width:20%;margin:0 auto;" class="btn btn-primary" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>"><%:Quitter l'assistant%></a>
                 </div>
                 <div class="alert alert-info config">
-                    <p><%:Les étapes à suivre pour désactiver le DHCP%>:</p>
+                    <p><%:Les étapes à suivre pour désactiver le DHCP %>:</p>
                     <ol>
                         <li>
                             <%:Désactivez le DHCP de votre modem%><br>
@@ -305,14 +306,14 @@ Souhaitez-vous associer ce nouveau device?%></p>
             changePasswordURL: "<%=luci.dispatcher.build_url("admin", "overthebox", "passwd")%>"
         };
         otb.translations.add("register-device@linked_device", "<%:associé à%>");
-        otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé%>");
-        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> (IP du modem: <strong><a href='http://{{detail}}' target='_blank'>{{detail}}</a></strong>)");
+        otb.translations.add("register-device@dhcp_desactivated", "<%:Le DHCP de votre modem est désactivé.%>");
+        otb.translations.add("register-device@dhcp_activated", "<%:Le DHCP de votre modem est toujours actif%> (IP du modem: <strong><a href='http://{{detail}}' target='_blank'>{{detail}}</a></strong>).");
         otb.translations.add("register-device@service_activation_error", "<%:L'activation de votre service n'a pas abouti%>");
         otb.translations.add("register-device@service_activation_success", "<%:Votre service est activé%>");
-        otb.translations.add("register-device@service_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:a bien été associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
-        otb.translations.add("register-device@service_not_associated", "<%:Le service OTB%> <strong>{{name}}</strong> <%:n'a pas pu être associé à votre OverTheBox%> <strong>{{deviceId}}</strong>");
+        otb.translations.add("register-device@service_associated", "<%:L'abonnement OTB%> <strong>{{name}}</strong> <%:a bien été associé à cet équipement%> <strong>{{deviceId}}.</strong>");
+        otb.translations.add("register-device@service_not_associated", "<%:L'abonnement OTB%> <strong>{{name}}</strong> <%:n'a pas pu être associé à cet équipement%> <strong>{{deviceId}}</strong>");
         otb.translations.add("register-device@wrong_password", "<%:Erreur lors du changement de mot de passe. Veuillez recommencer.%>");
-        otb.translations.add("register-device@success_password", "<%:Votre nouveau mot de passe a bien été pris en compte.%>");
+        otb.translations.add("register-device@success_password", "<%:Votre mot de passe a bien été pris en compte.%>");
         otb.dhcpCheckDelay = 40;
         otb.dhcpCheckInterval = 2;
         otb.tryBeforSupport = 3;
@@ -629,7 +630,7 @@ Souhaitez-vous associer ce nouveau device?%></p>
                         otb.cleanMessages();
                     });
                     if (status == "service_ok") {
-                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle%></p>");
+                        otb.pushMessage($("div#messageContainer"), "success", "<p><%:Votre OverTheBox est opérationnelle.%></p>");
                     } else {
                         otb.pushMessage($("div#messageContainer"), "warning", "<p><%:Votre installation est terminée, cependant votre connexion n'est pas sécurisée%></p>");
                     }
