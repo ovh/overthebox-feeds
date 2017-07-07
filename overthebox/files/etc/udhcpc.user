@@ -70,7 +70,7 @@ if uci -q get "network.lan_if${_id}" >/dev/null; then
 	set dhcp.if${_id}.start=1
 	set dhcp.if${_id}.leasetime=12h
 	set dhcp.if${_id}.dynamicdhcp=0
-	set dhcp.if${_id}.force=true
+	set dhcp.if${_id}.force=1
 	set dhcp.if${_id}_gw=tag
 	add_list dhcp.if${_id}_gw.dhcp_option=1,$subnet
 	add_list dhcp.if${_id}_gw.dhcp_option=3,$router

@@ -24,10 +24,12 @@ EOF
 config_load dhcp
 
 # Update the lan configuration
-lan_option=$(uci -q get dhcp.lan.force)
-if [ "$lan_option" != "true" ]; then
+lan_option=
+config_get_bool lan_option lan force 0
+
+if [ "$lan_option" != 1 ]; then
 	uci -q batch <<-EOF
-	set dhcp.lan.force='true'
+	set dhcp.lan.force='1'
 	add_list dhcp.lan.interface_name='lan'
 	add_list dhcp.lan.interface_name='overthebox'
 	add_list dhcp.lan.interface_name='overthebox.ovh'
@@ -67,7 +69,7 @@ create_static_ranges() {
 	set dhcp.${interface}.start='1'
 	set dhcp.${interface}.leasetime='12h'
 	set dhcp.${interface}.dynamicdhcp='0'
-	set dhcp.${interface}.force='true'
+	set dhcp.${interface}.force='1'
 	EOF
 
 	# Create the new tags
