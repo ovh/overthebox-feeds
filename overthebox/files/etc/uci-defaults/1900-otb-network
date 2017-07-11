@@ -1,0 +1,85 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+
+[ "$(uci -q get "network.lan.proto")" = static ] || \
+	uci -q batch <<-EOF
+	set network.lan=interface
+	set network.lan.proto=static
+	set network.lan.ipaddr=192.168.100.1
+	set network.lan.netmask=255.255.255.0
+	set network.lan.ifname=eth0
+	EOF
+
+uci -q batch <<EOF
+delete network.none
+reorder network.loopback=0
+reorder network.globals=1
+reorder network.lan=2
+set network.globals.multipath=enable
+EOF
+
+_setup_multipath() {
+	uci -q get "network.$1.multipath" > /dev/null && return
+	uci -q set "set network.$1.multipath=$2"
+}
+
+_setup_macaddr() {
+	uci -q get "network.$1_dev.macaddr" > /dev/null && return
+	uci -q set "set network.$1_dev.macaddr=$2"
+}
+
+_setup_macvlan() {
+	uci -q batch <<-EOF
+	set network.$1_dev=device
+	set network.$1_dev.name=$1
+	set network.$1_dev.type=macvlan
+	set network.$1_dev.ifname=eth0
+	set network.$1.ifname=$1
+	EOF
+	_macaddr=$(uci -q get "network.$1.macaddr")
+	_setup_macaddr "$1" "${_macaddr:-auto$RANDOM}"
+	uci -q set "network.$1.type=macvlan"  # legacy
+}
+
+_setup() {
+	case "$1" in
+	wan?*)
+		uci -q batch <<-EOF
+		set network.$1.proto=dhcp
+		set network.$1.metric=${1#wan}
+		set network.$1.ip4table=$((200+${1#wan}))
+		add_list firewall.mptcp.network=$1
+		EOF
+		_setup_multipath "$1" on
+		;;
+	if0)
+		uci -q batch <<-EOF
+		set network.$1.proto=dhcp
+		set network.$1.metric=2000
+		add_list firewall.wan.network=$1
+		EOF
+		_setup_multipath "$1" off
+		_setup_macvlan "$1"
+		_setup_macvlan lan
+		;;
+	if?*)
+		uci -q batch <<-EOF
+		set network.$1.metric=${1#if}
+		set network.$1.ip4table=$((200+${1#if}))
+		add_list firewall.mptcp.network=$1
+		EOF
+		_setup_multipath "$1" on
+		_setup_macvlan "$1"
+		;;
+	*)
+		_setup_multipath "$1" off
+		;;
+	esac
+}
+
+config_load network
+config_foreach _setup interface
+
+exit 0

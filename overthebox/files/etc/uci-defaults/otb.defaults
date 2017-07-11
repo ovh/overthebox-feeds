@@ -47,11 +47,6 @@ if ! grep -q api /etc/hosts; then
 	echo '169.254.254.1 api' >> /etc/hosts
 fi
 
-uci -q batch <<EOF
-set network.if0.metric='2000'
-commit network
-EOF
-
 # Clean the ca-certificates files
 rm -f /etc/ssl/certs/ca-certificates.crt
 # Regenerate them
