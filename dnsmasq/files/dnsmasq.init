@@ -125,6 +125,10 @@ append_server() {
 	xappend "--server=$1"
 }
 
+append_rev_server() {
+        xappend "--rev-server=$1"
+}
+
 append_address() {
 	xappend "--address=$1"
 }
@@ -134,12 +138,12 @@ append_ipset() {
 }
 
 append_interface() {
-	network_get_device ifname "$1" || return
+	network_get_device ifname "$1" || ifname="$1"
 	xappend "--interface=$ifname"
 }
 
 append_notinterface() {
-	network_get_device ifname "$1" || return
+	network_get_device ifname "$1" || ifname="$1"
 	xappend "--except-interface=$ifname"
 }
 
@@ -823,6 +827,7 @@ dnsmasq_start()
 	append_parm "$cfg" "domain" "--domain"
 	append_parm "$cfg" "local" "--server"
 	config_list_foreach "$cfg" "server" append_server
+	config_list_foreach "$cfg" "rev_server" append_rev_server
 	config_list_foreach "$cfg" "address" append_address
 	config_list_foreach "$cfg" "ipset" append_ipset
 	config_list_foreach "$cfg" "interface" append_interface
