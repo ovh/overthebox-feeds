@@ -17,14 +17,18 @@ _get_packages() {
 }
 
 _get_interface_json() {
-	local dns gateway ipaddr netmask \
+	local dns gateway ipaddr netmask subnet \
 		ifname metric multipath proto if_label \
 		traffic_control upload download
 
 	network_get_dnsserver dns "$1"
 	network_get_gateway gateway "$1"
 	network_get_ipaddr ipaddr "$1"
-	network_get_subnet netmask "$1"
+	network_get_subnet subnet "$1"
+
+	# Retrieve the netmask from the subnet
+	eval "$(ipcalc.sh "$subnet" | grep NETMASK)"
+	netmask=$NETMASK
 
 	config_get ifname "$1" ifname
 	config_get metric "$1" metric
