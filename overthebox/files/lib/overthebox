@@ -91,9 +91,10 @@ otb_service_get() {
 }
 
 otb_save_event() {
-	name=$1
-	details=$2
 	timestamp=$(date +%s)
 	mkdir -p "$OTB_EVENTS_DIRECTORY"
-	echo "$details" > "$OTB_EVENTS_DIRECTORY/$name-$timestamp-$RANDOM"
+	# shellcheck disable=SC2016
+	jq -n -c --arg name "$1" --arg timestamp "$timestamp" --argjson details "${2:-{}}" \
+		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' \
+		> "$OTB_EVENTS_DIRECTORY/$timestamp-$1-$RANDOM"
 }

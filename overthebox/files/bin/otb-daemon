@@ -14,8 +14,10 @@ otb_save_event start
 while true; do
 	reload_config
 
-	# Send the otb events
-	otb-send-events
+	# Send events
+	for file in $OTB_EVENTS_DIRECTORY/*; do
+		[ -f "$file" ] && otb_device_post "events" -d"@$file" && rm -f "$file"
+	done
 
 	ret=$(otb_device_get actions)
 	[ -z "$ret" ] && exit
