@@ -100,6 +100,4 @@ config_foreach create_static_ranges tag
 # / Migration from openwrt to lede
 ##################################
 
-uci -q commit dhcp
-
 exit 0

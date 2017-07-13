@@ -27,6 +27,4 @@ set firewall.allow_dhcp_request.target=ACCEPT
 set firewall.allow_dhcp_request.family=ipv4
 EOF
 
-uci -q commit firewall
-
 exit 0
