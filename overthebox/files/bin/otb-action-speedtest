@@ -1,0 +1,127 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# Do the iperf during 5 seconds
+test_time=5
+# Skip the data of the first second of the test
+skip_test_time=1
+server_port=5008
+server_ip=
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+# Setup stops the QoS and opens the iperf server
+setup() {
+	# Open the Iperf server
+	output=$(curl -s -X POST api/ipt/iperf)
+	if [ $? -ne "0" ]; then
+		echo "Couldn't open iperf server :"
+		echo "$output"
+		exit 1
+	fi
+
+	# Stop the QoS
+	output=$(/etc/init.d/qos stop)
+	if [ $? -ne "0" ]; then
+		echo "Couldn't stop qos :"
+		echo "$output"
+		exit 1
+	fi
+}
+
+# cleanup starts the QoS and closes the iperf server when the test is finished
+cleanup() {
+	# Close the Iperf server
+	output=$(curl -s -X DELETE api/ipt/iperf)
+	if [ $? -ne "0" ]; then
+		echo "Couldn't open iperf server :"
+		echo "$output"
+		exit 1
+	fi
+
+	# Start the QoS
+	output=$(/etc/init.d/qos start)
+	if [ $? -ne "0" ]; then
+		echo "Couldn't start qos :"
+		echo "$output"
+		exit 1
+	fi
+}
+
+# test_interface performs an iperf test and returns download, upload values plus an error
+test_interface() {
+	result=
+	multipath=
+	ifname=
+	ipaddr=
+	gateway=
+	config_get ifname "$1" ifname
+	network_get_gateway gateway "$1" || true
+	network_get_ipaddr ipaddr "$1" || true
+	config_get multipath "$1" multipath "off"
+
+	# Skip unwanted interfaces
+	if [ -z "$multipath" ] || [ "$multipath" = "off" ]; then
+		return
+	fi
+
+	#   -- Do the iperf test
+	#   --   during 5 seconds
+	#   --   omit the first few seconds of the test to be more accurate
+	#   --   on interface interface_name
+	#   --   return json data
+	iperf_command="iperf3 \
+			--client $server_ip
+			--port $server_port
+			--time $test_time
+			--omit $skip_test_time
+			--bind $ipaddr
+			--json
+	"
+
+	printf "[%s] Upload   : " "$ifname"
+
+	result=$($iperf_command)
+	if [ $? -ne "0" ]; then
+		echo "error when running iperf"
+		echo "$result"
+		return
+	fi
+
+	upload=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1024")
+	printf "%s Kbps\n" "$upload"
+
+	printf "[%s] Download : " "$ifname"
+
+	result=$($iperf_command -R)
+	if [ $? -ne "0" ]; then
+		echo "error when running iperf"
+		echo "$result"
+		return
+	fi
+
+	download=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1024")
+
+	printf "%s Kbps\n" "$download"
+}
+
+# -- Get the wan ip of the service
+server_ip=$(uci get shadowsocks.proxy.server)
+if [ -z "$server_ip" ]; then
+	echo "Can't find server ip"
+	exit 1
+fi
+
+# Setup all the components to get ready to do the test
+setup
+
+# Cleanup getting a SIGINT/HUP/TERM signal
+trap : HUP INT TERM
+
+config_load network
+# For each interface, run test_interface
+config_foreach test_interface interface
+
+# Cleanup when the test is done
+cleanup
