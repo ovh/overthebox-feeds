@@ -51,6 +51,8 @@ EOF
 vlan=3
 
 for port in $WAN; do
+	echo "Setup interface wan$port with vlan $vlan"
+
 	uci -q batch >/dev/null <<-EOF
 	add network switch_vlan
 	set network.@switch_vlan[-1].device='otbv2sw'
@@ -62,8 +64,11 @@ for port in $WAN; do
 	set network.wan$port.multipath='on'
 	set network.wan$port.proto='dhcp'
 	set network.wan$port.metric='$port'
+	set network.wan$port.ip4table='$((200+port))'
 
 	add_list firewall.mptcp.network='wan$port'
 	EOF
 	vlan=$((vlan+1))
 done
+
+uci -q commit
