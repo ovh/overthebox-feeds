@@ -37,7 +37,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/lib/network
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig.py $(1)/usr/bin/swconfig
 	$(CP) $(PKG_BUILD_DIR)/switch.sh $(1)/lib/network/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig-wan.sh $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig-reset $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
