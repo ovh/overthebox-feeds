@@ -21,13 +21,13 @@ set network.globals.multipath=enable
 EOF
 
 _setup_multipath() {
-	uci -q get "network.$1.multipath" > /dev/null && return
-	uci -q set "set network.$1.multipath=$2"
+	uci -q get "network.$1.multipath" >/dev/null && return
+	uci -q set "network.$1.multipath=$2"
 }
 
 _setup_macaddr() {
-	uci -q get "network.$1_dev.macaddr" > /dev/null && return
-	uci -q set "set network.$1_dev.macaddr=$2"
+	uci -q get "network.$1_dev.macaddr" >/dev/null && return
+	uci -q set "network.$1_dev.macaddr=$2"
 }
 
 _setup_macvlan() {
