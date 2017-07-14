@@ -211,14 +211,5 @@
 </div>
 <%- end -%>
 
-<%- if require('overthebox').checkReadOnly() then -%>
-<div class="container">
-	<div role="alert" class="oui-message oui-message_warning">
-		<h4><%:File system is in read only !%></h4>
-		<%:Your file system is corrupted and has been remounted in read only. Please run "overthebox_last_upgrade" and wait for the system to reboot.%><br>
-	</div>
-</div>
-<%- end -%>
-
 <div id="maincontent" class="container">
 <% if category then subtree("/" .. category .. "/", cattree) end %>
