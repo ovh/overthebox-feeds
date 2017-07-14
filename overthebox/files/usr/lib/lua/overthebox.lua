@@ -29,36 +29,6 @@ local VERSION = get_version() or "0.0.0"
 module "overthebox"
 _VERSION = VERSION
 
-function get_mounts()
-  local mounts = {}
-  for line in io.lines("/proc/mounts") do
-    local t = split(line)
-    table.insert(mounts, {device=t[1], mount_point=t[2], fs=t[3], options=t[4]})
-  end
-  return mounts
-end
-
-function checkReadOnly()
-  for _, mount in pairs(get_mounts()) do
-    if mount.mount_point and mount.mount_point == "/" then
-      if mount.options and mount.options:match("^ro") then -- assume ro is always the first of the option
-        return true
-      end
-    end
-  end
-  return false
-end
-
-function split(t)
-  local r = {}
-  if t == nil then return r end
-  for v in string.gmatch(t, "%S+") do
-    table.insert(r, v)
-  end
-  return r
-end
-
-
 -- Mwan conf generator
 function update_confmwan()
   local ucic = uci.cursor()
