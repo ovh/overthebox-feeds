@@ -1,0 +1,18 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+case "$1" in
+	list)
+		echo '{ "interface_up": { "interface": "str", "up": false} }'
+		;;
+	call)
+		case "$2" in
+			interface_up)
+				# read the arguments
+				read input;
+				echo "$input" > /toto
+				# return json object or an array
+				;;
+		esac
+		;;
+esac
