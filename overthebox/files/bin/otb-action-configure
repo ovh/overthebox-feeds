@@ -36,6 +36,7 @@ _setup_glorytun() {
 	set network.\(.dev).metric=\(.metric)
 	set network.\(.dev).txqueuelen=1000
 	set network.\(.dev).mtu=\(.mtu)
+	set network.\(.dev).ip4table=\(.table)
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
 	add_list firewall.wan.network=\(.dev)
@@ -61,6 +62,7 @@ _setup_glorytun_mud() {
 	set network.\(.dev).netmask=255.255.255.0
 	set network.\(.dev).gateway=\(.ip_peer)
 	set network.\(.dev).metric=\(.metric)
+	set network.\(.dev).ip4table=\(.table)
 	set network.\(.dev).txqueuelen=1000
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
