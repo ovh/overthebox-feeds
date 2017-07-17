@@ -30,5 +30,5 @@ deployment:
     dev:
         branch: /.*/
         commands:
-            - ssh deploy@$OTB_HOST mkdir -p deploy/$OTB_PATH
-            - rsync -av --delete-after ~/overthebox/source/bin/ deploy@$OTB_HOST:deploy/$OTB_PATH
+            - ssh -p ${OTB_RSYNC_PORT:-22} deploy@$OTB_HOST mkdir -p deploy/$OTB_PATH
+            - rsync -av --delete-after -e "ssh -q -p ${OTB_RSYNC_PORT:-22}" ~/overthebox/source/bin/ deploy@$OTB_HOST:deploy/$OTB_PATH
