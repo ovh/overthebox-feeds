@@ -2,45 +2,12 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 FILE="/etc/crontabs/root"
-if [ ! -f "$FILE" ]; then
-	touch $FILE
-fi
 
-_crontab_clean(){
-	TMP=$(mktemp)
-	grep -v "$1" "$FILE" > "$TMP"
-	mv "$TMP" "$FILE"
-}
+[ -f "$FILE" ] || exit 0
 
-_crontab_add(){
-	echo "$1" >> $FILE
-}
+sed -i '/overthebox_download_recovery/d' "$FILE"
+sed -i '/overthebox_checkup/d' "$FILE"
 
-_crontab_add_if_not_exists(){
-	grep -q "$1" $FILE && return
-
-	#first clean, just in case
-	_crontab_clean "$1"
-	_crontab_add "$2"
-}
-
-_crontab_del_if_exists(){
-	grep -q "$1" $FILE ||  return
-
-	_crontab_clean "$1"
-}
-
-# Download the latest recovery file every week
-# Set a random sleep to avoid too many requests at the same time
-_crontab_add_if_not_exists "/usr/bin/overthebox_download_recovery" \
-	"00 02 * * 0 { /usr/bin/overthebox_download_recovery cron; } &>/dev/null"
-
-# Add a checkup every 2h to ensure that all the services are running properly
-_crontab_add_if_not_exists "/usr/bin/overthebox_checkup" \
-	"00 */2 * * * { /usr/bin/overthebox_checkup; } &>/dev/null"
-
-chmod 600 /etc/crontabs/root
-chown root:root /etc/crontabs/root
 /etc/init.d/cron restart
 
 exit 0
