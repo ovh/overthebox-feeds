@@ -50,6 +50,7 @@ _setup() {
 		set network.$1.proto=dhcp
 		set network.$1.metric=${1#wan}
 		set network.$1.ip4table=$((200+${1#wan}))
+		del_list firewall.mptcp.network=$1
 		add_list firewall.mptcp.network=$1
 		EOF
 		_setup_multipath "$1" on
@@ -58,6 +59,7 @@ _setup() {
 		uci -q batch <<-EOF
 		set network.$1.proto=dhcp
 		set network.$1.metric=2000
+		del_list firewall.wan.network=$1
 		add_list firewall.wan.network=$1
 		EOF
 		_setup_multipath "$1" off
@@ -68,6 +70,7 @@ _setup() {
 		uci -q batch <<-EOF
 		set network.$1.metric=${1#if}
 		set network.$1.ip4table=$((200+${1#if}))
+		del_list firewall.mptcp.network=$1
 		add_list firewall.mptcp.network=$1
 		EOF
 		_setup_multipath "$1" on
