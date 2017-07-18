@@ -12,7 +12,7 @@ _get() {
 }
 
 remote_access_id="$(_get remote_access_id)"
-if [ -z "$remote_access_id" ]; then
+if [ -z "$remote_access_id" ] || [ "$remote_access_id" = null ]; then
     echo "Invalid remote access ID"
     exit 1
 fi
