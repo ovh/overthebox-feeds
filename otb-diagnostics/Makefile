@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
-DEPENDS:=+overthebox +bind-dig +mtr +lsof +dmidecode +tc
+DEPENDS:=+overthebox +bind-dig +mtr +lsof +TARGET_x86:dmidecode +tc
 TITLE:=OverTheBox diagnostics
 PKGARCH:=all
 endef

@@ -8,11 +8,11 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
 	mptcp shadowsocks-libev luaposix luasec luasocket file \
-	getopt dmidecode tc iperf3 mtr bind-dig owipcalc ethtool \
+	getopt tc iperf3 mtr bind-dig owipcalc ethtool \
 	rng-tools ss strace tcpdump-mini conntrack conntrackd \
 	luci luci-lib-json luci-theme-bootstrap ca-certificates \
-	libustream-mbedtls luci-lib-px5g px5g kmod-ipt-raw ip-full \
-	iptables-mod-trace curl ca-bundle jq
+	libustream-mbedtls luci-lib-px5g px5g ip-full \
+	curl ca-bundle jq
 
 define Package/$(PKG_NAME)
 SECTION:=OVH

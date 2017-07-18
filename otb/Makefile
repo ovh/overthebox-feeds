@@ -8,10 +8,11 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS = $(notdir $(wildcard ../otb-*)) \
     overthebox TARGET_x86:python-swconfig-otb \
-    usb-modeswitch bmon bwm-ng iptables-mod-trace \
+    usb-modeswitch bmon bwm-ng \
     kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
     fuse-utils luci-app-samba samba36-server \
-    rsync netcat svfs screen
+    rsync netcat svfs screen \
+    iptables-mod-trace kmod-ipt-raw
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
