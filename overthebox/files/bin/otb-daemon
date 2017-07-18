@@ -25,7 +25,7 @@ while true; do
 	action=$(otb_json_get "$ret" action)
 	id=$(otb_json_get "$ret" id)
 	otb_debug "Got action '$action' with id '$id'"
-	[ -z "$action" ] && continue
+	[ -z "$action" ] || [ "$action" = "null" ] && exit
 
 	output=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
