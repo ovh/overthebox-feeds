@@ -66,8 +66,8 @@ for port in $WAN; do
 	set network.wan$port.metric='$port'
 	set network.wan$port.ip4table='$((200+port))'
 
-	del_list firewall.mptcp.network='wan$port'
-	add_list firewall.mptcp.network='wan$port'
+	del_list firewall.wan.network='wan$port'
+	add_list firewall.wan.network='wan$port'
 	EOF
 	vlan=$((vlan+1))
 done
