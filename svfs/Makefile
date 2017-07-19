@@ -1,15 +1,8 @@
-#
-# Copyright (C) 2015 OVH
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
-
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=svfs
-PKG_VERSION:=0.8.2
-PKG_RELEASE:=1.0.1
+PKG_VERSION:=0.9.1
+PKG_RELEASE:=1
 
 PKG_SOURCE:=svfs-linux-amd64
 PKG_SOURCE_URL:=https://github.com/ovh/svfs/releases/download/v$(PKG_VERSION)
@@ -19,18 +12,15 @@ PKG_MAINTAINER:=Bash <bash@ovh.net>
 include $(INCLUDE_DIR)/package.mk
 
 define Package/svfs
-	SECTION:=utils
-	CATEGORY:=OVH
-	TITLE:=add svfs mount
-	DEPENDS:= +fuse-utils +kmod-fuse
+SECTION:=net
+CATEGORY:=Network
+SUBMENU:=Filesystem
+TITLE:=The Swift Virtual File System
+DEPENDS:=+fuse-utils @TARGET_x86_64
 endef
 
 define Package/svfs/description
-	add svfs
-endef
-
-define Package/svfs/conffiles
-/etc/config/svfs
+The Swift Virtual File System
 endef
 
 define Build/Prepare
