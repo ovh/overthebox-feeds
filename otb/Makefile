@@ -12,7 +12,8 @@ MY_DEPENDS = $(notdir $(wildcard ../otb-*)) \
     kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs screen \
-    iptables-mod-trace kmod-ipt-raw
+    iptables-mod-trace kmod-ipt-raw \
+    vim-full
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
