@@ -10,7 +10,7 @@ MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
 	mptcp shadowsocks-libev luaposix luasec luasocket file \
 	getopt tc iperf3 mtr bind-dig owipcalc ethtool \
 	rng-tools ss strace tcpdump-mini conntrack conntrackd \
-	luci luci-lib-json luci-theme-bootstrap ca-certificates \
+	luci luci-lib-json ca-certificates \
 	libustream-mbedtls luci-lib-px5g px5g ip-full \
 	curl ca-bundle jq
 
