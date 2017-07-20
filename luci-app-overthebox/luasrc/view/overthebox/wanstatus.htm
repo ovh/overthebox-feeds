@@ -127,34 +127,26 @@
 					var cssc = '';
 					switch (mArray.wans[i].status)
 					{
-						case 'online':
-							stat = 'Online (tracking active)';
+						case 'OK':
+							stat = 'Online';
 							cssc = 'rgb(144, 240, 144)';
 							statusIcon = "<%=resource%>/ovh/images/statusOK.png";
 							statusMessageClass = "";
 							statusMessage = "";
 							break;
-						case 'notMonitored':
-							stat = 'Online (tracking off)';
-							cssc = 'rgb(144, 240, 144)';
-							statusIcon = "<%=resource%>/ovh/images/statusWarning.png";
-							statusMessageClass = "warning";
-							statusMessage = "";
-							break;
-						case 'offline':
+						case 'ERROR':
 							stat = 'Offline';
 							cssc = 'rgb(240, 144, 144)';
 							statusIcon = "<%=resource%>/ovh/images/statusError.png";
 							statusMessageClass = "error";
 							statusMessage = "";
 							break;
-						case 'notEnabled':
-							stat = 'Disabled';
-							cssc = 'rgb(224,224,224)';
-							statusIcon = "<%=resource%>/ovh/images/statusError.png";
-							statusMessageClass = "error";
+						default:
+							stat = 'Unknown';
+							cssc = 'rgb(144, 240, 144)';
+							statusIcon = "<%=resource%>/ovh/images/statusWarning.png";
+							statusMessageClass = "warning";
 							statusMessage = "";
-							break;
 					}
 					// Select color following multipath status
 					switch (mArray.wans[i].multipath)
@@ -167,9 +159,6 @@
 							cssc = 'rgb(255,153,51)';
 					}
 					// Populate info
-					var curping = Math.floor(mArray.wans[i].curping);
-					var minping = Math.floor(mArray.wans[i].minping);
-					var avgping = Math.floor(mArray.wans[i].avgping);
 					var wanip   = mArray.wans[i].wanip;
 					var whois   = mArray.wans[i].whois;
 					var multipath = mArray.wans[i].multipath;
@@ -183,7 +172,7 @@
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />ping: %s ms<br />multipath: %s', stat, wanip, whois ? whois : "", curping, multipath);
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />multipath: %s', stat, wanip, whois, multipath);
 					if(mArray.wans[i].qos)
 					{
 						content += String.format('<br />traffic control: %s/%s kbps (%s)',
