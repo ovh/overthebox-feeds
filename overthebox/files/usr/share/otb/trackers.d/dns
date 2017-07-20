@@ -1,0 +1,9 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+exec dig \
+	@"$OTB_TRACKER_HOST" \
+	-b "$OTB_TRACKER_INTERFACE_IP" \
+	+time="$OTB_TRACKER_TIMEOUT" \
+	+short \
+	+tries="$OTB_TRACKER_RETRY" "$@"
