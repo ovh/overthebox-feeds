@@ -6,7 +6,7 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := tc kmod-sched-core kmod-sched-connmark kmod-ifb iptables iptables-mod-ipopt iptables-mod-conntrack-extra
+MY_DEPENDS := tc kmod-sched-core kmod-sched-connmark kmod-ifb iptables iptables-mod-ipopt iptables-mod-conntrack-extra ethtool
 
 define Package/$(PKG_NAME)
 SECTION:=OVH

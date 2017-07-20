@@ -6,13 +6,9 @@ PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := graph dnsmasq-full glorytun glorytun-udp luci-app-overthebox \
-	mptcp shadowsocks-libev luaposix luasec luasocket file \
-	getopt tc iperf3 mtr bind-dig owipcalc ethtool \
-	rng-tools ss strace tcpdump-mini conntrack conntrackd \
-	luci luci-lib-json ca-certificates \
-	libustream-mbedtls luci-lib-px5g px5g ip-full \
-	curl ca-bundle jq
+MY_DEPENDS := \
+    graph glorytun glorytun-udp mptcp shadowsocks-libev  \
+    bind-dig ip-full jq curl ca-bundle ca-certificates
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
