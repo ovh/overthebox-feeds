@@ -12,7 +12,7 @@ _log() {
 }
 
 _setup_route() {
-	if ip route "$1" "$2" via "$3" dev "$4" metric "$5"; then
+	if ip route "$1" "$2" via "$3" dev "$4" metric "$5" 2>/dev/null; then
 		_log "$1 $2 route for $4 using gateway $3 and metric $5"
 	fi
 }
