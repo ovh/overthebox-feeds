@@ -1,19 +1,19 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# set -e
+set -e
 
 opkg update -V1
-opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade -V1
+opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade --autoremove -V1
 
 for file in /etc/uci-defaults/*; do
 	[ -f "$file" ] || continue
-	( . "$file" ) && rm -f "$file"
+	( . "$file" ) && rm -f "$file" || true
 done
 
 uci -q commit
 
 for file in /etc/sysctl.d/*.conf; do
 	[ -f "$file" ] || continue
-	sysctl -p "$file"
+	sysctl -q -p "$file" || true
 done
