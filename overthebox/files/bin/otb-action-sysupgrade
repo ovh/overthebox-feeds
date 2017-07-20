@@ -3,14 +3,14 @@
 
 set -e
 
-dist=$(grep reboot_core /etc/opkg/distfeeds.conf | cut -d' ' -f3)
+dist=$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)
 
 [ -d /sys/firmware/efi ] && url="$dist/../latest-uefi.img.gz" \
                          || url="$dist/../latest.img.gz"
 
 cd /tmp
 
-curl -sS -m 5 "$url"     -o img.gz
-curl -sS -m 5 "$url.sig" -o img.gz.sig
+curl -sS --connect-timeout 5 "$url"     -o img.gz
+curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
 
 usign -V -m img.gz -P /etc/opkg/keys && sysupgrade img.gz
