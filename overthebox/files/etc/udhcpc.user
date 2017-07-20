@@ -64,7 +64,7 @@ if uci -q get "network.lan_if${_id}" >/dev/null; then
 	set network.if0_dev.macaddr=auto.if$_id
 	commit network
 
-	add_list firewall.mptcp.network=if$_id
+	add_list firewall.wan.network=if$_id
 	commit firewall
 
 	set dhcp.if${_id}=dhcp
