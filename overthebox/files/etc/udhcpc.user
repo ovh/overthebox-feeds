@@ -60,7 +60,6 @@ if uci -q get "network.lan_if${_id}" >/dev/null; then
 	set network.if${_id}.dns=$dns
 	set network.if${_id}.metric=$_id
 	set network.if${_id}.ip4table=$((_id + 200))
-	set network.if${_id}.tracking=true
 	set network.if0_dev.macaddr=auto.if$_id
 	commit network
 

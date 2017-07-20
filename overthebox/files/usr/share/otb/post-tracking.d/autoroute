@@ -1,0 +1,41 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+otb_metric=
+otb_host=
+
+_log() {
+	logger -t autoroute "$@"
+}
+
+_setup_route() {
+	if ip route "$1" "$2" via "$3" dev "$4" metric "$5"; then
+		_log "$1 $2 route for $4 using gateway $3 and metric $5"
+	fi
+}
+
+config_load shadowsocks
+config_get otb_host proxy server
+
+config_load network
+config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
+
+# TODO: should tun0 be the default route if xtun0 is present ?
+[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_metric=0
+
+if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] || [ "$interface" = "xtun0" ] ; then
+	# Don't add a static route to the otb host through tun0 and xtun0
+	otb_host=
+fi
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
+_setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE" "$otb_metric"
+[ -n "$otb_host" ] && _setup_route \
+	"$action" \
+	"$otb_host" \
+	"$OTB_TRACKER_INTERFACE_GATEWAY" \
+	"$OTB_TRACKER_DEVICE" \
+	"$otb_metric"
