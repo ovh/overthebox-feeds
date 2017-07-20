@@ -4,6 +4,11 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
+# retrieve args
+OTB_TRACKER_INTERFACE="$1"
+OTB_TRACKER_CALL="$2"
+shift 2
+
 # export vars
 export OTB_TRACKER_INTERFACE
 export OTB_TRACKER_CALL

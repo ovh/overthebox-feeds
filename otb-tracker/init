@@ -23,9 +23,7 @@ _launch_tracker() {
 	_validate_section "$1"
 	procd_open_instance
 	# shellcheck disable=SC2086
-	procd_set_param command /bin/otb-tracker $options
-	procd_append_param env OTB_TRACKER_INTERFACE="$1"
-	procd_append_param env OTB_TRACKER_CALL="$call"
+	procd_set_param command /bin/otb-tracker "$1" "$call" $options
 	procd_append_param env OTB_TRACKER_HOST="$host"
 	procd_append_param env OTB_TRACKER_TIMEOUT="$timeout"
 	procd_append_param env OTB_TRACKER_RETRY="$retry"

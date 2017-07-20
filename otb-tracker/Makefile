@@ -11,7 +11,7 @@ define Package/$(PKG_NAME)
   SECTION:=OVH
   CATEGORY:=OverTheBox
   TITLE:=OverTheBox tracker
-  DEPENDS:=+bind-dig +jq +ip-full
+  DEPENDS:=+overthebox
   PKGARCH:=all
 endef
 
