@@ -15,7 +15,11 @@ MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs screen \
     iptables-mod-trace kmod-ipt-raw \
-    vim-full
+    libustream-mbedtls luci-lib-px5g px5g  \
+    getopt tc iperf3 mtr ethtool rng-tools \
+    ss strace tcpdump-mini conntrack conntrackd \
+    luci luci-lib-json luci-app-overthebox \
+    vim-full dnsmasq-full
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
