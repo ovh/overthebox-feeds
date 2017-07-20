@@ -11,7 +11,7 @@ content=$(otb_device_get release_channel)
 FILE_NAME="/etc/opkg/distfeeds.conf"
 
 # shellcheck disable=SC2016
-file_content=$(jq -n -r --argjson data "$content" '$data.feeds | .[] | [.type,.url,.name] | join(" ")')
+file_content=$(jq -n -r --argjson data "$content" '$data.feeds | .[] | [.type,.name,.url] | join(" ")')
 
 if [ -n "$file_content" ]; then
 	echo "$file_content" > "$FILE_NAME"
