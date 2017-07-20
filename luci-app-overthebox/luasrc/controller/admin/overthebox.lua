@@ -79,7 +79,6 @@ end
 -- Multipath overview functions
 function interfaces_status()
 
-  local mwan3 	= require("luci.controller.mwan3")
   local ut 	= require "luci.util"
   local ntm 	= require "luci.model.network".init()
   local uci 	= require "luci.model.uci".cursor()
@@ -172,75 +171,48 @@ function interfaces_status()
   mArray.overthebox["loadavg"] = sys.exec("cat /proc/loadavg 2>/dev/null"):match("[%d%.]+ [%d%.]+ [%d%.]+")
   mArray.overthebox["uptime"] = sys.exec("cat /proc/uptime 2>/dev/null"):match("[%d%.]+")
   -- overview status
-  local statusString = mwan3.getInterfaceName()
-  if statusString ~= "" then
-    mArray.wans = {}
-    wansid = {}
-    mArray.tunnels = {}
+  mArray.wans = {}
+  mArray.tunnels = {}
 
-    for wanName, interfaceState in string.gfind(statusString, "([^%[]+)%[([^%]]+)%]") do
-      local wanInterfaceName = ut.trim(sys.exec("uci -q -p /var/state get network." .. wanName .. ".ifname"))
-      if wanInterfaceName == "" then
-        wanInterfaceName = "X"
-      end
-      local wanDeviceLink = ntm:get_interface(wanInterfaceName)
-      wanDeviceLink = wanDeviceLink and wanDeviceLink:get_network()
-      wanDeviceLink = wanDeviceLink and wanDeviceLink:adminlink() or "#"
-      local wanLabel = uci:get("network", wanName, "label") or wanInterfaceName
-      wansid[wanName] = #mArray.wans + 1
-      -- Add multipath info
-      local ipaddr	= uci:get("network", wanName, "ipaddr")
-      local gateway	= uci:get("network", wanName, "gateway")
-      local multipath = "default";
-      if ipaddr and mptcp[ipaddr] then
-        multipath = uci:get("network", wanName, "multipath") or "on"
-      else
-        multipath = "off"
-      end
-      -- Return info
-      if wanName:match("tun[%d+]") or wanName:match("voip[%d+]") then
-        mArray.tunnels[wanName] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, multipath = multipath, status = interfaceState }
-      else
-        -- Add ping info
-        data = json.decode(ut.trim(sys.exec("cat /tmp/tracker/if/" .. wanName .. " 2>/dev/null")))
-        local minping = "NaN"
-        local avgping = "NaN"
-        local curping = "NaN"
-        local wanip   = "0.0.0.0"
-        local whois   = "Unknown provider"
-        local qos     = false
-        local download
-        local upload
-        if data and data[wanName] then
-          minping = data[wanName].minping
-          avgping = data[wanName].avgping
-          curping = data[wanName].curping
-          whois	= data[wanName].whois
-          wanip	= "0.0.0.0"
-          if data[wanName].wanaddr then
-            if logged then
-              wanip   = data[wanName].wanaddr
-            else
-              wanip   = data[wanName].wanaddr:gsub("^(%d+)%.%d+%.%d+%.(%d+)", "%1.***.***.%2")
-            end
-          end
-          -- append qos current state infos
-          if data[wanName].qostimestamp and data[wanName].reloadtimestamp and data[wanName].qostimestamp > data[wanName].reloadtimestamp then
-            if data[wanName].qosmode then
-              qos = data[wanName].qosmode
-            end
-            if data[wanName].upload then
-              upload = data[wanName].upload
-            end
-            if data[wanName].download then
-              download = data[wanName].download
-            end
-          end
-        end
-        mArray.wans[wansid[wanName]] = { label = wanLabel, name = wanName, link = wanDeviceLink, ifname = wanInterfaceName, ipaddr = ipaddr, gateway = gateway, multipath = multipath, status = interfaceState, minping = minping, avgping = avgping, curping = curping, wanip = wanip, whois = whois, download = download, upload = upload, qos = qos }
-      end
+  uci:foreach("network", "interface", function (section)
+    local interface = section[".name"]
+    local net = ntm:get_network(interface)
+    local ipaddr = net:ipaddr()
+    local gateway = net:gwaddr()
+
+    if not ipaddr or not gateway then return end
+
+    local ifname = section['ifname']
+    local wanip = luci.sys.exec("curl -s --max-time 1 --interface "..ifname.." ipaddr.ovh")
+    local whois = "unknown"
+
+    if wanip then
+      local asn = luci.sys.exec("curl -s --max-time 1 api.iptoasn.com/v1/as/ip/"..wanip)
+      whois = json.decode(asn).as_description
     end
-  end
+
+    local data = {
+      label = interface,
+      name = interface,
+      link = net:adminlink(),
+      ifname = ifname,
+      ipaddr = ipaddr,
+      gateway = gateway,
+      multipath = section['multipath'],
+      status = net:_ubus("data").connectivity,
+      wanip = wanip,
+      whois = whois,
+      qos = section['trafficcontrol'],
+      download = section['download'],
+      upload = section['upload']
+    }
+
+    if section['type'] == "tunnel" then
+      table.insert(mArray.tunnels, data);
+    else
+      table.insert(mArray.wans, data);
+    end
+  end)
 
   luci.http.prepare_content("application/json")
   luci.http.write_json(mArray)
