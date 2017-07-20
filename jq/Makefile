@@ -11,8 +11,8 @@ PKG_FIXUP:=autoreconf
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
-SECTION:=OVH
-CATEGORY:=OverTheBox
+SECTION:=base
+CATEGORY:=Base system
 TITLE:=$(PKG_NAME)
 endef
 
