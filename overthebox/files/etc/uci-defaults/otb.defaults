@@ -1,40 +1,30 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-if grep "\s*#\s*PollSecs [0-9]*" /etc/conntrackd/conntrackd.conf; then
-	sed -i.bak '/[[:space:]]*#[[:space:]]*PollSecs [0-9]*/c\        PollSecs 5' /etc/conntrackd/conntrackd.conf
-fi
-
-if grep "\s*LogFile on" /etc/conntrackd/conntrackd.conf; then
-	sed -i.bak '/[[:space:]]*LogFile on/c\        LogFile off' /etc/conntrackd/conntrackd.conf
-	/etc/init.d/conntrackd restart
-	rm -f /tmp/log/conntrackd-stats.log
-fi
-
 rm -rf /tmp/luci-*
 
 for dns in $(uci show network | grep "\.dns=" | cut -f2 -d'=' | sed s/\'//g)
 do
 	if uci show network | grep "@route" | grep "$dns" &>/dev/null; then
 		S_ROUTE=$(uci show network | grep "@route" | grep "$dns" | cut -f1-2 -d'.')
-		uci delete $S_ROUTE
+		uci -q delete "$S_ROUTE"
 	fi
 done
 
 if uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'"; then
 	RECORD=$(uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'" | cut -f1-2 -d'.')
-	uci delete $RECORD
+	uci -q delete "$RECORD"
 fi
 
-if ! uci get -q system.@system[0].zonename 1>/dev/null; then
-	uci -q batch <<-EOF >/dev/null
+if ! uci -q get system.@system[0].zonename; then
+	uci -q batch <<-EOF
 	set system.@system[0].zonename="Europe/Paris"
 	set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
 	EOF
 fi
 
 if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'" &>/dev/null; then
-	uci -q batch <<-EOF >/dev/null
+	uci -q batch <<-EOF
 	add dhcp hostrecord
 	set dhcp.@hostrecord[-1].name='api'
 	set dhcp.@hostrecord[-1].ip='169.254.254.1'
@@ -45,6 +35,7 @@ if ! grep -q api /etc/hosts; then
 	echo '169.254.254.1 api' >> /etc/hosts
 fi
 
+# TODO: check if we still need this with LEDE
 # Clean the ca-certificates files
 rm -f /etc/ssl/certs/ca-certificates.crt
 # Regenerate them

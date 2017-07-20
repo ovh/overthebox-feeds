@@ -38,7 +38,6 @@ _update_network_list() {
 	cfg="$1"
 	interface_list=
 	config_get interface_list "$cfg" network
-	echo "Interface list: $interface_list"
 
 	# Delete this interface
 	uci -q delete "firewall.$cfg.network"
