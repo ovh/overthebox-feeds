@@ -6,7 +6,7 @@ START=60
 reload()
 {
 	# Ask tun0 to load QoS
-	/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+	# /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
 }
 
 start()
@@ -21,7 +21,7 @@ restart()
 
 stop()
 {
-	/etc/init.d/dscp stop
+	# /etc/init.d/dscp stop
 	/usr/lib/qos/run.sh stop
 	curl -s --max-time 5 -X DELETE api/qos
 }
