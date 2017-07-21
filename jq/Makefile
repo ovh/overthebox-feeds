@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=jq
 PKG_VERSION:=1.5
-PKG_RELEASE:=0
+PKG_RELEASE:=1
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/stedolan/jq/releases/download/$(PKG_NAME)-$(PKG_VERSION)
 
