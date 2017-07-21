@@ -1,0 +1,85 @@
+#!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+START=60
+
+COMMID="$(date +%s)_$$"
+IPT="iptables -t mangle -w"
+
+# Generate dscp tagging preferences
+_setup_dscp() {
+	local proto ipset src_ip src_port dest dest_ip dest_port class direction
+
+	config_get proto "$1" proto "all"
+	config_get ipset "$1" ipset
+	config_get src_ip "$1" src_ip "0.0.0.0/0"
+	config_get src_port "$1" src_port "0:65535"
+	config_get dest_ip "$1" dest_ip "0.0.0.0/0"
+	config_get dest_port "$1" dest_port "0:65535"
+	config_get class "$1" class
+	config_get direction "$1" direction "upload"
+
+	# Take OTB point of view when using both direction (inverse source and destination)
+	if [ "$direction" = "both" ]; then
+		config_get src_ip "$1" dest_ip "0.0.0.0/0"
+		config_get src_port "$1" dest_port "0:65535"
+		config_get dest_ip "$1" src_ip "0.0.0.0/0"
+		config_get dest_port "$1" src_port "0:65535"
+	fi
+
+	dest=${dest_ip:-$ipset}
+
+	if [ "$direction" = "upload" ] || [ "$direction" = "both" ]; then
+		case $proto in
+			udp|tcp)
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m multiport --sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "dscp_$COMMID" -j RETURN
+				;;
+			*)
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m comment --comment "dscp_$COMMID" -j DSCP --set-dscp-class "$class"
+				$IPT -A dscp -p "$proto" -s "$src_ip" -d "$dest" -m comment --comment "dscp_$COMMID" -j RETURN
+				;;
+		esac
+	fi
+}
+
+reload() {
+	config_load dscp
+	config_foreach _setup_dscp classify
+
+	iptables-save | grep "A dscp" | grep "dscp_" | grep -v "dscp_$COMMID" | sed "s/-A/\/usr\/sbin\/iptables -t mangle -w -D/g" | sh
+
+#	if [ "$1" != "tun0" ]; then
+#		/usr/bin/pkill -USR2 -f "mwan3track -i tun0"
+#	fi
+}
+
+restart() {
+	stop
+	restart
+}
+
+_setup_dscp_tcp() {
+	$IPT -A dscp -p tcp -m length --length "$1" -m comment --comment "dscp" -j DSCP --set-dscp-class "$2"
+	$IPT -A dscp -p tcp -m length --length "$1" -m comment --comment "dscp" -j RETURN
+}
+
+start() {
+	$IPT -D PREROUTING -j dscp 2>/dev/null
+	$IPT -I PREROUTING -j dscp
+
+	_setup_dscp_tcp ":89"    "cs3"  # Interactive
+	_setup_dscp_tcp "90:511" "cs2"  # Light
+	_setup_dscp_tcp "512:"   "cs1"  # Heavy
+
+	reload
+}
+
+stop() {
+	$IPT -F dscp 2>/dev/null
+	$IPT -N dscp 2>/dev/null
+}
+
+service_triggers() {
+	procd_add_reload_trigger dscp
+}
