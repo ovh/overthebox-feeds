@@ -1,33 +1,31 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+. /lib/functions.sh
+
 rm -rf /tmp/luci-*
 
-for dns in $(uci show network | grep "\.dns=" | cut -f2 -d'=' | sed s/\'//g)
-do
-	if uci show network | grep "@route" | grep "$dns" &>/dev/null; then
-		S_ROUTE=$(uci show network | grep "@route" | grep "$dns" | cut -f1-2 -d'.')
-		uci -q delete "$S_ROUTE"
-	fi
-done
-
-if uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'"; then
-	RECORD=$(uci show dhcp | grep "\.@hostrecord" | grep "name='wanip'" | cut -f1-2 -d'.')
-	uci -q delete "$RECORD"
-fi
-
-if ! uci -q get system.@system[0].zonename; then
+if ! uci -q get system.@system[0].zonename >/dev/null; then
 	uci -q batch <<-EOF
 	set system.@system[0].zonename="Europe/Paris"
 	set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
 	EOF
 fi
 
-if ! uci show dhcp | grep "\.@hostrecord" | grep "name='api'" &>/dev/null; then
+config_load dhcp
+has_api_hostrecord=false
+_check_api_hostrecord() {
+	name=
+	config_get name "$1" name
+	[ "$name" = "api" ] && has_api_hostrecord=true
+}
+config_foreach _check_api_hostrecord hostrecord
+
+if [ "$has_api_hostrecord" = "false" ]; then
 	uci -q batch <<-EOF
-	add dhcp hostrecord
-	set dhcp.@hostrecord[-1].name='api'
-	set dhcp.@hostrecord[-1].ip='169.254.254.1'
+	add dhcp.api_hostrecord=api
+	set dhcp.api_hostrecord.name='api'
+	set dhcp.api_hostrecord.ip='169.254.254.1'
 	EOF
 fi
 
