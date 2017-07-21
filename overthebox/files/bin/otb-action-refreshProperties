@@ -42,7 +42,8 @@ _get_interface_json() {
 	# Get the public ip for the interface if the gateway is defined
 	local public_ip
 	if [ -n "$gateway" ]; then
-		public_ip=$(curl -s --max-time 1 --interface "$ifname" ifconfig.ovh)
+		# shellcheck disable=2086
+		public_ip=$(ubus call "network.interface.$1" status | jq -c -r '.public_ip')
 	fi
 
 	local dns_servers
