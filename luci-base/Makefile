@@ -15,7 +15,7 @@ LUCI_TITLE:=LuCI core libraries
 LUCI_DEPENDS:=+lua +libuci-lua +luci-lib-nixio +luci-lib-ip +rpcd +libubus-lua
 
 PKG_VERSION:=v1.1
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=LuaSrcDiet-0.12.1.tar.bz2
 PKG_SOURCE_URL:=https://luasrcdiet.googlecode.com/files
