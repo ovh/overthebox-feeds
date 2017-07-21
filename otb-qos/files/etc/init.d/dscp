@@ -102,3 +102,7 @@ stop()
 	$IPT -F dscp 2>/dev/null
 	$IPT -N dscp 2>/dev/null
 }
+
+service_triggers() {
+	procd_add_reload_trigger dscp
+}
