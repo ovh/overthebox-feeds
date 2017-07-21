@@ -148,16 +148,6 @@
 							statusMessageClass = "warning";
 							statusMessage = "";
 					}
-					// Select color following multipath status
-					switch (mArray.wans[i].multipath)
-					{
-						case 'off':
-							cssc = 'rgb(255,153,51)';
-						case 'failover':
-							cssc = 'rgb(224,224,224)';
-						case 'handover':
-							cssc = 'rgb(255,153,51)';
-					}
 					// Populate info
 					var wanip   = mArray.wans[i].wanip;
 					var whois   = mArray.wans[i].whois;
@@ -173,13 +163,9 @@
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
 					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />multipath: %s', stat, wanip, whois, multipath);
-					if(mArray.wans[i].qos)
+					if(mArray.wans[i].qos && mArray.wans[i].download > 0 && mArray.wans[i].upload > 0)
 					{
-						content += String.format('<br />traffic control: %s/%s kbps (%s)',
-										mArray.wans[i].download == 0 ? "off" : mArray.wans[i].download,
-										mArray.wans[i].upload == 0 ? "off" : mArray.wans[i].upload,
-										mArray.wans[i].qos
-						)
+						content += String.format('<br />traffic control: %s/%s kbps (%s)', mArray.wans[i].download, mArray.wans[i].upload, mArray.wans[i].qos)
 					}
 					temp += getNetworkNodeTemplate(equipmentIcon, statusIcon, title, statusMessageClass,statusMessage,content);
 
