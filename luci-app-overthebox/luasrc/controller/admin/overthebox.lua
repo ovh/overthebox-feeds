@@ -187,8 +187,8 @@ function interfaces_status()
     local whois = "unknown"
 
     if wanip then
-      local asn = luci.sys.exec("curl -s --max-time 1 api.iptoasn.com/v1/as/ip/"..wanip)
-      whois = json.decode(asn).as_description
+      local asn = json.decode(luci.sys.exec("curl -s --max-time 1 api.iptoasn.com/v1/as/ip/"..wanip))
+      if asn then whois = asn.as_description end
     end
 
     local data = {
