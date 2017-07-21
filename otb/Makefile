@@ -2,13 +2,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb
 PKG_VERSION:=0.6
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     otb-backup otb-diagnostics \
     otb-qos otb-remote otb-tracker \
+    otb-autoroute \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bmon bwm-ng \
     kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
