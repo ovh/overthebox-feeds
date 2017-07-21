@@ -8,8 +8,8 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     otb-backup otb-diagnostics \
-    otb-qos otb-remote otb-tracker \
-    otb-autoroute \
+    otb-qos otb-dscp otb-remote \
+    otb-tracker otb-autoroute \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bmon bwm-ng \
     kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
