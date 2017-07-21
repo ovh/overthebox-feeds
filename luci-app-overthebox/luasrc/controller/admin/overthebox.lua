@@ -183,16 +183,9 @@ function interfaces_status()
     if not ipaddr or not gateway then return end
 
     local ifname = section['ifname']
-    local wanip = luci.sys.exec("curl -s --max-time 1 --interface "..ifname.." ipaddr.ovh")
-    local whois = "unknown"
-
-    if wanip then
-      local asn = json.decode(luci.sys.exec("curl -s --max-time 1 api.iptoasn.com/v1/as/ip/"..wanip))
-      if asn then whois = asn.as_description end
-    end
 
     local data = {
-      label = interface,
+      label = section['label'] or interface,
       name = interface,
       link = net:adminlink(),
       ifname = ifname,
@@ -200,8 +193,8 @@ function interfaces_status()
       gateway = gateway,
       multipath = section['multipath'],
       status = net:_ubus("data").connectivity,
-      wanip = wanip,
-      whois = whois,
+      wanip = net:_ubus("data").public_ip,
+      whois = net:_ubus("data").asn.as_description,
       qos = section['trafficcontrol'],
       download = section['download'],
       upload = section['upload']
