@@ -1,17 +1,22 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# shellcheck disable=SC1091
 . /lib/functions.sh
 
-_show_status() {
-	connectivity=$(ubus call network.interface."$1" status | jq -r '.data.connectivity')
-	case "$connectivity" in
-		"OK")    echo "  $1 tracked up";;
-		"ERROR") echo "  $1 tracked down";;
-		*)       echo "  $1 not tracked";;
-	esac
+_print() {
+	printf " %-15s %-15s %s\n" "$@"
 }
 
-echo "OTB-TRACKER interfaces status :"
-config_load network
-config_foreach _show_status interface
+_show_status() {
+	status=$(ubus call "network.interface.$1" status | \
+		jq -r '@text "\(.data.connectivity) \(.data.public_ip)"')
+	# shellcheck disable=SC2086
+	case "$status" in OK*|ERROR*) _print $1 $status ;; esac
+}
+
+echo
+_print "INTERFACE" "CONNECTIVITY" "PUBLIC IP"
+echo --------------------------------------------------------
+(config_load network ; config_foreach _show_status interface) | sort
+echo
