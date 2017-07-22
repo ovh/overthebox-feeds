@@ -6,7 +6,7 @@ set -e
 [ "$OTB_TRACKER_STATUS" = "OK" ] || exit
 
 _curl() {
-	curl --interface "$OTB_TRACKER_INTERFACE" --max-time 1 -Ss "$1"
+	curl --interface "$OTB_TRACKER_DEVICE" --max-time 1 -Ss "$1"
 }
 
 pub_ip=$(_curl ifconfig.ovh)
