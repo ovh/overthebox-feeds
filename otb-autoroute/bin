@@ -26,7 +26,7 @@ config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
 # TODO: should tun0 be the default route if xtun0 is present ?
 [ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_metric=0
 
-if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] || [ "$interface" = "xtun0" ] ; then
+if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] || [ "$OTB_TRACKER_INTERFACE" = "xtun0" ] ; then
 	# Don't add a static route to the otb host through tun0 and xtun0
 	otb_host=
 fi
