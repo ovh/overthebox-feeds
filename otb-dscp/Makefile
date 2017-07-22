@@ -19,7 +19,7 @@ OverTheBox DSCP
 endef
 
 define Package/$(PKG_NAME)/conffiles
-/etc/config/$(PKG_NAME)
+/etc/config/dscp
 endef
 
 define Build/Compile
@@ -27,9 +27,9 @@ endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_BIN) init $(1)/etc/init.d/dscp
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_FILE) config $(1)/etc/config/$(PKG_NAME)
+	$(CP) config $(1)/etc/config/dscp
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
