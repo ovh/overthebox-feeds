@@ -17,21 +17,49 @@ _setup_route() {
 	fi
 }
 
+_setup_tos_routes() {
+	for tos in $1; do
+		if ip route "$2" default tos "$tos" via "$3" dev "$4" 2>/dev/null; then
+			_log "$2 route matching tos $tos via $3 using device $4"
+		fi
+	done
+}
+
 config_load shadowsocks
 config_get otb_host proxy server
 
 config_load network
 config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
 
-# TODO: should tun0 be the default route if xtun0 is present ?
-[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_metric=0
+[ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
 
 if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] || [ "$OTB_TRACKER_INTERFACE" = "xtun0" ] ; then
+	high_priority_tunnel=false
+	config_load glorytun
+	config_get tun_mode xtun0
+	config_get_bool high_priority_tunnel xtun0 enable "false"
+
+	# CS1-2
+	low_priority_tos="0x20 0x40"
+	# CS3-7
+	high_priority_tos="0x60 0x80 0xA0 0xC0 0xE0"
+
+	if [ "$high_priority_tunnel" = "1" ] ; then
+		if [ "$OTB_TRACKER_INTERFACE" = "tun0" ]; then
+			_setup_tos_routes "$low_priority_tos" "$action" "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE"
+			# This does not need extra routes, let's stop here for tun0
+			exit
+		else
+			_setup_tos_routes "$high_priority_tos" "$action" "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE"
+		fi
+	fi
+
 	# Don't add a static route to the otb host through tun0 and xtun0
 	otb_host=
+	# Use this interface for the default route
+	otb_metric=0
 fi
 
-[ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
 _setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE" "$otb_metric"
 [ -n "$otb_host" ] && _setup_route \
 	"$action" \
