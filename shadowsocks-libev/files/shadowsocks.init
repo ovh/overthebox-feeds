@@ -12,20 +12,17 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
         ifdown  Disable the hook to prevent traffic from being routed through ss-redir"
 
 # iptables/ipset architecture used in this script for ss-redir:
-# PREROUTING/mangle    mwan stuff
 # PREROUTING/nat
 #   - delegate_prerouting (for OpenWRT and user DNAT)
 #   - socks_hook (This is the main "cable" when we want to enable routing through shadowsocks)
 #       - socks_decision (one for each interface of the lan zone)
 #           - ipset socks_bypass lookup (if dst addr match, ACCEPT: exit PREROUTING/nat altogether)
-#           - socks_bypass_for_mwan
-#              - For each TCP mwan3 rule with policy active, ACCEPT: exit PREROUTING/nat altogether)
 #           - socks_redir
 #               - REDIRECT rule, one for each DSCP (CS1 to CS7), and the last rule is default DSCP
 
 # When reloading:
 # iptables/ipset global skeleton doesn't change.
-# Only socks_hook, socks_bypass_for_mwan and socks_redir **content** change
+# Only socks_hook and socks_redir **content** change
 # There is also an ipset swap between socks_staging <-> socks_bypass
 # PREROUTING only changes upon ifup/ifdown
 
@@ -35,7 +32,9 @@ _log() {
 }
 
 IPT="iptables -w -t nat"
-CHAINS="socks_hook socks_decision socks_bypass_for_mwan socks_redir socks_emitted_by_myself"
+
+CHAINS="socks_hook socks_decision socks_redir socks_emitted_by_myself"
+CHAINS_OLD="socks_bypass_for_mwan"
 
 MAX_DSCP_CS=7
 # The monitoring requests will go through the CS2 ss-redir listener
@@ -53,7 +52,7 @@ LOCALNETS="
 
 # When following config files change and reload_config is called, we trigger a reload here
 service_triggers() {
-	procd_add_reload_trigger "shadowsocks" "mwan3" "network"
+	procd_add_reload_trigger "shadowsocks" "network"
 }
 
 _running() {
@@ -183,7 +182,6 @@ _launch_tracker() {
 _update_conf_and_ipt() {
 	_generate_conf "$1"
 	_populate_ipt_socks_redir "$1"
-	_populate_ipt_socks_bypass_for_mwan
 	_populate_ipset_socks_bypass
 	_populate_ipt_socks_hook
 	_update_ipt_monitoring_ip_rule "$1"
@@ -204,48 +202,6 @@ _populate_ipt_socks_redir() {
 	done
 	# Let's add the default rule at the bottom
 	$IPT -A socks_redir -p tcp -j REDIRECT --to-ports "$lport"
-}
-
-# Each TCP mwan3 rule traffic has to bypass shadowsocks
-# Otherwise it is not routed to the intended interface (if1, tun0...)
-_populate_ipt_socks_bypass_for_mwan() {
-	# First, reset the chain
-	$IPT -F socks_bypass_for_mwan
-
-	# For each mwan3 rule, check if we need it and add an exception
-	config_load mwan3
-	config_foreach _populate_ipt_socks_bypass_for_mwan_one rule
-}
-
-# $1 is a ref to the mwan3 uci section (type =rule)
-# Because mwan3 takes some decisions for packets in mangle table,
-# and shadowsocks takes decisions after (in nat table), if a packet has been handled
-# by mwan, we need to let it escape shadowsocks so that the intended routing will be performed.
-# Therefore, for each mwan3 rule, we need to add a matching "escape shadowsocks" rule in nat.
-_populate_ipt_socks_bypass_for_mwan_one() {
-	local ipset proto src_ip src_port dest_ip dest_port use_policy rule
-
-	config_get ipset "$1" ipset
-	config_get proto "$1" proto all
-	config_get src_ip "$1" src_ip 0.0.0.0/0
-	config_get src_port "$1" src_port 0:65535
-	config_get dest_ip "$1" dest_ip 0.0.0.0/0
-	config_get dest_port "$1" dest_port 0:65535
-	config_get use_policy "$1" use_policy
-
-	# If both ipset and dest_id are set, the following iptables command will crash
-	if [ -n "$ipset" -a -n "$dest_ip" ]; then
-		_log 4 "ipset and dest_ip are both set! Skipping this strange mwan3 rule ($dest_ip)..."
-		return 0
-	fi
-
-	# We set the dest to the dest_ip OR the ipset
-	dest=${dest_ip:-$ipset}
-	# We only want to add a bypass rule if the policy is active and the proto is TCP
-	if [ -n "$use_policy" -a "$proto" = "tcp" ]; then
-		$IPT -A socks_bypass_for_mwan -p "$proto" -s "$src_ip" -d "$dest" -m multiport \
-			--sports "$src_port" -m multiport --dports "$dest_port" -m comment --comment "mwan3_$1" -j ACCEPT
-	fi
 }
 
 # To update the ipset "socks_bypass", we actually
@@ -491,7 +447,6 @@ _ipt_init_skeleton() {
 
 	# Glue all chains and ipset together
 	$IPT -A socks_decision -m set --match-set socks_bypass dst -j ACCEPT
-	$IPT -A socks_decision -j socks_bypass_for_mwan
 	$IPT -A socks_decision -j socks_redir
 	$IPT -A OUTPUT -p tcp -j socks_emitted_by_myself
 
@@ -511,13 +466,13 @@ _ipt_clean_all() {
 	# (Some -F also remove some jumps)
 	$IPT -D PREROUTING -p tcp -j socks_hook 2> /dev/null
 	$IPT -D OUTPUT -p tcp -j socks_emitted_by_myself 2> /dev/null
-	for chain in $CHAINS; do
+	for chain in $CHAINS $CHAINS_OLD; do
 		$IPT -F "$chain" 2> /dev/null
 	done
 
 	# Now that everything is deletable, let's delete! :)
 	ipset -q destroy socks_bypass
-	for chain in $CHAINS; do
+	for chain in $CHAINS $CHAINS_OLD; do
 		$IPT -X "$chain" 2> /dev/null
 	done
 
