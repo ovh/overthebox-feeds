@@ -1,0 +1,32 @@
+<%#
+ Copyright 2008-2009 Steven Barth <steven@midlink.org>
+ Copyright 2008-2015 Jo-Philipp Wich <jow@openwrt.org>
+ Licensed to the public under the Apache License 2.0.
+-%>
+
+<%+header%>
+
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/switch-config.css">
+<link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
+<link rel="stylesheet" type="text/css" href="<%=resource%>/jquery-ui.min.css">
+<script src="<%=resource%>/jquery-3.1.1.min.js"></script>
+<script src="<%=resource%>/jquery-ui.min.js"></script>
+<script src="<%=resource%>/view_scripts/switch/switch_config.js"></script>
+
+
+<div id="switchConfig" class="switch">
+    <h1><%:Configure your switch%></h1>
+    <p><%:This section helps you to simply configure yours switches. If you are seasoned, you can%> <a href="/cgi-bin/luci//admin/network/vlan"><%:Go to expert mode%></a></p>
+
+    <div class="switches">
+        <!-- switches are generated here -->
+    </div>
+
+    <button id="validateButton" class="btn btn-primary"><%:Apply configuration%></button>
+
+</div>
+
+
+
+<%+footer%>
