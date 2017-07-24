@@ -4,9 +4,7 @@
 set -e
 
 dist=$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)
-
-[ -d /sys/firmware/efi ] && url="$dist/../latest-uefi.img.gz" \
-                         || url="$dist/../latest.img.gz"
+url="$dist/../latest.img.gz"
 
 cd /tmp
 
