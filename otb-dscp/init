@@ -1,0 +1,118 @@
+#!/bin/sh /etc/rc.common
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# shellcheck disable=SC2034
+START=60
+
+# shellcheck disable=SC1091
+. /lib/functions.sh
+
+# Get the lan interface name
+lan_device=
+config_load network
+config_get lan_device lan ifname
+
+config_load dscp
+
+_add_dscp_rules() {
+	proto=
+	src_ip=
+	src_port=
+	dest_ip=
+	dest_port=
+	class=
+	direction=
+	comment=
+
+	config_get proto "$1" proto all
+	config_get src_ip "$1" src_ip 0.0.0.0/0
+	config_get src_port "$1" src_port 0:65535
+	config_get dest_ip "$1" dest_ip 0.0.0.0/0
+	config_get dest_port "$1" dest_port 0:65535
+	config_get class "$1" class
+	config_get direction "$1" direction "upload"
+	config_get comment "$1" comment "-"
+
+	[ "$direction" = "upload" ] || [ "$direction" = "both" ] || return
+
+	_multport_option() {
+		src_port=$1
+		dest_port=$2
+		# shellcheck disable=SC2039
+		echo "-m multiport --sports $src_port -m multiport --dports $dest_port"
+	}
+
+	multiport=false
+	multiport_config=
+	case $proto in
+		tcp|udp)
+			multiport=true
+			;;
+		*);;
+	esac
+
+	# Add upload rules
+	[ "$multiport" = "true" ] && multiport_config=$(_multport_option "$src_port" "$dest_port")
+	# shellcheck disable=SC2086
+	iptables -w -t mangle -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" $multiport_config -m comment --comment "$comment" -j DSCP --set-dscp-class "$class"
+	# shellcheck disable=SC2086
+	iptables -w -t mangle -A dscp -p "$proto" -s "$src_ip" -d "$dest_ip" $multiport_config -m comment --comment "$comment" -j RETURN
+
+	# Add download rules
+	if [ "$direction" = "both" ]; then
+		[ "$multiport" = "true" ] && multiport_config=$(_multport_option "$dest_port" "$src_port")
+		# shellcheck disable=SC2086
+		iptables -w -t mangle -A dscp -p "$proto" -s "$dest_ip" -d "$src_ip" $multiport_config -m comment --comment "$comment" -j DSCP --set-dscp-class "$class"
+		# shellcheck disable=SC2086
+		iptables -w -t mangle -A dscp -p "$proto" -s "$dest_ip" -d "$src_ip" $multiport_config -m comment --comment "$comment" -j RETURN
+	fi
+}
+
+_add_static_length_rule() {
+	length=$1
+	class=$2
+	iptables -t mangle -A dscp -p tcp -m length --length "$length" -j DSCP --set-dscp-class "$class"
+	iptables -t mangle -A dscp -p tcp -m length --length "$length" -j RETURN
+}
+
+_add_static_length_rules() {
+	# Interactive traffic
+	_add_static_length_rule :89 cs3
+	# Light traffic
+	_add_static_length_rule 90:511 cs2
+	# Heavy traffic
+	_add_static_length_rule 512: cs1
+}
+
+_remove_dscp_chain() {
+	iptables -w -t mangle -F dscp 2>/dev/null || return
+	iptables -w -t mangle -D PREROUTING -i "$lan_device" -j dscp
+	iptables -w -t mangle -X dscp
+}
+
+_add_dscp_chain() {
+	iptables -w -t mangle -N dscp
+	iptables -w -t mangle -I PREROUTING -i "$lan_device" -j dscp
+}
+
+start()
+{
+	# Cleanup
+	_remove_dscp_chain
+	_add_dscp_chain
+
+	# Add rules base on the user configuration
+	config_foreach _add_dscp_rules classify
+
+	# Add rules based on the length of the packets
+	_add_static_length_rules
+}
+
+stop()
+{
+	_remove_dscp_chain
+}
+
+service_triggers() {
+	procd_add_reload_trigger dscp
+}
