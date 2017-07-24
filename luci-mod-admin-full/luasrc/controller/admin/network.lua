@@ -26,10 +26,11 @@ function index()
 		if has_switch then
 			page  = node("admin", "network", "vlan")
 			page.target = cbi("admin_network/vlan")
-			page.title  = _("Switch")
-			page.order  = 20
+			-- page.title  = _("Switch")
+			-- page.order  = 20
 
-			page = entry({"admin", "network", "switch_status"}, call("switch_status"), nil)
+			-- page = entry({"admin", "network", "switch_status"}, call("switch_status"), nil)
+			page = entry({"admin", "network", "switch_status_simple"}, arcombine(template("admin_network/switch_status_simple"), cbi("admin_network/switch")), _("Switch"), 20)
 			page.leaf = true
 		end
 
