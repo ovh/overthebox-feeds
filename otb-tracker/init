@@ -11,7 +11,7 @@ _validate_section() {
 		'call:string:dns' \
 		'host:host:51.254.49.132' \
 		'timeout:uinteger:3' \
-		'retry:uinteger:2' \
+		'tries:uinteger:2' \
 		'interval:uinteger:2' \
 		'options:string:tracker.overthebox.ovh'
 }
@@ -25,8 +25,8 @@ _launch_tracker() {
 	# shellcheck disable=SC2086
 	procd_set_param command /bin/otb-tracker "$1" "$call" $options
 	procd_append_param env OTB_TRACKER_HOST="$host"
-	procd_append_param env OTB_TRACKER_TIMEOUT="$timeout"
-	procd_append_param env OTB_TRACKER_RETRY="$retry"
+	procd_append_param env OTB_TRACKER_INITIAL_TIMEOUT="$timeout"
+	procd_append_param env OTB_TRACKER_TRIES="$tries"
 	procd_append_param env OTB_TRACKER_INTERVAL="$interval"
 	procd_set_param respawn 0 10 0
 	procd_set_param stderr 1
