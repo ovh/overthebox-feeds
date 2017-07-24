@@ -5,6 +5,7 @@
 : ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
 : ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
 : ${OTB_EVENTS_DIRECTORY:="/tmp/otb-events"}
+: ${OTB_APICALLS_DIRECTORY:="/tmp/otb-api-calls"}
 : ${OTB_HEADERS_FILE:="/tmp/otb-daemon-headers"}
 
 otb_alert() {
@@ -66,6 +67,18 @@ otb_call() {
 		"$@"
 }
 
+otb_call_api() {
+	method=$1
+	path=$2
+	shift 2
+	otb_debug "call api: $method $path $*"
+	curl --silent --show-error --max-time 1 \
+		-X "$method" \
+		-H "Content-Type: application/json" \
+		"http://api/$path" \
+		"$@"
+}
+
 otb_device_post() {
 	subpath=$1
 	shift 1
@@ -88,6 +101,11 @@ otb_service_get() {
 	subpath=$1
 	shift 1
 	[ -n "$OTB_SERVICE_ID" ] && otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
+}
+
+otb_save_call_api() {
+	mkdir -p "$OTB_APICALLS_DIRECTORY"
+	(echo "$*"; cat -) > "$OTB_APICALLS_DIRECTORY/$(date +%s)-$RANDOM"
 }
 
 otb_save_event() {
