@@ -1,13 +1,8 @@
 #!/bin/sh /etc/rc.common
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# shellcheck disable=SC2034
 START=60
-
-reload()
-{
-	# Ask tun0 to load QoS
-	# /usr/bin/pkill -USR2 -f "mwan3track -i tun0"
-}
 
 start()
 {

@@ -1,11 +1,14 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# shellcheck disable=SC1091
 . /lib/functions.sh
+# shellcheck disable=SC1091
 . /lib/functions/network.sh
 
 otb_metric=
 otb_host=
+otb_table=
 
 _log() {
 	logger -t autoroute "$@"
@@ -17,21 +20,39 @@ _setup_route() {
 	fi
 }
 
+_setup_high_priority_rule() {
+	mark="0x7874756e"
+	# We can't select the route using ip rule list with our version of ip route
+	matching_rules=$(ip rule list | grep -c "fwmark $mark")
+	[ "$matching_rules" -gt 0 ] && [ "$1" = "add" ] && return
+	[ "$matching_rules" = 0 ] && [ "$1" = "del" ] && return
+
+	_log "$1 rule matching $mark using table $2"
+	ip rule "$1" fwmark "$mark" table "$2"
+}
+
 config_load shadowsocks
 config_get otb_host proxy server
 
 config_load network
 config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
-
-# TODO: should tun0 be the default route if xtun0 is present ?
-[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_metric=0
-
-if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] || [ "$OTB_TRACKER_INTERFACE" = "xtun0" ] ; then
-	# Don't add a static route to the otb host through tun0 and xtun0
-	otb_host=
-fi
+config_get otb_table "$OTB_TRACKER_INTERFACE" ip4table
 
 [ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
+
+case "$OTB_TRACKER_INTERFACE" in
+	xtun0)
+		_setup_high_priority_rule "$action" "$otb_table"
+		exit
+		;;
+	tun0)
+		# Don't add a static route to the otb host
+		otb_host=
+		# Default route
+		otb_metric=0
+		;;
+esac
+
 _setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE" "$otb_metric"
 [ -n "$otb_host" ] && _setup_route \
 	"$action" \
