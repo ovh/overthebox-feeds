@@ -23,6 +23,11 @@ _add_ipt() {
 	iptables -w -t mangle -A dscp "$@"
 }
 
+_add_ipt_dscp_mark() {
+	# xtun (hex) -> 0x7874756e
+	iptables -w -t mangle -A dscp_mark -m dscp --dscp-class "$1" -j MARK --set-mark 0x7874756e
+}
+
 _add_dscp_rules() {
 	proto=     ; config_get proto "$1" proto all
 	src_ip=    ; config_get src_ip "$1" src_ip 0.0.0.0/0
@@ -67,10 +72,24 @@ _add_static_length_rule() {
 	_add_ipt -p tcp -m length --length "$1" -j RETURN
 }
 
+_remove_fmwark_chain() {
+	iptables -w -t mangle -F dscp_mark 2>/dev/null || return
+	iptables -w -t mangle -D PREROUTING -i "$lan_device" -j dscp_mark
+	iptables -w -t mangle -X dscp_mark
+}
+
 _remove_dscp_chain() {
 	iptables -w -t mangle -F dscp 2>/dev/null || return
 	iptables -w -t mangle -D PREROUTING -i "$lan_device" -j dscp
 	iptables -w -t mangle -X dscp
+}
+
+_add_fwmark_chain() {
+	iptables -w -t mangle -N dscp_mark
+	iptables -w -t mangle -I PREROUTING -i "$lan_device" -j dscp_mark
+	for class in cs3 cs4 cs5 cs6 cs7; do
+		_add_ipt_dscp_mark "$class"
+	done
 }
 
 _add_dscp_chain() {
@@ -81,6 +100,10 @@ _add_dscp_chain() {
 start() {
 	# Cleanup
 	_remove_dscp_chain
+	_remove_fmwark_chain
+
+	# This order is important
+	_add_fwmark_chain
 	_add_dscp_chain
 
 	# Add rules base on the user configuration
@@ -97,6 +120,7 @@ start() {
 
 stop() {
 	_remove_dscp_chain
+	_remove_fmwark_chain
 }
 
 service_triggers() {
