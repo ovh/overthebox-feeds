@@ -13,6 +13,16 @@
 <script src="<%=resource%>/jquery-3.1.1.min.js"></script>
 <script src="<%=resource%>/jquery-ui.min.js"></script>
 <script src="<%=resource%>/view_scripts/switch/switch_config.js"></script>
+<script>
+    $(document).ready(function() {
+        var opts = {
+            constants: {
+                setSwitchConfigUrl: '<%=luci.dispatcher.build_url("admin", "network", "switch_set_conf")%>'
+            }
+        }
+        initSwitches(opts);
+    });
+</script>
 
 
 <div id="switchConfig" class="switch">
