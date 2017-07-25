@@ -1,6 +1,8 @@
 (function (context) {
     "use strict";
 
+    var opts;
+
     /**
      * Class Port Factory
      * @param {Object} data 
@@ -77,8 +79,8 @@
                     new PortFactory({ id:9,  name:"10", pos:0, line:0 }),
                     new PortFactory({ id:10, name:"11", pos:0, line:1 }),
                     new PortFactory({ id:11, name:"12", pos:0, line:0 }),
-                    new PortFactory({ id:12, name:"13", pos:1, line:1 }),
-                    new PortFactory({ id:13, name:"14", pos:1, line:0 }),
+                    new PortFactory({ id:12, name:"13", pos:1, line:1, type: "wans" }),
+                    new PortFactory({ id:13, name:"14", pos:1, line:0, type: "wans"  }),
                     new PortFactory({ id:16, name:"17", pos:2, line:1 }),
                     new PortFactory({ id:17, name:"18", pos:2, line:1 })
                 ]
@@ -168,7 +170,20 @@
             });
 
             // replace this with ajax POST
-            alert(JSON.stringify(wans));
+            //alert(JSON.stringify(wans));
+            $.ajax({
+                url: opts.constants.setSwitchConfigUrl,
+                dataType: "json",
+                contentType: "application/x-www-form-urlencoded",
+                method: "POST",
+                data: { wans: wans.join(" ") },
+                success: function (data, status) {
+                    alert("Yeah!");
+                }
+            }).fail(function (event, err, data) {
+                alert("shit!");
+            });
+
         });
 
     }
@@ -176,7 +191,8 @@
     /**
      * Script entry
      */
-    $(document).ready(function () {
+    context.initSwitches = function (options) {
+        opts = options;
         readSwitches(function (err, switches) {
             switches.forEach(function (netSwitch) {
                 createSwitch(netSwitch);
@@ -187,6 +203,6 @@
                 applyConfiguration(switches);
             });
         });
-    });
+    };
 
 })(window);
