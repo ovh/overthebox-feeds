@@ -11,4 +11,9 @@ cd /tmp
 curl -sS --connect-timeout 5 "$url"     -o img.gz
 curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
 
-usign -V -m img.gz -P /etc/opkg/keys && sysupgrade img.gz
+usign -V -m img.gz -P /etc/opkg/keys
+
+gunzip -f img.gz
+
+sysupgrade -p -T img
+sysupgrade -p img
