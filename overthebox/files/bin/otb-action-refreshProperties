@@ -43,7 +43,7 @@ _get_interface_json() {
 	local public_ip
 	if [ -n "$gateway" ]; then
 		# shellcheck disable=2086
-		public_ip=$(ubus call "network.interface.$1" status | jq -c -r '.public_ip')
+		public_ip=$(ubus call "network.interface.$1" status | jq -c -r '.data.public_ip')
 	fi
 
 	local dns_servers
