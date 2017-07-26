@@ -9,6 +9,7 @@
 otb_metric=
 otb_host=
 otb_table=
+dns_servers=
 
 _log() {
 	logger -t autoroute "$@"
@@ -37,6 +38,7 @@ config_get otb_host proxy server
 config_load network
 config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
 config_get otb_table "$OTB_TRACKER_INTERFACE" ip4table
+network_get_dnsserver dns_servers "$OTB_TRACKER_INTERFACE"
 
 [ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
 
@@ -60,3 +62,12 @@ _setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DE
 	"$OTB_TRACKER_INTERFACE_GATEWAY" \
 	"$OTB_TRACKER_DEVICE" \
 	"$otb_metric"
+
+[ -n "$dns_servers" ] && for dns_server in $dns_servers; do
+	 _setup_route \
+		"$action" \
+		"$dns_server" \
+		"$OTB_TRACKER_INTERFACE_GATEWAY" \
+		"$OTB_TRACKER_DEVICE" \
+		"$otb_metric"
+done
