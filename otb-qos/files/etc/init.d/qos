@@ -4,9 +4,10 @@
 # shellcheck disable=SC2034
 START=60
 
-# TODO: use PROCD
-
 _setup_qos() {
+	# shellcheck disable=SC1091
+	. /lib/overthebox
+
 	trafficcontrol= ; config_get trafficcontrol "$1" trafficcontrol
 	[ "$trafficcontrol" = static ] || return
 
@@ -34,25 +35,28 @@ _setup_qos() {
 	esac
 }
 
-start()
-{
-	. /lib/overthebox
+start() {
+	# shellcheck disable=SC1091
 	. /lib/functions.sh
 
 	config_load network
-	confif_foreach _setup_qos interface
+	config_foreach _setup_qos interface
 }
 
-restart()
-{
-	reload
+restart() {
+	start
 }
 
-stop()
-{
+reload() {
+	start
+}
+
+stop() {
 	/usr/lib/qos/run.sh stop
 
+	# shellcheck disable=SC1091
 	. /lib/overthebox
+
 	echo | otb_save_call_api DELETE qos
 }
 
