@@ -4,6 +4,8 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
+[ -n "$1" ] && [ -n "$2" ] || exit
+
 # retrieve args
 OTB_TRACKER_INTERFACE="$1"
 OTB_TRACKER_CALL="$2"
