@@ -7,6 +7,9 @@ START=60
 # TODO: use PROCD
 
 _setup_qos() {
+	trafficcontrol= ; config_get trafficcontrol "$1" trafficcontrol
+	[ "$trafficcontrol" = static ] || return
+
 	multipath= ; config_get multipath "$1" multipath
 	case "$multipath" in
 		master|on|backup|handover)
