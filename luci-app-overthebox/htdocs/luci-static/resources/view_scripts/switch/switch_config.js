@@ -5,7 +5,7 @@
 
     /**
      * Class Port Factory
-     * @param {Object} data 
+     * @param {Object} data
      */
     var PortFactory = function (data) {
         $.extend(this, data);
@@ -65,7 +65,7 @@
 
         cb(null, [
             {
-                name: "Mon switch",
+                name: "My switch",
                 ports: [
                     new PortFactory({ id:0,  name:"1",  pos:0, line:1 }),
                     new PortFactory({ id:1,  name:"2",  pos:0, line:0 }),
@@ -141,7 +141,7 @@
 
     /**
      * Create a switch
-     * @param {Object} netSwitch 
+     * @param {Object} netSwitch
      * @param {JQuery} container Container in which the switch will be created
      * @return {JQuery} The new created switch
      */
@@ -157,7 +157,7 @@
 
     /**
      * Perform a POST to save the configuration
-     * @param {Array} switches Array of switches 
+     * @param {Array} switches Array of switches
      */
     function applyConfiguration(switches) {
         switches.forEach(function (netSwitch) {
@@ -170,7 +170,6 @@
             });
 
             // replace this with ajax POST
-            //alert(JSON.stringify(wans));
             $.ajax({
                 url: opts.constants.setSwitchConfigUrl,
                 dataType: "json",
@@ -178,10 +177,10 @@
                 method: "POST",
                 data: { wans: wans.join(" ") },
                 success: function (data, status) {
-                    alert("Yeah!");
+                  // It worked
                 }
             }).fail(function (event, err, data) {
-                alert("shit!");
+              // It did not work
             });
 
         });
