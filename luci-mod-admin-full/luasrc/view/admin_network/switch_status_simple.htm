@@ -19,14 +19,15 @@
 </script>
 
 <div id="switchConfig" class="switch">
-    <h1><%:Configure your switch%></h1>
-    <p><%:This section helps you to simply configure yours switches. If you are seasoned, you can%> <a href="/cgi-bin/luci//admin/network/vlan"><%:Go to expert mode%></a></p>
+    <h1>Configure your switch</h1>
+    <p>This section helps you reset the switch ports to a new configuration by selecting the WAN and LAN ports. </p>
+    <p>If you need more control, <a href="/cgi-bin/luci/admin/network/vlan"><%:go to expert mode%></a></p>
 
     <div class="switches">
         <!-- switches are generated here -->
     </div>
 
-    <button id="validateButton" class="btn btn-primary"><%:Apply configuration%></button>
+    <button id="validateButton" class="btn btn-primary"><%:Apply the new configuration%></button>
 </div>
 
 <%+footer%>
