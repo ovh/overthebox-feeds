@@ -3,8 +3,17 @@
 
 set -e
 
-dist=$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)
-url="$dist/../latest.img.gz"
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+if [ -z "$1" ]; then
+	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
+else
+	case "$1" in
+		http*.img.gz|ftp*.img.gz) url=$1 ;;
+		*) url=$(otb_json_get "$1" "arguments.url") ;;
+	esac
+fi
 
 cd /tmp
 
