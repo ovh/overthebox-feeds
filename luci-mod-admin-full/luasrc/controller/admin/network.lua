@@ -24,7 +24,7 @@ function index()
 			end)
 
 		if has_switch then
-			entry({"admin", "network", "switch_set_conf"}, call("action_switch_set_conf"), nil).leaf = true
+			entry({"admin", "network", "switch_set_conf"}, post("action_switch_set_conf"), nil).leaf = true
 
 			page  = node("admin", "network", "vlan")
 			page.target = cbi("admin_network/vlan")
@@ -428,8 +428,9 @@ function diag_traceroute6(addr)
 end
 
 function action_switch_set_conf()
-	local wans = luci.http.formvalue("wans")
-	luci.sys.call("swconfig-reset "..wans)
-	luci.http.prepare_content("application/json")
-	luci.http.write_json("OK")
+        local http = require "luci.http"
+        local wans = luci.http.formvalue("wans")
+        luci.sys.call("swconfig-reset " .. wans .. " >/dev/null 2>/dev/null")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json("OK")
 end

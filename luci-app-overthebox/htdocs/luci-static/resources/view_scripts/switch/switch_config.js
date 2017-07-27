@@ -161,7 +161,7 @@
      * Perform a POST to save the configuration
      * @param {Array} switches Array of switches
      */
-    function applyConfiguration(switches) {
+    function applyConfiguration(switches, token) {
         switches.forEach(function (netSwitch) {
             var wans = netSwitch.ports
             .filter(function (port) {
@@ -177,7 +177,10 @@
                 dataType: "json",
                 contentType: "application/x-www-form-urlencoded",
                 method: "POST",
-                data: { wans: wans.join(" ") },
+                data: {
+                  wans: wans.join(" "),
+                  token: token
+                },
                 success: function (data, status) {
                   // It worked
                 }
@@ -200,8 +203,8 @@
             });
 
             $("button#validateButton").bind("click", function () {
-                // validate configuration here
-                applyConfiguration(switches);
+              var token = $(this).attr('token');
+              applyConfiguration(switches, token);
             });
         });
     };
