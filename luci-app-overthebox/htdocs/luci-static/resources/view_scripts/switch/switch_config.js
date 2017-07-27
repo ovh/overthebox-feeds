@@ -36,7 +36,9 @@
      */
     PortFactory.prototype.createButton = function (container) {
         var self = this;
-        this.button = $("<button class=\"switch-button\"><div class=\"name\">" + this.name + "</div><div class=\"type\">" + (this.type || "lan") + "</div></button>");
+        var type = this.type || "lan";
+        this.button = $('<button class="switch-button"><div class="name">'+ this.name +'</div><div class="type">'+ type +"</div></button>");
+        this.setType(type);
         container.append(this.button);
         this.button.bind("click", function () {
             if (self.type !== "wan") {
@@ -79,8 +81,8 @@
                     new PortFactory({ id:9,  name:"10", pos:0, line:0 }),
                     new PortFactory({ id:10, name:"11", pos:0, line:1 }),
                     new PortFactory({ id:11, name:"12", pos:0, line:0 }),
-                    new PortFactory({ id:12, name:"13", pos:1, line:1, type: "wans" }),
-                    new PortFactory({ id:13, name:"14", pos:1, line:0, type: "wans"  }),
+                    new PortFactory({ id:12, name:"13", pos:1, line:1, type: "wan" }),
+                    new PortFactory({ id:13, name:"14", pos:1, line:0, type: "wan" }),
                     new PortFactory({ id:16, name:"17", pos:2, line:1 }),
                     new PortFactory({ id:17, name:"18", pos:2, line:1 })
                 ]
@@ -166,7 +168,7 @@
                 return port.isWan();
             })
             .map(function (port){
-                return port.id;
+                return port.name;
             });
 
             // replace this with ajax POST
