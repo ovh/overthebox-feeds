@@ -9,7 +9,7 @@ _setup_qos() {
 	. /lib/overthebox
 
 	trafficcontrol= ; config_get trafficcontrol "$1" trafficcontrol
-	[ "$trafficcontrol" = static ] || return
+	[ "$trafficcontrol" = static ] || return 0
 
 	multipath= ; config_get multipath "$1" multipath
 	case "$multipath" in
