@@ -1,0 +1,6 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] && action="start" || action="stop"
+
+/usr/lib/qos/run.sh "$action" "$OTB_TRACKER_INTERFACE"
