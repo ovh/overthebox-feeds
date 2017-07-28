@@ -44,14 +44,17 @@ start() {
 }
 
 restart() {
+	stop
 	start
 }
 
 reload() {
+	stop
 	start
 }
 
 stop() {
+	# Remove all qos rules
 	/usr/lib/qos/run.sh stop
 
 	# shellcheck disable=SC1091

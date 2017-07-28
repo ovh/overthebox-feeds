@@ -1,12 +1,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-qos
-PKG_VERSION:=0.3
+PKG_VERSION:=0.4
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := tc kmod-sched kmod-sched-core kmod-sched-connmark kmod-ifb iptables iptables-mod-ipopt iptables-mod-conntrack-extra ethtool
+MY_DEPENDS := \
+    kmod-sched kmod-sched-core kmod-sched-connmark kmod-ifb \
+    tc iptables iptables-mod-ipopt iptables-mod-conntrack-extra ethtool \
+    otb-tracker
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
