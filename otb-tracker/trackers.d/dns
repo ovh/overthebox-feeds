@@ -3,7 +3,7 @@
 
 exec dig \
 	@"$OTB_TRACKER_HOST" \
-	-b "$OTB_TRACKER_INTERFACE_IP" \
+	-b "$OTB_TRACKER_DEVICE_IP" \
 	+time="$OTB_TRACKER_TIMEOUT" \
 	+tries=1 \
 	+short "$@"
