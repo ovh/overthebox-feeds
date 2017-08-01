@@ -55,11 +55,11 @@ case "$OTB_TRACKER_INTERFACE" in
 		;;
 esac
 
-_setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DEVICE" "$otb_metric"
+_setup_route "$action" default "$OTB_TRACKER_DEVICE_GATEWAY" "$OTB_TRACKER_DEVICE" "$otb_metric"
 [ -n "$otb_host" ] && _setup_route \
 	"$action" \
 	"$otb_host" \
-	"$OTB_TRACKER_INTERFACE_GATEWAY" \
+	"$OTB_TRACKER_DEVICE_GATEWAY" \
 	"$OTB_TRACKER_DEVICE" \
 	"$otb_metric"
 
@@ -67,7 +67,7 @@ _setup_route "$action" default "$OTB_TRACKER_INTERFACE_GATEWAY" "$OTB_TRACKER_DE
 	 _setup_route \
 		"$action" \
 		"$dns_server" \
-		"$OTB_TRACKER_INTERFACE_GATEWAY" \
+		"$OTB_TRACKER_DEVICE_GATEWAY" \
 		"$OTB_TRACKER_DEVICE" \
 		"$otb_metric"
 done
