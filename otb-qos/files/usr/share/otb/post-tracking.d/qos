@@ -2,7 +2,7 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 [ "$OTB_TRACKER_STATUS" = "OK" ] && action="start" || action="stop"
-[ -f "/var/run/sqm/$OTB_TRACKER_INTERFACE.state" ] && state="up" || state="down"
+[ -f "/var/run/sqm/$OTB_TRACKER_DEVICE.state" ] && state="up" || state="down"
 
 case "$action" in
 	start)
@@ -23,4 +23,5 @@ case "$action" in
 		;;
 esac
 
-/usr/lib/qos/run.sh "$action" "$OTB_TRACKER_INTERFACE"
+logger -t qos "running qos $action on $OTB_TRACKER_DEVICE [$OTB_TRACKER_INTERFACE]"
+/usr/lib/qos/run.sh "$action" "$OTB_TRACKER_DEVICE"
