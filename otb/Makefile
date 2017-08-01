@@ -20,7 +20,7 @@ MY_DEPENDS := \
     getopt tc iperf3 mtr ethtool rng-tools \
     ss strace tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
-    vim-full dnsmasq-full
+    vim-full lsblk dnsmasq-full
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
