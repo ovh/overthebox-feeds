@@ -182,6 +182,9 @@ function interfaces_status()
 
     if not ipaddr or not gateway then return end
 
+    -- Don't show if0 in the overview
+    if interface == "if0" then return end
+
     local ifname = section['ifname']
 
     local data = {
