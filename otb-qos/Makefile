@@ -1,15 +1,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-qos
-PKG_VERSION:=0.4
+PKG_VERSION:=0.5
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
-MY_DEPENDS := \
-    kmod-sched kmod-sched-core kmod-sched-connmark kmod-ifb \
-    tc iptables iptables-mod-ipopt iptables-mod-conntrack-extra ethtool \
-    otb-tracker
+MY_DEPENDS := kmod-sched-cake tc otb-dscp
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
@@ -24,14 +21,14 @@ OverTheBox QoS
 endef
 
 define Package/$(PKG_NAME)/conffiles
-/etc/config/dscp
 endef
 
 define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(CP) ./files/* $(1)/
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
