@@ -6,7 +6,24 @@ set -e
 # shellcheck disable=SC1091
 . /lib/overthebox
 
-[ -n "${OTB_TOKEN}" ] && [ -n "${OTB_DEVICE_ID}" ] && exit
+# If the token or the device is missing, subscribe
+if [ -n "$OTB_TOKEN" ] && [ -n "$OTB_DEVICE_ID" ]; then
+	# If there is already a service_id, no problem
+	[ -n "$OTB_SERVICE_ID" ] && exit 0
+
+	# Try to get the device's config
+	otb_device_get config
+	http_status=$(head -1 "$OTB_HEADERS_FILE")
+	# If it's a 401, subscribe
+	case "$http_status" in
+		HTTP*401*)
+			otb_info "subscribe check failed"
+			;;
+		*)
+			exit 0;
+			;;
+	esac
+fi
 
 otb_info "Subscribing to the overthebox service..."
 
