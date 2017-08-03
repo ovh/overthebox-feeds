@@ -16,6 +16,24 @@ _validate_section() {
 		'options:string:tracker.overthebox.ovh'
 }
 
+_add_dscp_chain() {
+	iptables -w -t mangle -N tracker_dscp
+	iptables -w -t mangle -I OUTPUT -j tracker_dscp
+}
+
+_add_dscp_rule() {
+	iptables -w -t mangle -A tracker_dscp \
+		-p udp --dport 53 \
+		-j DSCP --set-dscp-class cs7 \
+		-m comment --comment "DNS queries"
+}
+
+_remove_dscp_chain() {
+	iptables -w -t mangle -F tracker_dscp 2>/dev/null || return
+	iptables -w -t mangle -D OUTPUT -j tracker_dscp
+	iptables -w -t mangle -X tracker_dscp
+}
+
 _launch_tracker() {
 	case "$1" in
 		loopback|lan*|if0*) return;;
@@ -34,8 +52,16 @@ _launch_tracker() {
 }
 
 start_service() {
+	_add_dscp_chain
+	# We should add the rules based on the tracker used
+	_add_dscp_rule
+
 	config_load network
 	config_foreach _launch_tracker interface
+}
+
+stop_service() {
+	_remove_dscp_chain
 }
 
 service_triggers() {
