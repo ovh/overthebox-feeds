@@ -109,12 +109,13 @@ otb_save_call_api() {
 }
 
 otb_save_event() {
-	timestamp=$(date +%s%N)
+	timestamp=$(date +%s)
+	nanos=$(date +%N)
 	details=$2
 	[ -z "$details" ] && details="{}"
 	mkdir -p "$OTB_EVENTS_DIRECTORY"
 	# shellcheck disable=SC2016
 	jq -n -c --arg name "$1" --arg timestamp "$timestamp" --argjson details "$details" \
 		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' \
-		> "$OTB_EVENTS_DIRECTORY/$timestamp-$1"
+		> "$OTB_EVENTS_DIRECTORY/$timestamp$nanos-$1"
 }
