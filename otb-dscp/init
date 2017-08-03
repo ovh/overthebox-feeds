@@ -2,7 +2,11 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # shellcheck disable=SC2034
-START=60
+START=90
+# shellcheck disable=SC2034
+STOP=10
+# shellcheck disable=SC2034
+USE_PROCD=1
 
 COMMIT=$(date +%s_$$)
 
@@ -97,7 +101,7 @@ _add_dscp_chain() {
 	iptables -w -t mangle -I PREROUTING -i "$lan_device" -j dscp
 }
 
-start() {
+start_service() {
 	# Cleanup
 	_remove_dscp_chain
 	_remove_fmwark_chain
@@ -118,9 +122,14 @@ start() {
 	echo | otb_save_call_api POST "dscp/$COMMIT/commit"
 }
 
-stop() {
+stop_service() {
 	_remove_dscp_chain
 	_remove_fmwark_chain
+}
+
+reload_service() {
+	stop
+	start
 }
 
 service_triggers() {
