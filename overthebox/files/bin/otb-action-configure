@@ -79,7 +79,8 @@ _setup_glorytun_mud() {
 	"'
 }
 
-case "$(_get tun_conf.app)" in
+tun_app=$(_get tun_conf.app)
+case "$tun_app" in
 	glorytun)
 		_get glorytun_conf | _setup_glorytun
 		echo "$config" | jq ".glorytun_conf+.glorytun_conf.additional_interfaces[0]" | _setup_glorytun
@@ -98,6 +99,9 @@ case "$(_get tun_conf.app)" in
 esac | uci -q batch
 
 uci -q batch <<EOF
+set glorytun.app=mode
+set glorytun.app.mode=$tun_app
+
 set shadowsocks.proxy=client
 set shadowsocks.proxy.server=$(_get shadow_conf.server)
 set shadowsocks.proxy.port=$(_get shadow_conf.port)
