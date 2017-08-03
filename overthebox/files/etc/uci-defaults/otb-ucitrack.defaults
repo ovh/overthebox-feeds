@@ -2,4 +2,25 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # TODO: do we still need this ?
+# We'll remove this while upgrading Luci
 touch /etc/config/ucitrack
+
+# Remove unused entries to avoid unwanted service restart
+entries_to_remove="
+	6relayd
+	dhcp
+	dropbear
+	dscp
+	firewall
+	ipv6
+	mwan3
+	network
+	odhcpd
+	qos
+	samba
+	tinyproxy
+	upnpd
+"
+for entry in $entries_to_remove; do
+	uci -q delete "ucitrack.@$entry[0]"
+done
