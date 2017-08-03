@@ -6,10 +6,12 @@ PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
+MY_DEPENDS := overthebox iptables-mod-ipopt
+
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
-DEPENDS:=+overthebox +jq +curl
+DEPENDS:=$(foreach p,$(MY_DEPENDS),+$(p))
 TITLE:=OverTheBox DSCP
 PKGARCH:=all
 endef
