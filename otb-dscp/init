@@ -21,31 +21,31 @@ lan_device=
 config_load network
 config_get lan_device lan ifname
 
+# Get the tunnel type
+tunnel_type=
+config_load glorytun
+config_get tunnel_type app mode
+
 config_load dscp
 
-_add_ipt() {
-	iptables -w -t mangle -A dscp "$@"
-}
-
-_add_ipt_dscp_mark() {
-	# xtun (hex) -> 0x7874756e
-	iptables -w -t mangle -A dscp_mark -m dscp --dscp-class "$1" -j MARK --set-mark 0x7874756e
+_ipt() {
+	iptables -w -t mangle "$@"
 }
 
 _add_dscp_rules() {
-	proto=     ; config_get proto "$1" proto all
-	src_ip=    ; config_get src_ip "$1" src_ip 0.0.0.0/0
-	src_port=  ; config_get src_port "$1" src_port 0:65535
-	dest_ip=   ; config_get dest_ip "$1" dest_ip 0.0.0.0/0
-	dest_port= ; config_get dest_port "$1" dest_port 0:65535
-	class=     ; config_get class "$1" class
-	direction= ; config_get direction "$1" direction "upload"
-	comment=   ; config_get comment "$1" comment "-"
+	proto=""     ; config_get proto "$1" proto all
+	src_ip=""    ; config_get src_ip "$1" src_ip 0.0.0.0/0
+	src_port=""  ; config_get src_port "$1" src_port 0:65535
+	dest_ip=""   ; config_get dest_ip "$1" dest_ip 0.0.0.0/0
+	dest_port="" ; config_get dest_port "$1" dest_port 0:65535
+	class=""     ; config_get class "$1" class
+	direction="" ; config_get direction "$1" direction "upload"
+	comment=""   ; config_get comment "$1" comment "-"
 
 	if [ "$direction" != "download" ]; then
 		_add_rule() {
-			_add_ipt -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j DSCP --set-dscp-class "$class"
-			_add_ipt -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j RETURN
+			_ipt -A dscp_prerouting -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j DSCP --set-dscp-class "$class"
+			_ipt -A dscp_prerouting -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j RETURN
 		}
 		case "$proto" in
 			tcp|udp)
@@ -72,43 +72,77 @@ _add_dscp_rules() {
 }
 
 _add_static_length_rule() {
-	_add_ipt -p tcp -m length --length "$1" -j DSCP --set-dscp-class "$2"
-	_add_ipt -p tcp -m length --length "$1" -j RETURN
+	_ipt -A dscp_prerouting -p tcp -m length --length "$1" -j DSCP --set-dscp-class "$2"
+	_ipt -A dscp_prerouting -p tcp -m length --length "$1" -j RETURN
 }
 
-_remove_fmwark_chain() {
-	iptables -w -t mangle -F dscp_mark 2>/dev/null || return
-	iptables -w -t mangle -D PREROUTING -i "$lan_device" -j dscp_mark
-	iptables -w -t mangle -X dscp_mark
-}
-
-_remove_dscp_chain() {
-	iptables -w -t mangle -F dscp 2>/dev/null || return
-	iptables -w -t mangle -D PREROUTING -i "$lan_device" -j dscp
-	iptables -w -t mangle -X dscp
+_add_prerouting_chain() {
+	_ipt -N "$1"
+	_ipt -I PREROUTING -i "$lan_device" -j "$1"
 }
 
 _add_fwmark_chain() {
-	iptables -w -t mangle -N dscp_mark
-	iptables -w -t mangle -I PREROUTING -i "$lan_device" -j dscp_mark
-	for class in cs3 cs4 cs5 cs6 cs7; do
-		_add_ipt_dscp_mark "$class"
+	_ipt -N dscp_mark
+	_ipt -A PREROUTING -i "$lan_device" -j dscp_mark
+	for class in cs4 cs5 cs6 cs7; do
+		# xtun (hex) -> 0x7874756e
+		_ipt -A dscp_mark \
+			-m comment --comment "$class" \
+			-m dscp --dscp-class "$class" \
+			-j MARK --set-mark 0x7874756e
 	done
 }
 
-_add_dscp_chain() {
-	iptables -w -t mangle -N dscp
-	iptables -w -t mangle -I PREROUTING -i "$lan_device" -j dscp
+_add_dscp_output_chain() {
+	_ipt -N dscp_output
+	_ipt -I OUTPUT -j dscp_output
+}
+
+_remove_prerouting_chain() {
+	_ipt -F "$1" 2>/dev/null || return
+	_ipt -D PREROUTING -i "$lan_device" -j "$1"
+	_ipt -X "$1"
+}
+
+_remove_output_chain() {
+	_ipt -F "$1" 2>/dev/null || return
+	_ipt -D OUTPUT -j "$1"
+	_ipt -X "$1"
+}
+
+_setup_tunnel() {
+	case "$tunnel_type" in
+		glorytun)
+			# Mark the packets to route through xtun0
+			_add_fwmark_chain
+			# tun0: cs0 (default)
+			# xtun0: cs6
+			_ipt -A dscp_output -o "xtun0" -j DSCP --set-dscp-class cs6
+			;;
+		glorytun_hybrid)
+			# Mark the packets to route through xtun0
+			_add_fwmark_chain
+			# tun0: cs0 (default)
+			# xtun0: mud handles the dscp by itself
+			;;
+		glorytun_mud)
+			# tun0: mud handles the dscp by itself
+			;;
+	esac
 }
 
 start_service() {
 	# Cleanup
-	_remove_dscp_chain
-	_remove_fmwark_chain
+	_remove_prerouting_chain dscp_prerouting
+	_remove_prerouting_chain dscp_mark
+	_remove_output_chain dscp_output
 
-	# This order is important
-	_add_fwmark_chain
-	_add_dscp_chain
+	# Add chains
+	_add_prerouting_chain dscp_prerouting
+	_add_dscp_output_chain
+
+	# Setup the tunnels dscp / marks
+	_setup_tunnel
 
 	# Add rules base on the user configuration
 	config_foreach _add_dscp_rules classify
@@ -123,8 +157,9 @@ start_service() {
 }
 
 stop_service() {
-	_remove_dscp_chain
-	_remove_fmwark_chain
+	_remove_prerouting_chain dscp_prerouting
+	_remove_prerouting_chain dscp_mark
+	_remove_output_chain dscp_output
 }
 
 reload_service() {
@@ -133,5 +168,5 @@ reload_service() {
 }
 
 service_triggers() {
-	procd_add_reload_trigger dscp
+	procd_add_reload_trigger dscp glorytun
 }
