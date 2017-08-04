@@ -187,6 +187,8 @@ function interfaces_status()
 
     local ifname = section['ifname']
 
+    local asn = net:_ubus("data").asn
+
     local data = {
       label = section['label'] or interface,
       name = interface,
@@ -197,7 +199,7 @@ function interfaces_status()
       multipath = section['multipath'],
       status = net:_ubus("data").connectivity,
       wanip = net:_ubus("data").public_ip,
-      whois = net:_ubus("data").asn.as_description,
+      whois = asn and as.as_description or "unknown",
       qos = section['trafficcontrol'],
       download = section['download'],
       upload = section['upload']
