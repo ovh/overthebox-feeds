@@ -4,8 +4,7 @@
 : ${OTB_SERVICE_ID:=$(uci -q get overthebox.me.service)}
 : ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
 : ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
-: ${OTB_EVENTS_DIRECTORY:="/tmp/otb-events"}
-: ${OTB_APICALLS_DIRECTORY:="/tmp/otb-api-calls"}
+: ${OTB_TODO_DIR:="/tmp/otb-todo"}
 : ${OTB_HEADERS_FILE:="/tmp/otb-daemon-headers"}
 
 otb_alert() {
@@ -103,19 +102,15 @@ otb_service_get() {
 	[ -n "$OTB_SERVICE_ID" ] && otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
-otb_save_call_api() {
-	mkdir -p "$OTB_APICALLS_DIRECTORY"
-	(echo "$*"; cat -) > "$OTB_APICALLS_DIRECTORY/$(date +%s%N)"
+otb_todo() {
+	mkdir -p "$OTB_TODO_DIR"
+	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)"
 }
 
 otb_save_event() {
-	timestamp=$(date +%s)
-	nanos=$(date +%N)
 	details=$2
 	[ -z "$details" ] && details="{}"
-	mkdir -p "$OTB_EVENTS_DIRECTORY"
 	# shellcheck disable=SC2016
-	jq -n -c --arg name "$1" --arg timestamp "$timestamp" --argjson details "$details" \
-		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' \
-		> "$OTB_EVENTS_DIRECTORY/$timestamp$nanos-$1"
+	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
+		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' | otb_todo otb_device_post events -d@-
 }
