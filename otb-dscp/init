@@ -58,7 +58,7 @@ _add_dscp_rules() {
 	fi
 
 	if [ "$direction" != "upload" ]; then
-		otb_save_call_api POST "dscp/$COMMIT" <<-EOF
+		otb_todo otb_call_api POST "dscp/$COMMIT" -d@- <<-EOF
 		{
 			"proto": "$proto",
 			"src_ip": "$src_ip",
@@ -153,7 +153,7 @@ start_service() {
 	_add_static_length_rule 512: cs1    # Heavy traffic
 
 	# Commit remote dscp setting
-	echo | otb_save_call_api POST "dscp/$COMMIT/commit"
+	otb_todo otb_call_api POST "dscp/$COMMIT/commit" </dev/null
 }
 
 stop_service() {
