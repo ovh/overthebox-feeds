@@ -114,6 +114,10 @@ _get_mounts() {
 	echo "$mounts"
 }
 
+_get_board_infos() {
+	ubus call system board | jq -c '{ release: .release, board: del(.release) }'
+}
+
 _properties() {
 	INTERFACES="[]"
 	config_load network
@@ -121,16 +125,18 @@ _properties() {
 
 	local packages=$(_get_packages)
 	local mounts=$(_get_mounts)
+	local board_infos=$(_get_board_infos)
 
 	# shellcheck disable=SC2016
 	jq -n -c --argjson interfaces "$INTERFACES" \
 		--argjson packages "$packages" \
+		--argjson board_infos "$board_infos" \
 		--argjson mounts "$mounts" \
 		'{
 			interfaces: $interfaces,
 			packages: $packages,
 			mounts: $mounts,
-		}'
+		} + $board_infos'
 }
 
 otb_device_post properties --data "$(_properties)"
