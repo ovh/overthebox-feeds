@@ -199,7 +199,7 @@ function interfaces_status()
       multipath = section['multipath'],
       status = net:_ubus("data").connectivity,
       wanip = net:_ubus("data").public_ip,
-      whois = asn and as.as_description or "unknown",
+      whois = asn and asn.as_description or "unknown",
       qos = section['trafficcontrol'],
       download = section['download'],
       upload = section['upload']
