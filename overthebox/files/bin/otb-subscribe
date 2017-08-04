@@ -13,7 +13,7 @@ if [ -n "$OTB_TOKEN" ] && [ -n "$OTB_DEVICE_ID" ]; then
 
 	# Try to get the device's config
 	otb_device_get config
-	http_status=$(head -1 "$OTB_HEADERS_FILE")
+	http_status=$(head -n 1 "$OTB_HEADERS_FILE")
 	# If it's a 401, subscribe
 	case "$http_status" in
 		HTTP*401*)
