@@ -14,15 +14,9 @@ otb_save_event start
 while true; do
 	reload_config
 
-	# Send events
-	for file in "$OTB_EVENTS_DIRECTORY"/*; do
-		[ -f "$file" ] && otb_device_post "events" -d"@$file" && rm -f "$file"
-	done
-
-	# Send api calls
-	for file in "$OTB_APICALLS_DIRECTORY"/*; do
-		# shellcheck disable=SC2046
-		[ -f "$file" ] && tail -n+2 "$file" | otb_call_api $(head -n1 "$file") -d@- && rm -f "$file"
+	# todo
+	for file in "$OTB_TODO_DIR"/*; do
+		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
 	ret=$(otb_device_get actions)
