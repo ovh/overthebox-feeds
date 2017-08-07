@@ -59,7 +59,7 @@ _setup_qos() {
 			wan_ip: $public_ip,
 			downlink: $download,
 			uplink: $upload,
-		}' | otb_save_call_api PUT qos -d@-
+		}' | otb_todo otb_call_api PUT qos -d@-
 }
 
 _stop_qos() {
@@ -77,7 +77,7 @@ start_service() {
 
 stop_service() {
 	config_foreach _stop_qos interface
-	echo | otb_save_call_api DELETE qos
+	otb_todo otb_call_api DELETE qos </dev/null
 }
 
 reload_service() {
