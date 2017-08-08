@@ -15,33 +15,44 @@ shift 2
 export OTB_TRACKER_INTERFACE
 export OTB_TRACKER_CALL
 export OTB_TRACKER_HOST
+export OTB_TRACKER_INITIAL_TIMEOUT
 export OTB_TRACKER_TIMEOUT
-export OTB_TRACKER_RETRY
+export OTB_TRACKER_TRIES
 export OTB_TRACKER_INTERVAL
 export OTB_TRACKER_STATUS
 export OTB_TRACKER_RESULT
 export OTB_TRACKER_DEVICE
-export OTB_TRACKER_INTERFACE_IP
-export OTB_TRACKER_INTERFACE_GATEWAY
+export OTB_TRACKER_DEVICE_IP
+export OTB_TRACKER_DEVICE_GATEWAY
 
 # main loop
 while true; do
-	OTB_TRACKER_INTERFACE_IP=
-	OTB_TRACKER_INTERFACE_GATEWAY=
+	# setup tracker variables
+	OTB_TRACKER_DEVICE_IP=
+	OTB_TRACKER_DEVICE_GATEWAY=
 	OTB_TRACKER_DEVICE=
 	OTB_TRACKER_STATUS="ERROR"
 	OTB_TRACKER_RESULT=
+	OTB_TRACKER_TIMEOUT="$OTB_TRACKER_INITIAL_TIMEOUT"
 
 	# retrieve iface ip and gateway and device
 	network_flush_cache
-	network_get_ipaddr OTB_TRACKER_INTERFACE_IP "$OTB_TRACKER_INTERFACE"
-	network_get_gateway OTB_TRACKER_INTERFACE_GATEWAY "$OTB_TRACKER_INTERFACE"
+	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE"
+	network_get_gateway OTB_TRACKER_DEVICE_GATEWAY "$OTB_TRACKER_INTERFACE"
 	config_load network
 	config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
-	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_INTERFACE_IP" ] && [ -n "$OTB_TRACKER_INTERFACE_GATEWAY" ];then
-		# execute specific tracker
-		OTB_TRACKER_RESULT=$(/usr/share/otb/trackers.d/"$OTB_TRACKER_CALL" "$@")
-		[ "$?" = 0 ] && OTB_TRACKER_STATUS="OK"
+
+	# execute specific tracker
+	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ];then
+		# setup loop variable
+		tries="$OTB_TRACKER_TRIES"
+		# loop until tries attempts have been reached or an attempt succeed
+		while [ "$tries" -gt 0 ]; do
+			OTB_TRACKER_RESULT=$(/usr/share/otb/trackers.d/"$OTB_TRACKER_CALL" "$@")
+			[ "$?" = 0 ] && OTB_TRACKER_STATUS="OK" && break
+			tries=$((tries - 1))
+			OTB_TRACKER_TIMEOUT=$((OTB_TRACKER_TIMEOUT * 2))
+		done
 	fi
 
 	# post tracking

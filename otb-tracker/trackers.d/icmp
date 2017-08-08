@@ -1,0 +1,8 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+exec ping \
+	-c 1 \
+	-I "$OTB_TRACKER_DEVICE" \
+	-W "$OTB_TRACKER_TIMEOUT" \
+	"$@" "$OTB_TRACKER_HOST"
