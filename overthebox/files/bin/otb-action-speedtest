@@ -22,7 +22,7 @@ setup() {
 	fi
 
 	# Stop the QoS
-	output=$(/etc/init.d/qos stop)
+	output=$(/etc/init.d/otb-qos stop)
 	if [ $? -ne "0" ]; then
 		echo "Couldn't stop qos :"
 		echo "$output"
@@ -41,7 +41,7 @@ cleanup() {
 	fi
 
 	# Start the QoS
-	output=$(/etc/init.d/qos start)
+	output=$(/etc/init.d/otb-qos start)
 	if [ $? -ne "0" ]; then
 		echo "Couldn't start qos :"
 		echo "$output"
