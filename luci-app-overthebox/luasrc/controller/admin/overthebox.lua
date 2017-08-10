@@ -20,8 +20,9 @@
 -- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 
 local tools = require "luci.tools.status"
-local sys = require "luci.sys"
-local json      = require("luci.json")
+local sys   = require "luci.sys"
+local json  = require("luci.json")
+local ucic  = uci.cursor()
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
@@ -256,36 +257,26 @@ end
 
 -- copied from the old overthebox.lua lib
 function tc_stats()
-  local output = {}
-  for line in string.gmatch((sys.exec("tc -s q")), '[^\r\n]+') do
-    table.insert(output, line)
-  end
-
   local result = {}
   result["upload"] = {}
-  local curdev;
-  local curq;
-  for i=1, #output do
-    if string.byte(output[i]) ~= string.byte(' ') then
-      curdev = nil
-      curq = nil
-    end
-    if string.match(output[i], "dev ([^%s]+)") then
-      curdev = string.match(output[i], "dev ([^%s]+)")
-    end
-    if string.match(output[i], "sfq (%d+)") then
-      curq = string.match(output[i], "sfq (%d+)")
-    end
-    if curdev and curq then
-      for bytes, pkt, dropped, overlimits, reque in string.gmatch(output[i], "Sent (%d+) bytes (%d+) pkt %(dropped (%d+), overlimits (%d+) requeues (%d+)") do
-        -- print("["..curdev..", "..curq..", "..bytes.. ", "..pkt..", "..dropped..", "..overlimits..", ".. reque .. "]")
-        if result["upload"][curq] == nil then
-          result["upload"][curq] = {}
+  local output = {}
+  ucic:foreach("network", "interface",
+    function (interface)
+      if interface["multipath"] == "off" then
+        return
+      end
+
+      cakestats = json.decode(sys.exec("tc -s q s dev " .. interface["ifname"] .. " | otb-cake-parser"))
+      if cakestats then
+        for i,stat in pairs(cakestats) do
+          if result["upload"][i] == nil then
+            result["upload"][i] = {}
+          end
+          result["upload"][i][interface["ifname"]] = { bytes=stat["bytes"], pkt=stat["pkts"], dropped=0, overlimits=0, requeues=0 }
         end
-        result["upload"][curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
       end
     end
-  end
+  )
 
   output = {}
   result["download"] = {}
