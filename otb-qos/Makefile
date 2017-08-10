@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-qos
-PKG_VERSION:=0.5
+PKG_VERSION:=0.6
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -29,6 +29,8 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_BIN) otb-cake-parser $(1)/bin/otb-cake-parser
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
