@@ -12,15 +12,14 @@ MY_DEPENDS := \
     otb-tracker otb-autoroute \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bmon bwm-ng \
-    kmod-fs-ext4 kmod-fs-hfsplus kmod-fs-vfat \
-    fuse-utils luci-app-samba samba36-server \
-    rsync netcat svfs screen \
+    kmod-fs-vfat screen \
+    kmod-fs-ext4 kmod-fs-hfsplus \
     iptables-mod-trace kmod-ipt-raw \
     libustream-mbedtls luci-lib-px5g px5g  \
     getopt tc iperf3 mtr ethtool rng-tools \
     ss strace tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
-    vim-full lsblk dnsmasq-full
+    lsblk dnsmasq-full
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
