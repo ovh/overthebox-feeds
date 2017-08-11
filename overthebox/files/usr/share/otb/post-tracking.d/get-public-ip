@@ -1,0 +1,18 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] || exit
+
+pub_ip=$(curl \
+	--interface "$OTB_TRACKER_DEVICE" \
+	--max-time "$OTB_TRACKER_TIMEOUT" \
+	--silent \
+	--show-error \
+	ifconfig.ovh
+)
+[ -z "$pub_ip" ] || [ "$pub_ip" = "null" ] && exit
+# shellcheck disable=SC2016
+data=$(jq -n -c --arg pub_ip "$pub_ip" '{public_ip:$pub_ip}')
+ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"

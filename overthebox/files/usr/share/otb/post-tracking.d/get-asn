@@ -1,0 +1,23 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] || exit
+
+pub_ip=$(ubus call network.interface."$OTB_TRACKER_INTERFACE" status | jq -r '.data.public_ip')
+[ -z "$pub_ip" ] || [ "$pub_ip" = "null" ] && exit
+
+asn=
+asn=$(curl \
+	--interface "$OTB_TRACKER_DEVICE" \
+	--max-time "$OTB_TRACKER_TIMEOUT" \
+	--silent \
+	--show-error \
+	api.iptoasn.com/v1/as/ip/"$pub_ip"
+)
+
+[ -z "$asn" ]  || [ "$asn" = "null" ] && exit
+# shellcheck disable=SC2016
+data=$(jq -n -c --argjson asn "$asn" '{asn:$asn}')
+ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"
