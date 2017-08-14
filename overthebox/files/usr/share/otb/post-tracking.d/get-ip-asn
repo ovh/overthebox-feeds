@@ -15,7 +15,15 @@ _curl() {
 }
 
 pub_ip=$(_curl ifconfig.ovh)
-asn=$(_curl api.iptoasn.com/v1/as/ip/"$pub_ip" || echo "{}")
+[ -z "$pub_ip" ] && exit 1
+pub_ip_old=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | jq -r '.data.public_ip')
+[ "$pub_ip" = "$pub_ip_old" ] && exit 0
 # shellcheck disable=SC2016
-data=$(jq -n -c --argjson asn "$asn" --arg pub_ip "$pub_ip" '{asn:$asn, public_ip:$pub_ip}')
+data=$(jq -n -c --arg pub_ip "$pub_ip" '{public_ip:$pub_ip}')
+ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"
+
+asn=$(_curl api.iptoasn.com/v1/as/ip/"$pub_ip")
+[ -z "$asn" ] && exit 1
+# shellcheck disable=SC2016
+data=$(jq -n -c --argjson asn "$asn" '{asn:$asn}')
 ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"
