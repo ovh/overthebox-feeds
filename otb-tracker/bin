@@ -66,12 +66,15 @@ _update_rto() {
 	[ "$(echo "$rto < 1"|bc)" -eq 1 ] && rto=1
 }
 
+OTB_TRACKER_DEVICE=
+config_load network
+config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
+
 # main loop
 while true; do
 	# setup tracker variables
 	OTB_TRACKER_DEVICE_IP=
 	OTB_TRACKER_DEVICE_GATEWAY=
-	OTB_TRACKER_DEVICE=
 	OTB_TRACKER_STATUS="ERROR"
 	OTB_TRACKER_RESULT=
 	_update_timeout
@@ -80,8 +83,6 @@ while true; do
 	network_flush_cache
 	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE"
 	network_get_gateway OTB_TRACKER_DEVICE_GATEWAY "$OTB_TRACKER_INTERFACE"
-	config_load network
-	config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
 
 	# execute specific tracker
 	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ];then
