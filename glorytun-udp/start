@@ -1,14 +1,23 @@
 #!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
 . /lib/functions/network.sh
 
 BIND_ARGS=
 
+_err() {
+	logger -p daemon.err -t "glorytun-udp" "$@"
+}
+
 _setup_bind_args() {
 	multipath=
 	config_get multipath "$1" multipath
 	if [ "$multipath" = "on"  ] || [ "$multipath" = "master" ]; then
+		if ! network_is_up "$1"; then
+			_err "$1 is not yet up, aborting"
+			exit 1
+		fi
 		ipaddr=
 		network_get_ipaddr ipaddr "$1"
 		[ -n "$ipaddr" ] && BIND_ARGS="${BIND_ARGS}${ipaddr},"
