@@ -11,7 +11,7 @@ ME=$(basename "$0")
 config=$(otb_device_get config)
 
 _get() {
-    otb_json_get "$config" "$1"
+	otb_json_get "$config" "$1"
 }
 
 # delete last conf
@@ -97,6 +97,20 @@ case "$tun_app" in
 		_get glorytun_mud_conf | _setup_glorytun_mud
 		;;
 esac | uci -q batch
+
+case "$tun_app" in
+	glorytun|glorytun_hybrid)
+		tracked_interfaces=$(_get glorytun_conf | jq -r '@text "\(.dev) \(.additional_interfaces[].dev)"');;
+	glorytun_mud)
+		tracked_interfaces=$(_get glorytun_mud_conf | jq -r '@text "\(.dev)"');;
+esac
+for tracked_interface in $tracked_interfaces; do
+	uci -q batch <<-EOF
+	set otb-tracker.$tracked_interface=track
+	set otb-tracker.$tracked_interface.tries=5
+	set otb-tracker.$tracked_interface.generatedby=$ME
+	EOF
+done
 
 uci -q batch <<EOF
 set glorytun.app=mode
