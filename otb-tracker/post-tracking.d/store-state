@@ -1,6 +1,12 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+old_status="$(ubus call network.interface."$OTB_TRACKER_INTERFACE" status | jq -r .data.connectivity)"
+
+[ "$old_status" = "$OTB_TRACKER_STATUS" ] && exit 0
+
+logger -t "otb-tracker" "$OTB_TRACKER_INTERFACE tracking status changed to ${OTB_TRACKER_STATUS}"
+
 # shellcheck disable=SC2016
 data=$(jq -c -n --arg status "$OTB_TRACKER_STATUS" '{connectivity:$status}')
 ubus call network.interface."$OTB_TRACKER_INTERFACE" set_data "$data"
