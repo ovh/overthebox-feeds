@@ -36,6 +36,7 @@ function index()
   entry({"admin", "overthebox", "multipath"}, template("overthebox/multipath"), _("Realtime graphs"), 5).leaf = true
   entry({"admin", "overthebox", "tunnels"}, template("overthebox/tunnels"), _("TUN graphs"), 6).leaf = true
   entry({"admin", "overthebox", "qos"}, template("overthebox/qos"), _("QoS graphs"), 7).leaf = true
+  entry({"admin", "overthebox", "add_interface"}, template("overthebox/add_interface")).leaf = true
   -- functions
   entry({"admin", "overthebox", "qos_stats"}, call("action_qos_data")).leaf = true
   entry({"admin", "overthebox", "lan_traffic_data"}, call("action_lan_traffic_data")).leaf = true
@@ -50,6 +51,64 @@ function index()
   entry({"admin", "overthebox", "need_activate_service"},  call("need_activate")).leaf = true
   entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
   entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
+  entry({"admin", "overthebox", "new_interface"}, post("new_interface")).leaf = true
+end
+
+function new_interface()
+  local interface_name = luci.http.formvalue("interface_name")
+  local device = luci.http.formvalue("device")
+  local protocol = luci.http.formvalue("protocol")
+
+  local stderr  = { "" }
+
+  -- DHCP interface on eth0 is forbidden
+  if device == "eth0" and protocol == "dhcp" then
+    table.insert(stderr, "Cannot create interface dhcp on eth0")
+    luci.template.render("overthebox/add_interface", {
+      stderr    = table.concat(stderr, "")
+    })
+    return
+  end
+
+  -- Get the id of the interface to be created
+  local id = 1
+  while ucic:get("network", "cif"..id) do id = id + 1 end
+
+  ifID = "cif"..id
+  ifname = device
+
+  -- If it's a static interface on eth0, configure a macvlan
+  if device == "eth0" and protocol == "static" then
+    device_mac = sys.exec("tr -d '\n' < /sys/class/net/eth0/address")
+    devID = ifID.."_dev"
+    ucic:set("network", devID, "device")
+    ucic:set("network", devID, "name", ifID)
+    ucic:set("network", devID, "ifname", ifname)
+    ucic:set("network", devID, "type", "macvlan")
+    ifname = ifID
+  end
+
+  -- Create the interface
+  ucic:set("network", ifID, "interface")
+  ucic:set("network", ifID, "ifname", ifname)
+  ucic:set("network", ifID, "proto", protocol)
+  ucic:set("network", ifID, "label", interface_name)
+  ucic:set("network", ifID, "metric", id + 10)
+  ucic:set("network", ifID, "ip4table", id + 210)
+  ucic:set("network", ifID, "multipath", "on")
+
+  ucic:save("network")
+  ucic:commit("network")
+
+  -- Add the interface to the wan firewall zone
+  firewall = ucic:get_list("firewall", "wan", "network")
+  table.insert(firewall, ifID)
+  ucic:set_list("firewall", "wan", "network", firewall)
+
+  ucic:save("firewall")
+  ucic:commit("firewall")
+
+  luci.http.redirect(luci.dispatcher.build_url("admin/network/network/"..ifID))
 end
 
 function action_passwd()

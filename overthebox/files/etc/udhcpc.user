@@ -1,93 +1,169 @@
 #!/bin/sh
+# shellcheck disable=SC2154,SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+action="$1"
+
+_log() {
+	logger -p daemon.info -t "udhcpc.user" "$@"
+}
+
 [ -z "$router" ] && exit 0
-[ "$INTERFACE" = if0 ] || exit 0
 
-case "$1" in
-renew|bound)
-	;;
-*)
-	exit 0
-	;;
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+manage_if0() {
+	case "$action" in
+	renew|bound)
+		;;
+	*)
+		exit 0
+		;;
+	esac
+
+	# Guess the new interface id
+	_id=1
+	while uci -q get network.if$_id >/dev/null; do
+		_id=$((_id+1))
+	done
+
+	_macaddr=$(cat "/sys/class/net/$INTERFACE/address")
+	_ifname=$(uci -q get "network.${INTERFACE}_dev.ifname")
+
+	UCI_TMP_DIR="/tmp/dhcpdiscovery"
+	mkdir -p "$UCI_TMP_DIR"
+	touch "$UCI_TMP_DIR/dhcpdiscovery"
+
+	uci -q -c "$UCI_TMP_DIR" batch <<-EOF
+	set dhcpdiscovery.$INTERFACE=lease
+	set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
+	set dhcpdiscovery.$INTERFACE.lease=$lease
+	set dhcpdiscovery.$INTERFACE.ip=$ip
+	set dhcpdiscovery.$INTERFACE.siaddr=$siaddr
+	set dhcpdiscovery.$INTERFACE.subnet=$subnet
+	set dhcpdiscovery.$INTERFACE.timezone=$timezone
+	set dhcpdiscovery.$INTERFACE.router=$router
+	set dhcpdiscovery.$INTERFACE.hostname=$hostname
+	set dhcpdiscovery.$INTERFACE.domain=$domain
+	set dhcpdiscovery.$INTERFACE.ipttl=$ipttl
+	set dhcpdiscovery.$INTERFACE.mtu=$mtu
+	set dhcpdiscovery.$INTERFACE.broadcast=$broadcast
+	set dhcpdiscovery.$INTERFACE.serverid=$serverid
+	commit dhcpdiscovery
+	EOF
+
+	uci -q show network | grep -sq "network\.if.*\.gateway='$router'" && exit
+
+	if uci -q get "network.lan_if${_id}" >/dev/null; then
+		uci -q batch <<-EOF
+		set network.if${_id}_dev=device
+		set network.if${_id}_dev.name=if$_id
+		set network.if${_id}_dev.type=macvlan
+		set network.if${_id}_dev.ifname=$_ifname
+		set network.if${_id}_dev.macaddr=$_macaddr
+		set network.if${_id}=interface
+		set network.if${_id}.ifname=if$_id
+		set network.if${_id}.proto=static
+		set network.if${_id}.ipaddr=$ip
+		set network.if${_id}.netmask=$subnet
+		set network.if${_id}.multipath=on
+		set network.if${_id}.gateway=$router
+		set network.if${_id}.dns=$dns
+		set network.if${_id}.metric=$_id
+		set network.if${_id}.ip4table=$((_id + 200))
+		set network.${INTERFACE}_dev.macaddr=auto.if$_id
+		commit network
+
+		add_list firewall.wan.network=if$_id
+		commit firewall
+
+		set dhcp.if${_id}=dhcp
+		set dhcp.if${_id}.interface=if${_id}
+		set dhcp.if${_id}.start=1
+		set dhcp.if${_id}.leasetime=12h
+		set dhcp.if${_id}.dynamicdhcp=0
+		set dhcp.if${_id}.force=1
+		set dhcp.if${_id}_gw=tag
+		add_list dhcp.if${_id}_gw.dhcp_option=1,$subnet
+		add_list dhcp.if${_id}_gw.dhcp_option=3,$router
+		add_list dhcp.if${_id}_gw.dhcp_option=6,$dns
+		commit dhcp
+		EOF
+	else
+		# lan_ifX are IP aliases on the lan
+		# Those are needed in order to tell the DHCP server to bind on the LAN and
+		# offer static leases on all its ranges
+		uci -q batch <<-EOF
+		set network.lan_if${_id}=interface
+		set network.lan_if${_id}.proto=static
+		set network.lan_if${_id}.ifname=lan
+		set network.lan_if${_id}.ipaddr=$ip
+		set network.lan_if${_id}.netmask=$subnet
+		set network.${INTERFACE}_dev.macaddr=auto.lan_if$_id
+		commit network
+		EOF
+	fi
+}
+
+_setup_interface() {
+	uci -q batch <<-EOF
+	set network.$INTERFACE.proto=static
+	set network.$INTERFACE.ipaddr=$ip
+	set network.$INTERFACE.netmask=$subnet
+	set network.$INTERFACE.gateway=$router
+	set network.$INTERFACE.dns=$dns
+	set network.$INTERFACE.mtu=$mtu
+	commit network
+	EOF
+	return
+}
+
+_get_other_ip() {
+	# Calculate new ip
+	ip=$(_next_ip "$ip")
+}
+
+_next_ip() {
+	# Naively increment the last part of the IP
+	printf "%s.%d" "${ip%.*}" $((${ip##*.}+1))
+}
+
+_check_interface() {
+	original_ip="$ip"
+
+	# We need to check that the interface is given a "non used" ip address
+	while ip -4 -o addr | grep -sq "$ip/"; do
+		# Need to find another IP
+		_get_other_ip
+	done
+
+	# If the original ip is unused, no need for hacks
+	[ "$original_ip" = "$ip" ] && return 1
+
+	eval "$(ipcalc.sh "$ip" | grep IP)"
+	# If the IP given by ipcalc is different than $ip , something wrong, stop
+	# here
+	[ "$IP" != "$ip" ] && return 1
+
+	return 0
+}
+
+manage_cifX() {
+	# Don't do anything unless it's a bound action
+	[ "$action" != "bound" ] && exit 0
+
+	_check_interface "$INTERFACE" || exit 0
+	_setup_interface "$router" "$INTERFACE"
+}
+
+_log "got udhcpc $action on $INTERFACE"
+
+case "$INTERFACE" in
+	if0)
+		manage_if0 ;;
+	cif*)
+		manage_cifX ;;
 esac
-
-_macaddr=$(cat /sys/class/net/if0/address)
-_ifname=$(uci -q get network.if0_dev.ifname)
-
-UCI_TMP_DIR="/tmp/dhcpdiscovery"
-mkdir -p "$UCI_TMP_DIR"
-touch "$UCI_TMP_DIR/dhcpdiscovery"
-
-uci -q -c "$UCI_TMP_DIR" batch <<-EOF
-set dhcpdiscovery.$INTERFACE=lease
-set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
-set dhcpdiscovery.$INTERFACE.lease=$lease
-set dhcpdiscovery.$INTERFACE.ip=$ip
-set dhcpdiscovery.$INTERFACE.siaddr=$siaddr
-set dhcpdiscovery.$INTERFACE.subnet=$subnet
-set dhcpdiscovery.$INTERFACE.timezone=$timezone
-set dhcpdiscovery.$INTERFACE.router=$router
-set dhcpdiscovery.$INTERFACE.hostname=$hostname
-set dhcpdiscovery.$INTERFACE.domain=$domain
-set dhcpdiscovery.$INTERFACE.ipttl=$ipttl
-set dhcpdiscovery.$INTERFACE.mtu=$mtu
-set dhcpdiscovery.$INTERFACE.broadcast=$broadcast
-set dhcpdiscovery.$INTERFACE.serverid=$serverid
-commit dhcpdiscovery
-EOF
-
-uci -q show network | grep -sq "network\.if.*\.gateway='$router'" && exit
-
-_id=1
-while uci -q get network.if$_id >/dev/null; do _id=$((_id+1)); done
-
-if uci -q get "network.lan_if${_id}" >/dev/null; then
-	uci -q batch <<-EOF
-	set network.if${_id}_dev=device
-	set network.if${_id}_dev.name=if$_id
-	set network.if${_id}_dev.type=macvlan
-	set network.if${_id}_dev.ifname=$_ifname
-	set network.if${_id}_dev.macaddr=$_macaddr
-	set network.if${_id}=interface
-	set network.if${_id}.ifname=if$_id
-	set network.if${_id}.type=macvlan
-	set network.if${_id}.proto=static
-	set network.if${_id}.ipaddr=$ip
-	set network.if${_id}.netmask=$subnet
-	set network.if${_id}.multipath=on
-	set network.if${_id}.gateway=$router
-	set network.if${_id}.dns=$dns
-	set network.if${_id}.metric=$_id
-	set network.if${_id}.ip4table=$((_id + 200))
-	set network.if0_dev.macaddr=auto.if$_id
-	commit network
-
-	add_list firewall.wan.network=if$_id
-	commit firewall
-
-	set dhcp.if${_id}=dhcp
-	set dhcp.if${_id}.interface=if${_id}
-	set dhcp.if${_id}.start=1
-	set dhcp.if${_id}.leasetime=12h
-	set dhcp.if${_id}.dynamicdhcp=0
-	set dhcp.if${_id}.force=1
-	set dhcp.if${_id}_gw=tag
-	add_list dhcp.if${_id}_gw.dhcp_option=1,$subnet
-	add_list dhcp.if${_id}_gw.dhcp_option=3,$router
-	add_list dhcp.if${_id}_gw.dhcp_option=6,$dns
-	commit dhcp
-	EOF
-else
-	uci -q batch <<-EOF
-	set network.lan_if${_id}=interface
-	set network.lan_if${_id}.proto=static
-	set network.lan_if${_id}.ifname=lan
-	set network.lan_if${_id}.ipaddr=$ip
-	set network.lan_if${_id}.netmask=$subnet
-	set network.if0_dev.macaddr=auto.lan_if$_id
-	commit network
-	EOF
-fi
 
 [ -d /var/run/config.check ] || reload_config
