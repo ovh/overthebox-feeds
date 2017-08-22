@@ -1,7 +1,9 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# shellcheck disable=SC1091
 . /lib/functions.sh
+# shellcheck disable=SC1091
 . /lib/functions/network.sh
 
 [ -n "$1" ] && [ -n "$2" ] || exit
@@ -109,7 +111,7 @@ while true; do
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
 		[ -x "$tracker_bin" ] || continue
 		#shellcheck disable=SC2091
-		timeout -t "$OTB_TRACKER_POST_TRACKING_TIMEOUT" "$tracker_bin" &
+		"$tracker_bin" &
 	done
 	sleep "$OTB_TRACKER_INTERVAL"
 done

@@ -13,7 +13,6 @@ _validate_section() {
 		'timeout:uinteger:3' \
 		'tries:uinteger:3' \
 		'interval:uinteger:2' \
-		'post_tracking_timeout:uinteger:2' \
 		'options:string:tracker.overthebox.ovh'
 }
 
@@ -47,7 +46,6 @@ _launch_tracker() {
 	procd_append_param env OTB_TRACKER_TIMEOUT="$timeout"
 	procd_append_param env OTB_TRACKER_TRIES="$tries"
 	procd_append_param env OTB_TRACKER_INTERVAL="$interval"
-	procd_append_param env OTB_TRACKER_POST_TRACKING_TIMEOUT="$post_tracking_timeout"
 	procd_set_param respawn 0 10 0
 	procd_set_param stderr 1
 	procd_close_instance
