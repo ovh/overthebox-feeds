@@ -1,5 +1,34 @@
 <%+header%>
 
+<%
+  local uci = require("luci.model.uci").cursor()
+  local net = require "luci.model.network".init()
+
+  local ifaces = net:get_interfaces()
+  local ports = {}
+  ports["wan"] = {}
+  ports["lan"] = {}
+  ports["trunk"] = {}
+
+  uci:foreach("network", "switch_vlan",
+    function(s)
+      -- Only show otbv2sw switch
+      if s.device == "otbv2sw" then
+        local type = "wan"
+        if s.vlan == '1' then
+          type = "trunk"
+        elseif s.vlan == '2' then
+          type = "lan"
+        end
+        for _, v in ipairs(string.split(s.ports, " ")) do
+          if not string.find(v, "t") then
+            table.insert(ports[type], v)
+          end
+        end
+      end
+    end)
+%>
+
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/switch-config.css">
 <link rel="stylesheet" type="text/css" href="<%=resource%>/ovh/css/ovh-common.css">
@@ -9,14 +38,21 @@
 <script src="<%=resource%>/view_scripts/switch/switch_config.js"></script>
 <script>
     $(document).ready(function() {
-        var opts = {
-            constants: {
-                setSwitchConfigUrl: '<%=luci.dispatcher.build_url("admin", "network", "switch_set_conf")%>'
-            }
-        }
-        initSwitches(opts);
+      var wans = [ <%= table.concat(ports["wan"], ', ') %> ];
+      var lans = [ <%= table.concat(ports["lan"], ', ') %> ];
+      var opts = {
+          constants: {
+              setSwitchConfigUrl: '<%=luci.dispatcher.build_url("admin", "network", "switch_set_conf")%>',
+          },
+          wans: wans,
+          lans: lans
+      }
+      initSwitches(opts);
     });
 </script>
+
+<pre id="msg-danger" style="display:none" class="alert-danger"></pre>
+<pre id="msg-success" style="display:none" class="alert-success"></pre>
 
 <div id="switchConfig" class="switch">
     <h1>Configure your switch</h1>

@@ -62,30 +62,37 @@
      * Get switches data through ajax
      * @param {Function} cb Callback (err, data)
      */
-    function readSwitches(cb) {
+    function readSwitches(cb, opt) {
         // Do ajax GET here
 
+        var ports = [];
+        // Add all the wans
+        for (var i in opt.wans) {
+          var wanPort = opt.wans[i];
+          ports.push(new PortFactory({
+            id: wanPort-1,
+            name: wanPort,
+            type: "wan",
+          }));
+        }
+        // Add all the lans
+        for (var i in opt.lans) {
+          var lanPort = opt.lans[i];
+          ports.push(new PortFactory({
+            id: lanPort-1,
+            name: lanPort,
+            type: "lan",
+          }));
+        }
+        // Order the whole things by ID
+        ports.sort(function(a, b) {
+          return a.id - b.id;
+        });
+        // Execute callback
         cb(null, [
             {
                 name: "My switch",
-                ports: [
-                    new PortFactory({ id:0,  name:"1",  pos:0, line:1 }),
-                    new PortFactory({ id:1,  name:"2",  pos:0, line:0 }),
-                    new PortFactory({ id:2,  name:"3",  pos:0, line:1 }),
-                    new PortFactory({ id:3,  name:"4",  pos:0, line:0 }),
-                    new PortFactory({ id:4,  name:"5",  pos:0, line:1 }),
-                    new PortFactory({ id:5,  name:"6",  pos:0, line:0 }),
-                    new PortFactory({ id:6,  name:"7",  pos:0, line:1 }),
-                    new PortFactory({ id:7,  name:"8",  pos:0, line:0 }),
-                    new PortFactory({ id:8,  name:"9",  pos:0, line:1 }),
-                    new PortFactory({ id:9,  name:"10", pos:0, line:0 }),
-                    new PortFactory({ id:10, name:"11", pos:0, line:1 }),
-                    new PortFactory({ id:11, name:"12", pos:0, line:0 }),
-                    new PortFactory({ id:12, name:"13", pos:1, line:1, type: "wan" }),
-                    new PortFactory({ id:13, name:"14", pos:1, line:0, type: "wan" }),
-                    new PortFactory({ id:16, name:"17", pos:2, line:1 }),
-                    new PortFactory({ id:17, name:"18", pos:2, line:1 })
-                ]
+                ports: ports,
             }
         ]);
     }
@@ -96,19 +103,42 @@
      * @return {Array} Group -> lines -> ports
      */
     function groupPorts(ports) {
-        var maxPos = ports.reduce(function (all, port) {
-            return Math.max(all, port.pos);
-        }, 0);
-        var maxLine = ports.reduce(function (all, port) {
-            return Math.max(all, port.line);
-        }, 0);
-        return Array.apply(null, {length: maxPos+1}).map(function (__, pos) {
-            return Array.apply(null, {length: maxLine+1}).map(function (__, line) {
-                return ports.filter(function (port) {
-                    return port.pos === pos && port.line === line;
-                });
-            });
+        // Split the display in three groups :
+        // First : All the ports < 12
+        var firstGroup = ports.filter(function (port) {
+          return port.id < 12;
         });
+        // Second : The two wan ports
+        var secondGroup = ports.filter(function (port) {
+          return port.id == 12 || port.id == 13;
+        });
+        // Third : The 2 SFP ports 17 and 18
+        var thirdGroup = ports.filter(function (port) {
+          return port.id >= 15;
+        });
+        // Then we just split them in two lines
+        return [
+          [
+            firstGroup.filter(function (port) {
+              return port.id % 2 == 0;
+            }),
+            firstGroup.filter(function (port) {
+              return port.id % 2 == 1;
+            })
+          ],
+          [
+            secondGroup.filter(function (port) {
+              return port.id % 2 == 0;
+            }),
+            secondGroup.filter(function (port) {
+              return port.id % 2 == 1;
+            })
+          ],
+          [
+            [],
+            thirdGroup
+          ]
+        ];
     }
 
     /**
@@ -183,13 +213,34 @@
                 },
                 success: function (data, status) {
                   // It worked
+                  msgSuccess("Configuration saved. Changes will be effective soon.");
                 }
             }).fail(function (event, err, data) {
               // It did not work
+              console.log("ERROR WHILE APPLYING CONFIG", err, data);
+              msgError("Something went wrong while applying the config");
             });
 
         });
 
+    }
+
+    /**
+     * Show a success message
+     * @param string
+     */
+    function msgSuccess(message) {
+      $("#msg-success").text(message);
+      $("#msg-success").show();
+    }
+
+    /**
+     * Show an error message
+     * @param string
+     */
+    function msgError(message) {
+      $("#msg-danger").text(message);
+      $("#msg-danger").show();
     }
 
     /**
@@ -206,7 +257,7 @@
               var token = $(this).attr('token');
               applyConfiguration(switches, token);
             });
-        });
+        }, opts);
     };
 
 })(window);
