@@ -26,8 +26,16 @@
     local uci = require("luci.model.uci").cursor()
 
     local device_id		= uci:get("overthebox", "me", "device_id")
-	local service_id	= uci:get("overthebox", "me", "service")
+    local service_id	= uci:get("overthebox", "me", "service")
     local wizardStack = 0
+
+    local has_switch = false
+    uci:foreach("network", "switch",
+      function(s)
+        has_switch = true
+        return false
+      end
+    )
 
     local function wizard(title, width, height, status, id)
         local arrowLen = height / 3
@@ -97,8 +105,12 @@
         <div class="wizard">
             <% wizard(translate("Sécurité"), 130, 40, "todo", "passwordSetup") %>
             <% wizard(translate("Votre service"), 130, 40, "todo", "serviceChoice") %>
-            <% wizard(translate("Désactiver le DHCP"), 180, 40, "todo", "dhcpDesactivate") %>
-            <% wizard(translate("Modems supplémentaires"), 260, 40, "todo", "dhcpDesactivateMore") %>
+            <% if not has_switch then
+              wizard(translate("Désactiver le DHCP"), 180, 40, "todo", "dhcpDesactivate")
+              wizard(translate("Modems supplémentaires"), 260, 40, "todo", "dhcpDesactivateMore")
+            else
+              wizard(translate("Enjoy!"), 130, 40, "todo", "enjoy")
+            end %>
         </div>
 
         <div id="messageContainer"></div>
@@ -533,6 +545,10 @@
             activateServicePoller();
             servicePoller();
         });
+
+        $("div.wizard").wizard("attachEvent", "enjoy", "start", function() {
+            window.location.replace('<%= luci.dispatcher.build_url("admin/overthebox/overview") %>');
+        }).wizard("attachEvent", "serviceChoice" ,"stop", function() {});
 
         /* === Submit === */
         otb.attachSubmit($("#activateServiceForm"), function(form) {
