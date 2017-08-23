@@ -133,7 +133,7 @@ _check_interface() {
 	original_ip="$ip"
 
 	# We need to check that the interface is given a "non used" ip address
-	while ip -4 -o addr | grep -sq "$ip/"; do
+	while ip -4 -o addr | grep -v "$INTERFACE" | grep -sq "$ip/"; do
 		# Need to find another IP
 		_get_other_ip
 	done
