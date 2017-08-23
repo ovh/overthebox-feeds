@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.5
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/overthebox-$(PKG_VERSION)
 
@@ -62,6 +62,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/ucitrack.defaults $(1)/etc/uci-defaults/ucitrack.defaults
 	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
 	$(INSTALL_BIN) ./defaults/shadowsocks.defaults $(1)/etc/uci-defaults/shadowsocks.defaults
+	$(INSTALL_BIN) ./defaults/vfat.defaults $(1)/etc/uci-defaults/vfat.defaults
 endef
 
 define Package/overthebox/postinst
