@@ -8,7 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
-    rsync netcat svfs vim-full htop
+    rsync netcat svfs vim-full htop netdata
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
