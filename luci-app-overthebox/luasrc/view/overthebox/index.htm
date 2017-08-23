@@ -27,6 +27,14 @@
 	if uci:get("overthebox", "me", "needs_activation") == "true" then
 		has_service_confirmation = true
 	end
+
+	local has_switch = false
+	uci:foreach("network", "switch",
+		function(s)
+			has_switch = true
+			return false
+		end
+	)
 %>
 
 <%+header%>
@@ -168,7 +176,9 @@
 	<span class="popover_text"></span>
 </div>
 <a class="btn btn-small" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>"><%:Configuration assistant%></a>
+<% if not has_switch then %>
 <a class="btn btn-small pull-right" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/register_device"))%>#dhcpDesactivateMore"><%:Add a new connection%></a>
+<% end %>
 <%
 if not service_id then
 	if luci.dispatcher.context.requestpath[#luci.dispatcher.context.requestpath] == "activate" then
