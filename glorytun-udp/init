@@ -7,7 +7,7 @@ STOP=10
 
 USE_PROCD=1
 PROG_NAME=glorytun-udp
-PROG=/usr/sbin/${PROG_NAME}-start
+PROG=/usr/sbin/${PROG_NAME}
 
 _log() {
 	logger -p daemon.info -t ${PROG_NAME} "$@"
@@ -26,6 +26,21 @@ validate_section() {
 		'dev:string'           \
 		'mtu:uinteger:1450'
 }
+
+_setup_bind_args() {
+	multipath=
+	config_get multipath "$1" multipath
+
+	case "$multipath" in
+	on|master)
+		ipaddr=
+		network_get_ipaddr ipaddr "$1"
+		[ -n "$ipaddr" ] && BIND_ARGS="${BIND_ARGS}${ipaddr},"
+		;;
+	esac
+}
+
+# shellcheck disable=SC1091,SC2039
 
 start_instance() {
 	local enable key server port dev mtu
@@ -46,11 +61,19 @@ start_instance() {
 	echo "$key" > /tmp/${PROG_NAME}.key
 	key=""
 
+	. /lib/functions.sh
+	. /lib/functions/network.sh
+
+	BIND_ARGS=
+	config_load network
+	config_foreach _setup_bind_args interface
+
 	_log "starting ${PROG_NAME} instance $*"
 
 	procd_open_instance
 
 	procd_set_param command ${PROG} \
+		bind "$BIND_ARGS" \
 		keyfile /tmp/$PROG_NAME.key \
 		host "$server" \
 		port "$port" \
@@ -72,11 +95,7 @@ start_service() {
 	config_foreach start_instance mud
 }
 
-reload_service() {
-	stop
-	start
-}
-
 service_triggers() {
 	procd_add_reload_trigger glorytun network
+	procd_add_raw_trigger "interface.*" 2000 /etc/init.d/"$PROG_NAME" reload
 }
