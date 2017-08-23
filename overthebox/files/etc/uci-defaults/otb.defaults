@@ -12,6 +12,8 @@ if ! uci -q get system.@system[0].zonename >/dev/null; then
 	EOF
 fi
 
+uci set "system.@system[0].ttylogin=1"
+
 config_load dhcp
 has_api_hostrecord=false
 _check_api_hostrecord() {
