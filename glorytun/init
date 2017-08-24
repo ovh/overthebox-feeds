@@ -59,6 +59,7 @@ start_instance() {
 		mptcp
 
 	procd_set_param respawn 0 30 0
+	procd_set_param file /tmp/${PROG_NAME}.key
 
 	procd_set_param stdout 1
 	procd_set_param stderr 1
