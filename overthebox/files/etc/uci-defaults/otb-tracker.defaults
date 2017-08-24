@@ -1,0 +1,19 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+defaults=$(uci -q get otb-tracker.defaults)
+tunnel=$(uci -q get otb-tracker.tunnel)
+
+[ "$defaults" = "defaults" ] && [ "$tunnel" = "rule_type" ] && exit 0
+
+uci -q batch <<EOF
+set otb-tracker.defaults=defaults
+set otb-tracker.defaults.call='dns'
+set otb-tracker.defaults.host='51.254.49.132'
+set otb-tracker.defaults.timeout='1'
+set otb-tracker.defaults.tries='3'
+set otb-tracker.defaults.interval='2'
+set otb-tracker.defaults.options='tracker.overthebox.ovh'
+set otb-tracker.tunnel='rule_type'
+set otb-tracker.tunnel.tries='5'
+EOF
