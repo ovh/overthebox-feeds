@@ -36,15 +36,8 @@ otb_debug()  {
 	[ -n "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
 }
 
-# shellcheck disable=SC2016
 otb_pretty_print() {
-	# Try to pretty print as json
-	local pretty_output=$(jq -e -n --argjson output "$1" '$output' 2>/dev/null)
-	if [ $? -eq "0" ]; then
-		echo "$pretty_output"
-	else
-		echo "$1"
-	fi
+	jq -e -n --argjson output "$1" "\$output" 2>/dev/null || echo "$1"
 }
 
 otb_json_get() {
