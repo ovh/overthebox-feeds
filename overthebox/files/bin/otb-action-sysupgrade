@@ -1,10 +1,12 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 set -e
 
-# shellcheck disable=SC1091
 . /lib/overthebox
+
+otb_save_action_id "$1"
 
 if [ -z "$1" ]; then
 	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
