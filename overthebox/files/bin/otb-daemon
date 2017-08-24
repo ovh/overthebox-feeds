@@ -1,15 +1,28 @@
 #!/bin/sh
+# shellcheck disable=SC1090,SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 otb-subscribe || exit
 
-# shellcheck disable=SC1091
 . /lib/overthebox
 
 otb_info "Ready for some action!"
 export OTB_DEVICE_ID OTB_TOKEN OTB_DEBUG OTB_SERVICE_ID
 
 otb_save_event start
+
+# This code is really bad and should be removed as soons as possible
+id=$(uci -q get overthebox.me.action_id)
+
+if [ -n "$id" ]; then
+	otb_todo otb_device_post "actions/$id" -d@- <<-EOF
+	{"status":"done"}
+	EOF
+	uci -q batch <<-EOF
+	delete overthebox.me.action_id
+	commit overthebox
+	EOF
+fi
 
 while true; do
 	reload_config
@@ -27,16 +40,13 @@ while true; do
 	otb_debug "Got action '$action' with id '$id'"
 	[ -z "$action" ] || [ "$action" = "null" ] && exit
 
-	output=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
+	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
 	[ -z "$id" ] || [ "$id" = "null" ] && continue
 
-	details=$(printf "Details:\n%s" "$output")
-
 	# shellcheck disable=SC2016
-	json_ret="$(jq -c -n --arg status "$status" --arg details "$details" \
-		'{status: $status, details: $details}')"
-	otb_device_post "actions/$id" --data "$json_ret"
+	jq -c -n --arg status "$status" --arg details "$details" \
+		'{status: $status, details: $details}' | otb_device_post "actions/$id" -d@-
 
 	otb_debug "All done for action '$action'"
 done
