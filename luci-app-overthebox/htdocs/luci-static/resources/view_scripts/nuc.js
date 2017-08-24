@@ -151,20 +151,15 @@
         var poller = otb.api.startPoller({
             delay: 2,
             caller: function (cb) {
-                if (counter > 15) {
-                    poller();
-                    callback(null, {status: "done", needActivation: false});
-                } else {
-                    otb.nuc.recievedActivationOrder(function(err, status) {
-                        if (!err && status === false) {
-                            poller();
-                            callback(null, {status: "done", needActivation: true});
-                        } else {
-                            callback(null, {status: "pending", progress: Math.round(100*counter/15)});
-                        }
-                        cb();
-                    });
-                }
+                otb.nuc.recievedActivationOrder(function(err, status) {
+                    if (!err && status === false) {
+                        poller();
+                        callback(null, {status: "done", needActivation: true});
+                    } else {
+                        callback(null, {status: "pending", progress: Math.min(99, Math.round(100*counter/15))});
+                    }
+                    cb();
+                });
                 counter++;
             }
         });
