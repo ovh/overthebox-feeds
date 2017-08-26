@@ -2,12 +2,7 @@
 # shellcheck disable=SC1090,SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-otb-subscribe || exit
-
 . /lib/overthebox
-
-otb_info "Ready for some action!"
-export OTB_DEVICE_ID OTB_TOKEN OTB_DEBUG OTB_SERVICE_ID
 
 otb_save_event start
 
@@ -25,20 +20,33 @@ if [ -n "$id" ]; then
 fi
 
 while true; do
+	sleep 1
 	reload_config
+	otb_reload
+
+	[ -z "$OTB_DEVICE_ID" ] && {
+		otb-subscribe
+		continue
+	}
 
 	# todo
 	for file in "$OTB_TODO_DIR"/*; do
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
-	ret=$(otb_device_get actions)
-	[ -z "$ret" ] && exit
+	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || {
+		[ -n "$OTB_SERVICE_ID" ] && continue
+		read -r LINE < "$OTB_HEADERS_FILE"
+		case "$LINE" in
+			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ;;
+		esac
+		continue
+	}
 
 	action=$(otb_json_get "$ret" action)
 	id=$(otb_json_get "$ret" id)
 	otb_debug "Got action '$action' with id '$id'"
-	[ -z "$action" ] || [ "$action" = "null" ] && exit
+	[ -z "$action" ] || [ "$action" = "null" ] && continue
 
 	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
@@ -47,6 +55,4 @@ while true; do
 	# shellcheck disable=SC2016
 	jq -c -n --arg status "$status" --arg details "$details" \
 		'{status: $status, details: $details}' | otb_device_post "actions/$id" -d@-
-
-	otb_debug "All done for action '$action'"
 done
