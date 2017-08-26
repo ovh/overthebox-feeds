@@ -1,11 +1,16 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-: ${OTB_DEVICE_ID:=$(uci -q get overthebox.me.device_id)}
-: ${OTB_SERVICE_ID:=$(uci -q get overthebox.me.service)}
-: ${OTB_TOKEN:=$(uci -q get overthebox.me.token)}
-: ${OTB_DEBUG:=$(uci -q get overthebox.me.debug)}
-: ${OTB_TODO_DIR:="/tmp/otb-todo"}
-: ${OTB_HEADERS_FILE:="/tmp/otb-daemon-headers"}
+OTB_TODO_DIR="/tmp/otb-todo"
+OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
+
+otb_reload() {
+	OTB_DEVICE_ID=$(uci -q get overthebox.me.device_id || true)
+	OTB_SERVICE_ID=$(uci -q get overthebox.me.service || true)
+	OTB_TOKEN=$(uci -q get overthebox.me.token || true)
+	OTB_DEBUG=$(uci -q get overthebox.me.debug || true)
+}
+
+otb_reload
 
 otb_alert() {
 	logger -t otb -p 1 "$*" || true
@@ -54,7 +59,6 @@ otb_call() {
 		-H "Content-Type: application/json" \
 		-H "X-Auth-OVH: $OTB_TOKEN" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		--dump-header "$OTB_HEADERS_FILE" \
 		"https://provisionning.overthebox.net:4443/$path" \
 		"$@"
 }

@@ -1,45 +1,24 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 set -e
 
-# shellcheck disable=SC1091
 . /lib/overthebox
-
-# If the token or the device is missing, subscribe
-if [ -n "$OTB_TOKEN" ] && [ -n "$OTB_DEVICE_ID" ]; then
-	# If there is already a service_id, no problem
-	[ -n "$OTB_SERVICE_ID" ] && exit 0
-
-	# Try to get the device's config
-	otb_device_get config
-	http_status=$(head -n 1 "$OTB_HEADERS_FILE")
-	# If it's a 401, subscribe
-	case "$http_status" in
-		HTTP*401*)
-			otb_info "subscribe check failed"
-			;;
-		*)
-			exit 0;
-			;;
-	esac
-fi
 
 otb_info "Subscribing to the overthebox service..."
 
-# shellcheck disable=SC1091
-. /lib/functions/network.sh
+_get_private_ips() {
+	. /lib/functions/network.sh
+	lan_ip=
+	network_get_ipaddr lan_ip lan
+	# shellcheck disable=SC2016
+	jq -n -c --arg lan_ip "$lan_ip" '{private_ips: [$lan_ip]}'
+}
 
-lan_ip=
-network_get_ipaddr lan_ip lan
-
-# shellcheck disable=SC2016
-post_data=$(jq -n -c --arg lan_ip "$lan_ip" '{private_ips: [$lan_ip]}')
-content=$(otb_call POST subscribe -d"$post_data")
-
-uci -q batch << EOF
+_get_private_ips | otb_call POST subscribe -d@- | jq -r '"
 set overthebox.me=config
-set overthebox.me.device_id=$(otb_json_get "$content" device_id)
-set overthebox.me.token=$(otb_json_get "$content" token)
+set overthebox.me.device_id=\(.device_id)
+set overthebox.me.token=\(.token)
 commit overthebox
-EOF
+"' | uci -q batch
