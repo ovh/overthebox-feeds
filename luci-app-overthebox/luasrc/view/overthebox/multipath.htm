@@ -118,9 +118,36 @@
 	var def;
 	var dnPolygons 	= {};
 	var dndata	= {};
-        var upPolygons 	= {};
+	var upPolygons 	= {};
 	var updata  	= {};
 
+	function getMaxTimestamp(data) {
+		var max_timestamp = 0;
+		for (var itf in data) {
+			max_timestamp = Math.max(data[itf][data[itf].length -1][0], max_timestamp);
+		}
+		return max_timestamp;
+	}
+
+	function normalizeData(data) {
+		var max_timestamp = getMaxTimestamp(data);
+		for (var itf in data) {
+			var l = data[itf].length;
+			var end = data[itf][l-1][TIME];
+			var last = data[itf][l-1]
+
+			// If the end is the same as the max, all good
+			if (end == max_timestamp) {
+				continue;
+			}
+			// else we need to fill the missing points with the last values
+			for (var i = end +1; i <= max_timestamp; i++) {
+			  data[itf].push([i, last[1], last[2], last[3], last[4]]);
+			}
+			// delete old values
+			data[itf] = data[itf].slice(data[itf].length - l, data[itf].length);
+		}
+	}
         /* Smoother */
         function simple_moving_averager(name, period) {
                 var nums = {}
@@ -289,6 +316,9 @@
 							createStatsFooter("download", "overall", "LightGrey");
 						var dnsma = {};
 						var upsma = {};
+
+						// Fill missing potential point
+						normalizeData(data);
 						for (var itf in data)
 						{
 							if(!dnsma[itf])
@@ -304,7 +334,8 @@
 								/* skip overlapping entries */
 								if (data[itf][i][TIME] <= data_stamp)
 									continue;
-									/* normalize difference against time interval */
+
+								/* normalize difference against time interval */
 								if (i > 0)
 								{
 									var time_delta = data[itf][i][TIME] - data[itf][i-1][TIME];
