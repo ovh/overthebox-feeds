@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mptcp
-PKG_VERSION:=2.0
-PKG_RELEASE:=2
+PKG_VERSION:=2.1
+PKG_RELEASE:=1
 
 PKG_MAINTAINER:=Mario Krueger <openwrt@xedp3x.de>
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
@@ -66,6 +66,8 @@ define Package/mptcp/install
 	$(INSTALL_BIN) multipath $(1)/bin/multipath
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/net/
 	$(INSTALL_BIN) hotplug-net $(1)/etc/hotplug.d/net/03-$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d/
+	$(INSTALL_BIN) post-tracking $(1)/usr/share/otb/post-tracking.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,mptcp))
