@@ -113,6 +113,7 @@ otb_save_event() {
 }
 
 otb_save_action_id() {
+	[ -z "$1" ] && return
 	id=$(otb_json_get "$1" id)
 	[ -n "$id" ] && [ "$id" != null ] && uci -q batch <<-EOF
 	set overthebox.me.action_id=$id
