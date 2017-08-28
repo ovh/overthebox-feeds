@@ -1,0 +1,28 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+_log() {
+	logger -t "post-tracking-mptcp" -p 6 "$*"
+}
+
+# Get the current multipath status
+multipath_status="off"
+case "$(multipath "$OTB_TRACKER_DEVICE")" in
+	*default*)      multipath_status="on"       ;;
+	*backup*)       multipath_status="backup"   ;;
+	*handover*)     multipath_status="handover" ;;
+esac
+
+# An interface in error will never be used in MPTCP
+if [ "$OTB_TRACKER_STATUS" = "ERROR" ]; then
+	[ "$multipath_status" = "off" ] && exit 0
+	_log "$OTB_TRACKER_DEVICE switched off"
+	multipath "$OTB_TRACKER_DEVICE" off
+	exit 0
+fi
+
+multipath_config=$(uci -q get "network.$OTB_TRACKER_INTERFACE.multipath" || echo "off")
+[ "$multipath_status" = "$multipath_config" ] && exit 0
+
+_log "$OTB_TRACKER_DEVICE switched to $multipath_config"
+multipath "$OTB_TRACKER_DEVICE" "$multipath_config"
