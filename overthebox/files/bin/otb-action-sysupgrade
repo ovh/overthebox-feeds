@@ -6,7 +6,7 @@ set -e
 
 . /lib/overthebox
 
-otb_save_action_id "$1"
+otb_save_action_id "$1" 2>/dev/null || true
 
 if [ -z "$1" ]; then
 	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
@@ -19,12 +19,17 @@ fi
 
 cd /tmp
 
+otb_info "Downloading image from '$url'..."
 curl -sS --connect-timeout 5 "$url"     -o img.gz
 curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
 
 usign -V -m img.gz -P /etc/opkg/keys
 
+otb_info "Decompressing image..."
 gunzip -f img.gz
 
+otb_info "Testing sysupgrade..."
 sysupgrade -p -T img
+
+otb_info "Performing sysupgrade..."
 sysupgrade -p img
