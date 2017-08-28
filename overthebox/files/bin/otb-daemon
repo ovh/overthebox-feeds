@@ -19,6 +19,8 @@ if [ -n "$id" ]; then
 	EOF
 fi
 
+otb_todo otb-action-refreshProperties </dev/null
+
 while true; do
 	sleep 1
 	reload_config
