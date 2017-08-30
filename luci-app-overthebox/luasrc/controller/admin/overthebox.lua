@@ -93,8 +93,6 @@ function new_interface()
   ucic:set("network", ifID, "ifname", ifname)
   ucic:set("network", ifID, "proto", protocol)
   ucic:set("network", ifID, "label", interface_name)
-  ucic:set("network", ifID, "metric", id + 10)
-  ucic:set("network", ifID, "ip4table", id + 210)
   ucic:set("network", ifID, "multipath", "on")
 
   ucic:save("network")
