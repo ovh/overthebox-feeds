@@ -319,7 +319,12 @@ dhcp_host_add() {
 	fi
 
 	if [ -n "$hostid" ]; then
-			hex_to_hostid hostid "$hostid"
+		hex_to_hostid hostid "$hostid"
+	fi
+
+	tags=""
+	if [ -n "$tag" ]; then
+		for t in $tag; do append tags "$t" ",set:"; done
 	fi
 
 	config_get_bool broadcast "$cfg" broadcast 0
@@ -327,7 +332,7 @@ dhcp_host_add() {
 
 	[ "$broadcast" = "0" ] && broadcast= || broadcast=",set:needs-broadcast"
 
-	hosttag="${networkid:+,set:${networkid}}${tag:+,set:${tag}}$broadcast"
+	hosttag="${networkid:+,set:${networkid}}${tags:+,set:${tags}}$broadcast"
 	nametime="${name:+,$name}${leasetime:+,$leasetime}"
 
 	if [ $DNSMASQ_DHCP_VER -eq 6 ]; then
@@ -378,8 +383,8 @@ dhcp_this_host_add() {
 				for lanaddr6 in $lanaddrs6 ; do
 					case "$lanaddr6" in
 					"${ulaprefix%%:/*}"*)
-							dhcp_domain_add "" "$routername" "$lanaddr6"
-							;;
+						dhcp_domain_add "" "$routername" "$lanaddr6"
+						;;
 					esac
 				done
 			fi
@@ -575,7 +580,8 @@ dhcp_add() {
 		dhcp_option_append "option6:dns-server,$dnss" "$networkid"
 	fi
 
-	dhcp_option_add "$cfg" "$networkid"
+	dhcp_option_add "$cfg" "$networkid" 0
+	dhcp_option_add "$cfg" "$networkid" 2
 }
 
 dhcp_option_append() {
@@ -591,18 +597,20 @@ dhcp_option_add() {
 	local cfg="$1"
 	local networkid="$2"
 	local force="$3"
+	local opt="dhcp_option"
 
 	[ "$force" = "0" ] && force=
+	[ "$force" = "2" ] && opt="dhcp_option_force"
 
 	local list_len
-	config_get list_len "$cfg" dhcp_option_LENGTH
+	config_get list_len "$cfg" "${opt}_LENGTH"
 
 	if [ -n "$list_len" ]; then
-		config_list_foreach "$cfg" dhcp_option dhcp_option_append "$networkid" "$force"
+		config_list_foreach "$cfg" "$opt" dhcp_option_append "$networkid" "$force"
 	else
-		config_get dhcp_option "$cfg" dhcp_option
+		config_get dhcp_option "$cfg" "$opt"
 
-		[ -n "$dhcp_option" ] && echo "Warning: the 'option dhcp_option' syntax is deprecated, use 'list dhcp_option'" >&2
+		[ -n "$dhcp_option" ] && echo "Warning: the 'option $opt' syntax is deprecated, use 'list $opt'" >&2
 
 		local option
 		for option in $dhcp_option; do
@@ -920,6 +928,7 @@ dnsmasq_start()
 	}
 
 	dhcp_option_add "$cfg" "" 0
+	dhcp_option_add "$cfg" "" 2
 
 	xappend "--dhcp-broadcast=tag:needs-broadcast"
 
