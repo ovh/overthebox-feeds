@@ -12,7 +12,9 @@ dependencies:
         - git clone https://github.com/ovh/overthebox ~/overthebox || true
         - git -C ~/overthebox fetch --all
         - git -C ~/overthebox reset --hard $OTB_VERSION
-        - cd ~/overthebox && sh build.sh prepare package/{compile,install,index} -j2 :
+        - cd ~/overthebox && sh build.sh prepare {tools,toolchain}/install -j2 :
+            timeout: 7200
+        - cd ~/overthebox && sh build.sh package/{compile,install,index} -j2 :
             timeout: 7200
     cache_directories:
         - "~/overthebox"
