@@ -1,22 +1,85 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# shellcheck disable=SC1091
-. /lib/functions.sh
+_usage() {
+	printf "%s [options]\n" "$(basename "$0")"
+	printf "\t%-12s %s\n" "-c|--colors" "colored output"
+	printf "\t%-12s %s\n" "-f|--full" "output all informations"
+	printf "\t%-12s %s\n" "-h|--help" "print this help"
+	exit 0
+}
+
+# Options parsing
+FULL=0
+COLOR=0
+while [ -n "$1" ]; do
+	case $1 in
+		-c|--color) shift; COLOR=1 ;;
+		-f|--full)  shift; FULL=1   ;;
+		*) _usage ;;
+	esac
+done
+
+# Colors
+COLOR_WHITE=
+COLOR_GREEN=
+COLOR_RED=
+if [ "$COLOR" = 1 ]; then
+	COLOR_GREEN='1;32'
+	COLOR_RED='1;31'
+fi
+
+WIDTH=62
+HEADERS="INTERFACE DEVICE STATUS PUBLIC_IP"
+DATA='.device, .data.connectivity, .data.public_ip'
+if [ "$FULL" = "1" ]; then
+	WIDTH=80
+	DATA="$DATA, .metric, .ip4table"
+	HEADERS="$HEADERS METRIC TABLE"
+fi
+TABLE_WIDTH=$((WIDTH + 2))
 
 _print() {
-	printf " %-15s %-15s %s\n" "$@"
+	format="| %-15s | %-15s | \e[${1}m%-6s\e[m | %-15s |"
+	[ "$FULL" = 1 ] && format="$format %-6s | %-6s |"
+	shift
+	# shellcheck disable=SC2059
+	printf "$format\n" "$@"
+}
+
+_print_border() {
+	printf "%${TABLE_WIDTH}s\n" "" | tr ' ' -
+}
+
+_print_separator() {
+	printf "|%${WIDTH}s|\n" "" | tr ' ' -
+}
+
+_print_header() {
+	# shellcheck disable=SC2086
+	_print "$COLOR_WHITE" $HEADERS
+}
+
+_show_interface_status() {
+	status=$(ubus call "network.interface.$1" status | \
+		jq -r --arg iface "$1" "[\$iface, $DATA | tostring] | join(\" \")")
+
+	# shellcheck disable=SC2086
+	case "$status" in
+		*OK*)    _print "$COLOR_GREEN" $status;;
+		*ERROR*) _print "$COLOR_RED"   $status;;
+	esac
 }
 
 _show_status() {
-	status=$(ubus call "network.interface.$1" status | \
-		jq -r '@text "\(.data.connectivity) \(.data.public_ip)"')
-	# shellcheck disable=SC2086
-	case "$status" in OK*|ERROR*) _print $1 $status ;; esac
+	. /lib/functions.sh
+	config_load network
+	config_foreach _show_interface_status interface
 }
 
-echo
-_print "INTERFACE" "CONNECTIVITY" "PUBLIC IP"
-echo --------------------------------------------------------
-(config_load network ; config_foreach _show_status interface) | sort
-echo
+_print_border
+_print_header
+_print_separator
+_show_status | sort
+_print_border
