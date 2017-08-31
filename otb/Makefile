@@ -14,7 +14,7 @@ MY_DEPENDS := \
     usb-modeswitch bwm-ng screen \
     iptables-mod-trace kmod-ipt-raw \
     libustream-mbedtls luci-lib-px5g px5g  \
-    getopt tc iperf3 mtr ethtool rng-tools \
+    getopt tc iperf3 mtr rng-tools \
     ss strace tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
     lsblk dnsmasq-full
