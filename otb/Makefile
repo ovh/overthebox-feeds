@@ -11,7 +11,7 @@ MY_DEPENDS := \
     otb-qos otb-dscp otb-remote \
     otb-tracker otb-autoroute \
     TARGET_x86:python-swconfig-otb \
-    usb-modeswitch bmon bwm-ng screen \
+    usb-modeswitch bwm-ng screen \
     iptables-mod-trace kmod-ipt-raw \
     libustream-mbedtls luci-lib-px5g px5g  \
     getopt tc iperf3 mtr ethtool rng-tools \

@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs vim-full htop netdata \
-    iputils-ping perf
+    iputils-ping perf bmon
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
