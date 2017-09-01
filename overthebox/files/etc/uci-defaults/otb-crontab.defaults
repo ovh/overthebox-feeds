@@ -7,6 +7,8 @@ FILE="/etc/crontabs/root"
 
 sed -i '/overthebox_download_recovery/d' "$FILE"
 sed -i '/overthebox_checkup/d' "$FILE"
+sed -i '/otb-recovery/d' "$FILE"
+sed -i '/overthebox_emergency_action/d' "$FILE"
 
 /etc/init.d/cron restart
 
