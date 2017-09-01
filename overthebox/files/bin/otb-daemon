@@ -41,14 +41,14 @@ while true; do
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
-	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || {
-		[ -n "$OTB_SERVICE_ID" ] && continue
+	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || continue
+
+	if [ -z "$OTB_SERVICE_ID" ]; then
 		read -r LINE < "$OTB_HEADERS_FILE"
 		case "$LINE" in
-			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ;;
+			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; continue ;;
 		esac
-		continue
-	}
+	fi
 
 	action=$(otb_json_get "$ret" action)
 	id=$(otb_json_get "$ret" id)
