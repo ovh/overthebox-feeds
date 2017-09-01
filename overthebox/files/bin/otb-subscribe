@@ -8,15 +8,10 @@ set -e
 
 otb_info "Subscribing to the overthebox service..."
 
-_get_private_ips() {
-	. /lib/functions/network.sh
-	lan_ip=
-	network_get_ipaddr lan_ip lan
-	# shellcheck disable=SC2016
-	jq -n -c --arg lan_ip "$lan_ip" '{private_ips: [$lan_ip]}'
-}
-
-_get_private_ips | otb_call POST subscribe -d@- | jq -r '"
+ubus call network.interface dump \
+	| jq '.interface // [] | map(select(.device == "lan")) | map(."ipv4-address"[0].address) | {private_ips: .}' \
+	| otb_call POST subscribe -d@- \
+	| jq -r '"
 set overthebox.me=config
 set overthebox.me.device_id=\(.device_id)
 set overthebox.me.token=\(.token)
