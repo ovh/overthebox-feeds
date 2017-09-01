@@ -14,11 +14,16 @@
 
 uci -q batch <<EOF
 delete network.none
+delete network.if6rd
 reorder network.loopback=0
 reorder network.globals=1
 reorder network.lan=2
 set network.globals.multipath=enable
 EOF
+
+if [ "$(uci -q get network.vpn0.proto)" = "none" ]; then
+	uci -q delete network.vpn0
+fi
 
 _setup_multipath() {
 	uci -q get "network.$1.multipath" >/dev/null && return

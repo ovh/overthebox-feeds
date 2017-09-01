@@ -75,9 +75,11 @@ create_static_ranges() {
 	# Create the new tags
 	uci -q set "dhcp.${interface}_gw=tag"
 	for option in $options; do
-		option=${option##*:}
+		option=$(echo "$option" | sed 's/option:router/3/')
+		option=$(echo "$option" | sed 's/option:dns-server/6/')
 		uci -q add_list "dhcp.${interface}_gw.dhcp_option=$option"
 	done
+	uci -q add_list "dhcp.${interface}_gw.dhcp_option=1,255.255.255.0"
 
 	# Cleanup the old dhcp
 	cleanup_dhcp() {
