@@ -7,6 +7,7 @@ set -e
 . /lib/overthebox
 
 otb_service_post confirm
+echo
 
 uci -q batch << EOF
 delete overthebox.me.needs_activation
