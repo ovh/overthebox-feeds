@@ -5,6 +5,11 @@ set -e
 
 [ "$OTB_TRACKER_STATUS" = "OK" ] || exit
 
+url_list="
+	ifconfig.ovh
+	ipaddr.ovh
+"
+
 _curl() {
 	curl \
 		--interface "$OTB_TRACKER_DEVICE" \
@@ -14,8 +19,13 @@ _curl() {
 		"$1"
 }
 
-pub_ip=$(_curl ifconfig.ovh)
+for url in $url_list; do
+	pub_ip=$(_curl "$url" || true)
+	[ "IP=$pub_ip" = "$(ipcalc.sh "$pub_ip" | grep IP)" ] && break
+	pub_ip=
+done
 [ -z "$pub_ip" ] && exit 1
+
 pub_ip_old=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | jq -r '.data.public_ip')
 [ "$pub_ip" = "$pub_ip_old" ] && exit 0
 # shellcheck disable=SC2016
