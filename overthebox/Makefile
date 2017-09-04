@@ -80,6 +80,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/ucitrack.defaults ) && rm -f /etc/uci-defaults/ucitrack.defaults
 	( . /etc/uci-defaults/uhttpd.defaults ) && rm -f /etc/uci-defaults/uhttpd.defaults
 	( . /etc/uci-defaults/shadowsocks.defaults ) && rm -f /etc/uci-defaults/shadowsocks.defaults
+	( . /etc/uci-defaults/vfat.defaults ) && rm -f /etc/uci-defaults/vfat.defaults
 
 	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 
