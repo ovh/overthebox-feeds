@@ -1,7 +1,12 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-if [ -f "$1" ]
-then curl -T "$1" https://transfer.sh/"$(basename "$1")"
-else echo "$1: file not valid!"
+set -e
+
+if [ ! -f "$1" ]; then
+	echo "$1: file not valid!"
+	exit 1
 fi
+
+curl --upload-file "$1" https://transfer.sh/"$(basename "$1")"
+echo
