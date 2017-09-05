@@ -3,4 +3,4 @@
 
 set -ex
 
-ip route show table 0
+ip route
