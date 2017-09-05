@@ -63,6 +63,7 @@ define Package/overthebox/install
 	$(INSTALL_BIN) ./defaults/uhttpd.defaults $(1)/etc/uci-defaults/uhttpd.defaults
 	$(INSTALL_BIN) ./defaults/shadowsocks.defaults $(1)/etc/uci-defaults/shadowsocks.defaults
 	$(INSTALL_BIN) ./defaults/vfat.defaults $(1)/etc/uci-defaults/vfat.defaults
+	$(INSTALL_BIN) ./defaults/distupgrade.defaults $(1)/etc/uci-defaults/distupgrade.defaults
 endef
 
 define Package/overthebox/postinst
@@ -81,6 +82,7 @@ if [ -z $${IPKG_INSTROOT} ] ; then
 	( . /etc/uci-defaults/uhttpd.defaults ) && rm -f /etc/uci-defaults/uhttpd.defaults
 	( . /etc/uci-defaults/shadowsocks.defaults ) && rm -f /etc/uci-defaults/shadowsocks.defaults
 	( . /etc/uci-defaults/vfat.defaults ) && rm -f /etc/uci-defaults/vfat.defaults
+	( . /etc/uci-defaults/distupgrade.defaults ) && rm -f /etc/uci-defaults/distupgrade.defaults
 
 	for file in $$(ls /etc/sysctl.d/*.conf); do sysctl -p $$file; done
 

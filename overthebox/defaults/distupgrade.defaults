@@ -1,0 +1,8 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# Let's not use this opkg command to create the configuartion backup, it
+# introduces to many unwanted files
+sed -i 's/opkg list-changed-conffiles//g' /sbin/sysupgrade
+
+exit 0
