@@ -1,7 +1,7 @@
 machine:
     timezone: Europe/Paris
     environment:
-        OTB_VERSION: v2.7
+        OTB_VERSION: v2.8
         OTB_PATH: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/${CIRCLE_BRANCH:-$CIRCLE_TAG}
         OTB_FEED: $HOME/$CIRCLE_PROJECT_REPONAME
 
@@ -11,6 +11,7 @@ dependencies:
         - sudo apt-get install -yq build-essential git unzip ncurses-dev libz-dev libssl-dev python subversion gettext gawk wget curl rsync perl
         - git clone https://github.com/ovh/overthebox ~/overthebox || true
         - git -C ~/overthebox fetch --all
+        - git -C ~/overthebox fetch --all --tags
         - git -C ~/overthebox reset --hard $OTB_VERSION
         - cd ~/overthebox && sh build.sh prepare {tools,toolchain}/install -j2 :
             timeout: 7200
