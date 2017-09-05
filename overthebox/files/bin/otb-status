@@ -42,6 +42,7 @@ TABLE_WIDTH=$((WIDTH + 2))
 
 _print() {
 	format="| %-15s | %-15s | \e[${1}m%-6s\e[m | %-15s |"
+	[ "$COLOR" = 0 ] && format="| %-15s | %-15s | %-6s | %-15s |"
 	[ "$FULL" = 1 ] && format="$format %-6s | %-6s |"
 	shift
 	# shellcheck disable=SC2059
