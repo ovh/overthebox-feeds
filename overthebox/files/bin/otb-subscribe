@@ -9,7 +9,10 @@ set -e
 otb_info "Subscribing to the overthebox service..."
 
 ubus call network.interface dump \
-	| jq '.interface // [] | map(select(.device == "lan")) | map(."ipv4-address"[0].address) | {private_ips: .}' \
+	| jq '.interface // []
+		| map(select(.interface == "lan" or .device == "lan"))
+		| map(."ipv4-address"[0].address)
+		| {private_ips: .}' \
 	| otb_call POST subscribe -d@- \
 	| jq -r '"
 set overthebox.me=config
