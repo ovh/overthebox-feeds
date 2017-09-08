@@ -31,21 +31,10 @@ export OTB_TRACKER_DEVICE_GATEWAY
 # this allows us to lower the gap between rtt and rto when the latency increases quickly as our
 # measurements are less frequent than the standard timeout computation of the TCP stack
 
-readonly K=3
-readonly alpha=0.25
-readonly beta=0.25
 srtt=
 rttvar=
-rto="$OTB_TRACKER_TIMEOUT"
-
-_update_timeout() {
-	# round to greater unit
-	[ "${rto#*.}" != "$rto" ] && [ "${rto#*.}" -gt 0 ] && OTB_TRACKER_TIMEOUT=$((${rto%.*}+1)) || OTB_TRACKER_TIMEOUT=${rto%.*}
-}
-
-_absolute() {
-	echo "${1#-}"
-}
+rto_init=$(( OTB_TRACKER_TIMEOUT * 1000 ))
+rto=$rto_init
 
 # update rto as explained in rfc6298
 # rto    : retransmission timeout.
@@ -57,15 +46,14 @@ _absolute() {
 # K      : coeff to increase rttvar impact on rto computation
 _update_rto() {
 	if [ -z "$srtt" ]; then
-		srtt="$1"
-		rttvar=$(echo "scale=3;$1/2"|bc)
+		srtt=$1
+		rttvar=$(($1 / 2))
 	else
-		diff=$(_absolute "$(echo "$srtt-$1"|bc)")
-		rttvar=$(echo "(1-$beta)*$rttvar + $beta*$diff"|bc)
-		srtt=$(echo "(1-$alpha)*$srtt + $alpha*$1"|bc)
+		diff=$((srtt - $1))
+		rttvar=$(((75 * rttvar + 25 * (diff >= 0 ? diff : -diff)) / 100))
+		srtt=$(((75 * srtt + 25 * $1) / 100))
 	fi
-	rto=$(echo "$srtt+$K*$rttvar"|bc)
-	[ "$(echo "$rto < 1"|bc)" -eq 1 ] && rto=1
+	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
 }
 
 OTB_TRACKER_DEVICE=
@@ -79,7 +67,7 @@ while true; do
 	OTB_TRACKER_DEVICE_GATEWAY=
 	OTB_TRACKER_STATUS="ERROR"
 	OTB_TRACKER_RESULT=
-	_update_timeout
+	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
 
 	# retrieve iface ip and gateway and device
 	network_flush_cache
@@ -92,16 +80,14 @@ while true; do
 		tries="$OTB_TRACKER_TRIES"
 		# loop until tries attempts have been reached
 		while [ "$tries" -gt 0 ]; do
-			t1=$(date +%s.%3N)
-			OTB_TRACKER_RESULT=$(/usr/share/otb/trackers.d/"$OTB_TRACKER_CALL" "$@")
-			if [ "$?" = 0 ];then
+			t1=$(date +%s%3N)
+			OTB_TRACKER_RESULT=$(/usr/share/otb/trackers.d/"$OTB_TRACKER_CALL" "$@") && {
 				# tracking command succeed
-				t2=$(date +%s.%3N)
-				last_rtt=$(echo "$t2-$t1"|bc)
-				_update_rto "$last_rtt"
+				t2=$(date +%s%3N)
+				_update_rto "$((t2 - t1))"
 				OTB_TRACKER_STATUS="OK"
 				break
-			fi
+			}
 			tries=$((tries - 1))
 			OTB_TRACKER_TIMEOUT=$((OTB_TRACKER_TIMEOUT * 2))
 		done
@@ -110,8 +96,8 @@ while true; do
 	# post tracking
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
 		[ -x "$tracker_bin" ] || continue
-		#shellcheck disable=SC2091
 		"$tracker_bin" &
 	done
+
 	sleep "$OTB_TRACKER_INTERVAL"
 done
