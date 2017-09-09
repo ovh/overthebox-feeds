@@ -1,6 +1,8 @@
 #!/bin/sh
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC2016
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/overthebox
 
 _usage() {
 	printf "%s [options]\n" "$(basename "$0")"
@@ -32,7 +34,7 @@ fi
 
 WIDTH=62
 HEADERS="INTERFACE DEVICE STATUS PUBLIC_IP"
-DATA='.device, .data.connectivity, .data.public_ip'
+DATA='.device, $connectivity, $public_ip'
 if [ "$FULL" = "1" ]; then
 	WIDTH=80
 	DATA="$DATA, .metric, .ip4table"
@@ -63,8 +65,16 @@ _print_header() {
 }
 
 _show_interface_status() {
+	connectivity=$(otb_get_data "$1/connectivity")
+	public_ip=$(otb_get_data "$1/public_ip")
+	[ -z "$connectivity" ] && connectivity="-"
+	[ -z "$public_ip" ] && public_ip="-"
+
 	status=$(ubus call "network.interface.$1" status | \
-		jq -r --arg iface "$1" "[\$iface, $DATA | tostring] | join(\" \")")
+		jq -r --arg iface "$1" \
+		      --arg connectivity "$connectivity" \
+		      --arg public_ip "$public_ip" \
+				"[\$iface, $DATA | tostring] | join(\" \")")
 
 	# shellcheck disable=SC2086
 	case "$status" in

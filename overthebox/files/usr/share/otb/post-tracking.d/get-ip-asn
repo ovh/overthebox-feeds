@@ -1,5 +1,8 @@
 #!/bin/sh
+# shellcheck disable=1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/overthebox
 
 set -e
 
@@ -26,14 +29,11 @@ for url in $url_list; do
 done
 [ -z "$pub_ip" ] && exit 1
 
-pub_ip_old=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | jq -r '.data.public_ip')
+pub_ip_old=$(otb_get_data "$OTB_TRACKER_INTERFACE/public_ip")
 [ "$pub_ip" = "$pub_ip_old" ] && exit 0
-# shellcheck disable=SC2016
-data=$(jq -n -c --arg pub_ip "$pub_ip" '{public_ip:$pub_ip}')
-ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"
+otb_set_data "$OTB_TRACKER_INTERFACE/public_ip" "$pub_ip"
 
 asn=$(_curl api.iptoasn.com/v1/as/ip/"$pub_ip")
 [ -z "$asn" ] && exit 1
-# shellcheck disable=SC2016
-data=$(jq -n -c --argjson asn "$asn" '{asn:$asn}')
-ubus call "network.interface.$OTB_TRACKER_INTERFACE" set_data "$data"
+
+otb_set_data "$OTB_TRACKER_INTERFACE/asn" "$asn"
