@@ -3,7 +3,6 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
-. /lib/functions/network.sh
 
 [ -n "$1" ] && [ -n "$2" ] || exit
 
@@ -69,9 +68,8 @@ while true; do
 	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
 
 	# retrieve iface ip and gateway and device
-	network_flush_cache
-	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE"
-	network_get_gateway OTB_TRACKER_DEVICE_GATEWAY "$OTB_TRACKER_INTERFACE"
+	OTB_TRACKER_DEVICE_IP=$(ip -4 -o addr show "$OTB_TRACKER_DEVICE" | awk '{ print $4 }' | sed 's/\/24//')
+	OTB_TRACKER_DEVICE_GATEWAY=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | jq -r '.route[0].nexthop')
 
 	# execute specific tracker
 	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ];then
