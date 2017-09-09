@@ -2,6 +2,7 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 OTB_TODO_DIR="/tmp/otb-todo"
+OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 
@@ -104,6 +105,16 @@ otb_service_get() {
 otb_todo() {
 	mkdir -p "$OTB_TODO_DIR"
 	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)"
+}
+
+otb_set_data() {
+	mkdir -p "$(dirname "$OTB_DATA_DIR/$1")"
+	echo "$2" > "$OTB_DATA_DIR/$1"
+}
+
+otb_get_data() {
+	[ -f "$OTB_DATA_DIR/$1" ] || return 0
+	cat "$OTB_DATA_DIR/$1"
 }
 
 otb_save_event() {
