@@ -1,10 +1,12 @@
 #!/bin/sh
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC1090
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
-
 [ -n "$1" ] && [ -n "$2" ] || exit
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+. /lib/overthebox
 
 # retrieve args
 OTB_TRACKER_INTERFACE="$1"
@@ -93,7 +95,7 @@ while true; do
 	# post tracking
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
 		[ -x "$tracker_bin" ] || continue
-		"$tracker_bin" &
+		( . "$tracker_bin" )
 	done
 
 	sleep "$OTB_TRACKER_INTERVAL"

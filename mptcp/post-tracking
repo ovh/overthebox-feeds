@@ -1,5 +1,4 @@
-#!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 _log() {
 	logger -t "post-tracking-mptcp" -p 6 "$*"

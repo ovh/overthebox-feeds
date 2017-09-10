@@ -1,8 +1,5 @@
-#!/bin/sh
 # shellcheck disable=1091
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-. /lib/overthebox
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 old_status=$(otb_get_data "$OTB_TRACKER_INTERFACE/connectivity")
 
