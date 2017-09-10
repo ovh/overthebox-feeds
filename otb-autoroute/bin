@@ -1,10 +1,4 @@
-#!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-# shellcheck disable=SC1091
-. /lib/functions.sh
-# shellcheck disable=SC1091
-. /lib/functions/network.sh
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 otb_metric=
 otb_host=
