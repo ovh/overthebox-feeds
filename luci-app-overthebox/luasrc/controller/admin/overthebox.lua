@@ -244,8 +244,29 @@ function interfaces_status()
     if interface == "if0" then return end
 
     local ifname = section['ifname']
+    local dataPath = "/tmp/otb-data/" .. interface .. "/"
 
-    local asn = net:_ubus("data").asn
+    local asn
+    local asnFile = io.open(dataPath .. "asn", "r")
+    if asnFile then
+        local json_data = asnFile:read("*all")
+        asnFile:close()
+        asn = json.decode(json_data) or {}
+    end
+
+    local connectivity
+    local connectivityFile = io.open(dataPath .. "connectivity", "r")
+    if connectivityFile then
+        connectivity = connectivityFile:read("*line")
+        connectivityFile:close()
+    end
+
+    local publicIP = "-"
+    local publicIPFile = io.open(dataPath .. "public_ip", "r")
+    if publicIPFile then
+        publicIP = publicIPFile:read("*line")
+        publicIPFile:close()
+    end
 
     local data = {
       label = section['label'] or interface,
@@ -255,12 +276,12 @@ function interfaces_status()
       ipaddr = ipaddr,
       gateway = gateway,
       multipath = section['multipath'],
-      status = net:_ubus("data").connectivity,
-      wanip = net:_ubus("data").public_ip,
+      status = connectivity,
+      wanip = publicIP,
       whois = asn and asn.as_description or "unknown",
       qos = section['trafficcontrol'],
       download = section['download'],
-      upload = section['upload']
+      upload = section['upload'],
     }
 
     if section['type'] == "tunnel" then
