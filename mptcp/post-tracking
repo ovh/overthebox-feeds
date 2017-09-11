@@ -1,9 +1,5 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-_log() {
-	logger -t "post-tracking-mptcp" -p 6 "$*"
-}
-
 # Get the current multipath status
 multipath_status="off"
 case "$(multipath "$OTB_TRACKER_DEVICE")" in

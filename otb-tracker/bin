@@ -94,8 +94,12 @@ while true; do
 
 	# post tracking
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
-		[ -x "$tracker_bin" ] || continue
-		( . "$tracker_bin" )
+		[ -x "$tracker_bin" ] && (
+			_log() {
+				logger -t "post-tracking-${tracker_bin##*/}" "$*"
+			}
+			. "$tracker_bin"
+		)
 	done
 
 	sleep "$OTB_TRACKER_INTERVAL"

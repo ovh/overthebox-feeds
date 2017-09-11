@@ -5,6 +5,6 @@ old_status=$(otb_get_data "$OTB_TRACKER_INTERFACE/connectivity")
 
 [ "$old_status" = "$OTB_TRACKER_STATUS" ] && exit 0
 
-logger -t "otb-tracker" "$OTB_TRACKER_INTERFACE tracking status changed to $OTB_TRACKER_STATUS"
+_log "$OTB_TRACKER_INTERFACE tracking status changed to $OTB_TRACKER_STATUS"
 
 otb_set_data "$OTB_TRACKER_INTERFACE/connectivity" "$OTB_TRACKER_STATUS"

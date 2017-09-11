@@ -1,9 +1,5 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-_log() {
-	logger -t autoroute "$@"
-}
-
 _setup_route() {
 	if ip route "$1" "$2" via "$3" dev "$4" metric "$5" 2>/dev/null; then
 		_log "$1 $2 route for $4 using gateway $3 and metric $5"
