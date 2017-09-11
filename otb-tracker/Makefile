@@ -31,8 +31,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) bin $(1)/bin/otb-tracker
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/trackers.d
-	$(INSTALL_BIN) trackers.d/* $(1)/usr/share/otb/trackers.d
 	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_BIN) post-tracking.d/* $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_DIR) $(1)/etc/config

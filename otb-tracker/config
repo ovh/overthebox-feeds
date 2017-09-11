@@ -1,5 +1,4 @@
 config defaults 'defaults'
-        option call 'dns'
         option host '51.254.49.132'
         option timeout '1'
         option tries '3'
