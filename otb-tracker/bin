@@ -56,9 +56,9 @@ _update_rto() {
 	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
 }
 
-OTB_TRACKER_DEVICE=
 config_load network
-config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
+OTB_TRACKER_DEVICE= ; config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
+OTB_TRACKER_TABLE=  ; config_get OTB_TRACKER_TABLE "$OTB_TRACKER_INTERFACE" ip4table
 
 # main loop
 while true; do
@@ -70,8 +70,9 @@ while true; do
 	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
 
 	# retrieve iface ip and gateway and device
-	OTB_TRACKER_DEVICE_IP=$(ip -4 -o addr show "$OTB_TRACKER_DEVICE" | awk '{ print $4 }' | sed 's/\/24//')
-	OTB_TRACKER_DEVICE_GATEWAY=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | jq -r '.route[0].nexthop')
+	OTB_TRACKER_DEVICE_IP=$(ip -4 -o addr show "$OTB_TRACKER_DEVICE" | awk '{ print substr($4, 1, length($4) - 3) }')
+	[ -n "$OTB_TRACKER_TABLE" ] && \
+		OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
 
 	# execute specific tracker
 	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ];then
