@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-tracker
-PKG_VERSION:=1.5
+PKG_VERSION:=1.6
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Kevin Lanvin <kevin.lanvin@corp.ovh.com>
 
@@ -31,8 +31,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) bin $(1)/bin/otb-tracker
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/trackers.d
-	$(INSTALL_BIN) trackers.d/* $(1)/usr/share/otb/trackers.d
 	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_BIN) post-tracking.d/* $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_DIR) $(1)/etc/config
