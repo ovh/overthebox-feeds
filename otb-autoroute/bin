@@ -1,10 +1,5 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-otb_metric=
-otb_host=
-otb_table=
-dns_servers=
-
 _log() {
 	logger -t autoroute "$@"
 }
@@ -27,12 +22,11 @@ _setup_high_priority_rule() {
 }
 
 config_load shadowsocks
-config_get otb_host proxy server
+otb_host= ; config_get otb_host proxy server
 
 config_load network
-config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
-config_get otb_table "$OTB_TRACKER_INTERFACE" ip4table
-network_get_dnsserver dns_servers "$OTB_TRACKER_INTERFACE"
+otb_metric= ; config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
+otb_table=  ; config_get otb_table "$OTB_TRACKER_INTERFACE" ip4table
 
 [ "$OTB_TRACKER_STATUS" = "OK" ] && action="add" || action="del"
 
@@ -56,6 +50,10 @@ _setup_route "$action" default "$OTB_TRACKER_DEVICE_GATEWAY" "$OTB_TRACKER_DEVIC
 	"$OTB_TRACKER_DEVICE_GATEWAY" \
 	"$OTB_TRACKER_DEVICE" \
 	"$otb_metric"
+
+
+dns_servers=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | \
+	jq -r '."dns-server" // [] | join(" ")')
 
 [ -n "$dns_servers" ] && for dns_server in $dns_servers; do
 	 _setup_route \
