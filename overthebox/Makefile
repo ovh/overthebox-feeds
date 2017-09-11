@@ -1,14 +1,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
-PKG_VERSION:=0.25
+PKG_VERSION:=0.26
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     graph glorytun glorytun-udp mptcp shadowsocks-libev  \
-    jq curl ca-bundle ca-certificates
+    jq curl ca-bundle ca-certificates \
+    @LIBCURL_THREADED_RESOLVER
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
