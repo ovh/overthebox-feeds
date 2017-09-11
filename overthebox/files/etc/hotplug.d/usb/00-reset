@@ -1,0 +1,17 @@
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+[ "$ACTION" = remove ] && hash firstboot || exit 0
+
+DELAY=10
+COUNT=3
+
+DATE=$(date +%s%3N)
+LIMIT=$((DATE-DELAY*1000))
+KEY="$PRODUCT-$DEVTYPE"
+
+( tail /tmp/usb; echo "$KEY $DATE" ) > /tmp/usb.tmp && mv /tmp/usb.tmp /tmp/usb
+
+awk "BEGIN{C=0} {if (\$1==\"$KEY\" && \$2>=$LIMIT) C=C+1} END{exit C<$COUNT}" /tmp/usb || exit 0
+
+firstboot -y
+reboot
