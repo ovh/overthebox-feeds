@@ -1,0 +1,8 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+iptables -w -t mangle -F tracker_dscp 2>/dev/null
+iptables -w -t mangle -D OUTPUT -j tracker_dscp
+iptables -w -t mangle -X tracker_dscp
+
+exit 0
