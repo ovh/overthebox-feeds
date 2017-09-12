@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-tracker
-PKG_VERSION:=1.6
+PKG_VERSION:=1.7
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Kevin Lanvin <kevin.lanvin@corp.ovh.com>
 
@@ -11,7 +11,7 @@ define Package/$(PKG_NAME)
   SECTION:=OVH
   CATEGORY:=OverTheBox
   TITLE:=OverTheBox tracker
-  DEPENDS:=+overthebox +bind-dig +jq +curl +bc
+  DEPENDS:=+overthebox +bind-dig
   PKGARCH:=all
 endef
 
