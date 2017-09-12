@@ -25,11 +25,8 @@ curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
 
 usign -V -m img.gz -P /etc/opkg/keys
 
-otb_info "Decompressing image..."
-gunzip -f img.gz
-
 otb_info "Testing sysupgrade..."
-sysupgrade -p -T img
+sysupgrade -T img.gz
 
 otb_info "Performing sysupgrade..."
-sysupgrade -p img
+sysupgrade img.gz
