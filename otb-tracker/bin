@@ -21,6 +21,9 @@ export OTB_TRACKER_DEVICE
 export OTB_TRACKER_DEVICE_IP
 export OTB_TRACKER_DEVICE_GATEWAY
 
+# set DSCP CS7 (56) in outgoing packets
+dscp=56
+
 # set constants for rto updating
 # we've changed the default values of the RFC to K=3 and beta=0.25 instead of K=4 and beta=0.125
 # this allows us to lower the gap between rtt and rto when the latency increases quickly as our
@@ -80,6 +83,7 @@ while true; do
 				@"$OTB_TRACKER_HOST" \
 				-b "$OTB_TRACKER_DEVICE_IP" \
 				+time="$OTB_TRACKER_TIMEOUT" \
+				+dscp="$dscp" \
 				+tries=1 \
 				+short "$@"
 			) && [ "$OTB_TRACKER_RESULT" = "127.6.8.4" ] && {
