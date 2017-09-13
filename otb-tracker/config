@@ -1,5 +1,6 @@
 config defaults 'defaults'
-        option host '51.254.49.132'
+        list hosts '51.254.49.132'
+        list hosts '51.254.49.133'
         option timeout '1'
         option tries '3'
         option interval '2'
