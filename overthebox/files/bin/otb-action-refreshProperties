@@ -33,6 +33,7 @@ _get_interface_json() {
 		--arg netmask "$NETMASK" \
 		--arg gateway "$gateway" \
 		--arg ifname "$ifname" \
+		--arg public_ip "$(otb_get_data "$1/public_ip")" \
 		--arg _label "$label" \
 		--arg trafficcontrol "$trafficcontrol" \
 		--arg upload "$upload" \
@@ -41,7 +42,7 @@ _get_interface_json() {
 			ip: $ipaddr,
 			netmask: $netmask,
 			gateway: $gateway,
-			public_ip: .data.public_ip?,
+			public_ip: $public_ip,
 			dns_servers: ."dns-server",
 			name: $ifname,
 			label: $_label,
