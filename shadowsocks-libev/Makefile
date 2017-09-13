@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
 PKG_VERSION:=3.0.7
-PKG_RELEASE:=4
+PKG_RELEASE:=5
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
@@ -31,7 +31,7 @@ TITLE:=Lightweight Secured Socks5 Proxy
 SECTION:=net
 CATEGORY:=Network
 URL:=https://github.com/shadowsocks/shadowsocks-libev
-DEPENDS:=+libev +udns-libs +libpcre +libpthread +libsodium +libmbedtls +ipset +ip +iptables-mod-tproxy
+DEPENDS:=+libev +libudns +libpcre +libpthread +libsodium +libmbedtls +ipset +ip +iptables-mod-tproxy
 endef
 
 define Package/$(PKG_NAME)/description
