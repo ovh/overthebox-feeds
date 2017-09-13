@@ -5,9 +5,11 @@ set -e
 
 opkg update -V1
 
-if opkg list-upgradable | grep -sq base-files ; then
+pkg_list=$(opkg list-upgradable)
+
+if echo "$pkg_list" | grep -sq base-files ; then
 	echo "Upgrading is not possible... Please consider a sysupgrade."
 	exit 1
 fi
 
-opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade --autoremove -V1
+echo "$pkg_list" | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade --autoremove -V1
