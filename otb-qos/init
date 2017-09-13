@@ -39,8 +39,8 @@ _setup_qos() {
 	tc qdisc rep dev "$ifname" root cake bandwidth "$upload"kbit diffserv4 flows memlimit 10m
 
 	# Get the public IP
-	public_ip=$(ubus call "network.interface.$1" status | jq -r .data.public_ip)
-	if [ "$public_ip" = "null" ]; then
+	public_ip=$(otb_get_data "$1/public_ip")
+	if [ -z "$public_ip" ]; then
 		_log "missing public IP for $ifname, can't apply the download QoS for now"
 		return 0
 	fi
