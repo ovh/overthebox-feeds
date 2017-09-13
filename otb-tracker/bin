@@ -28,11 +28,12 @@ dscp=56
 # we've changed the default values of the RFC to K=3 and beta=0.25 instead of K=4 and beta=0.125
 # this allows us to lower the gap between rtt and rto when the latency increases quickly as our
 # measurements are less frequent than the standard timeout computation of the TCP stack
-
-srtt=
-rttvar=
-rto_init=$(( OTB_TRACKER_TIMEOUT * 1000 ))
-rto=$rto_init
+_init_rto() {
+	srtt=
+	rttvar=
+	rto_init=$(( initial_timeout * 1000 ))
+	rto=$rto_init
+}
 
 # update rto as explained in rfc6298
 # rto    : retransmission timeout.
@@ -53,6 +54,27 @@ _update_rto() {
 	fi
 	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
 }
+
+_failover(){
+	OTB_TRACKER_HOSTS="${OTB_TRACKER_HOSTS#* } ${OTB_TRACKER_HOSTS%% *}"
+	OTB_TRACKER_HOST="${OTB_TRACKER_HOSTS%% *}"
+	_init_rto
+}
+
+_post_tracking(){
+	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
+		[ -x "$tracker_bin" ] && (
+			_log() {
+				logger -t "post-tracking-${tracker_bin##*/}" "$*"
+			}
+			. "$tracker_bin"
+		)
+	done
+}
+
+failover_number=$(echo "$OTB_TRACKER_HOSTS" | wc -w)
+initial_timeout="$OTB_TRACKER_TIMEOUT"
+_failover
 
 # main loop
 while true; do
@@ -95,15 +117,8 @@ while true; do
 		fi
 	fi
 
-	# post tracking
-	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
-		[ -x "$tracker_bin" ] && (
-			_log() {
-				logger -t "post-tracking-${tracker_bin##*/}" "$*"
-			}
-			. "$tracker_bin"
-		)
-	done
+	[ "$OTB_TRACKER_STATUS" = "ERROR" ] && failover_index=$((failover_index+1)) && _failover
+	[ "$failover_index" = "$failover_number" ] || [ "$OTB_TRACKER_STATUS" = "OK" ] && failover_index=0 && _post_tracking
 
 	sleep "$OTB_TRACKER_INTERVAL"
 done
