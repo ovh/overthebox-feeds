@@ -12,4 +12,5 @@ if echo "$pkg_list" | grep -sq base-files ; then
 	exit 1
 fi
 
-echo "$pkg_list" | cut -d' ' -f1 | grep -v Multiple | xargs -r -n 1 opkg upgrade --autoremove -V1
+echo "$pkg_list" | cut -d' ' -f1 | grep -v Multiple | \
+	xargs -r -n 1 opkg upgrade --autoremove --force-overwrite -V1
