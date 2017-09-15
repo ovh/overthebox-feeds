@@ -54,10 +54,6 @@ _update_rto() {
 	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
 }
 
-config_load network
-OTB_TRACKER_DEVICE= ; config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
-OTB_TRACKER_TABLE=  ; config_get OTB_TRACKER_TABLE "$OTB_TRACKER_INTERFACE" ip4table
-
 # main loop
 while true; do
 	# setup tracker variables
@@ -67,35 +63,36 @@ while true; do
 	OTB_TRACKER_RESULT=
 	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
 
-	# retrieve iface ip and gateway and device
-	OTB_TRACKER_DEVICE_IP=$(ip -4 -o addr show "$OTB_TRACKER_DEVICE" | awk '{ print substr($4, 1, length($4) - 3) }')
-	[ -n "$OTB_TRACKER_TABLE" ] && \
+	if [ -d "/sys/class/net/$OTB_TRACKER_DEVICE" ]; then
+		# retrieve iface ip and gateway
+		OTB_TRACKER_DEVICE_IP=$(ip -4 -o addr show "$OTB_TRACKER_DEVICE" | awk '{ print substr($4, 1, length($4) - 3) }')
 		OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
 
-	# execute specific tracker
-	if [ -n "$OTB_TRACKER_DEVICE" ] && [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ];then
-		# setup loop variable
-		tries="$OTB_TRACKER_TRIES"
-		# loop until tries attempts have been reached
-		while [ "$tries" -gt 0 ]; do
-			t1=$(date +%s%3N)
-			OTB_TRACKER_RESULT=$(dig \
-				@"$OTB_TRACKER_HOST" \
-				-b "$OTB_TRACKER_DEVICE_IP" \
-				+time="$OTB_TRACKER_TIMEOUT" \
-				+dscp="$dscp" \
-				+tries=1 \
-				+short "$@"
-			) && [ "$OTB_TRACKER_RESULT" = "127.6.8.4" ] && {
-				# tracking command succeed
-				t2=$(date +%s%3N)
-				_update_rto "$((t2 - t1))"
-				OTB_TRACKER_STATUS="OK"
-				break
-			}
-			tries=$((tries - 1))
-			OTB_TRACKER_TIMEOUT=$((OTB_TRACKER_TIMEOUT * 2))
-		done
+		# execute specific tracker
+		if [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ]; then
+			# setup loop variable
+			tries="$OTB_TRACKER_TRIES"
+			# loop until tries attempts have been reached
+			while [ "$tries" -gt 0 ]; do
+				t1=$(date +%s%3N)
+				OTB_TRACKER_RESULT=$(dig \
+					@"$OTB_TRACKER_HOST" \
+					-b "$OTB_TRACKER_DEVICE_IP" \
+					+time="$OTB_TRACKER_TIMEOUT" \
+					+dscp="$dscp" \
+					+tries=1 \
+					+short "$@"
+				) && [ "$OTB_TRACKER_RESULT" = "127.6.8.4" ] && {
+					# tracking command succeed
+					t2=$(date +%s%3N)
+					_update_rto "$((t2 - t1))"
+					OTB_TRACKER_STATUS="OK"
+					break
+				}
+				tries=$((tries - 1))
+				OTB_TRACKER_TIMEOUT=$((OTB_TRACKER_TIMEOUT * 2))
+			done
+		fi
 	fi
 
 	# post tracking
