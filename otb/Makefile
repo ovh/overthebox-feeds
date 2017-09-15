@@ -12,6 +12,7 @@ MY_DEPENDS := \
     otb-tracker otb-autoroute \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bwm-ng screen \
+    libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
     libustream-mbedtls luci-lib-px5g px5g  \
     tc iperf3 mtr rng-tools ss strace \
