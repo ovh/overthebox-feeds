@@ -5,12 +5,13 @@ set -e
 
 opkg update -V1
 
-pkg_list=$(opkg list-upgradable)
+PKGS=$(opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple)
 
-if echo "$pkg_list" | grep -sq base-files ; then
+if echo "$PKGS" | grep -sq base-files; then
 	echo "Upgrading is not possible... Please consider a sysupgrade."
 	exit 1
 fi
 
-echo "$pkg_list" | cut -d' ' -f1 | grep -v Multiple | \
-	xargs -r -n 1 opkg upgrade --autoremove --force-overwrite -V1
+for PKG in $PKGS; do
+	opkg upgrade --autoremove --force-overwrite -V1 "$PKG"
+done
