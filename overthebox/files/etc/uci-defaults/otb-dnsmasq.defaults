@@ -53,17 +53,54 @@ delete_old_hostrecords() {
 }
 config_foreach delete_old_hostrecords hostrecord
 
+# Rename old tags
+rename_old_tags() {
+	case "$1" in
+		*_gw|*_old) return 0 ;;
+	esac
+
+	uci -q rename "dhcp.$1=${1}_old"
+}
+config_load dhcp
+config_foreach rename_old_tags tag
+
+# Update dhcp
+update_dhcp() {
+	interface=
+	config_get interface "$1" interface
+
+	[ -z "$interface" ] && return
+
+	options=
+	config_get options "$1" dhcp_option
+
+	[ -n "$options" ] && uci -q set "dhcp.${interface}_old=tag"
+
+	uci -q rename "dhcp.$1=$interface"
+}
+config_load dhcp
+config_foreach update_dhcp dhcp
+
 # Setup the static ranges, and gateway tags
 create_static_ranges() {
 	interface="$1"
 
 	# Skip well formatted tags, e.g. XXX_gw
-	[ "${interface##*_}" = "gw" ] && return 0
+	case "$interface" in
+		*_gw) return 0 ;;
+		*_old) interface=${interface%%_old} ;;
+	esac
 
 	config_get options "$interface" dhcp_option
 
+	# Delete old configs
 	uci -q batch <<-EOF
-	delete dhcp.${interface}
+	delete dhcp.$1
+	delete dhcp.$interface
+	EOF
+
+	# Create/update dhcp config
+	uci -q batch <<-EOF
 	set dhcp.${interface}=dhcp
 	set dhcp.${interface}.interface='$interface'
 	set dhcp.${interface}.start='1'
@@ -73,20 +110,16 @@ create_static_ranges() {
 	EOF
 
 	# Create the new tags
-	uci -q set "dhcp.${interface}_gw=tag"
+	uci -q batch <<-EOF
+	delete dhcp.${interface}_gw
+	set dhcp.${interface}_gw=tag
+	EOF
 	for option in $options; do
 		option=$(echo "$option" | sed 's/option:router/3/')
 		option=$(echo "$option" | sed 's/option:dns-server/6/')
 		uci -q add_list "dhcp.${interface}_gw.dhcp_option=$option"
 	done
 	uci -q add_list "dhcp.${interface}_gw.dhcp_option=1,255.255.255.0"
-
-	# Cleanup the old dhcp
-	cleanup_dhcp() {
-		config_get ifname "$1" interface
-		[ "$ifname" = "$interface" ] && uci -q delete "dhcp.$1"
-	}
-	config_foreach cleanup_dhcp dhcp
 
 	# Change the host configuration to use the new tag
 	update_host_tag() {
@@ -97,6 +130,15 @@ create_static_ranges() {
 }
 config_load dhcp
 config_foreach create_static_ranges tag
+
+# Cleanup the old dhcp
+cleanup_dhcp() {
+	interface=
+	config_get interface "$1" interface
+	[ "$1" = "$interface" ] || uci -q delete "dhcp.$1"
+}
+config_load dhcp
+config_foreach cleanup_dhcp dhcp
 
 ##################################
 # / Migration from openwrt to lede
