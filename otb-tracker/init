@@ -28,8 +28,9 @@ _launch_tracker() {
 	_validate_section "defaults" "defaults"
 	_validate_section "rule_type" "$interface_type"
 	_validate_section "interface" "$1"
-	OTB_TRACKER_DEVICE= ; config_get OTB_TRACKER_DEVICE "$OTB_TRACKER_INTERFACE" ifname
-	OTB_TRACKER_TABLE=  ; config_get OTB_TRACKER_TABLE "$OTB_TRACKER_INTERFACE" ip4table
+	OTB_TRACKER_INTERFACE="$1"
+	OTB_TRACKER_DEVICE= ; config_get OTB_TRACKER_DEVICE "$1" ifname
+	OTB_TRACKER_TABLE=  ; config_get OTB_TRACKER_TABLE "$1" ip4table
 	[ -z "$OTB_TRACKER_DEVICE" ] || [ -z "$OTB_TRACKER_TABLE" ] && return
 	procd_open_instance
 	# shellcheck disable=SC2086
@@ -39,6 +40,7 @@ _launch_tracker() {
 		"OTB_TRACKER_TIMEOUT=$OTB_TRACKER_TIMEOUT" \
 		"OTB_TRACKER_TRIES=$OTB_TRACKER_TRIES" \
 		"OTB_TRACKER_INTERVAL=$OTB_TRACKER_INTERVAL" \
+		"OTB_TRACKER_INTERFACE=$OTB_TRACKER_INTERFACE" \
 		"OTB_TRACKER_TABLE=$OTB_TRACKER_TABLE" \
 		"OTB_TRACKER_DEVICE=$OTB_TRACKER_DEVICE"
 	procd_set_param respawn 0 10 0
