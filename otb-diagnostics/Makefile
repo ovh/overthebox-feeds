@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-diagnostics
-PKG_VERSION:=0.3
+PKG_VERSION:=0.4
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
-DEPENDS:=+overthebox +bind-dig +mtr +lsof +TARGET_x86:dmidecode +tc
+DEPENDS:=+overthebox +bind-dig +mtr +lsof +TARGET_x86:dmidecode +tc +lsblk
 TITLE:=OverTheBox diagnostics
 PKGARCH:=all
 endef
