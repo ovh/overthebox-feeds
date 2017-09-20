@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
@@ -47,6 +48,31 @@ _setup_macvlan() {
 	_setup_macaddr "$1" "${_macaddr:-auto$RANDOM}"
 	uci -q set "network.$1.type=macvlan"  # legacy
 }
+
+_rename_to_ifX() {
+	case "$1" in
+	loopback|lan|if*|cif*|wan*|*tun*)
+		return
+		;;
+	esac
+
+	_type=
+	config_get _type "$1" type
+	[ "$_type" = "macvlan" ] || return
+
+	_id=1
+	while uci -q get "network.if$_id" >/dev/null; do
+		_id=$((_id+1))
+	done
+
+	uci -q batch <<-EOF
+	set network.$1.label=$1
+	del_list firewall.wan.network=$1
+	rename network.$1=if$_id
+	EOF
+}
+config_load network
+config_foreach _rename_to_ifX interface
 
 _setup() {
 	case "$1" in
