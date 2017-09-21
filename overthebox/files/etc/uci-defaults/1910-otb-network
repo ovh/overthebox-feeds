@@ -50,7 +50,7 @@ _setup_macvlan() {
 	set network.$1.ifname=$1
 	EOF
 	_macaddr=$(uci -q get "network.$1.macaddr")
-	_setup_macaddr "$1" "${_macaddr:-auto$RANDOM}"
+	_setup_macaddr "$1" "${_macaddr:-auto$(date +%s)}"
 	uci -q set "network.$1.type=macvlan"  # legacy
 }
 
