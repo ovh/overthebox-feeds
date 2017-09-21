@@ -70,6 +70,7 @@ update_dhcp() {
 	config_get interface "$1" interface
 
 	[ -z "$interface" ] && return
+	[ "$interface" = lan ] && return
 
 	options=
 	config_get options "$1" dhcp_option
