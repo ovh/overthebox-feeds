@@ -24,15 +24,13 @@ EOF
 config_load dhcp
 
 # Update the lan configuration
-lan_option=
-config_get_bool lan_option lan force 0
-
-if [ "$lan_option" != 1 ]; then
+if ! uci -q get dhcp.lan.interface_name >/dev/null; then
 	uci -q batch <<-EOF
 	set dhcp.lan.force='1'
 	add_list dhcp.lan.interface_name='lan'
 	add_list dhcp.lan.interface_name='overthebox'
 	add_list dhcp.lan.interface_name='overthebox.ovh'
+	del_list dhcp.@dnsmasq[0].interface='lan'
 	add_list dhcp.@dnsmasq[0].interface='lan'
 	EOF
 fi
