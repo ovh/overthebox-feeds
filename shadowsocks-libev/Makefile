@@ -9,16 +9,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=3.0.7
-PKG_RELEASE:=5
+PKG_VERSION:=3.1.0
+PKG_RELEASE:=1
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
-PKG_SOURCE_VERSION:=c11b2c08e4aecaa01f7bc4e93d311f9945d84363
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev/releases/download/v$(PKG_VERSION)
+PKG_HASH:=3b6493ebdcfff1eb31faf34d164d57049f7253ff5bffafa6ce2263c9ac123f31
 
-PKG_LICENSE:=GPLv3
-PKG_LICENSE_FILES:=LICENSE
+PKG_LICENSE:=GPL-3.0+
 PKG_MAINTAINER:=DUPONCHEEL Sébastien <sebastien.duponcheel@corp.ovh.com>
 
 PKG_FIXUP:=autoreconf
@@ -31,7 +29,7 @@ TITLE:=Lightweight Secured Socks5 Proxy
 SECTION:=net
 CATEGORY:=Network
 URL:=https://github.com/shadowsocks/shadowsocks-libev
-DEPENDS:=+libev +libudns +libpcre +libpthread +libsodium +libmbedtls +ipset +ip +iptables-mod-tproxy
+DEPENDS:=+libcares +libev +libmbedtls +libpcre +libpthread +libsodium +ipset +ip +iptables-mod-tproxy
 endef
 
 define Package/$(PKG_NAME)/description
