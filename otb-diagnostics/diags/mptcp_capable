@@ -13,7 +13,7 @@ check_interface() {
 	if [ -z "$gateway" ]; then
 		return 0
 	fi
-	output=$(curl -sS --max-time 1 --interface "$ifname" http://multipath-tcp.org 2>&1)
+	output=$(set -x; curl -sS --max-time 1 --interface "$ifname" http://multipath-tcp.org 2>&1)
 	printf "[%s] \t : %s\n" "$ifname" "$output"
 }
 
