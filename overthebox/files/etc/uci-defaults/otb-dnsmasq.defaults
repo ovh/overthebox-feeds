@@ -15,6 +15,7 @@ delete dhcp.lan.ra_default
 delete dhcp.lan.ra_management
 delete dhcp.lan.ra_preference
 delete dhcp.lan.dhcpv6
+set dhcp.lan.force='1'
 EOF
 
 #################################
@@ -23,17 +24,21 @@ EOF
 
 config_load dhcp
 
-# Update the lan configuration
-if ! uci -q get dhcp.lan.interface_name >/dev/null; then
-	uci -q batch <<-EOF
-	set dhcp.lan.force='1'
-	add_list dhcp.lan.interface_name='lan'
-	add_list dhcp.lan.interface_name='overthebox'
-	add_list dhcp.lan.interface_name='overthebox.ovh'
-	del_list dhcp.@dnsmasq[0].interface='lan'
-	add_list dhcp.@dnsmasq[0].interface='lan'
-	EOF
+# Listen to the lan interface only if no other interface is configured
+if ! uci -q get dhcp.@dnsmasq[0].interface >/dev/null; then
+	uci -q add_list dhcp.@dnsmasq[0].interface='lan'
 fi
+
+# Setup the lan names to be resolved localy
+lan_names="
+	overthebox
+	overthebox.ovh
+	www.overthebox.ovh
+"
+for lan_name in $lan_names; do
+	uci -q del_list "dhcp.lan.interface_name=$lan_name"
+	uci -q add_list "dhcp.lan.interface_name=$lan_name"
+done
 
 # Remove the old cnames, it is now configured on the lan dhcp-range
 delete_old_cnames() {
