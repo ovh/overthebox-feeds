@@ -3,4 +3,4 @@
 
 set -ex
 
-lsblk -f
+lsblk -O
