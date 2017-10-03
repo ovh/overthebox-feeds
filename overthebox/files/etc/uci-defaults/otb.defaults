@@ -45,7 +45,4 @@ rm -f /etc/ssl/certs/ca-certificates.crt
 # Regenerate them
 cat /etc/ssl/certs/*.crt >/etc/ssl/certs/ca-certificates.crt
 
-# Fix --autoremove
-opkg -V0 remove mwan3otb
-
 exit 0
