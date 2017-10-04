@@ -5,6 +5,12 @@
 set -e
 
 . /lib/overthebox
+. /lib/upgrade/common.sh
+
+export_bootdevice || {
+	otb_err "Invalid /proc/cmdline, please reboot your device"
+	exit 1
+}
 
 otb_save_action_id "$1" 2>/dev/null || true
 
