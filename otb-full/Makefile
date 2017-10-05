@@ -10,7 +10,7 @@ MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs vim-full htop netdata \
     iputils-ping perf bmon ethtool sysstat pciutils \
-    mini-snmpd openvpn-openssl luci-app-openvpn
+    mini_snmpd openvpn-openssl luci-app-openvpn
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
