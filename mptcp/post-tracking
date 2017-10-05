@@ -17,6 +17,7 @@ if [ "$OTB_TRACKER_STATUS" = "ERROR" ]; then
 fi
 
 multipath_config=$(uci -q get "network.$OTB_TRACKER_INTERFACE.multipath" || echo "off")
+[ "$multipath_status" = "master" ] && multipath_status="on"
 [ "$multipath_status" = "$multipath_config" ] && exit 0
 
 _log "$OTB_TRACKER_DEVICE switched to $multipath_config"
