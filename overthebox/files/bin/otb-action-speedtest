@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # Do the iperf during 5 seconds
@@ -55,9 +56,7 @@ test_interface() {
 	multipath=
 	ifname=
 	ipaddr=
-	gateway=
 	config_get ifname "$1" ifname
-	network_get_gateway gateway "$1" || true
 	network_get_ipaddr ipaddr "$1" || true
 	config_get multipath "$1" multipath "off"
 

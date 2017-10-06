@@ -117,8 +117,5 @@ _setup() {
 		;;
 	esac
 }
-
 config_load network
 config_foreach _setup interface
-
-exit 0

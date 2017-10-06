@@ -1,9 +1,9 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 set -e
 
-# shellcheck disable=SC1091
 . /lib/overthebox
 
 otb_service_post confirm

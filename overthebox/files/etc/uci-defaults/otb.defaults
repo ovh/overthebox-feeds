@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
@@ -44,5 +45,3 @@ fi
 rm -f /etc/ssl/certs/ca-certificates.crt
 # Regenerate them
 cat /etc/ssl/certs/*.crt >/etc/ssl/certs/ca-certificates.crt
-
-exit 0

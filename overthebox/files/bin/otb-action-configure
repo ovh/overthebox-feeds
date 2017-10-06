@@ -1,11 +1,11 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 set -e
 
 ME=$(basename "$0")
 
-# shellcheck disable=SC1091
 . /lib/overthebox
 
 config=$(otb_device_get config)
