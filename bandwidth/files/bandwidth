@@ -1,13 +1,13 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-iiflan="$(uci -q get network.lan.ifname)"
+iiflan=$(uci -q get network.lan.ifname)
 [ -z "$iiflan" ] && exit 1
 
 txname="BANDWIDTH-TX"
 rxname="BANDWIDTH-RX"
 
-iifvlans="$(ifconfig |grep "^eth0." | cut -d ' ' -f1 | xargs)"
+iifvlans=$(ifconfig | grep "^eth0." | cut -d ' ' -f1 | xargs)
 iifs="$iifvlans $iiflan"
 leasefile="/tmp/dhcp.leases"
 traf_tmp="/tmp/bandwidth_traf_$$.tmp"
@@ -31,10 +31,10 @@ trap 'sig_handler' INT TERM
 #It then stores them in a file (format is IP MAC CONFIRMED)
 fetch_neigh()
 {
-	: > $neigh_tmp
+	> $neigh_tmp
 	for iif in $iifs ; do
-		neigh_cmd="ip -s -4 n s dev $iif nud reachable nud stale nud delay nud probe nud permanent"
-		$neigh_cmd | sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' >> $neigh_tmp
+		ip -s -4 n s dev "$iif" nud reachable nud stale nud delay nud probe nud permanent \
+			| sed -n 's/^\([^ ]\+\) lladdr \([^ ]\+\).*\([0-9]\+\)\/\([0-9]\+\)\/\([0-9]\+\).*$/\1 \2 \4/p' >> $neigh_tmp
 	done
 }
 
@@ -43,13 +43,9 @@ fetch_neigh()
 arp_populate_iptables()
 {
 	fetch_neigh
-	while read IP _ CONFIRMED
+	while read -r IP _ CONFIRMED
 	do
-		if [ "$CONFIRMED" -gt "$neigh_thresh" ];
-		then
-			continue
-		fi
-
+		[ "$CONFIRMED" -gt "$neigh_thresh" ] && continue
 		iptables -w -t mangle -C BANDWIDTH-TX -s "$IP" -j RETURN 2> /dev/null
 		if [ $? -ne 0 ]; then
 			iptables -w -t mangle -A BANDWIDTH-TX -s "$IP" -j RETURN
@@ -86,20 +82,20 @@ case $1 in
 		iptables -w -t mangle -N $txname 2> /dev/null
 		iptables -w -t mangle -N $rxname 2> /dev/null
 		for iif in $iifs ; do
-			iptables -w -t mangle -C PREROUTING -i $iif -j $txname 2> /dev/null
+			iptables -w -t mangle -C PREROUTING -i "$iif" -j $txname 2> /dev/null
 			if [ $? -ne 0 ]; then
-				iptables -w -t mangle -I PREROUTING -i $iif -j $txname
+				iptables -w -t mangle -I PREROUTING -i "$iif" -j $txname
 			fi
-			iptables -w -t mangle -C POSTROUTING -o $iif -j $rxname 2> /dev/null
+			iptables -w -t mangle -C POSTROUTING -o "$iif" -j $rxname 2> /dev/null
 			if [ $? -ne 0 ]; then
-				iptables -w -t mangle -I POSTROUTING -o $iif -j $rxname
+				iptables -w -t mangle -I POSTROUTING -o "$iif" -j $rxname
 			fi
 		done
 		arp_populate_iptables
 		;;
 
-		#Updates iptables with devices currently found on the LAN
-		"ipt-update")
+	#Updates iptables with devices currently found on the LAN
+	"ipt-update")
 		iptables -w -t mangle -F $txname
 		iptables -w -t mangle -F $rxname
 		arp_populate_iptables
@@ -108,8 +104,8 @@ case $1 in
 	#Cleans up everything in iptables
 	"unsetup")
 		for iif in $iifs ; do
-			iptables -w -t mangle -D PREROUTING -i $iif -j $txname 2> /dev/null
-			iptables -w -t mangle -D POSTROUTING -o $iif -j $rxname 2> /dev/null
+			iptables -w -t mangle -D PREROUTING -i "$iif" -j $txname 2> /dev/null
+			iptables -w -t mangle -D POSTROUTING -o "$iif" -j $rxname 2> /dev/null
 		done
 		iptables -w -t mangle -F $txname 2> /dev/null
 		iptables -w -t mangle -F $rxname 2> /dev/null
