@@ -11,5 +11,3 @@ sed -i '/otb-recovery/d' "$FILE"
 sed -i '/overthebox_emergency_action/d' "$FILE"
 
 /etc/init.d/cron restart
-
-exit 0

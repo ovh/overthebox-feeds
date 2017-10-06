@@ -3,5 +3,3 @@
 
 # netifd will fail to reload the network if the file if not present
 touch /etc/config/wireless
-
-exit 0

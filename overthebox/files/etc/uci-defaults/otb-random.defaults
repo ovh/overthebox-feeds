@@ -6,5 +6,3 @@ uci -q batch <<EOF
 set system.@rngd[0].enabled=1
 set system.@rngd[0].device=/dev/urandom
 EOF
-
-exit 0

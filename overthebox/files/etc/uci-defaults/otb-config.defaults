@@ -13,12 +13,12 @@ config_foreach _delete_old_remote_access remote
 
 # Convert last_action_id to action_id (sysupgrade from 0.5.X to 0.6.X)
 last_action_id=$(uci -q get overthebox.me.last_action_id)
-if [ -n "$last_action_id" ]; then uci -q set "overthebox.me.action_id=$last_action_id"; fi
+if [ -n "$last_action_id" ]; then
+	uci -q set "overthebox.me.action_id=$last_action_id"
+fi
 
 uci -q batch <<-EOF
 delete overthebox.me.release_channel
 delete overthebox.me.image_url
 delete overthebox.me.last_action_id
 EOF
-
-exit 0
