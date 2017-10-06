@@ -119,3 +119,9 @@ _setup() {
 }
 config_load network
 config_foreach _setup interface
+
+# Add the lan as a named routing table
+if ! grep -s -q "lan" /etc/iproute2/rt_tables; then
+	echo "50 lan" >> /etc/iproute2/rt_tables
+fi
+uci -q set network.lan.ip4table='lan'

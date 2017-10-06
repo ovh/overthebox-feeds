@@ -1,0 +1,4 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+ip rule | grep -q "100:" || ip rule add from all lookup lan pref 100
