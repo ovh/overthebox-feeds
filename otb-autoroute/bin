@@ -13,8 +13,10 @@ _setup_high_priority_rule() {
 	[ "$matching_rules" -gt 0 ] && [ "$1" = "add" ] && return
 	[ "$matching_rules" = 0 ] && [ "$1" = "del" ] && return
 
-	_log "$1 rule matching $mark using table $2"
-	ip rule "$1" fwmark "$mark" table "$2"
+	# pref 30000 to be between the interfaces rules (20000, value set by
+	# netifd) and the main routing table (32766, default value)
+	_log "$1 rule matching $mark using table $2 and pref 30000"
+	ip rule "$1" fwmark "$mark" table "$2 pref 30000"
 }
 
 config_load shadowsocks
