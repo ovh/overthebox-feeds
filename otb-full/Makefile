@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-full
 PKG_VERSION:=0.1
-PKG_RELEASE:=4
+PKG_RELEASE:=5
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -10,7 +10,8 @@ MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs vim-full htop netdata \
     iputils-ping perf bmon ethtool sysstat pciutils \
-    mini_snmpd openvpn-openssl luci-app-openvpn
+    mini_snmpd openvpn-openssl luci-app-openvpn \
+    gdb
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
