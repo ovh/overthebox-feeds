@@ -68,7 +68,7 @@ manage_if0() {
 		set network.if${_id}.ipaddr=$ip
 		set network.if${_id}.netmask=$subnet
 		set network.if${_id}.multipath=on
-		set network.if${_id}.gateway=$router
+		set network.if${_id}.gateway="$router"
 		set network.if${_id}.dns=$dns
 		set network.${INTERFACE}_dev.macaddr=auto.if$_id
 		commit network
