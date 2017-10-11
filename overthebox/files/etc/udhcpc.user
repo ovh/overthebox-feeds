@@ -104,24 +104,6 @@ manage_if0() {
 	fi
 }
 
-_setup_interface() {
-	uci -q batch <<-EOF
-	set network.$INTERFACE.proto=static
-	set network.$INTERFACE.ipaddr=$ip
-	set network.$INTERFACE.netmask=$subnet
-	set network.$INTERFACE.gateway="$router"
-	set network.$INTERFACE.dns=$dns
-	set network.$INTERFACE.mtu=$mtu
-	commit network
-	EOF
-	return
-}
-
-_get_other_ip() {
-	# Calculate new ip
-	ip=$(_next_ip "$ip")
-}
-
 _next_ip() {
 	# Naively increment the last part of the IP
 	printf "%s.%d" "${ip%.*}" $((${ip##*.}+1))
@@ -131,9 +113,9 @@ _check_interface() {
 	original_ip="$ip"
 
 	# We need to check that the interface is given a "non used" ip address
-	while ip -4 -o addr | grep -v "$INTERFACE" | grep -sq "$ip/"; do
+	while ip -4 -o addr | grep -sv ": $INTERFACE" | grep -sq "inet $ip/"; do
 		# Need to find another IP
-		_get_other_ip
+		ip=$(_next_ip "$ip")
 	done
 
 	# If the original ip is unused, no need for hacks
@@ -151,8 +133,17 @@ manage_cifX() {
 	# Don't do anything unless it's a bound action
 	[ "$action" != "bound" ] && exit 0
 
-	_check_interface "$INTERFACE" || exit 0
-	_setup_interface "$router" "$INTERFACE"
+	_check_interface || exit 0
+
+	uci -q batch <<-EOF
+	set network.$INTERFACE.proto=static
+	set network.$INTERFACE.ipaddr=$ip
+	set network.$INTERFACE.netmask=$subnet
+	set network.$INTERFACE.gateway="$router"
+	set network.$INTERFACE.dns=$dns
+	set network.$INTERFACE.mtu=$mtu
+	commit network
+	EOF
 }
 
 _log "got udhcpc $action on $INTERFACE"
