@@ -109,7 +109,7 @@ _setup_interface() {
 	set network.$INTERFACE.proto=static
 	set network.$INTERFACE.ipaddr=$ip
 	set network.$INTERFACE.netmask=$subnet
-	set network.$INTERFACE.gateway=$router
+	set network.$INTERFACE.gateway="$router"
 	set network.$INTERFACE.dns=$dns
 	set network.$INTERFACE.mtu=$mtu
 	commit network
