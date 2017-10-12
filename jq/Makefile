@@ -5,7 +5,7 @@ PKG_VERSION:=1.5
 PKG_RELEASE:=1
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/stedolan/jq/releases/download/$(PKG_NAME)-$(PKG_VERSION)
-
+PKG_HASH:=c4d2bfec6436341113419debf479d833692cc5cdab7eb0326b5a4d4fbe9f493c
 PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk

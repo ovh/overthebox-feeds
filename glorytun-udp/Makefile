@@ -13,7 +13,7 @@ PKG_RELEASE:=11
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/glorytun-$(PKG_VERSION)
-
+PKG_HASH:=c86792005670277be9f280f30ec58594077da3fea493f18556587818a82d3b47
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
