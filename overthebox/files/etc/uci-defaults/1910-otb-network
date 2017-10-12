@@ -92,8 +92,10 @@ _setup() {
 		_setup_dhcp "$1"
 		;;
 	if0)
+		proto=$(uci -q get "network.$1.proto")
+		[ "$proto" = "none" ] || proto="dhcp"
 		uci -q batch <<-EOF
-		set network.$1.proto=dhcp
+		set network.$1.proto=$proto
 		set network.$1.metric=2000
 		del_list firewall.wan.network=$1
 		add_list firewall.wan.network=$1
