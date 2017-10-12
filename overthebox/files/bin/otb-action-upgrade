@@ -1,17 +1,30 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+UPGRADE_DIR="/tmp/otb-upgrade"
+
 set -e
 
-opkg update -V1
+opkg update
 
-PKGS=$(opkg list-upgradable | cut -d' ' -f1 | grep -v Multiple)
+PKGS=$(opkg list-upgradable -V0 | cut -d' ' -f1)
+
+if [ -z "$PKGS" ]; then
+	echo "Nothing to update."
+	exit 0
+fi
 
 if echo "$PKGS" | grep -sq base-files; then
 	echo "Upgrading is not possible... Please consider a sysupgrade."
 	exit 1
 fi
 
+rm -rf $UPGRADE_DIR
+mkdir -p $UPGRADE_DIR
+cd $UPGRADE_DIR
+
 for PKG in $PKGS; do
-	opkg upgrade --autoremove --force-overwrite -V1 "$PKG"
+	opkg upgrade --download-only "$PKG"
 done
+
+opkg install --autoremove --force-overwrite ./*.ipk
