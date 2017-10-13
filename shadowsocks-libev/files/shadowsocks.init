@@ -52,7 +52,7 @@ LOCALNETS="
 
 # When following config files change and reload_config is called, we trigger a reload here
 service_triggers() {
-	procd_add_reload_trigger "shadowsocks" "network"
+	procd_add_reload_trigger "shadowsocks" "network" "firewall"
 }
 
 _running() {
