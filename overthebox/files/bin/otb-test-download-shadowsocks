@@ -4,12 +4,12 @@
 HOST="proof.ovh.net"
 
 _ipt() {
-	iptables -wt nat "$1" socks_emitted_by_myself \
+	iptables -w -t nat "$1" socks_emitted_by_myself \
 		-d "$HOST" -j socks_redir -m comment --comment "Test download proof"
 }
 
 _chain_exists() {
-	iptables -wt nat -nL "$1" 1>/dev/null 2>/dev/null
+	iptables -w -t nat -nL "$1" 1>/dev/null 2>/dev/null
 }
 
 if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_redir"; then
