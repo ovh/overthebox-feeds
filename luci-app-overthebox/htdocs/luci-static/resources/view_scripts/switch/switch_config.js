@@ -120,18 +120,18 @@
         return [
           [
             firstGroup.filter(function (port) {
-              return port.id % 2 == 0;
+              return port.id % 2 == 1;
             }),
             firstGroup.filter(function (port) {
-              return port.id % 2 == 1;
+              return port.id % 2 == 0;
             })
           ],
           [
             secondGroup.filter(function (port) {
-              return port.id % 2 == 0;
+              return port.id % 2 == 1;
             }),
             secondGroup.filter(function (port) {
-              return port.id % 2 == 1;
+              return port.id % 2 == 0;
             })
           ],
           [
