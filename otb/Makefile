@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb
 PKG_VERSION:=0.6
-PKG_RELEASE:=12
+PKG_RELEASE:=13
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -18,7 +18,8 @@ MY_DEPENDS := \
     tc iperf3 mtr rng-tools ss strace \
     tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
-    lsblk dnsmasq-full
+    lsblk dnsmasq-full kmod-nf-nathelper \
+    kmod-nf-nathelper-extra
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
