@@ -9,6 +9,16 @@ button.switch-button.wan:hover {
     background-color:#408c99;
 }
 
+button.switch-button.tagged {
+    background-color:#b2b8ad;
+    border:1px solid #b2b8ad;
+    color: #fff;
+}
+
+button.switch-button.tagged:hover {
+    background-color:#757575;
+}
+
 button.switch-button {
     background-color:#dbe6c4;
     -moz-border-radius:5px;

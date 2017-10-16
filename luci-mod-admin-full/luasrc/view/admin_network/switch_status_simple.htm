@@ -9,6 +9,17 @@
   ports["wan"] = {}
   ports["lan"] = {}
   ports["trunk"] = {}
+  ports["tagged"] = {}
+
+  function addVlan(type, vlan)
+    for i,n in ipairs(ports[type]) do
+      -- Don't add twice the same port
+      if n == vlan then
+        return
+      end
+    end
+    table.insert(ports[type], vlan)
+  end
 
   uci:foreach("network", "switch_vlan",
     function(s)
@@ -21,9 +32,13 @@
           type = "lan"
         end
         for _, v in ipairs(string.split(s.ports, " ")) do
-          if not string.find(v, "t") then
-            table.insert(ports[type], v)
+          local vlanType = type
+          if string.find(v, "t") then
+            -- Extract the port number ( "5t" -> 5 )
+            v = string.match(v,"(%d+)t")
+            vlanType = "tagged"
           end
+          addVlan(vlanType, v)
         end
       end
     end)
@@ -40,12 +55,14 @@
     $(document).ready(function() {
       var wans = [ <%= table.concat(ports["wan"], ', ') %> ];
       var lans = [ <%= table.concat(ports["lan"], ', ') %> ];
+      var tagged = [ <%= table.concat(ports["tagged"], ', ') %> ];
       var opts = {
           constants: {
               setSwitchConfigUrl: '<%=luci.dispatcher.build_url("admin", "network", "switch_set_conf")%>',
           },
           wans: wans,
-          lans: lans
+          lans: lans,
+          tagged: tagged,
       }
       initSwitches(opts);
     });

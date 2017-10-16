@@ -22,6 +22,11 @@
                 this.button.addClass("wan");
                 this.button.find(".type").html("wan")
                 break;
+            case "tagged":
+                this.type = "tagged";
+                this.button.addClass("tagged");
+                this.button.find(".type").html("tagged")
+                break;
             default:
                 this.type = "lan";
                 this.button.removeClass("wan");
@@ -84,6 +89,15 @@
             type: "lan",
           }));
         }
+        // Add all the tagged ports
+        for (var i in opt.tagged) {
+          var taggedPort = opt.tagged[i];
+          ports.push(new PortFactory({
+            id: taggedPort-1,
+            name: taggedPort,
+            type: "tagged",
+          }));
+        }
         // Order the whole things by ID
         ports.sort(function(a, b) {
           return a.id - b.id;
@@ -91,7 +105,7 @@
         // Execute callback
         cb(null, [
             {
-                name: "My switch",
+                name: "Reset my switch",
                 ports: ports,
             }
         ]);
