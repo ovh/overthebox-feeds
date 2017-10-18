@@ -1,7 +1,7 @@
 machine:
     timezone: Europe/Paris
     environment:
-        OTB_VERSION: v2.12
+        OTB_VERSION: v3.0
         OTB_PATH: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/${CIRCLE_BRANCH:-$CIRCLE_TAG}
         OTB_FEED: $HOME/$CIRCLE_PROJECT_REPONAME
 
