@@ -16,10 +16,17 @@ _get_interface_json() {
 	ipaddr=  ; network_get_ipaddr ipaddr "$1"
 	gateway= ; network_get_gateway gateway "$1"
 	subnet=  ; network_get_subnet subnet "$1"
+	asn=$(otb_get_data "$1/asn" | jq -c '{
+		country: .as_country_code,
+		description: .as_description,
+		number: .as_number,
+	}')
+	[ -z "$asn" ] && asn="null"
 
 	# Retrieve the netmask from the subnet
 	eval "$(ipcalc.sh "$subnet" | grep NETMASK)"
 
+	name="$1"
 	ifname=         ; config_get ifname "$1" ifname
 	label=          ; config_get label "$1" label
 	trafficcontrol= ; config_get trafficcontrol "$1" trafficcontrol
@@ -29,23 +36,27 @@ _get_interface_json() {
 
 	# shellcheck disable=SC2016
 	ubus call "network.interface.$1" status | jq -c \
+		--argjson asn "$asn" \
+		--arg name "$name" \
 		--arg ipaddr "$ipaddr" \
 		--arg netmask "$NETMASK" \
 		--arg gateway "$gateway" \
-		--arg ifname "$ifname" \
+		--arg device "$ifname" \
 		--arg public_ip "$(otb_get_data "$1/public_ip")" \
 		--arg _label "$label" \
 		--arg trafficcontrol "$trafficcontrol" \
 		--arg upload "$upload" \
 		--arg download "$download" \
 		--arg multipath "$multipath" '{
+			as: $asn,
 			ip: $ipaddr,
 			netmask: $netmask,
 			gateway: $gateway,
 			public_ip: $public_ip,
 			dns_servers: ."dns-server",
-			name: $ifname,
+			name: $name,
 			label: $_label,
+			device: $device,
 			traffic_control: $trafficcontrol,
 			upload: $upload|tonumber,
 			download: $download|tonumber,
