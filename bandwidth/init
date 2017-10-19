@@ -6,7 +6,7 @@ USE_PROCD=1
 START=80
 STOP=20
 
-PROG="/usr/sbin/bandwidth"
+PROG="/bin/bandwidth"
 
 start_service() {
 	$PROG setup
