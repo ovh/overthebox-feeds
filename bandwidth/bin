@@ -2,8 +2,8 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 iifs=
-for ifflan in $(uci -q get "firewall.lan.network"); do
-	iifs="$iifs $(uci -q get "network.$ifflan.ifname")"
+for lan in $(uci -q get "firewall.lan.network"); do
+	iifs="$iifs $(uci -q get "network.$lan.ifname")"
 done
 
 [ -z "$iifs" ] && exit 1
@@ -39,15 +39,17 @@ arp_populate_iptables()
 	> $neigh_tmp
 	for iif in $iifs ; do
 		ip -s -4 n s dev "$iif" nud reachable nud stale nud delay nud probe nud permanent | {
-			read -r IP _ MAC CONFIRMED
-			CONFIRMED=${CONFIRMED#*/}
-			CONFIRMED=${CONFIRMED%/*}
-			echo "$IP $MAC $CONFIRMED" >> $neigh_tmp
-			[ "$CONFIRMED" -gt "$neigh_thresh" ] && return
-			iptables -w -t mangle -C BANDWIDTH-TX -s "$IP" -j RETURN 2> /dev/null \
-				|| iptables -w -t mangle -A BANDWIDTH-TX -s "$IP" -j RETURN
-			iptables -w -t mangle -C BANDWIDTH-RX -d "$IP" -j RETURN 2> /dev/null \
-				|| iptables -w -t mangle -A BANDWIDTH-RX -d "$IP" -j RETURN
+			while read -r IP _ MAC CONFIRMED; do
+				[ -z "$IP" ] && continue
+				CONFIRMED=${CONFIRMED#*/}
+				CONFIRMED=${CONFIRMED%/*}
+				echo "$IP $MAC $CONFIRMED" >> $neigh_tmp
+				[ "$CONFIRMED" -gt "$neigh_thresh" ] && continue
+				iptables -w -t mangle -C BANDWIDTH-TX -s "$IP" -j RETURN 2> /dev/null \
+					|| iptables -w -t mangle -A BANDWIDTH-TX -s "$IP" -j RETURN
+				iptables -w -t mangle -C BANDWIDTH-RX -d "$IP" -j RETURN 2> /dev/null \
+					|| iptables -w -t mangle -A BANDWIDTH-RX -d "$IP" -j RETURN
+			done
 		}
 	done
 }
