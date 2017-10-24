@@ -36,6 +36,9 @@ IPT="iptables -w -t nat"
 CHAINS="socks_hook socks_decision socks_redir socks_emitted_by_myself"
 CHAINS_OLD="socks_bypass_for_mwan"
 
+# List of destinations ports in tcp that will bypassed shadowsocks
+BYPASSED_PORTS="1723"
+
 MAX_DSCP_CS=7
 # The monitoring requests will go through the CS2 ss-redir listener
 TRACKER_CS=7
@@ -445,6 +448,9 @@ _ipt_init_skeleton() {
 
 	# Glue all chains and ipset together
 	$IPT -A socks_decision -m set --match-set socks_bypass dst -j ACCEPT
+	for port in $BYPASSED_PORTS; do
+		$IPT -A socks_decision -p tcp --dport $port -j ACCEPT
+	done
 	$IPT -A socks_decision -j socks_redir
 	$IPT -A OUTPUT -p tcp -j socks_emitted_by_myself
 
