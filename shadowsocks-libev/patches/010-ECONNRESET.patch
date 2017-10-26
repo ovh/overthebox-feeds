@@ -1,0 +1,11 @@
+--- a/src/redir.c
++++ b/src/redir.c
+@@ -207,7 +207,7 @@ server_recv_cb(EV_P_ ev_io *w, int reven
+         close_and_free_server(EV_A_ server);
+         return;
+     } else if (r == -1) {
+-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
++        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNRESET) {
+             // no data
+             // continue to wait for recv
+             return;
