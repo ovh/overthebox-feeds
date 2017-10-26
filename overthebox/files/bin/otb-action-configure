@@ -60,6 +60,7 @@ _setup_glorytun_mud() {
 	set glorytun.\(.dev).port=\(.port)
 	set glorytun.\(.dev).key=\(.key)
 	set glorytun.\(.dev).mtu=\(.mtu)
+	set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
 
 	delete network.\(.dev)
 	set network.\(.dev)=interface
