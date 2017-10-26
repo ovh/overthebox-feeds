@@ -20,7 +20,7 @@ MY_DEPENDS := \
     luci luci-lib-json luci-app-overthebox \
     lsblk dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra \
-    kmod-cherrytrail-gpio-powerbutton
+    TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
