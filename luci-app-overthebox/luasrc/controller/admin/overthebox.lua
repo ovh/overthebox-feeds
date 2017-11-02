@@ -268,6 +268,13 @@ function interfaces_status()
         publicIPFile:close()
     end
 
+    local latency = "-"
+    local latencyFile = io.open(dataPath .. "latency", "r")
+    if latencyFile then
+        latency = latencyFile:read("*line")
+        latencyFile:close()
+    end
+
     local data = {
       label = section['label'] or interface,
       name = interface,
@@ -278,6 +285,7 @@ function interfaces_status()
       multipath = section['multipath'],
       status = connectivity,
       wanip = publicIP,
+      latency = latency,
       whois = asn and asn.as_description or "unknown",
       qos = section['trafficcontrol'],
       download = section['download'],
