@@ -1,6 +1,8 @@
 # shellcheck disable=1091
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+otb_set_data "$OTB_TRACKER_INTERFACE/latency" "$OTB_TRACKER_LATENCY"
+
 old_status=$(otb_get_data "$OTB_TRACKER_INTERFACE/connectivity")
 
 [ "$old_status" = "$OTB_TRACKER_STATUS" ] && exit 0

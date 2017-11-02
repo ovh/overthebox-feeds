@@ -61,6 +61,7 @@ while true; do
 	OTB_TRACKER_DEVICE_GATEWAY=
 	OTB_TRACKER_STATUS="ERROR"
 	OTB_TRACKER_RESULT=
+	OTB_TRACKER_LATENCY=
 	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
 
 	if [ -d "/sys/class/net/$OTB_TRACKER_DEVICE" ]; then
@@ -85,7 +86,8 @@ while true; do
 				) && [ "$OTB_TRACKER_RESULT" = "127.6.8.4" ] && {
 					# tracking command succeed
 					t2=$(date +%s%3N)
-					_update_rto "$((t2 - t1))"
+					OTB_TRACKER_LATENCY=$((t2 - t1))
+					_update_rto "$OTB_TRACKER_LATENCY"
 					OTB_TRACKER_STATUS="OK"
 					break
 				}
