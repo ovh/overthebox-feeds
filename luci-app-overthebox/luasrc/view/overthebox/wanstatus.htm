@@ -152,6 +152,7 @@
 					var wanip   = mArray.wans[i].wanip;
 					var whois   = mArray.wans[i].whois;
 					var multipath = mArray.wans[i].multipath;
+					var latency = mArray.wans[i].latency;
 					// Generate template
 					if(mArray.overthebox.remote_from_lease == true && mArray.wans.length == 1)
 					{
@@ -162,7 +163,7 @@
 
 					var equipmentIcon = String.format('<embed id="modem_%s" onload="setColorSVG(\'modem_%s\', \'%s\')" src="<%=resource%>/modem.svg" />', mArray.wans[i].name, mArray.wans[i].name, mArray.wans[i].color);
 					var title = mArray.wans[i].label + " (" + mArray.wans[i].gateway + ")";
-					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />multipath: %s', stat, wanip, whois, multipath);
+					var content = String.format('%s<br />wan address: <strong>%s</strong><br />whois: %s<br />latency: %s ms<br />multipath: %s', stat, wanip, whois, latency, multipath);
 					if(mArray.wans[i].qos && mArray.wans[i].download > 0 && mArray.wans[i].upload > 0)
 					{
 						content += String.format('<br />traffic control: %s/%s kbps (%s)', mArray.wans[i].download, mArray.wans[i].upload, mArray.wans[i].qos)
