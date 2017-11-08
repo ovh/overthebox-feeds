@@ -2,14 +2,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-full
 PKG_VERSION:=0.1
-PKG_RELEASE:=5
+PKG_RELEASE:=6
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
     rsync netcat svfs vim-full htop netdata \
-    iputils-ping perf bmon ethtool sysstat pciutils \
+    iputils-ping bmon ethtool sysstat pciutils \
     mini_snmpd openvpn-openssl luci-app-openvpn \
     gdb
 
