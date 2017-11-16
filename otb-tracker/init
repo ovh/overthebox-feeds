@@ -8,11 +8,11 @@ USE_PROCD=1
 
 _validate_section() {
 	uci_validate_section otb-tracker "$1" "$2" \
+		'hosts:list(host)' \
 		'timeout:uinteger' \
 		'tries:uinteger' \
 		'interval:uinteger' \
 		'options:string'
-	hosts=$(uci -q get "otb-tracker.$2.hosts")
 	[ -n "$hosts" ] && OTB_TRACKER_HOSTS="$hosts"
 	[ -n "$tries" ] && OTB_TRACKER_TRIES="$tries"
 	[ -n "$timeout" ] && OTB_TRACKER_TIMEOUT="$timeout"
