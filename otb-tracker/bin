@@ -20,8 +20,9 @@ export OTB_TRACKER_DEVICE
 export OTB_TRACKER_DEVICE_IP
 export OTB_TRACKER_DEVICE_GATEWAY
 
-# set DSCP CS7 (56) in outgoing packets
-dscp=56
+dscp=56   # set DSCP CS7 (56) in outgoing packets
+initial_hosts="$OTB_TRACKER_HOSTS"
+initial_timeout="$OTB_TRACKER_TIMEOUT"
 
 # set constants for rto updating
 # we've changed the default values of the RFC to K=3 and beta=0.25 instead of K=4 and beta=0.125
@@ -54,13 +55,15 @@ _update_rto() {
 	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
 }
 
-_failover(){
-	OTB_TRACKER_HOSTS="${OTB_TRACKER_HOSTS#* } ${OTB_TRACKER_HOSTS%% *}"
+_restart() {
 	OTB_TRACKER_HOST="${OTB_TRACKER_HOSTS%% *}"
-	_init_rto
+	[ "$OTB_TRACKER_HOST" = "$OTB_TRACKER_HOSTS" ] || {
+		OTB_TRACKER_HOSTS="${OTB_TRACKER_HOSTS#* } $OTB_TRACKER_HOST"
+		_init_rto
+	}
 }
 
-_post_tracking(){
+_post_tracking() {
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
 		[ -x "$tracker_bin" ] && (
 			_log() {
@@ -71,9 +74,7 @@ _post_tracking(){
 	done
 }
 
-failover_number=$(echo "$OTB_TRACKER_HOSTS" | wc -w)
-initial_timeout="$OTB_TRACKER_TIMEOUT"
-_failover
+_restart
 
 # main loop
 while true; do
@@ -113,8 +114,8 @@ while true; do
 		fi
 	fi
 
-	[ "$OTB_TRACKER_STATUS" = "ERROR" ] && failover_index=$((failover_index+1)) && _failover
-	[ "$failover_index" = "$failover_number" ] || [ "$OTB_TRACKER_STATUS" = "OK" ] && failover_index=0 && _post_tracking
+	[ "$OTB_TRACKER_HOSTS" = "$initial_hosts" ] || [ "$OTB_TRACKER_STATUS" = "OK" ] && _post_tracking
+	[ "$OTB_TRACKER_STATUS" = "ERROR" ] && _restart
 
 	sleep "$OTB_TRACKER_INTERVAL"
 done
