@@ -1,0 +1,22 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+
+_simplify_classes() {
+	class=
+	config_get class "$1" class "cs0"
+
+	case "$class" in
+		cs7|cs6|cs5|cs4) class=cs4 ;;
+		cs3|cs2)         class=cs2 ;;
+		cs1)                       ;;
+		*)               class=cs0 ;;
+	esac
+
+	uci -q set "dscp.$1.class=$class"
+}
+
+config_load dscp
+config_foreach _simplify_classes classify
