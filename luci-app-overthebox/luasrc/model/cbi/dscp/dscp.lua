@@ -65,14 +65,10 @@ dports = s:option(Value, "dest_port", translate("Destination ports"))
 	dports:depends({proto="udp", direction="upload"})
 
 t = s:option(ListValue, "class", translate("Class"))
-	t:value("cs1", translate("CS1 - Scavenger"))
-	t:value("cs2", translate("CS2 - Normal"))
-	t:value("cs3", translate("CS3 - Signaling"))
-	t:value("cs4", translate("CS4 - Realtime"))
-	t:value("cs5", translate("CS5 - Broadcast video"))
-	t:value("cs6", translate("CS6 - Network control"))
-	t:value("cs7", translate("CS7 - Reserved"))
-	t.default = "cs2"
+	t:value("cs0", translate("Normal"))
+	t:value("cs1", translate("Low priority"))
+	t:value("cs2", translate("High priority"))
+	t:value("cs4", translate("Latency - VoIP"))
 
 comment = s:option(Value, "comment", translate("Comment"))
 
