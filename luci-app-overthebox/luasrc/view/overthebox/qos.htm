@@ -101,102 +101,54 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
 		});
 	});
 
-	function getQosLabel(qdisc, way) {
-		if(way == "upload"){
-			if(qdisc == "12")
-				return "Reserved";
-			if(qdisc == "13")
-				return "Network control";
-			if(qdisc == "14")
-				return "Realtime";
-			if(qdisc == "15")
-				return "Signaling";
-			if(qdisc == "16")
-				return "Normal";
-			if(qdisc == "17")
-				return "Scavenger";
-		}
-		if(way == "download"){
-			var itf = qdisc.substr(0, qdisc.length - 1);
-			var qdisc = qdisc.substr(-1);
-			if(qdisc == "2")
-				return "Reserved";
-			if(qdisc == "3")
-				return "Network control";
-			if(qdisc == "4")
-				return "Realtime";
-			if(qdisc == "5")
-				return "Signaling";
-			if(qdisc == "6")
-				return "Normal";
-			if(qdisc == "7")
-				return "Scavenger";
-		}
-		return qdisc;
-	}
+  var normalPriorityString = "Normal"
+  var latencyPriorityString = "Latency - VoIP"
+  var lowPriorityString = "Low priority"
+  var highPriorityString = "High priority"
 
-        function stringToColour(str) {
+  function getQosLabel(qdisc, way) {
+    if(way == "upload"){
+      if(qdisc == "Best Effort")
+        return normalPriorityString;
+      if(qdisc == "Bulk")
+        return lowPriorityString;
+      if(qdisc == "Video")
+        return highPriorityString;
+      if(qdisc == "Voice")
+        return latencyPriorityString;
+    }
+    if(way == "download"){
+      var itf = qdisc.substr(0, qdisc.length - 1);
+      var qdisc = qdisc.substr(-1);
+      if(qdisc == "2")
+        return lowPriorityString;
+      if(qdisc == "3")
+        return normalPriorityString;
+      if(qdisc == "4")
+        return highPriorityString;
+      if(qdisc == "5")
+        return latencyPriorityString;
+    }
+    return qdisc;
+  }
 
-                if(str == "free1")
-                        return "BlueViolet";
-                if(str == "ovh1")
-                        return "DeepSkyBlue";
-                if(str == "ovh2")
-                        return "LightGreen";
+  function stringToColour(str) {
+    if(str == latencyPriorityString)
+      return "Red";
+    if(str == highPriorityString)
+      return "Orange";
+    if(str == normalPriorityString)
+      return "LightGreen";
+    if(str == lowPriorityString)
+      return "DarkOliveGreen";
 
-                if(str == "Reserved")
-                        return "Black";
-                if(str == "Network control")
-                        return "Red";
-                if(str == "Realtime")
-                        return "Orange";
-		if(str == "Signaling")
-                        return "Yellow";
-		if(str == "Normal")
-			return "LightGreen";
-		if(str == "Scavenger")
-			return "DarkOliveGreen";
-
-                if(str == "if1")
-                        return "PowderBlue";
-                if(str == "if2")
-                        return "PaleGreen";
-                if(str == "if3")
-                        return "YellowGreen";
-                if(str == "if4")
-                        return "SeaGreen";
-                if(str == "if5")
-                        return "SteelBlue";
-                if(str == "if6")
-                        return "SlateBlue";
-                if(str == "if7")
-                        return "PaleTurquoise";
-                if(str == "if8")
-                        return "BlueViolet";
-
-		if(str == "12")
-			return "#cc0000";
-		if(str == "13")
-			return "#3399ff";
-		if(str == "14")
-			return "#ff00ff";
-		if(str == "15")
-			return "#00ff00";
-		if(str == "16")
-			return "#006600";
-
-		if(str == "tun0")
-			return "DimGrey";
-		if(str == "xtun0")
-			return "FireBrick";
-
-                // Generate a color folowing the name
-                Math.seedrandom(str);
-                var rand = Math.random() * Math.pow(255,3);
-                Math.seedrandom(); // don't leave a non-random seed in the generator
-                for (var i = 0, colour = "#"; i < 3; colour += ("00" + ((rand >> i++ * 8) & 0xFF).toString(16)).slice(-2));
-                return colour;
-        }
+    // Generate a color folowing the name
+    Math.seedrandom(str);
+    var rand = Math.random() * Math.pow(255,3);
+    Math.seedrandom(); // don't leave a non-random seed in the generator
+    for (var i = 0, colour = "#"; i < 3; colour += ("00" + ((rand >> i++ * 8) & 0xFF).toString(16)).slice(-2));
+    return colour;
+  }
 
 	var all = true;
 	var bwxhr = new XHR();
@@ -316,7 +268,7 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
 					lineup.setAttribute('y2', '100%');
 					lineup.setAttribute('style', 'stroke:black;stroke-width:0.1');
 					Gup.getElementById('label_25').parentNode.appendChild(lineup);
-		
+
 					var labelContent = Math.round((width - i) / step / 60) + 'm';
 					insertXAxisValue($("div#dn-x-axis-info"), labelContent, 0, i - 5);
 					insertXAxisValue($("div#up-x-axis-info"), labelContent, 0, i - 5);
@@ -548,7 +500,7 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
                                                         // draw last tangant point in upline graph
                                                         pt_tx += ' ' + width + ',' + y_tx;
                                                         pt_tx += ' ' + width + ',' + height;
-							
+
                                                         uptopline.setAttribute('points', pt_tx);
 						}
 
@@ -695,7 +647,7 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
                                                         // draw last tangant point in upline graph
                                                         pt_rx += ' ' + width + ',' + y_rx;
                                                         pt_rx += ' ' + width + ',' + height;
-							
+
                                                         dntopline.setAttribute('points', pt_rx);
 						}
 
@@ -746,9 +698,9 @@ function createQosDownloadStatsFooter(name, qdisc, color, label){
 
 // Set 1h reload page timer because of suspected SVG graph memmory leak
 window.setTimeout(function()
-{ 
+{
         if (activating == false)
-                location.reload(true) 
+                location.reload(true)
 }, 3600000)
 
 //]]></script>
