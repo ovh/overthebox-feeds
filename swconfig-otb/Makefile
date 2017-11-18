@@ -3,7 +3,6 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=python-swconfig-otb
 PKG_VERSION:=1.2
 PKG_RELEASE:=1
-PKG_MAINTAINER:=Martin Wetterwald <martin.wetterwald@corp.ovh.com>
 PKG_LICENSE:=MIT
 
 PKG_BUILD_DEPENDS:=python python-setuptools

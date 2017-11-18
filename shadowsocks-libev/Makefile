@@ -17,7 +17,6 @@ PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev/releases/downlo
 PKG_HASH:=3b6493ebdcfff1eb31faf34d164d57049f7253ff5bffafa6ce2263c9ac123f31
 
 PKG_LICENSE:=GPL-3.0+
-PKG_MAINTAINER:=DUPONCHEEL Sébastien <sebastien.duponcheel@corp.ovh.com>
 
 PKG_FIXUP:=autoreconf
 PKG_USE_MIPS16:=0
