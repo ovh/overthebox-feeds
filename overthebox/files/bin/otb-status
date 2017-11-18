@@ -32,19 +32,19 @@ if [ "$COLOR" = 1 ]; then
 	COLOR_RED='1;31'
 fi
 
-WIDTH=62
-HEADERS="INTERFACE DEVICE STATUS PUBLIC_IP"
-DATA='.device, $connectivity, $public_ip'
+WIDTH=73
+HEADERS="INTERFACE DEVICE STATUS PUBLIC_IP LATENCY"
+DATA='.device, $connectivity, $public_ip, $latency'
 if [ "$FULL" = "1" ]; then
-	WIDTH=80
+	WIDTH=$((WIDTH + 18))
 	DATA="$DATA, .metric, .ip4table"
 	HEADERS="$HEADERS METRIC TABLE"
 fi
 TABLE_WIDTH=$((WIDTH + 2))
 
 _print() {
-	format="| %-15s | %-15s | \e[${1}m%-6s\e[m | %-15s |"
-	[ "$COLOR" = 0 ] && format="| %-15s | %-15s | %-6s | %-15s |"
+	format="| %-15s | %-15s | \e[${1}m%-6s\e[m | %-15s | %-8s |"
+	[ "$COLOR" = 0 ] && format="| %-15s | %-15s | %-6s | %-15s | %-8s |"
 	[ "$FULL" = 1 ] && format="$format %-6s | %-6s |"
 	shift
 	# shellcheck disable=SC2059
@@ -67,13 +67,16 @@ _print_header() {
 _show_interface_status() {
 	connectivity=$(otb_get_data "$1/connectivity")
 	public_ip=$(otb_get_data "$1/public_ip")
+	latency=$(otb_get_data "$1/latency")
 	[ -z "$connectivity" ] && connectivity="-"
 	[ -z "$public_ip" ] && public_ip="-"
+	[ -z "$latency" ] && latency="-"
 
 	status=$(ubus call "network.interface.$1" status | \
 		jq -r --arg iface "$1" \
 		      --arg connectivity "$connectivity" \
 		      --arg public_ip "$public_ip" \
+		      --arg latency "${latency}ms" \
 				"[\$iface, $DATA | tostring] | join(\" \")")
 
 	# shellcheck disable=SC2086
