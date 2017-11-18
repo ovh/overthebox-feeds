@@ -20,3 +20,49 @@ _simplify_classes() {
 
 config_load dscp
 config_foreach _simplify_classes classify
+
+_remove_both() {
+	direction=   ; config_get direction "$1" direction "upload"
+	[ $direction = "both" ] || return 0
+
+	proto=""     ; config_get proto "$1" proto all
+	src_ip=""    ; config_get src_ip "$1" src_ip
+	src_port=""  ; config_get src_port "$1" src_port
+	dest_ip=""   ; config_get dest_ip "$1" dest_ip
+	dest_port="" ; config_get dest_port "$1" dest_port
+	class=""     ; config_get class "$1" class
+	comment=""   ; config_get comment "$1" comment
+
+	# Upload
+	uci -q batch <<-EOF
+	add dscp classify
+	set dscp.@classify[-1]=classify
+	set dscp.@classify[-1].direction=upload
+	set dscp.@classify[-1].proto=$proto
+	set dscp.@classify[-1].class=$class
+	set dscp.@classify[-1].comment="$comment - upload"
+	EOF
+	[ -n "$dest_port" ] && uci -q set "dscp.@classify[-1].dest_port=$dest_port"
+	[ -n "$src_port" ]  && uci -q set "dscp.@classify[-1].src_port=$src_port"
+	[ -n "$dest_ip" ]   && uci -q set "dscp.@classify[-1].dest_ip=$dest_ip"
+	[ -n "$src_ip" ]    && uci -q set "dscp.@classify[-1].src_ip=$src_ip"
+
+	# Download - Reverse the directions
+	uci -q batch <<-EOF
+	add dscp classify
+	set dscp.@classify[-1]=classify
+	set dscp.@classify[-1].direction=download
+	set dscp.@classify[-1].proto=$proto
+	set dscp.@classify[-1].class=$class
+	set dscp.@classify[-1].comment="$comment - download"
+	EOF
+	[ -n "$dest_port" ] && uci -q set "dscp.@classify[-1].src_port=$dest_port"
+	[ -n "$src_port" ]  && uci -q set "dscp.@classify[-1].dest_port=$src_port"
+	[ -n "$dest_ip" ]   && uci -q set "dscp.@classify[-1].src_ip=$dest_ip"
+	[ -n "$src_ip" ]    && uci -q set "dscp.@classify[-1].dest_ip=$src_ip"
+
+	uci -q delete "dscp.$1"
+}
+
+config_load dscp
+config_foreach _remove_both classify
