@@ -28,7 +28,6 @@ direction = s:option(ListValue, "direction", translate("Direction"))
 	direction.rmempty = false
 	direction:value("upload")
 	direction:value("download")
-	direction:value("both")
 
 proto = s:option(Value, "proto", translate("Protocol"))
 	proto.default = "all"
