@@ -183,7 +183,7 @@ _launch_tracker() {
 _update_conf_and_ipt() {
 	_generate_conf "$1"
 	_populate_ipt_socks_redir "$1"
-	_populate_ipset_socks_bypass
+	_populate_ipset_socks_bypass "$1"
 	_populate_ipt_socks_hook
 	_update_ipt_monitoring_ip_rule "$1"
 }
@@ -217,6 +217,9 @@ _populate_ipset_socks_bypass() {
 	for net in $LOCALNETS; do
 		ipset add socks_staging "$net"
 	done
+
+	server= ; config_get server "$1" server
+	[ -n "$server" ] && ipset add socks_staging "$server/32"
 
 	# Add the static routes and the WAN ips to the exceptions list
 	config_load network
