@@ -6,6 +6,7 @@ PKG_RELEASE:=1
 
 PKG_SOURCE:=svfs-linux-amd64
 PKG_SOURCE_URL:=https://github.com/ovh/svfs/releases/download/v$(PKG_VERSION)
+PKG_HASH:=c9a24efa936fc66534253b6e9886024922ac29dd19b896ab72f0c4e14513dc7d
 
 include $(INCLUDE_DIR)/package.mk
 
