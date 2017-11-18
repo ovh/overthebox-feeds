@@ -8,7 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     fuse-utils luci-app-samba samba36-server \
-    rsync netcat svfs vim-full htop netdata \
+    rsync netcat svfs vim-full htop \
     iputils-ping bmon ethtool sysstat pciutils \
     mini_snmpd openvpn-openssl luci-app-openvpn \
     gdb
