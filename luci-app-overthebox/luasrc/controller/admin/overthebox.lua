@@ -341,6 +341,53 @@ function read_qos_cache()
   return data
 end
 
+function get_interface_from_metric(metric)
+  -- As a default value, we keep the metric
+  local ifname = metric
+  ucic:foreach("network", "interface",
+    function (interface)
+      local a = interface["metric"]
+      if ifname == metric and a == tostring(metric) then
+        ifname = interface["ifname"]
+        return
+      end
+    end
+  )
+  return ifname
+end
+
+function get_qos_label(qdisc, way)
+  local normalPriorityString = "Normal"
+  local latencyPriorityString = "Latency - VoIP"
+  local lowPriorityString = "Low priority"
+  local highPriorityString = "High priority"
+
+  if way == "upload" then
+    if qdisc == "Best Effort" then
+      return normalPriorityString
+    elseif qdisc == "Bulk" then
+      return lowPriorityString;
+    elseif qdisc == "Video" then
+      return highPriorityString;
+    elseif qdisc == "Voice" then
+      return latencyPriorityString
+    end
+  end
+
+  if way == "download" then
+    if qdisc == "2" then
+      return lowPriorityString;
+    elseif qdisc == "3" then
+      return normalPriorityString;
+    elseif qdisc == "4" then
+      return highPriorityString;
+    elseif qdisc == "5" then
+      return latencyPriorityString;
+    end
+  end
+  return qdisc
+end
+
 -- copied from the old overthebox.lua lib
 function tc_stats()
   local result = {}
@@ -352,19 +399,19 @@ function tc_stats()
         return
       end
 
-      cakestats = json.decode(sys.exec("tc -s q s dev " .. interface["ifname"] .. " | otb-cake-parser"))
+      local cakestats = json.decode(sys.exec("tc -s q s dev " .. interface["ifname"] .. " | otb-cake-parser"))
       if cakestats then
         for i,stat in pairs(cakestats) do
-          if result["upload"][i] == nil then
-            result["upload"][i] = {}
+          local label = get_qos_label(i, "upload")
+          if result["upload"][label] == nil then
+            result["upload"][label] = {}
           end
-          result["upload"][i][interface["ifname"]] = { bytes=stat["bytes"], pkt=stat["pkts"], dropped=0, overlimits=0, requeues=0 }
+          result["upload"][label][interface["ifname"]] = { bytes=stat["bytes"], pkt=stat["pkts"], dropped=0, overlimits=0, requeues=0 }
         end
       end
     end
   )
 
-  output = {}
   result["download"] = {}
   local tcstats = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
   if tcstats and tcstats.raw_output then
@@ -373,6 +420,7 @@ function tc_stats()
       table.insert(output, line)
     end
 
+    local curdev, curq
     for i=1, #output do
       if string.byte(output[i]) ~= string.byte(' ') then
         curdev = nil
@@ -386,11 +434,18 @@ function tc_stats()
       end
       if curdev and curq then
         for bytes, pkt, dropped, overlimits, reque in string.gmatch(output[i], "Sent (%d+) bytes (%d+) pkt %(dropped (%d+), overlimits (%d+) requeues (%d+)") do
-          -- print("["..curdev..", "..curq..", "..bytes.. ", "..pkt..", "..dropped..", "..overlimits..", ".. reque .. "]")
-          if result["download"][curq] == nil then
-            result["download"][curq] = {}
+          -- Get the metric from the queue number
+          -- If the queue is 173, the metric is 17 and the queue number is 3
+          local queue_nb = curq % 10
+          if queue_nb ~= 0 then
+            local metric = (curq - queue_nb)/10
+            local ifname = get_interface_from_metric(metric)
+            local label = get_qos_label(tostring(queue_nb), "download")
+            if result["download"][label] == nil then
+              result["download"][label] = {}
+            end
+            result["download"][label][ifname] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
           end
-          result["download"][curq][curdev] = { bytes=bytes, pkt=pkt, dropped=dropped, overlimits=overlimits, requeues=reque }
         end
       end
     end
