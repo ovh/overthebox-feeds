@@ -166,7 +166,7 @@ local has_dhcpdiscovery = fs.access("/tmp/dhcpdiscovery/dhcpdiscovery")
 	                                                content += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
 	                                                content += '<tr><td width="33%"><%:Leased router%></td>';
 	                                                content += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
-							content += '<tr><td width="33%"><%:Help%></td><td><a href="https://docs.ovh.com/pages/releaseview.action?pageId=18123335#Mes10premièresminutesavecOverTheBox-Modem1" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+							content += '<tr><td width="33%"><%:Help%></td><td><a href="https://docs.ovh.com/fr/overthebox/" target="_blank"><%:How to disable DHCP%></a></td></tr>';
 							content += '</table>';
 							content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
 							content += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
@@ -245,7 +245,7 @@ local has_dhcpdiscovery = fs.access("/tmp/dhcpdiscovery/dhcpdiscovery")
 						content += String.format('<td><a href="http://%s">%s</a></td></tr>', ipAddr, ipAddr);
 						content += '<tr><td width="33%"><%:Leased router%></td>';
 						content += String.format('<td><a href="http://%s">%s</a></td></tr>', router, router);
-						content += '<tr><td width="33%"><%:Help%></td><td><a href="https://docs.ovh.com/pages/releaseview.action?pageId=18123335#Mes10premièresminutesavecOverTheBox-Modem1" target="_blank"><%:How to disable DHCP%></a></td></tr>';
+						content += '<tr><td width="33%"><%:Help%></td><td><a href="https://docs.ovh.com/fr/overthebox/" target="_blank"><%:How to disable DHCP%></a></td></tr>';
 						content += '</table>';
 						content += '<div id="dhcp_recheck_button" class="cbi-page-actions">';
 						content += '<input type="button" onclick="recheck_dhpcserver()" value="<%:Recheck%>" class="cbi-button cbi-button-apply" />';
