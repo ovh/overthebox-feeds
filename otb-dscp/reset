@@ -1,0 +1,9 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+if [ -f /etc/config/dscp-opkg ]; then
+	cp /etc/config/dscp-opkg /etc/config/dscp
+elif [ -d /rom ]; then
+	cp /rom/etc/config/dscp /etc/config/dscp
+fi
