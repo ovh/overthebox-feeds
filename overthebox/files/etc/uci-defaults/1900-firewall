@@ -56,6 +56,7 @@ config_foreach _setup zone
 config_foreach _delete_mptcp_forwarding forwarding
 
 uci -q batch <<-EOF
+set firewall.lan.mtu_fix=1
 del_list firewall.lan.network=if0
 del_list firewall.wan.network=if0
 add_list firewall.wan.network=if0
