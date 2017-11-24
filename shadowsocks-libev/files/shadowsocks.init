@@ -422,12 +422,6 @@ _update_ipt_monitoring_ip_rule() {
 	# Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
 	$IPT -F socks_emitted_by_myself
 
-	# downloads.overthebox.net and provisionning.overthebox.net should go through the tunnel with a cs2 priority
-	$IPT -A socks_emitted_by_myself -d "downloads.overthebox.net" -p tcp \
-		-m comment --comment "downloads.overthebox.net (CS2)" -j REDIRECT --to-ports $((lport + 2))
-	$IPT -A socks_emitted_by_myself -d "provisionning.overthebox.net" -p tcp --dport 4443 \
-		-m comment --comment "provisionning.overthebox.net (CS2)" -j REDIRECT --to-ports $((lport + 2))
-
 	# Only add the rule if monitoring_ip is set and the tracker binary is there
 	if [ -n "$monitoring_ip" -a -x "$TRACKER" ]; then
 		# Add the special rule so that when we send a packet to the monitoring_ip, it flows through ss-redir
