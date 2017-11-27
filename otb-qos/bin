@@ -1,0 +1,150 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+# shellcheck disable=SC1091
+. /lib/functions.sh
+# shellcheck disable=SC1091
+. /lib/overthebox
+
+config_load network
+
+_log() {
+	logger -t otb-qos "$@"
+}
+
+_check_and_setup_remote_qos() {
+	[ -z "$1" ] && return
+	ifname=''   ; config_get ifname   "$1" ifname
+	metric=''   ; config_get metric   "$1" metric
+	download='' ; config_get download "$1" download
+	upload=''   ; config_get upload   "$1" upload
+
+	if [ -z "$download" ] ; then
+		_log "skipping $ifname because has no download value"
+		return 0
+	fi
+
+	# Get the public IP
+	public_ip=$(otb_get_data "$1/public_ip")
+	if [ -z "$public_ip" ]; then
+		_log "missing public IP for $ifname, can't apply the download QoS for now"
+		return 0
+	fi
+
+	current_qos_data=$(otb_get_data "$1/qos")
+
+	# If there's no QoS, we can simply apply the new one
+	if [ -z "$current_qos_data" ] ; then
+		_log "QoS is not present, setting it up on $ifname"
+		_setup_remote_qos "$1"
+		return 0
+	fi
+
+	qos_data="$metric-$download-$public_ip"
+
+	# If the QoS configured the good one, return
+	if [ "$current_qos_data" = "$qos_data" ]; then
+		_log "QoS is already good on $ifname"
+		return 0
+	fi
+
+	_log "QoS has changed on $ifname need to restart"
+	_stop
+	_start
+}
+
+_setup_remote_qos() {
+	ifname=''   ; config_get ifname   "$1" ifname
+	metric=''   ; config_get metric   "$1" metric
+	download='' ; config_get download "$1" download
+	upload=''   ; config_get upload   "$1" upload
+
+	# Get the public IP
+	public_ip=$(otb_get_data "$1/public_ip")
+	if [ -z "$public_ip" ]; then
+		_log "missing public IP for $ifname, can't apply the download QoS for now"
+		return 0
+	fi
+
+	qos_data="$metric-$download-$public_ip"
+
+	otb_set_data "$1/qos" "$qos_data"
+
+	_log "sending download QoS on $ifname [$1] - maximum download ${download}kbps"
+
+	#shellcheck disable=SC2016
+	jq -n -c \
+		--arg ifname "$ifname" \
+		--arg metric "$metric" \
+		--arg download "$download" \
+		--arg upload "$upload" \
+		--arg public_ip "$public_ip" \
+		'{
+			interface: $ifname,
+			metric: $metric,
+			wan_ip: $public_ip,
+			downlink: $download,
+			uplink: $upload,
+		}' | otb_todo otb_call_api PUT qos -d@-
+}
+
+_setup_qos() {
+	trafficcontrol=
+	config_get trafficcontrol "$1" trafficcontrol
+	[ "$trafficcontrol" = static ] || return 0
+
+	multipath='' ; config_get multipath "$1" multipath
+	case "$multipath" in
+		master|on|backup|handover) ;;
+		*) return 0 ;;
+	esac
+
+	ifname=''   ; config_get ifname   "$1" ifname
+	metric=''   ; config_get metric   "$1" metric
+	download='' ; config_get download "$1" download
+	upload=''   ; config_get upload   "$1" upload
+
+	_log "setting upload QoS on $ifname [$1] to ${upload}kbps"
+	tc qdisc rep dev "$ifname" root cake bandwidth "$upload"kbit diffserv4 flows memlimit 10m
+
+	_setup_remote_qos "$1"
+}
+
+_stop_qos() {
+	ifname=
+	config_get ifname "$1" ifname
+
+	if tc qdisc del dev "$ifname" root cake 2>/dev/null; then
+		_log "upload QoS deleted on $ifname [$1]"
+	fi
+	otb_unset_data "$1/qos"
+}
+
+_start() {
+	config_foreach _setup_qos interface
+}
+
+_stop() {
+	# Delete the QoS locally
+	config_foreach _stop_qos interface
+	# Delete the QoS remotely
+	otb_todo otb_call_api DELETE qos </dev/null
+}
+
+case "$1" in
+	start)
+		_log "starting QoS"
+		_start
+		;;
+	stop)
+		_log "stopping QoS"
+		_stop
+		;;
+	setup)
+		_log "setup QoS $2"
+		_check_and_setup_remote_qos "$2"
+		;;
+	*) exit 1 ;;
+esac
