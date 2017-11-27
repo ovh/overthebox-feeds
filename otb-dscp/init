@@ -128,11 +128,17 @@ _setup_tunnel() {
 	esac
 }
 
-start_service() {
-	# Cleanup
+_cleanup() {
 	_remove_prerouting_chain dscp_prerouting
 	_remove_prerouting_chain dscp_mark
 	_remove_output_chain dscp_output
+
+	otb_todo otb_call_api DELETE "dscp" </dev/null
+}
+
+start_service() {
+	# Cleanup
+	_cleanup
 
 	# Add chains
 	_add_prerouting_chain dscp_prerouting
@@ -146,15 +152,10 @@ start_service() {
 }
 
 stop_service() {
-	_remove_prerouting_chain dscp_prerouting
-	_remove_prerouting_chain dscp_mark
-	_remove_output_chain dscp_output
-
-	otb_todo otb_call_api DELETE "dscp" </dev/null
+	_cleanup
 }
 
 reload_service() {
-	stop
 	start
 }
 
