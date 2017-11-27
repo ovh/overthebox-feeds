@@ -112,6 +112,10 @@ otb_set_data() {
 	echo "$2" > "$OTB_DATA_DIR/$1"
 }
 
+otb_unset_data() {
+	rm -f "$OTB_DATA_DIR/$1"
+}
+
 otb_get_data() {
 	[ -f "$OTB_DATA_DIR/$1" ] || return 0
 	cat "$OTB_DATA_DIR/$1"
