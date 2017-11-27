@@ -40,6 +40,9 @@ otb_set_data "$OTB_TRACKER_INTERFACE/public_ip" "$pub_ip"
 
 [ "$pub_ip" = "$pub_ip_old" ] && exit 0
 
+# Setup the QoS on the interface when it gets a new public IP
+otb-qos setup "$OTB_TRACKER_INTERFACE"
+
 asn=$(_curl api.iptoasn.com/v1/as/ip/"$pub_ip")
 [ -z "$asn" ] && exit 1
 
