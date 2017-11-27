@@ -15,7 +15,7 @@ if [ -z "$PKGS" ]; then
 	exit 0
 fi
 
-if opkg info base-files | awk '/Version/{a[$0]++}END{exit length(a)!=1}'; then
+if ! opkg info base-files | awk '/Version/{a[$0]++}END{exit length(a)!=1}'; then
 	echo "Upgrading is not possible... Please consider a sysupgrade."
 	exit 1
 fi
