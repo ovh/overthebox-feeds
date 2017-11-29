@@ -1,4 +1,4 @@
-# shellcheck disable=SC2034
+# shellcheck disable=SC2034,SC2031
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 OTB_TODO_DIR="/tmp/otb-todo"
@@ -7,6 +7,8 @@ OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 
 otb_reload() {
+	. /etc/os-release
+
 	OTB_DEVICE_ID=$(uci -q get overthebox.me.device_id || true)
 	OTB_SERVICE_ID=$(uci -q get overthebox.me.service || true)
 	OTB_TOKEN=$(uci -q get overthebox.me.token || true)
@@ -62,6 +64,7 @@ otb_call() {
 		-H "Content-Type: application/json" \
 		-H "X-Auth-OVH: $OTB_TOKEN" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
+		-H "X-Overthebox-System-Version: $VERSION_ID" \
 		"https://provisionning.overthebox.net:4443/$path" \
 		"$@"
 }
