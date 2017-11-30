@@ -103,6 +103,7 @@ test_interface() {
 	download=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1024")
 
 	printf "%s Kbps\n" "$download"
+	sleep 1
 }
 
 # -- Get the wan ip of the service
@@ -119,8 +120,11 @@ setup
 trap : HUP INT TERM
 
 config_load network
-# For each interface, run test_interface
-config_foreach test_interface interface
+if [ -n "$1" ]; then
+	test_interface "$1"
+else
+	config_foreach test_interface interface
+fi
 
 # Cleanup when the test is done
 cleanup
