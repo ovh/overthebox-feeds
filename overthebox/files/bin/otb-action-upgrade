@@ -1,10 +1,17 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-UPGRADE_DIR="/tmp/otb-upgrade"
 
 set -e
 set -o pipefail
+
+if [ -n "$1" ]; then
+	. /lib/overthebox
+
+	# always rewrite distfeeds.conf if the channel is not develop
+	channel=$(otb_json_get "$1" "arguments.release_channel")
+	[ "$channel" = "develop" ] || otb-action-updateReleaseChannel
+fi
 
 opkg update
 
@@ -19,6 +26,8 @@ if ! opkg info base-files | awk '/Version/{a[$0]++}END{exit length(a)!=1}'; then
 	echo "Upgrading is not possible... Please consider a sysupgrade."
 	exit 1
 fi
+
+UPGRADE_DIR="/tmp/otb-upgrade"
 
 rm -rf $UPGRADE_DIR
 mkdir -p $UPGRADE_DIR
