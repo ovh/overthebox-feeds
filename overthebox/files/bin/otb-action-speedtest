@@ -119,9 +119,13 @@ setup
 # Cleanup getting a SIGINT/HUP/TERM signal
 trap : HUP INT TERM
 
+# Ignore valid json input
+INPUT=$1
+echo "$1" | jq --exit-status . 1>/dev/null 2>/dev/null && INPUT=
+
 config_load network
-if [ -n "$1" ]; then
-	test_interface "$1"
+if [ -n "$INPUT" ]; then
+	test_interface "$INPUT"
 else
 	config_foreach test_interface interface
 fi
