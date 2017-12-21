@@ -21,8 +21,7 @@ fi
 
 otb_todo otb-action-refreshProperties </dev/null
 
-while true; do
-	sleep 1
+_run() {
 	otb_reload
 
 	# check config
@@ -31,35 +30,43 @@ while true; do
 	done
 	reload_config
 
-	[ -z "$OTB_DEVICE_ID" ] && {
+	if [ -z "$OTB_DEVICE_ID" ]; then
 		otb-subscribe
-		continue
-	}
+		return
+	fi
 
 	# todo
 	for file in "$OTB_TODO_DIR"/*; do
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
-	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || continue
+	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || return
 
 	if [ -z "$OTB_SERVICE_ID" ]; then
 		read -r LINE < "$OTB_HEADERS_FILE"
 		case "$LINE" in
-			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; continue ;;
+			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; return ;;
 		esac
 	fi
 
 	action=$(otb_json_get "$ret" action)
 	id=$(otb_json_get "$ret" id)
 	otb_debug "Got action '$action' with id '$id'"
-	[ -z "$action" ] || [ "$action" = "null" ] && continue
+	[ -z "$action" ] || [ "$action" = "null" ] && return
 
 	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
-	[ -z "$id" ] || [ "$id" = "null" ] && continue
+	[ -z "$id" ] || [ "$id" = "null" ] && return
 
 	# shellcheck disable=SC2016
 	jq -c -n --arg status "$status" --arg details "$details" \
 		'{status: $status, details: $details}' | otb_device_post "actions/$id" -d@-
+}
+
+RUNNING=1
+trap 'RUNNING=' INT QUIT TERM
+
+while [ "$RUNNING" ]; do
+	sleep 1
+	_run
 done
