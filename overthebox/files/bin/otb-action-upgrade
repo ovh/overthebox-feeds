@@ -37,4 +37,4 @@ for PKG in $PKGS; do
 	opkg upgrade --download-only "$PKG"
 done
 
-opkg install --autoremove --force-overwrite ./*.ipk
+opkg install --autoremove --force-reinstall --force-overwrite ./*.ipk
