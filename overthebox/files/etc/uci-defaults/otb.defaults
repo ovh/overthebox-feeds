@@ -36,11 +36,16 @@ if [ "$has_api_hostrecord" = "false" ]; then
 	EOF
 fi
 
-grep -q api /etc/hosts || \
-	echo "169.254.254.1 api" >> /etc/hosts
+# Update (and fix) /etc/hosts
 
-grep -q provisionning /etc/hosts || \
-	echo "213.186.33.11 provisionning.overthebox.net" >> /etc/hosts
+awk '!/#/{if(x[$1]++)next}{print $0}' > /tmp/hosts.new <<EOF
+$(cat /etc/hosts)
+169.254.254.1 api
+213.186.33.11 provisionning.overthebox.net
+EOF
+
+cmp -s /tmp/hosts.new /etc/hosts
+[ "$?" = 1 ] && cp -f /tmp/hosts.new /etc/hosts
 
 # TODO: check if we still need this with LEDE
 # Clean the ca-certificates files
