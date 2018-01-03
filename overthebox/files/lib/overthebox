@@ -6,6 +6,9 @@ OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 
+OTB_PROVISIONING_HOST="provisionning.overthebox.net:4443"
+OTB_PROVISIONING_IP="213.186.33.11"
+
 otb_reload() {
 	OTB_DEVICE_ID=$(uci -q get overthebox.me.device_id || true)
 	OTB_SERVICE_ID=$(uci -q get overthebox.me.service || true)
@@ -55,15 +58,20 @@ otb_json_get() {
 otb_call() {
 	method=$1
 	path=$2
+	version="$(cat /etc/otb-version || echo 0.0-0)"
 	shift 2
 	otb_debug "call: $method $path $*"
-	curl --silent --show-error --max-time 5 \
-		-X "$method" \
-		-H "Content-Type: application/json" \
-		-H "X-Auth-OVH: $OTB_TOKEN" \
-		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		"https://provisionning.overthebox.net:4443/$path" \
-		"$@"
+	_otb_call() {
+		curl --silent --max-time 5 \
+			-X "$method" \
+			-H "Content-Type: application/json" \
+			-H "X-Auth-OVH: $OTB_TOKEN" \
+			-H "X-Overthebox-Version: $version" \
+			"https://$OTB_PROVISIONING_HOST/$path" \
+			"$@"
+	}
+	_otb_call "$@" || _otb_call --show-error --resolve \\
+		"$OTB_PROVISIONING_HOST:$OTB_PROVISIONING_IP" "$@"
 }
 
 otb_call_api() {
