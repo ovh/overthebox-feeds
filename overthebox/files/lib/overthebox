@@ -6,12 +6,10 @@ OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 
-OTB_PROVISIONING_DOMAIN="provisionning.overthebox.net"
-OTB_PROVISIONING_DEFAULT_IP="213.186.33.11"
-OTB_PROVISIONING_PORT="4443"
+OTB_PROVISIONING_HOST="provisionning.overthebox.net:4443"
+OTB_PROVISIONING_IP="213.186.33.11"
 
 otb_reload() {
-	OTB_PROVISIONING_IP=
 	OTB_DEVICE_ID=$(uci -q get overthebox.me.device_id || true)
 	OTB_SERVICE_ID=$(uci -q get overthebox.me.service || true)
 	OTB_TOKEN=$(uci -q get overthebox.me.token || true)
@@ -57,33 +55,23 @@ otb_json_get() {
 	jq -r -n --argjson content "$1" "\$content.$2"
 }
 
-otb_set_provisioning_ip() {
-	_ip=$(dig +timeout="2" +short "$OTB_PROVISIONING_DOMAIN" || true)
-
-	if [ "$(ipcalc.sh "$_ip" | grep IP)" = "IP=$_ip" ]; then
-		OTB_PROVISIONING_IP=$_ip
-		return 0
-	fi
-
-	otb_warn "Failed to resolve the provisioning IP, fallback to the default IP"
-
-	OTB_PROVISIONING_IP=$OTB_PROVISIONING_DEFAULT_IP
-}
-
 otb_call() {
 	method=$1
 	path=$2
+	version="$(cat /etc/otb-version || echo 0.0-0)"
 	shift 2
-	[ -z "$OTB_PROVISIONING_IP" ] && otb_set_provisioning_ip
 	otb_debug "call: $method $path $*"
-	curl --silent --show-error --max-time 5 \
-		--resolve "$OTB_PROVISIONING_DOMAIN:$OTB_PROVISIONING_PORT:$OTB_PROVISIONING_IP" \
-		-X "$method" \
-		-H "Content-Type: application/json" \
-		-H "X-Auth-OVH: $OTB_TOKEN" \
-		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		"https://$OTB_PROVISIONING_DOMAIN:$OTB_PROVISIONING_PORT/$path" \
-		"$@"
+	_otb_call() {
+		curl --silent --max-time 5 \
+			-X "$method" \
+			-H "Content-Type: application/json" \
+			-H "X-Auth-OVH: $OTB_TOKEN" \
+			-H "X-Overthebox-Version: $version" \
+			"https://$OTB_PROVISIONING_HOST/$path" \
+			"$@"
+	}
+	_otb_call "$@" || _otb_call --show-error --resolve \\
+		"$OTB_PROVISIONING_HOST:$OTB_PROVISIONING_IP" "$@"
 }
 
 otb_call_api() {
