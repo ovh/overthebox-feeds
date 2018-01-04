@@ -88,7 +88,7 @@
 						if (stepbar)
 							stepbar.dhcp.status = "done"
 						var dhcp = mArray.overthebox.dhcpd[dhcpd];
-						content += String.format('<span style="text-transform:capitalize;">%s</span> address: %s<br />', dhcp.interface, dhcp.router)
+						content += String.format('<span style="text-transform:capitalize;">%s</span> address: %s<br />', dhcp.interface, dhcp.ip)
 						content += String.format('<span style="text-transform:capitalize;">%s</span> range: %s - %s<br />', dhcp.interface, dhcp.range_start, dhcp.range_end)
 					}
 				}
