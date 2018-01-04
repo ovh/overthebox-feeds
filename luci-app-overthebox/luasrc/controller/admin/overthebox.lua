@@ -202,14 +202,15 @@ function interfaces_status()
     mArray.overthebox.dhcpd[itf].netmask = mask
     mArray.overthebox.dhcpd[itf].leasetime = leasetime
     mArray.overthebox.dhcpd[itf].router = mArray.overthebox["local_addr"]
+    mArray.overthebox.dhcpd[itf].ip = mArray.overthebox["local_addr"]
     mArray.overthebox.dhcpd[itf].dns = mArray.overthebox["local_addr"]
   end
   for itf, option, value in dnsmasq:gmatch("option=(%w+),([%w:-]+),(%d+\.%d+\.%d+\.%d+)") do
     if mArray.overthebox.dhcpd[itf] then
-      if option == "option:router" or option == "6" then
+      if option == "option:router" or option == "3" then
         mArray.overthebox.dhcpd[itf].router = value
       end
-      if option == "option:dns-server" or option == "" then
+      if option == "option:dns-server" or option == "6" then
         mArray.overthebox.dhcpd[itf].dns = value
       end
     end
