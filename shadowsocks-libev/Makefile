@@ -9,12 +9,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocks-libev
-PKG_VERSION:=3.1.0
+PKG_VERSION:=3.1.2
 PKG_RELEASE:=8
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev/releases/download/v$(PKG_VERSION)
-PKG_HASH:=3b6493ebdcfff1eb31faf34d164d57049f7253ff5bffafa6ce2263c9ac123f31
+PKG_HASH:=3611f09793af923d988ecbd15ad89fb66839e51a0059685d8f88c0131658e4a7
 
 PKG_LICENSE:=GPL-3.0+
 
