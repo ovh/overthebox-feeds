@@ -11,8 +11,9 @@ MY_DEPENDS := \
     rsync netcat TARGET_x86_64:svfs vim-full htop \
     iputils-ping bmon ethtool sysstat pciutils \
     mini_snmpd openvpn-openssl luci-app-openvpn \
-		gdb luci-proto-qmi usb-modeswitch kmod-mii \
-		kmod-usb-net kmod-usb-wdm kmod-usb-net-qmi-wwan uqmi
+    gdb luci-proto-qmi usb-modeswitch kmod-mii \
+    kmod-usb-net kmod-usb-wdm kmod-usb-net-qmi-wwan uqmi \
+    iptables-mod-led kmod-leds-apu2 kmod-ipt-led
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
