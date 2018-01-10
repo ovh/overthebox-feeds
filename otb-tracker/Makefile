@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-tracker
-PKG_VERSION:=1.11
+PKG_VERSION:=1.12
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
