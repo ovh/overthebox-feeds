@@ -34,7 +34,7 @@ fi
 
 WIDTH=73
 HEADERS="INTERFACE DEVICE STATUS PUBLIC_IP LATENCY"
-DATA='.device, $connectivity, $public_ip, $latency'
+DATA='if .l3_device then .l3_device else .device end, $connectivity, $public_ip, $latency'
 if [ "$FULL" = "1" ]; then
 	WIDTH=$((WIDTH + 18))
 	DATA="$DATA, .metric, .ip4table"
