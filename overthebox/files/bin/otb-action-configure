@@ -117,6 +117,7 @@ set shadowsocks.proxy.track_interval=$(_get shadow_conf.track_interval)
 set shadowsocks.proxy.track_timeout=$(_get shadow_conf.track_timeout)
 set shadowsocks.proxy.track_retry=$(_get shadow_conf.track_retry)
 set shadowsocks.proxy.password=$(_get shadow_conf.password)
+set shadowsocks.proxy.disabled=$(_get shadow_conf.disabled)
 
 set system.@system[0].log_ip=$(_get log_conf.host)
 set system.@system[0].log_port=$(_get log_conf.port)
