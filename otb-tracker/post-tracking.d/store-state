@@ -1,4 +1,5 @@
-# shellcheck disable=1091
+#!/bin/sh
+# shellcheck disable=SC1091,SC1090
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 otb_set_data "$OTB_TRACKER_INTERFACE/latency" "$OTB_TRACKER_LATENCY"
@@ -10,3 +11,13 @@ old_status=$(otb_get_data "$OTB_TRACKER_INTERFACE/connectivity")
 _log "$OTB_TRACKER_INTERFACE tracking status changed to $OTB_TRACKER_STATUS"
 
 otb_set_data "$OTB_TRACKER_INTERFACE/connectivity" "$OTB_TRACKER_STATUS"
+
+# Launch post tracking script when interface connectivity changes
+for tracker_bin in /usr/share/otb/connectivity-change-hook.d/*; do
+	[ -x "$tracker_bin" ] && (
+		_log() {
+			logger -t "connectivity-change-${tracker_bin##*/}" "$*"
+		}
+		. "$tracker_bin"
+	)
+done
