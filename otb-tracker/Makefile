@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-tracker
-PKG_VERSION:=1.12
+PKG_VERSION:=1.13
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -32,6 +32,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_BIN) post-tracking.d/* $(1)/usr/share/otb/post-tracking.d
+	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DATA) config $(1)/etc/config/$(PKG_NAME)
 endef
