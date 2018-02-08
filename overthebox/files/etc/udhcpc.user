@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2154,SC1091
+# shellcheck disable=SC2154,SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 action="$1"
@@ -69,7 +69,7 @@ manage_if0() {
 		set network.if${_id}.netmask=$subnet
 		set network.if${_id}.multipath=on
 		set network.if${_id}.gateway="$router"
-		set network.if${_id}.dns=$dns
+		set network.if${_id}.dns="$dns"
 		set network.${INTERFACE}_dev.macaddr=auto.if$_id
 		commit network
 
@@ -85,7 +85,7 @@ manage_if0() {
 		set dhcp.if${_id}_gw=tag
 		add_list dhcp.if${_id}_gw.dhcp_option=1,$subnet
 		add_list dhcp.if${_id}_gw.dhcp_option=3,$router
-		add_list dhcp.if${_id}_gw.dhcp_option=6,$dns
+		add_list dhcp.if${_id}_gw.dhcp_option=6,${dns// /,}
 		commit dhcp
 		EOF
 	else
