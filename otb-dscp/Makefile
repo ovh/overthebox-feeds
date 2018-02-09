@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-dscp
-PKG_VERSION:=0.8
+PKG_VERSION:=0.9
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -33,7 +33,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) reset $(1)/bin/otb-dscp-reset
 	$(INSTALL_DIR) $(1)/etc/config
-	$(CP) config $(1)/etc/config/dscp
+	./reset $(1)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
