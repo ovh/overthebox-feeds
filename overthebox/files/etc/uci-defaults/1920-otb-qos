@@ -4,6 +4,24 @@
 
 . /lib/functions.sh
 
+# If dscp config file hasn't change, ensure that it's up to date
+# 8103cf3ee36bc1855042709f062e1df7 : file from 7a6bf7db2f
+# 55411026b89bd3b2d81f32cb57d9a6ef : file from 8b1a8715d2
+# 7e091b8bf4383a43543fbf9e0fff418e : file from 0a57725b4c
+checksums="
+	8103cf3ee36bc1855042709f062e1df7
+	1319bd4ebb7ee3685eb3839bd9f5c51b
+	7e091b8bf4383a43543fbf9e0fff418e
+"
+
+for chksum in $checksums; do
+        if echo "$chksum  /etc/config/dscp" | md5sum -sc; then
+                echo "setting up new dscp config file"
+                otb-dscp-reset
+                exit 0
+        fi
+done
+
 _simplify_classes() {
 	class=
 	config_get class "$1" class "cs0"
