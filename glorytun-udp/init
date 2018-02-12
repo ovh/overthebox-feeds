@@ -36,11 +36,16 @@ _setup_bind_args() {
 	multipath=
 	config_get multipath "$1" multipath
 
+	ipaddr=
+	network_get_ipaddr ipaddr "$1"
+	[ -n "$ipaddr" ] || return
+
 	case "$multipath" in
 	on|master)
-		ipaddr=
-		network_get_ipaddr ipaddr "$1"
-		[ -n "$ipaddr" ] && BIND_ARGS="${BIND_ARGS}${ipaddr},"
+		BIND_ARGS="${BIND_ARGS}${ipaddr},"
+		;;
+	backup)
+		BIND_BACKUP_ARGS="${ipaddr}"
 		;;
 	esac
 }
@@ -64,6 +69,7 @@ start_instance() {
 	. /lib/functions/network.sh
 
 	BIND_ARGS=
+	BIND_BACKUP_ARGS=
 	config_load network
 	config_foreach _setup_bind_args interface
 
@@ -83,6 +89,7 @@ start_instance() {
 		bind "$BIND_ARGS" \
 		keyfile /tmp/$PROG_NAME.key \
 		host "$server" \
+		${BIND_BACKUP_ARGS:+bind-backup "$BIND_BACKUP_ARGS"} \
 		${dev:+dev "$dev"} \
 		${port:+port "$port" bind-port "$port"} \
 		${mtu:+mtu "$mtu"} \
