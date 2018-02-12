@@ -1,0 +1,42 @@
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# This script sets up the DNS servers to use if the secured tunnel is up and
+# running
+
+[ "$OTB_TRACKER_INTERFACE" = "tun0" ] || exit 0
+
+# TODO: let the client chose it's own DNS servers
+
+_set_ovh_dns() {
+	_log "Setting OVH DNS"
+
+	uci -q batch <<-EOF
+	set dhcp.@dnsmasq[0].noresolv=1
+	add_list dhcp.@dnsmasq[0].server=91.121.161.184
+	add_list dhcp.@dnsmasq[0].server=91.121.164.227
+	add_list dhcp.@dnsmasq[0].server=188.165.197.144
+	commit
+	EOF
+
+	_log "Done setting OVH DNS"
+}
+
+_unset_ovh_dns() {
+	_log "Removing OVH DNS"
+
+	uci -q batch <<-EOF
+	set dhcp.@dnsmasq[0].noresolv=0
+	del_list dhcp.@dnsmasq[0].server=91.121.161.184
+	del_list dhcp.@dnsmasq[0].server=91.121.164.227
+	del_list dhcp.@dnsmasq[0].server=188.165.197.144
+	commit
+	EOF
+
+	_log "Done removing OVH DNS"
+}
+
+if [ "$OTB_TRACKER_STATUS" = "OK" ]; then
+	_set_ovh_dns
+else
+	_unset_ovh_dns
+fi
