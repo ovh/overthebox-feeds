@@ -19,7 +19,7 @@ MY_DEPENDS := \
     tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
     lsblk dnsmasq-full kmod-nf-nathelper \
-    kmod-nf-nathelper-extra \
+    kmod-nf-nathelper-extra comgt \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
