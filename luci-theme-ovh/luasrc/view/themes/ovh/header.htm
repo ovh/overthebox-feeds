@@ -10,6 +10,7 @@
 	local util = require "luci.util"
 	local http = require "luci.http"
 	local disp = require "luci.dispatcher"
+	local otb  = require "luci.controller.admin.overthebox"
 
 	local boardinfo = util.ubus("system", "board")
 
@@ -117,7 +118,11 @@
   <header>
    <div class="fill">
     <div class="container" style="position: relative;">
+     <% if otb.isLogged() then %>
      <a class="brand" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>" alt="OVH"><img src="<%=resource%>/ovh/images/ovh-logo.png" alt="OVH" /></a>
+     <% else %>
+     <a class="brand" href="<%=pcdata(luci.dispatcher.build_url("admin/overthebox/overview"))%>" alt="Home">Home</a>
+     <% end %>
      <ul class="navigation">
 	 <%-
 		local function submenu(prefix, node)
