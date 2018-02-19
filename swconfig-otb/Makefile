@@ -2,13 +2,18 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-swconfig-otb
 PKG_VERSION:=1.2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_LICENSE:=MIT
 
 PKG_BUILD_DEPENDS:=python python-setuptools
 
 include $(INCLUDE_DIR)/package.mk
+-include $(TOPDIR)/feeds/packages/lang/python/python-package.mk
+
+# old style
+ifndef PYTHON_PKG_DIR
 $(call include_mk, python-package.mk)
+endif
 
 define Package/$(PKG_NAME)
   SECTION:=OVH
