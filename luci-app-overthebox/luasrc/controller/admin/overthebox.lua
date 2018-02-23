@@ -52,6 +52,7 @@ function index()
   entry({"admin", "overthebox", "activate"}, template("overthebox/index")).leaf = true
   entry({"admin", "overthebox", "passwd"}, post("action_passwd")).leaf = true
   entry({"admin", "overthebox", "new_interface"}, post("new_interface")).leaf = true
+  entry({"admin", "overthebox", "dscp_reset"}, post("dscp_reset")).leaf = true
 end
 
 function new_interface()
@@ -107,6 +108,11 @@ function new_interface()
   ucic:commit("firewall")
 
   luci.http.redirect(luci.dispatcher.build_url("admin/network/network/"..ifID))
+end
+
+function dscp_reset()
+  luci.sys.call("/bin/otb-dscp-reset")
+  luci.http.redirect(luci.dispatcher.build_url("admin/overthebox/dscp"))
 end
 
 function action_passwd()

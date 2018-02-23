@@ -10,6 +10,11 @@ local sys = require "luci.sys"
 m = Map("dscp", translate("Differentiated services"),
 	translate("Traffic may be classified by many different parameters, such as source address, destination address or traffic type and assigned to a specific traffic class."))
 
+s = m:section(SimpleSection, "DSCP Values", "")
+
+o = s:option(DummyValue, "_dscp_reset", "")
+o.template = "overthebox/dscp_reset"
+
 s = m:section(TypedSection, "classify", translate("Classification Rules"))
 s.template = "cbi/tblsection"
 s.anonymous = true
