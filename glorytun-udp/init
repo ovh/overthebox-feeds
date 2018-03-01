@@ -32,26 +32,8 @@ validate_section() {
 		'mtu_auto:bool'
 }
 
-_setup_bind_args() {
-	multipath=
-	config_get multipath "$1" multipath
-
-	ipaddr=
-	network_get_ipaddr ipaddr "$1"
-	[ -n "$ipaddr" ] || return
-
-	case "$multipath" in
-	on|master)
-		BIND_ARGS="${BIND_ARGS}${ipaddr},"
-		;;
-	backup)
-		BIND_BACKUP_ARGS="${ipaddr}"
-		;;
-	esac
-}
-
 start_instance() {
-	local enable key server port dev mtu
+	local enable key server port dev mtu mtu_auto
 
 	validate_section "$1" || {
 		_err "validation failed"
@@ -62,18 +44,8 @@ start_instance() {
 	[ -n "$key" ] || return 1
 	[ -n "$server" ] || return 1
 
-	echo "$key" > /tmp/${PROG_NAME}.key
+	( umask 077; echo "$key" > /tmp/${PROG_NAME}.key )
 	key=""
-
-	. /lib/functions.sh
-	. /lib/functions/network.sh
-
-	BIND_ARGS=
-	BIND_BACKUP_ARGS=
-	config_load network
-	config_foreach _setup_bind_args interface
-
-	[ -n "$BIND_ARGS" ] || return 1
 
 	case "$mtu_auto" in
 		true|yes|on|1) ;;
@@ -86,15 +58,12 @@ start_instance() {
 
 	# shellcheck disable=SC2086,SC2154
 	procd_set_param command $PROG \
-		bind "$BIND_ARGS" \
+		bind "0.0.0.0" "$port" \
+		to "$server" "$port" \
 		keyfile /tmp/$PROG_NAME.key \
-		host "$server" \
-		${BIND_BACKUP_ARGS:+bind-backup "$BIND_BACKUP_ARGS"} \
 		${dev:+dev "$dev"} \
-		${port:+port "$port" bind-port "$port"} \
 		${mtu:+mtu "$mtu"} \
-		${mtu_auto:+mtu-auto} \
-		v4only
+		${mtu_auto:+mtu auto}
 
 	procd_set_param respawn 0 30 0
 	procd_set_param file /tmp/${PROG_NAME}.key
@@ -111,6 +80,5 @@ start_service() {
 }
 
 service_triggers() {
-	procd_add_reload_trigger glorytun network
-	procd_add_raw_trigger "interface.*" 2000 /etc/init.d/$PROG_NAME reload
+	procd_add_reload_trigger glorytun
 }
