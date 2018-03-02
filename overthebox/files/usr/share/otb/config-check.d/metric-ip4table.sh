@@ -43,10 +43,12 @@ _setup_interface() {
 
 	# Remove duplicates
 	_remove_duplicates "$1" "metric"
+	_remove_duplicates "$1" "dns_metric"
 	_remove_duplicates "$1" "ip4table"
 
 	# Add missing values
 	_add_missing_value "$1" "metric" "$OTB_CONFIG_INTERFACE_METRIC_OFFSET"
+	_add_missing_value "$1" "dns_metric" "$OTB_CONFIG_INTERFACE_METRIC_OFFSET"
 	_add_missing_value "$1" "ip4table" "$OTB_CONFIG_INTERFACE_TABLE_OFFSET"
 }
 
