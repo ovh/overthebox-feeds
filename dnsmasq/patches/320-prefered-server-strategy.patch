@@ -1,0 +1,76 @@
+diff --git a/src/forward.c b/src/forward.c
+index 942b02d..598204f 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -306,6 +306,12 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ 	  return 1;
+ 	}
+ #endif
++      /* OVH(prefered_dns) : on query timeout we disable strict order mode, that make next query to be sent to all servers */
++      if (option_bool(OPT_ORDER))
++      {
++         reset_option_bool(OPT_ORDER);
++	 my_syslog(LOG_INFO, _("Disabling prefered dns server"));
++      }
+ 
+       /* retry on existing query, send to all available servers  */
+       domain = forward->sentto->domain;
+@@ -739,6 +745,8 @@ void reply_query(int fd, int family, time_t now)
+   ssize_t n = recvfrom(fd, daemon->packet, daemon->packet_buff_sz, 0, &serveraddr.sa, &addrlen);
+   size_t nn;
+   struct server *server;
++  /* OVH(prefered_dns) : a server pointer to store the prefered server */
++  struct server *prefered=NULL;
+   void *hash;
+ #ifndef HAVE_DNSSEC
+   unsigned int crc;
+@@ -761,13 +769,19 @@ void reply_query(int fd, int family, time_t now)
+   
+   /* spoof check: answer must come from known server, */
+   for (server = daemon->servers; server; server = server->next)
+-    if (!(server->flags & (SERV_LITERAL_ADDRESS | SERV_NO_ADDR)) &&
+-	sockaddr_isequal(&server->addr, &serveraddr))
+-      break;
+-  
++    if (!(server->flags & (SERV_LITERAL_ADDRESS | SERV_NO_ADDR)))
++    {
++      /* OVH(prefered_dns) : the prefered server is the first in the resolv.conf list */
++      if(prefered == NULL && (server->flags & (SERV_FROM_RESOLV))) {
++	prefered = server;
++      }
++      if(sockaddr_isequal(&server->addr, &serveraddr))
++        break;
++    }
++
+   if (!server)
+     return;
+-  
++
+ #ifdef HAVE_DNSSEC
+   hash = hash_questions(header, n, daemon->namebuff);
+ #else
+@@ -1109,7 +1123,23 @@ void reply_query(int fd, int family, time_t now)
+ 	  send_from(forward->fd, option_bool(OPT_NOWILD) || option_bool (OPT_CLEVERBIND), daemon->packet, nn, 
+ 		    &forward->source, &forward->dest, forward->iface);
+ 	}
+-      free_frec(forward); /* cancel */
++      if (server == prefered) {
++        /* OVH(prefered_dns) : we have received a valid reply from the prefered server, so we enable strict-order mode and cancel pending query */
++	if (!option_bool(OPT_ORDER))
++	{
++		my_syslog(LOG_INFO, _("Enabling prefered dns server"));
++		set_option_bool(OPT_ORDER);
++	}
++	free_frec(forward); /* cancel */
++	} else {
++	/* OVH(prefered_dns) :
++		- we have received a valid reply from another dns server
++		- we do not cancel pending query to check if prefered server is back online
++		- we make sure that strict-order is disabled until we receive query from the prefered server
++	*/
++	if (option_bool(OPT_ORDER))
++	   reset_option_bool(OPT_ORDER);
++      }
+     }
+ }
+ 
