@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq
 PKG_VERSION:=2.78
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq/
@@ -28,6 +28,7 @@ PKG_CONFIG_DEPENDS:=CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dhcpv6 \
 	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_ipset \
 	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_conntrack \
 	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_noid \
+	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_nometricorder \
 	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_broken_rtc
 
 include $(INCLUDE_DIR)/package.mk
@@ -105,6 +106,9 @@ define Package/dnsmasq-full/config
 	config PACKAGE_dnsmasq_full_noid
 		bool "Build with NO_ID. (hide *.bind pseudo domain)"
 		default y
+	config PACKAGE_dnsmasq_full_nometricorder
+		bool "Build without metric-order option."
+		default n
 	config PACKAGE_dnsmasq_full_broken_rtc
 		bool "Build with HAVE_BROKEN_RTC."
 		default n
@@ -130,6 +134,7 @@ ifeq ($(BUILD_VARIANT),full)
 		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_ipset),,-DNO_IPSET) \
 		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_conntrack),-DHAVE_CONNTRACK,) \
 		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_noid),-DNO_ID,) \
+		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_nometricorder),-DNO_METRIC_ORDER,) \
 		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_broken_rtc),-DHAVE_BROKEN_RTC)
 	COPTS += $(if $(CONFIG_LIBNETTLE_MINI),-DNO_GMP,)
 else

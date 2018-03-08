@@ -1,0 +1,356 @@
+From 67df3b612bb2ee1223f77919b6e4e45fe956407d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?DUPONCHEEL=20S=C3=A9bastien?=
+ <sebastien.duponcheel@corp.ovh.com>
+Date: Tue, 13 Mar 2018 15:36:21 +0100
+Subject: [PATCH] Add a metric-order option that is a mix between strict-order
+ and Default schedulers
+
+The default scheduler in dnsmasq query first all servers and then use the 
+fastest responding dns server for a short period and query all servers if a 
+timeout occurs.
+
+The all-servers scheduler query fist the last fastest server and query all 
+others dns servers every time.
+
+The strict-order scheduler query the first server that appear in resolv.conf 
+and if this server timeout dnsmasq try the next one.
+
+strict-order is too slow and not resillient enougth to be use (ex: if only the 
+4th dns server in resolv.conf is reachable each dns request will take 20s).
+
+"Default" and "all-servers" are fast and resilient but does not take care of 
+the server preferences defined in the resolv.conf.
+
+This patch introduce a new scheduler that is an hybrid of the Default and the 
+strict-order schedulers.
+
+Case study :
+
+MyBox~# cat /etc/resolv.conf
+# Behind VPN server
+nameserver 169.254.254.1
+# FAI or personal closed server
+nameserver 91.121.161.184
+# Open servers
+nameserver 9.9.9.9
+nameserver 8.8.8.8
+nameserver 208.67.222.222
+
+When my VPN is offline i want my router to use only my FAI or personal dns 
+server because i don't want to give my personnal datas to Quad9, Google, 
+OpenDNS or whatever.
+
+But theses openservers are very good as backups if my personal dns server fail.
+When i am using my VPN to do black magic stuffs like downloading debian dvd 
+images, i dont want my FAI to know what im doing by looking my dns requests or 
+sniffing my network traffic.
+
+How the metric-order scheduler works ?
+
+Dnsmasq read the resolv.conf and set a metric from 0 to N to each server in the
+list.
+
+The first query will be sent to all dns servers and dnsmasq will listen for 
+each answer and set the responding server's with the lowest metric as the 
+current server.
+
+The next query will be sent first to the current server and sent to all other 
+servers with a lower metric than the current (supposed offline or unreachable).
+
+When a query fail, the current server is cleared out and the query is resent 
+to all servers, a new current server is elected based on metric values.
+
+If a server with a lowest metric turn online, it will answer to dns request 
+and will be elected as the new current server.
+
+---
+ src/config.h  | 14 +++++++++++++-
+ src/dbus.c    |  6 +++---
+ src/dnsmasq.c |  5 +++++
+ src/dnsmasq.h |  9 +++++++--
+ src/forward.c | 40 +++++++++++++++++++++++++++++++++++++++-
+ src/network.c | 11 +++++++----
+ src/option.c  |  3 +++
+ 7 files changed, 77 insertions(+), 11 deletions(-)
+
+diff --git a/src/config.h b/src/config.h
+index b317071..722a7d7 100644
+--- a/src/config.h
++++ b/src/config.h
+@@ -123,6 +123,9 @@ HAVE_LOOP
+ HAVE_INOTIFY
+    use the Linux inotify facility to efficiently re-read configuration files.
+ 
++HAVE_METRIC_ORDER
++   include an hybrid scheduler that try to use the highest server in the resolv.conf file.
++
+ NO_ID
+    Don't report *.bind CHAOS info to clients, forward such requests upstream instead.
+ NO_IPV6
+@@ -167,6 +170,7 @@ RESOLVFILE
+ #define HAVE_AUTH
+ #define HAVE_IPSET 
+ #define HAVE_LOOP
++#define HAVE_METRIC_ORDER
+ 
+ /* Build options which require external libraries.
+    
+@@ -366,6 +370,10 @@ HAVE_SOCKADDR_SA_LEN
+ #undef HAVE_LOOP
+ #endif
+ 
++#ifdef NO_METRIC_ORDER
++#undef HAVE_METRIC_ORDER
++#endif
++
+ #if defined (HAVE_LINUX_NETWORK) && !defined(NO_INOTIFY)
+ #define HAVE_INOTIFY
+ #endif
+@@ -454,7 +462,11 @@ static char *compile_opts =
+ #ifndef HAVE_INOTIFY
+ "no-"
+ #endif
+-"inotify";
++"inotify "
++#ifndef HAVE_METRIC_ORDER
++"no-"
++#endif
++"metric-order";
+ 
+ 
+ #endif
+diff --git a/src/dbus.c b/src/dbus.c
+index 6a78b20..1621977 100644
+--- a/src/dbus.c
++++ b/src/dbus.c
+@@ -216,7 +216,7 @@ static void dbus_read_servers(DBusMessage *message)
+ 	  domain = NULL;
+ 	
+ 	if (!skip)
+-	  add_update_server(SERV_FROM_DBUS, &addr, &source_addr, NULL, domain);
++	  add_update_server(SERV_FROM_DBUS, &addr, &source_addr, NULL, domain, 0);
+      
+       } while (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_STRING); 
+     }
+@@ -393,7 +393,7 @@ static DBusMessage* dbus_read_servers_ex(DBusMessage *message, int strings)
+ 	    else 
+ 	      p = NULL;
+ 	    
+-	    add_update_server(flags | SERV_FROM_DBUS, &addr, &source_addr, interface, str_domain);
++	    add_update_server(flags | SERV_FROM_DBUS, &addr, &source_addr, interface, str_domain, 0);
+ 	  } while ((str_domain = p));
+ 	}
+       else
+@@ -408,7 +408,7 @@ static DBusMessage* dbus_read_servers_ex(DBusMessage *message, int strings)
+ 	      dbus_message_iter_get_basic(&string_iter, &str);
+ 	    dbus_message_iter_next (&string_iter);
+ 	    
+-	    add_update_server(flags | SERV_FROM_DBUS, &addr, &source_addr, interface, str);
++	    add_update_server(flags | SERV_FROM_DBUS, &addr, &source_addr, interface, str, 0);
+ 	  } while (dbus_message_iter_get_arg_type(&string_iter) == DBUS_TYPE_STRING);
+ 	}
+ 	 
+diff --git a/src/dnsmasq.c b/src/dnsmasq.c
+index ce44809..fe04ae8 100644
+--- a/src/dnsmasq.c
++++ b/src/dnsmasq.c
+@@ -225,6 +225,11 @@ int main (int argc, char **argv)
+     die(_("loop detection not available: set HAVE_LOOP in src/config.h"), NULL, EC_BADCONF);
+ #endif
+ 
++#ifndef HAVE_METRIC_ORDER
++  if (option_bool(OPT_METRIC_ORDER))
++    die(_("metric-order scheduler not available: set HAVE_METRIC_ORDER in src/config.h"), NULL, EC_BADCONF);
++#endif
++
+   if (daemon->max_port < daemon->min_port)
+     die(_("max_port cannot be smaller than min_port"), NULL, EC_BADCONF);
+ 
+diff --git a/src/dnsmasq.h b/src/dnsmasq.h
+index 6773b69..39045b8 100644
+--- a/src/dnsmasq.h
++++ b/src/dnsmasq.h
+@@ -250,7 +250,8 @@ struct event_desc {
+ #define OPT_MAC_B64        54
+ #define OPT_MAC_HEX        55
+ #define OPT_TFTP_APREF_MAC 56
+-#define OPT_LAST           57
++#define OPT_METRIC_ORDER   57
++#define OPT_LAST           58
+ 
+ /* extra flags for my_syslog, we use a couple of facilities since they are known 
+    not to occupy the same bits as priorities, no matter how syslog.h is set up. */
+@@ -525,6 +526,9 @@ struct server {
+ #ifdef HAVE_LOOP
+   u32 uid;
+ #endif
++#ifdef HAVE_METRIC_ORDER
++  u8 metric;
++#endif
+   struct server *next; 
+ };
+ 
+@@ -1282,7 +1286,8 @@ void add_update_server(int flags,
+ 		       union mysockaddr *addr,
+ 		       union mysockaddr *source_addr,
+ 		       const char *interface,
+-		       const char *domain);
++		       const char *domain,
++		       u8 metric);
+ void check_servers(void);
+ int enumerate_interfaces(int reset);
+ void create_wildcard_listeners(void);
+diff --git a/src/forward.c b/src/forward.c
+index cdd11d3..36c7d1a 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -239,6 +239,9 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+   struct all_addr *addrp = NULL;
+   unsigned int flags = 0;
+   struct server *start = NULL;
++#ifdef HAVE_METRIC_ORDER
++  struct server *last_server = NULL;
++#endif
+ #ifdef HAVE_DNSSEC
+   void *hash = hash_questions(header, plen, daemon->namebuff);
+   int do_dnssec = 0;
+@@ -371,6 +374,16 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ 	    {
+ 	      if (option_bool(OPT_ORDER))
+ 		start = daemon->servers;
++#ifdef HAVE_METRIC_ORDER
++	      else if (option_bool(OPT_METRIC_ORDER))
++		{
++		       forward->forwardall = 1;
++		       if(!(start = daemon->last_server))
++		          start = daemon->servers;
++		       else
++		          last_server = daemon->last_server;
++		}
++#endif
+ 	      else if (!(start = daemon->last_server) ||
+ 		       daemon->forwardcount++ > FORWARD_TEST ||
+ 		       difftime(now, daemon->forwardtime) > FORWARD_TIME)
+@@ -536,6 +549,10 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ 	  
+ 	  if (start == firstsentto)
+ 	    break;
++#ifdef HAVE_METRIC_ORDER
++	  if(option_bool(OPT_METRIC_ORDER) && (start->flags & SERV_FROM_RESOLV) && last_server && (last_server->flags & SERV_FROM_RESOLV) && (start->metric > last_server->metric))
++	    start = daemon->servers;
++#endif
+ 	}
+       
+       if (forwarded)
+@@ -855,7 +872,19 @@ void reply_query(int fd, int family, time_t now)
+ 	      }
+ 	} 
+       if (!option_bool(OPT_ALL_SERVERS))
+-	daemon->last_server = server;
++#ifdef HAVE_METRIC_ORDER
++		if (!option_bool(OPT_METRIC_ORDER))
++#endif
++		   daemon->last_server = server;
++#ifdef HAVE_METRIC_ORDER
++      if (option_bool(OPT_METRIC_ORDER) && (server->flags & SERV_FROM_RESOLV))
++	{
++		if (!daemon->last_server)
++		   daemon->last_server = server;
++		else if (server->metric < daemon->last_server->metric)
++		   daemon->last_server = server;
++	}
++#endif
+     }
+  
+   /* We tried resending to this server with a smaller maximum size and got an answer.
+@@ -1131,7 +1160,16 @@ void reply_query(int fd, int family, time_t now)
+ 	  send_from(forward->fd, option_bool(OPT_NOWILD) || option_bool (OPT_CLEVERBIND), daemon->packet, nn, 
+ 		    &forward->source, &forward->dest, forward->iface);
+ 	}
++#ifdef HAVE_METRIC_ORDER
++	if (!option_bool(OPT_METRIC_ORDER))
++#endif
+       free_frec(forward); /* cancel */
++#ifdef HAVE_METRIC_ORDER
++        else if (forward->forwardall > 1)
++      forward->forwardall--;
++        else
++      free_frec(forward);
++#endif
+     }
+ }
+ 
+diff --git a/src/network.c b/src/network.c
+index 0381513..9dd00a2 100644
+--- a/src/network.c
++++ b/src/network.c
+@@ -1385,7 +1385,8 @@ void add_update_server(int flags,
+ 		       union mysockaddr *addr,
+ 		       union mysockaddr *source_addr,
+ 		       const char *interface,
+-		       const char *domain)
++		       const char *domain,
++		       u8 metric)
+ {
+   struct server *serv, *next = NULL;
+   char *domain_str = NULL;
+@@ -1444,6 +1445,9 @@ void add_update_server(int flags,
+       serv->domain = domain_str;
+       serv->next = next;
+       serv->queries = serv->failed_queries = 0;
++#ifdef HAVE_METRIC_ORDER
++      serv->metric = metric;
++#endif
+ #ifdef HAVE_LOOP
+       serv->uid = rand32();
+ #endif      
+@@ -1616,7 +1620,7 @@ int reload_servers(char *fname)
+   FILE *f;
+   char *line;
+   int gotone = 0;
+-
++  u8 metric = 0;
+   /* buff happens to be MAXDNAME long... */
+   if (!(f = fopen(fname, "r")))
+     {
+@@ -1683,8 +1687,7 @@ int reload_servers(char *fname)
+       else
+ 	continue;
+ #endif 
+-
+-      add_update_server(SERV_FROM_RESOLV, &addr, &source_addr, NULL, NULL);
++      add_update_server(SERV_FROM_RESOLV, &addr, &source_addr, NULL, NULL, metric++);
+       gotone = 1;
+     }
+   
+diff --git a/src/option.c b/src/option.c
+index d358d99..84df76e 100644
+--- a/src/option.c
++++ b/src/option.c
+@@ -160,6 +160,7 @@ struct myoption {
+ #define LOPT_DHCPTTL       348
+ #define LOPT_TFTP_MTU      349
+ #define LOPT_REPLY_DELAY   350
++#define LOPT_METRIC_ORDER  351
+  
+ #ifdef HAVE_GETOPT_LONG
+ static const struct option opts[] =  
+@@ -199,6 +200,7 @@ static const struct myoption opts[] =
+     { "filterwin2k", 0, 0, 'f' },
+     { "pid-file", 2, 0, 'x' },
+     { "strict-order", 0, 0, 'o' },
++    { "metric-order", 0, 0, LOPT_METRIC_ORDER },
+     { "server", 1, 0, 'S' },
+     { "rev-server", 1, 0, LOPT_REV_SERV },
+     { "local", 1, 0, LOPT_LOCAL },
+@@ -380,6 +382,7 @@ static struct {
+   { 'n', OPT_NO_POLL, NULL, gettext_noop("Do NOT poll %s file, reload only on SIGHUP."), RESOLVFILE }, 
+   { 'N', OPT_NO_NEG, NULL, gettext_noop("Do NOT cache failed search results."), NULL },
+   { 'o', OPT_ORDER, NULL, gettext_noop("Use nameservers strictly in the order given in %s."), RESOLVFILE },
++  { LOPT_METRIC_ORDER, OPT_METRIC_ORDER, NULL, gettext_noop("Try to use the highest nameserver that is given in %s."), RESOLVFILE },
+   { 'O', ARG_DUP, "<optspec>", gettext_noop("Specify options to be sent to DHCP clients."), NULL },
+   { LOPT_FORCE, ARG_DUP, "<optspec>", gettext_noop("DHCP option sent even if the client does not request it."), NULL},
+   { 'p', ARG_ONE, "<integer>", gettext_noop("Specify port to listen for DNS requests on (defaults to 53)."), NULL },
+-- 
+2.7.4
+
