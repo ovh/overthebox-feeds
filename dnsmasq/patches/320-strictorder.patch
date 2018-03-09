@@ -1,0 +1,116 @@
+diff --git a/src/cache.c b/src/cache.c
+index a719d95..b633bc2 100644
+--- a/src/cache.c
++++ b/src/cache.c
+@@ -1391,6 +1391,39 @@ int cache_make_stat(struct txt_record *t)
+ }
+ #endif
+ 
++int cache_strict_order_handler(struct txt_record *t)
++{
++  static char *buff = NULL;
++  static int bufflen = 60;
++  int len;
++  char *p;
++
++  if (!buff && !(buff = whine_malloc(60)))
++    return 0;
++
++  p = buff;
++  switch (t->stat)
++  {
++    case TXT_STRICT_ORDER:
++      sprintf(buff+1, "%s", option_bool(OPT_ORDER)?"enabled":"disabled");
++      break;
++    case TXT_STRICT_ORDER_ENABLE:
++      set_option_bool(OPT_ORDER);
++      sprintf(buff+1, "%s", "OK");
++      break;
++    case TXT_STRICT_ORDER_DISABLE:
++      reset_option_bool(OPT_ORDER);
++      sprintf(buff+1, "%s", "OK");
++      break;
++  }
++
++  len = strlen(buff+1);
++  t->txt = (unsigned char *)buff;
++  t->len = len + 1;
++  *buff = len;
++  return 1;
++}
++
+ /* There can be names in the cache containing control chars, don't 
+    mess up logging or open security holes. */
+ static char *sanitise(char *name)
+diff --git a/src/dnsmasq.h b/src/dnsmasq.h
+index 867a0c3..1e6c5e7 100644
+--- a/src/dnsmasq.h
++++ b/src/dnsmasq.h
+@@ -304,6 +304,9 @@ struct naptr {
+ #define TXT_STAT_AUTH          6
+ #define TXT_STAT_SERVERS       7
+ #endif
++#define TXT_STRICT_ORDER       8
++#define TXT_STRICT_ORDER_ENABLE 9
++#define TXT_STRICT_ORDER_DISABLE 10
+ 
+ struct txt_record {
+   char *name;
+@@ -1104,6 +1107,7 @@ void dump_cache(time_t now);
+ #ifndef NO_ID
+ int cache_make_stat(struct txt_record *t);
+ #endif
++int cache_strict_order_handler(struct txt_record *t);
+ char *cache_get_name(struct crec *crecp);
+ char *cache_get_cname_target(struct crec *crecp);
+ struct crec *cache_enumerate(int init);
+diff --git a/src/option.c b/src/option.c
+index 8ace548..d71a343 100644
+--- a/src/option.c
++++ b/src/option.c
+@@ -664,7 +664,6 @@ static int atoi_check8(char *a, int *res)
+ }
+ #endif
+ 
+-#ifndef NO_ID
+ static void add_txt(char *name, char *txt, int stat)
+ {
+   struct txt_record *r = opt_malloc(sizeof(struct txt_record));
+@@ -684,7 +683,6 @@ static void add_txt(char *name, char *txt, int stat)
+   daemon->txt = r;
+   r->class = C_CHAOS;
+ }
+-#endif
+ 
+ static void do_usage(void)
+ {
+@@ -4660,6 +4658,9 @@ void read_opts(int argc, char **argv, char *compile_opts)
+ #endif
+   add_txt("servers.bind", NULL, TXT_STAT_SERVERS);
+ #endif
++  add_txt("strict-order.bind", NULL, TXT_STRICT_ORDER);
++  add_txt("enable.strict-order.bind", NULL, TXT_STRICT_ORDER_ENABLE);
++  add_txt("disable.strict-order.bind", NULL, TXT_STRICT_ORDER_DISABLE);
+ 
+   while (1) 
+     {
+diff --git a/src/rfc1035.c b/src/rfc1035.c
+index 063eba2..866d173 100644
+--- a/src/rfc1035.c
++++ b/src/rfc1035.c
+@@ -1323,6 +1323,15 @@ size_t answer_request(struct dns_header *header, char *limit, size_t qlen,
+ 			    ok = 0;
+ 			}
+ #endif
++                      switch (t->stat)
++		      {
++			case TXT_STRICT_ORDER:
++			case TXT_STRICT_ORDER_ENABLE:
++			case TXT_STRICT_ORDER_DISABLE:
++				ttl = 0;
++				if (!cache_strict_order_handler(t))
++					ok = 0;
++		      }
+ 		      if (ok && add_resource_record(header, limit, &trunc, nameoffset, &ansp, 
+ 						    ttl, NULL,
+ 						    T_TXT, t->class, "t", t->len, t->txt))

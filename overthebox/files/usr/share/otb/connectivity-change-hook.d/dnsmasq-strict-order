@@ -1,0 +1,30 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC1090
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+[ "$OTB_TRACKER_INTERFACE" = "tun0" -o "$OTB_TRACKER_INTERFACE" = "xtun0" ] || exit 0
+
+_enable_dnsmasq_strictorder() {
+	if [ "$(dig +short chaos txt enable.strict-order.bind @localhost)" = '"OK"' ]; then
+		_log "dnsmasq strict-order enabled"
+	else
+		_log "Failed to enable dnsmasq strict-order"
+	fi
+}
+
+_disable_dnsmasq_strictorder() {
+	if [ "$(dig +short chaos txt disable.strict-order.bind @localhost)" = '"OK"' ]; then
+		_log "dnsmasq strict-order disabled"
+	else
+		_log "Failed to disable dnsmasq strict-order"
+	fi
+}
+
+if uci -q get network.tun0.dns >/dev/null; then
+	if [ "$OTB_TRACKER_STATUS" = "OK" ]; then
+		_enable_dnsmasq_strictorder
+	else
+		_disable_dnsmasq_strictorder
+	fi
+else
+	_log "dnsmasq strict-order abort, no dns server defined on tun0 interface"
+fi
