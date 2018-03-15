@@ -50,10 +50,23 @@ _update_network_list() {
 	done
 }
 
+_lowercase_proto() {
+	cfg="$1"
+	proto=
+	config_get proto "$cfg" proto
+
+	# shellcheck disable=SC2018,2019
+	lcProto=$(echo "$proto" | tr 'A-Z' 'a-z')
+
+	[ "$proto" != "$lcProto" ] && uci -q set "firewall.$cfg.proto=$lcProto"
+}
+
 config_load firewall
 config_foreach _update_network_list zone
 config_foreach _setup zone
 config_foreach _delete_mptcp_forwarding forwarding
+config_foreach _lowercase_proto rule
+config_foreach _lowercase_proto redirect
 
 uci -q batch <<-EOF
 set firewall.lan.mtu_fix=1
