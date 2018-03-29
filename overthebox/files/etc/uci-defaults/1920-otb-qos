@@ -6,12 +6,18 @@
 
 # If dscp config file hasn't change, ensure that it's up to date
 # 8103cf3ee36bc1855042709f062e1df7 : file from 7a6bf7db2f
-# 55411026b89bd3b2d81f32cb57d9a6ef : file from 8b1a8715d2
+# 6344db6f8ca8666a997fc5ef13a24ca2 : file from 7a6bf7db2f after uci defaults
+# 1319bd4ebb7ee3685eb3839bd9f5c51b : file from 8b1a8715d2
+# a8f6a984b8f6c09d07524fb519841d92 : file from 8b1a8715d2 after uci defaults
 # 7e091b8bf4383a43543fbf9e0fff418e : file from 0a57725b4c
+# 731487778aca6cfaad741dbf3b73ea25 : file from 0a57725b4c after uci defaults
 checksums="
 	8103cf3ee36bc1855042709f062e1df7
+	6344db6f8ca8666a997fc5ef13a24ca2
 	1319bd4ebb7ee3685eb3839bd9f5c51b
+	a8f6a984b8f6c09d07524fb519841d92
 	7e091b8bf4383a43543fbf9e0fff418e
+	731487778aca6cfaad741dbf3b73ea25
 "
 
 for chksum in $checksums; do
