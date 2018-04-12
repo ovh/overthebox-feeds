@@ -508,7 +508,7 @@ function multipath_bandwidth()
     if dev ~= "lo" then
       local multipath = section["multipath"]
       bandwidth = luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)
-      if string.len(bandwidth) == 0 then
+      if bandwidth == nil or string.len(bandwidth) == 0 then
         return
       end
       if multipath == "on" or multipath == "master" or multipath == "backup" or multipath == "handover" then
