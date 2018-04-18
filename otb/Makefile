@@ -20,6 +20,7 @@ MY_DEPENDS := \
     luci luci-lib-json luci-app-overthebox \
     lsblk dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt luci-proto-3g \
+    comgt-ncm kmod-usb-net-huawei-cdc-ncm \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
