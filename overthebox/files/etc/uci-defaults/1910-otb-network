@@ -52,12 +52,15 @@ _setup_dhcp() {
 _setup_macvlan() {
 	uci -q get "network.$1_dev.ifname" >/dev/null && return
 
-	# do not create macvlan for vlan
+	# do not create a macvlan for a VLAN interface
 	local _ifname
 	_ifname=$(uci -q get "network.$1.ifname")
 	case "$_ifname" in
 	eth*.*) return ;;
 	esac
+
+	# do not create a macvlan if the lan is not a macvlan
+	[ "$1" = "lan" ] && [ "$_ifname" != "lan" ] && return
 
 	uci -q batch <<-EOF
 	set network.$1_dev=device
@@ -68,7 +71,6 @@ _setup_macvlan() {
 	EOF
 	_macaddr=$(uci -q get "network.$1.macaddr")
 	_setup_macaddr "$1" "${_macaddr:-auto$(date +%s)}"
-	uci -q set "network.$1.type=macvlan"  # legacy
 }
 
 _fix_old_vlan() {
