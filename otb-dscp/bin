@@ -95,13 +95,13 @@ _add_dscp_output_chain() {
 }
 
 _remove_prerouting_chain() {
-	_ipt -F "$1" 2>/dev/null || return
+	_ipt -F "$1" 2>/dev/null || return 0
 	_ipt -D PREROUTING -i "$lan_device" -j "$1"
 	_ipt -X "$1"
 }
 
 _remove_output_chain() {
-	_ipt -F "$1" 2>/dev/null || return
+	_ipt -F "$1" 2>/dev/null || return 0
 	_ipt -D OUTPUT -j "$1"
 	_ipt -X "$1"
 }
