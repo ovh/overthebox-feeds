@@ -1,0 +1,27 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+glorytun-udp 2>/dev/null | grep -sq client || exit 0
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+_gt_setup_interface() {
+	local ipaddr=
+	network_get_ipaddr ipaddr "$1"
+
+	[ "$ipaddr" ] || return
+
+	local multipath=
+	config_get multipath "$1" multipath "off"
+
+	case "$multipath" in
+		on)     glorytun-udp path "$ipaddr" up ;;
+		backup) glorytun-udp path "$ipaddr" backup ;;
+		off)    glorytun-udp path "$ipaddr" down ;;
+	esac
+}
+
+config_load network
+config_foreach _gt_setup_interface interface
