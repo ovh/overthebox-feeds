@@ -107,7 +107,7 @@ test_interface() {
 }
 
 # -- Get the wan ip of the service
-server_ip=$(uci get shadowsocks.proxy.server)
+server_ip=$(uci get glorytun.tun0.server)
 if [ -z "$server_ip" ]; then
 	echo "Can't find server ip"
 	exit 1
