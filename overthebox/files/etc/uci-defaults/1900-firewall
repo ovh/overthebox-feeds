@@ -12,27 +12,7 @@ _setup() {
 	lan|wan)
 		uci -q rename "firewall.$1=$name"
 		;;
-	mptcp)
-		interface_list=
-		config_get interface_list "$1" network
-		for interface in $interface_list; do
-			uci -q del_list firewall.wan.network="$interface"
-			uci -q add_list firewall.wan.network="$interface"
-		done
-		uci -q delete firewall."$1"
-		;;
 	esac
-}
-
-_delete_mptcp_forwarding() {
-	src=
-	dest=
-	config_get src "$1" src
-	config_get dest "$1" dest
-
-	if [ "$src" = "mptcp" ] || [ "$dest" = "mptcp" ]; then
-		uci -q delete "firewall.$1"
-	fi
 }
 
 _update_network_list() {
@@ -64,7 +44,6 @@ _lowercase_proto() {
 config_load firewall
 config_foreach _update_network_list zone
 config_foreach _setup zone
-config_foreach _delete_mptcp_forwarding forwarding
 config_foreach _lowercase_proto rule
 config_foreach _lowercase_proto redirect
 
