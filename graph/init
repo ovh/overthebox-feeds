@@ -1,9 +1,13 @@
 #!/bin/sh /etc/rc.common
+# shellcheck disable=SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-START=90
-STOP=10
-
-USE_PROCD=1
+# shellcheck disable=SC2034
+{
+	START=90
+	STOP=10
+	USE_PROCD=1
+}
 
 validate_section() {
 	uci_validate_section graph opentsdb "$1" \
@@ -13,6 +17,7 @@ validate_section() {
 }
 
 start_instance() {
+	local enable url freq
 	validate_section "$1" || return
 
 	[ "$enable" = "0" ] && return
