@@ -154,9 +154,9 @@ function interfaces_status()
   mArray.overthebox = {}
   mArray.overthebox["version"] = ut.trim(sys.exec("cat /etc/otb-version"))
   -- Check that requester is in same network
-  mArray.overthebox["service_addr"]	= uci:get("shadowsocks", "proxy", "server") or "0.0.0.0"
-  mArray.overthebox["local_addr"]		= uci:get("network", "lan", "ipaddr")
-  mArray.overthebox["wan_addr"]		= "0.0.0.0"
+  mArray.overthebox["service_addr"] = uci:get("glorytun", "tun0", "server") or "0.0.0.0"
+  mArray.overthebox["local_addr"] = uci:get("network", "lan", "ipaddr")
+  mArray.overthebox["wan_addr"] = "0.0.0.0"
 
   -- wanaddr
   local f = io.open("/tmp/otb-daemon-headers", "rb")
