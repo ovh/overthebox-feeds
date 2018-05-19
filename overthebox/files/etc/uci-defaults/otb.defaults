@@ -52,3 +52,6 @@ cmp -s /tmp/hosts.new /etc/hosts
 rm -f /etc/ssl/certs/ca-certificates.crt
 # Regenerate them
 cat /etc/ssl/certs/*.crt >/etc/ssl/certs/ca-certificates.crt
+
+# useless now
+rm -f /etc/sysctl.d/shadowsocks.conf
