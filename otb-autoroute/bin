@@ -19,8 +19,8 @@ _setup_high_priority_rule() {
 	ip rule "$1" fwmark "$mark" table "$2" pref 30000
 }
 
-config_load shadowsocks
-otb_host= ; config_get otb_host proxy server
+config_load glorytun
+otb_host= ; config_get otb_host tun0 server
 
 config_load network
 otb_metric= ; config_get otb_metric "$OTB_TRACKER_INTERFACE" metric
