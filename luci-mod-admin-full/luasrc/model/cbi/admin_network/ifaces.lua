@@ -224,16 +224,13 @@ end
 auto = s:taboption("advanced", Flag, "auto", translate("Bring up on boot"))
 auto.default = (net:proto() == "none") and auto.disabled or auto.enabled
 
--- Add MPTCP
-if fs.access("/proc/sys/net/mptcp") then
-    mptcp = s:taboption("advanced", ListValue, "multipath", translate("Multipath TCP"))
-    mptcp:value("on", translate("enabled"))
-    mptcp:value("off", translate("disabled"))
-    mptcp:value("master", translate("master"))
-    mptcp:value("backup", translate("backup"))
-    mptcp:value("handover", translate("handover"))
-    mptcp.default = "off"
-end
+multipath = s:taboption("advanced", ListValue, "multipath", translate("Multipath"))
+multipath:value("on", translate("enabled"))
+multipath:value("off", translate("disabled"))
+multipath:value("master", translate("master"))
+multipath:value("backup", translate("backup"))
+multipath:value("handover", translate("handover"))
+multipath.default = "off"
 
 delegate = s:taboption("advanced", Flag, "delegate", translate("Use builtin IPv6-management"))
 delegate.default = delegate.enabled
