@@ -7,7 +7,7 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=glorytun-udp
+PKG_NAME:=glorytun
 PKG_VERSION:=0.0.89-mud
 PKG_RELEASE:=14
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz

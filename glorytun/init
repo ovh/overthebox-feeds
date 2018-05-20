@@ -10,7 +10,7 @@
 	USE_PROCD=1
 }
 
-PROG_NAME=glorytun-udp
+PROG_NAME=glorytun
 PROG=/usr/sbin/$PROG_NAME
 
 _log() {
