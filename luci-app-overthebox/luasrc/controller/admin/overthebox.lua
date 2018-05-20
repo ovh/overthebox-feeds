@@ -183,10 +183,6 @@ function interfaces_status()
   if string.find(sys.exec("/usr/bin/pgrep glorytun"), "%d+") then
     mArray.overthebox["tun_service"] = true
   end
-  mArray.overthebox["socks_service"] = false
-  if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
-    mArray.overthebox["socks_service"] = true
-  end
   -- Check if OTB is downloading recovery image or test download
   mArray.overthebox["downloading"] = false
   if string.find(sys.exec("/usr/bin/pgrep wget"), "%d+") then
