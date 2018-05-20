@@ -217,16 +217,6 @@ function interfaces_status()
       end
     end
   end
-  -- Parse mptcp kernel info
-  local mptcp = {}
-  local fullmesh = ut.trim(sys.exec("cat /proc/net/mptcp_fullmesh"))
-  for ind, addressId, backup, ipaddr in fullmesh:gmatch("(%d+), (%d+), (%d+), (%d+\.%d+\.%d+\.%d+)") do
-    mptcp[ipaddr] = {}
-    mptcp[ipaddr].index = ind
-    mptcp[ipaddr].id    = addressId
-    mptcp[ipaddr].backup= backup
-    mptcp[ipaddr].ipaddr= ipaddr
-  end
   -- retrive core temperature
   mArray.overthebox["core_temp"] = sys.exec("cat /sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input 2>/dev/null"):match("%d+")
   mArray.overthebox["loadavg"] = sys.exec("cat /proc/loadavg 2>/dev/null"):match("[%d%.]+ [%d%.]+ [%d%.]+")
