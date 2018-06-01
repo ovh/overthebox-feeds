@@ -14,10 +14,12 @@ _get() {
 	otb_json_get "$config" "$1"
 }
 
+_get error >&2 && exit 1
+
 # delete last conf
 
 for conf in glorytun shadowsocks graph; do
-	> /etc/config/"$conf"
+	true > /etc/config/"$conf"
 	uci -q revert "$conf"
 done
 
