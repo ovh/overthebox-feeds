@@ -31,7 +31,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
-	$(INSTALL_BIN) post-tracking.d/* $(1)/usr/share/otb/post-tracking.d
 	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
 endef
 
