@@ -54,6 +54,10 @@ _setup_glorytun_mud() {
 	set network.\(.dev).generatedby='"$ME"'
 	del_list firewall.wan.network=\(.dev)
 	add_list firewall.wan.network=\(.dev)
+
+	set network.\(.dev)_rule=rule
+	set network.\(.dev)_rule.lookup=\(.table)
+	set network.\(.dev)_rule.priority=30000
 	"'
 }
 
