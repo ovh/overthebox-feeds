@@ -43,7 +43,7 @@ otb_info() {
 
 otb_debug()  {
 	# shellcheck disable=SC2015
-	[ -n "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
+	[ "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
 }
 
 otb_pretty_print() {
@@ -69,6 +69,7 @@ otb_call() {
 }
 
 otb_call_api() {
+	[ "$OTB_SERVICE_ID" ] || return
 	method=$1
 	path=$2
 	shift 2
@@ -83,25 +84,25 @@ otb_call_api() {
 otb_device_post() {
 	subpath=$1
 	shift 1
-	[ -n "$OTB_DEVICE_ID" ] && otb_call POST "devices/$OTB_DEVICE_ID/$subpath" "$@"
+	[ "$OTB_DEVICE_ID" ] && otb_call POST "devices/$OTB_DEVICE_ID/$subpath" "$@"
 }
 
 otb_device_get() {
 	subpath=$1
 	shift 1
-	[ -n "$OTB_DEVICE_ID" ] && otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
+	[ "$OTB_DEVICE_ID" ] && otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
 }
 
 otb_service_post() {
 	subpath=$1
 	shift 1
-	[ -n "$OTB_SERVICE_ID" ] && otb_device_post "service/$OTB_SERVICE_ID/$subpath" "$@"
+	[ "$OTB_SERVICE_ID" ] && otb_device_post "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
 otb_service_get() {
 	subpath=$1
 	shift 1
-	[ -n "$OTB_SERVICE_ID" ] && otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
+	[ "$OTB_SERVICE_ID" ] && otb_device_get "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
 otb_todo() {
@@ -125,7 +126,7 @@ otb_get_data() {
 
 otb_save_event() {
 	details=$2
-	[ -z "$details" ] && details="{}"
+	[ "$details" ] || details="{}"
 	# shellcheck disable=SC2016
 	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
 		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' | otb_todo otb_device_post events -d@-
@@ -134,7 +135,7 @@ otb_save_event() {
 otb_save_action_id() {
 	[ -z "$1" ] && return
 	id=$(otb_json_get "$1" id)
-	[ -n "$id" ] && [ "$id" != null ] && uci -q batch <<-EOF
+	[ "$id" ] && [ "$id" != null ] && uci -q batch <<-EOF
 	set overthebox.me.action_id=$id
 	commit overthebox
 	EOF
