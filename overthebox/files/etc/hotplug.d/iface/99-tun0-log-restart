@@ -2,7 +2,6 @@
 # Need to restart logs when tun is up so that all logs pass through the
 # encrypted tunnel
 
-[ "$OTB_TRACKER_INTERFACE" = "tun0" ] || exit 0
-[ "$OTB_TRACKER_STATUS" = "OK" ] || exit 0
+[ "$DEVICE-$ACTION" = tun0-ifup ] || exit 0
 
 /etc/init.d/log restart
