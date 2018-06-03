@@ -35,19 +35,32 @@ _add_missing_value() {
 	uci -q set "network.$1.$2=$value"
 }
 
+# $1 interface
+_add_missing_rule() {
+	[ -n "$(uci -q get "network.$1_rule")" ] && return
+	table=$(uci -q get "network.$1.ip4table")
+	[ -n "$table" ] || return
+	otb_info "setup missing network rule to $table for $1"
+	uci -q batch <<-EOF
+	set network.$1_rule=rule
+	set network.$1_rule.lookup=$table
+	set network.$1_rule.priority=30200
+	EOF
+}
+
 _setup_interface() {
 	# Don't touch if0
 	[ "$1" = "if0" ] && return
 	# Don't touch interfaces without devices
 	uci -q get "network.$1.ifname" >/dev/null || return
 
-	# Remove duplicates
 	_remove_duplicates "$1" "metric"
 	_remove_duplicates "$1" "ip4table"
 
-	# Add missing values
 	_add_missing_value "$1" "metric" "$OTB_CONFIG_INTERFACE_METRIC_OFFSET"
 	_add_missing_value "$1" "ip4table" "$OTB_CONFIG_INTERFACE_TABLE_OFFSET"
+
+	_add_missing_rule "$1"
 }
 
 config_load firewall
