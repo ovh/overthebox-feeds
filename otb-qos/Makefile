@@ -29,8 +29,8 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
-	$(INSTALL_BIN) connectivity-change-hook.d/* $(1)/usr/share/otb/connectivity-change-hook.d
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface/
+	$(INSTALL_BIN) iface.hotplug $(1)/etc/hotplug.d/iface/99-$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) otb-cake-parser $(1)/bin/otb-cake-parser
 	$(INSTALL_BIN) bin $(1)/bin/${PKG_NAME}
