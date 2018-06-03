@@ -3,47 +3,16 @@
 
 set -e
 
-[ "$OTB_TRACKER_STATUS" = "OK" ] || exit
-
-public_ip_file="$OTB_DATA_DIR/$OTB_TRACKER_INTERFACE/public_ip"
-if [ -f "$public_ip_file" ]; then
-	date=$(date '+%s')
-	last_update=$(stat "$public_ip_file" -c '%Y')
-	elapsed_time=$((date - last_update))
-	# Only update the public IP every 5 min
-	[ "$elapsed_time" -lt 300 ] && exit
-fi
-
-url_list="
-	ifconfig.ovh
-	ipaddr.ovh
-"
-
-_curl() {
-	curl \
-		--interface "$OTB_TRACKER_DEVICE" \
-		--max-time "$OTB_TRACKER_TIMEOUT" \
-		--silent \
-		--show-error \
-		"$1"
-}
-
-for url in $url_list; do
-	pub_ip=$(_curl "$url" || true)
-	[ "IP=$pub_ip" = "$(ipcalc.sh "$pub_ip" | grep IP)" ] && break
-	pub_ip=
-done
-[ -z "$pub_ip" ] && exit 1
+[ "$OTB_TRACKER_PUBLIC_IP" ]
+[ "$OTB_TRACKER_PUBLIC_IP" != "-" ]
 
 pub_ip_old=$(otb_get_data "$OTB_TRACKER_INTERFACE/public_ip")
-otb_set_data "$OTB_TRACKER_INTERFACE/public_ip" "$pub_ip"
 
-[ "$pub_ip" = "$pub_ip_old" ] && exit 0
+[ "$OTB_TRACKER_PUBLIC_IP" = "$pub_ip_old" ] && exit
 
-# Setup the QoS on the interface when it gets a new public IP
-otb-qos setup "$OTB_TRACKER_INTERFACE"
+otb_set_data "$OTB_TRACKER_INTERFACE/public_ip" "$OTB_TRACKER_PUBLIC_IP"
 
-asn=$(_curl api.iptoasn.com/v1/as/ip/"$pub_ip")
-[ -z "$asn" ] && exit 1
+[ "$OTB_TRACKER_STATUS" = "OK" ] && otb-qos setup "$OTB_TRACKER_INTERFACE"
 
-otb_set_data "$OTB_TRACKER_INTERFACE/asn" "$asn"
+asn="$(curl --max-time 2 --silent --show-error "api.iptoasn.com/v1/as/ip/$OTB_TRACKER_PUBLIC_IP")"
+[ "$asn" ] && otb_set_data "$OTB_TRACKER_INTERFACE/asn" "$asn"
