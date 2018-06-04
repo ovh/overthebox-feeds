@@ -14,7 +14,7 @@ _get() {
 	otb_json_get "$config" "$1"
 }
 
-_get error >&2 && exit 1
+_get "error // empty" >&2 && exit 1
 
 # delete last conf
 
