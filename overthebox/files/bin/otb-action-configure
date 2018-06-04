@@ -14,7 +14,12 @@ _get() {
 	otb_json_get "$config" "$1"
 }
 
-_get "error // empty" >&2 && exit 1
+config_error=$(_get "error // empty")
+
+if [ "$config_error" ]; then
+	echo "$config_error" >&2
+	exit 1
+fi
 
 # delete last conf
 
