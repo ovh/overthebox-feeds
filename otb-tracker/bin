@@ -18,7 +18,7 @@ _cleanup() {
 }
 
 _post_tracking() {
-	OTB_TRACKER_DEVICE=$(ip addr | awk '/mtu/{split($2,d,"[@:]")} /'"$OTB_TRACKER_DEVICE_IP"'/{print d[1]}')
+	OTB_TRACKER_DEVICE=$(ip addr | awk '/mtu/{split($2,d,"[@:]")} /inet '"$OTB_TRACKER_DEVICE_IP"'\//{print d[1]}')
 	OTB_TRACKER_INTERFACE=$(awk /"$OTB_TRACKER_DEVICE"/'{print $2}' "$OTB_DEV_FILE")
 	OTB_TRACKER_DEVICE_GATEWAY=$(ip route get 0.0.0.0 from "$OTB_TRACKER_DEVICE_IP" | awk '/via/{print $5}')
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
