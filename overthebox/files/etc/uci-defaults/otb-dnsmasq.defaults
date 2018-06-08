@@ -2,19 +2,24 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
-
 uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
 set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
+set dhcp.@dnsmasq[0].noresolv='1'
+
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra
 delete dhcp.lan.ra_default
 delete dhcp.lan.ra_management
 delete dhcp.lan.ra_preference
 delete dhcp.lan.dhcpv6
+
+delete dhcp.@dnsmasq[0].server
+add_list dhcp.@dnsmasq[0].server='1.1.1.1'
+add_list dhcp.@dnsmasq[0].server='1.0.0.1'
+
 set dhcp.lan.force='1'
 EOF
