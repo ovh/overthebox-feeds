@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/angt/glorytun.git
-PKG_SOURCE_VERSION:=da350aff9c10cdace41eeb3040c1c064401695fb
+PKG_SOURCE_URL:=https://github.com/sduponch/glorytun.git
+PKG_SOURCE_VERSION:=b23bbfc96244d5a5322ae74f4a2ea6647ac6142b
 
 PKG_NAME:=glorytun
 PKG_VERSION:=0.0.99-$(PKG_SOURCE_VERSION)
-PKG_RELEASE:=16
+PKG_RELEASE:=24
 
 PKG_FIXUP:=autoreconf
 
