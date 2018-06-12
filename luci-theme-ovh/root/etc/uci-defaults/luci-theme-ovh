@@ -1,8 +1,0 @@
-#!/bin/sh
-uci batch <<-EOF
-	set luci.themes=internal
-	set luci.themes.OVH=/luci-static/ovh
-	set luci.main.mediaurlbase=/luci-static/ovh
-	commit luci
-EOF
-exit 0

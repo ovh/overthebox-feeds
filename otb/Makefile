@@ -9,17 +9,15 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     otb-backup otb-diagnostics \
     otb-qos otb-dscp otb-remote \
-    otb-tracker ip-full \
+    otb-tracker otb-luci ip-full \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bwm-ng screen \
     libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
-    libustream-mbedtls luci-lib-px5g px5g  \
     tc iperf3 mtr rng-tools ss strace \
     tcpdump-mini conntrack conntrackd \
-    luci luci-lib-json luci-app-overthebox \
     lsblk dnsmasq-full kmod-nf-nathelper \
-    kmod-nf-nathelper-extra comgt luci-proto-3g \
+    kmod-nf-nathelper-extra comgt \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
