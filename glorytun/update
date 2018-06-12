@@ -1,0 +1,40 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+_gt_setup_interface() {
+	local ipaddr=
+	network_get_ipaddr ipaddr "$1"
+
+	[ "$ipaddr" ] || return
+
+	local multipath=
+	config_get multipath "$1" multipath "off"
+
+	case "$multipath" in
+		on|master) glorytun path "$ipaddr" up ;;
+		backup)    glorytun path "$ipaddr" backup ;;
+		*)         glorytun path "$ipaddr" down ;;
+	esac
+}
+
+config_load network
+
+retry=3
+
+while true; do
+	if glorytun show 2>/dev/null | grep -sq client; then
+		config_foreach _gt_setup_interface interface
+		exit
+	fi
+	if [ "$retry" == 0 ]; then
+		logger -t "$0" "glorytun show failed"
+		exit 1
+	else
+		retry=$((retry - 1))
+		sleep 1
+	fi
+done

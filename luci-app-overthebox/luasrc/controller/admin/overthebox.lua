@@ -180,12 +180,8 @@ function interfaces_status()
   end
   -- Check overthebox service are running
   mArray.overthebox["tun_service"] = false
-  if string.find(sys.exec("/usr/bin/pgrep '^(/usr/sbin/)?glorytun(-udp)?$'"), "%d+") then
+  if string.find(sys.exec("/usr/bin/pgrep glorytun"), "%d+") then
     mArray.overthebox["tun_service"] = true
-  end
-  mArray.overthebox["socks_service"] = false
-  if string.find(sys.exec("/usr/bin/pgrep ss-redir"), "%d+") then
-    mArray.overthebox["socks_service"] = true
   end
   -- Check if OTB is downloading recovery image or test download
   mArray.overthebox["downloading"] = false
@@ -220,16 +216,6 @@ function interfaces_status()
         mArray.overthebox.dhcpd[itf].dns = value
       end
     end
-  end
-  -- Parse mptcp kernel info
-  local mptcp = {}
-  local fullmesh = ut.trim(sys.exec("cat /proc/net/mptcp_fullmesh"))
-  for ind, addressId, backup, ipaddr in fullmesh:gmatch("(%d+), (%d+), (%d+), (%d+\.%d+\.%d+\.%d+)") do
-    mptcp[ipaddr] = {}
-    mptcp[ipaddr].index = ind
-    mptcp[ipaddr].id    = addressId
-    mptcp[ipaddr].backup= backup
-    mptcp[ipaddr].ipaddr= ipaddr
   end
   -- retrive core temperature
   mArray.overthebox["core_temp"] = sys.exec("cat /sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input 2>/dev/null"):match("%d+")

@@ -7,12 +7,15 @@
 
 include $(TOPDIR)/rules.mk
 
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=https://github.com/sduponch/glorytun.git
+PKG_SOURCE_VERSION:=6be483ec549bba819a9cb9509a4169e6876c4889
+
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.35
-PKG_RELEASE:=4
-PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
-PKG_HASH:=49e4d8ea4ff2990300b37947b0bd0da3c8e0985bc6eddf29f4146306188fff64
+PKG_VERSION:=0.0.99-$(PKG_SOURCE_VERSION)
+PKG_RELEASE:=23
+
+PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -25,7 +28,7 @@ URL:=https://github.com/angt/glorytun
 SUBMENU:=VPN
 endef
 
-TARGET_CFLAGS += -std=c99 -D_GNU_SOURCE
+TARGET_CPPFLAGS += -DGT_RUNDIR=\\\"/var/run/$(PKG_NAME)\\\"
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/glorytun
@@ -34,10 +37,17 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_BIN) update $(1)/usr/sbin/$(PKG_NAME)-update.sh
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/config
 	touch $(1)/etc/config/glorytun
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/net/
+	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/net/90-$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface/
+	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/iface/90-$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp/
+	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/dhcp/90-$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

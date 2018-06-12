@@ -30,34 +30,6 @@ done
 
 uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
 
-_setup_glorytun() {
-	jq -r '@text "
-	set glorytun.\(.dev)=tunnel
-	set glorytun.\(.dev).enable=1
-	set glorytun.\(.dev).dev=\(.dev)
-	set glorytun.\(.dev).server=\(.server)
-	set glorytun.\(.dev).port=\(.port)
-	set glorytun.\(.dev).key=\(.key)
-
-	delete network.\(.dev)
-	set network.\(.dev)=interface
-	set network.\(.dev).ifname=\(.dev)
-	set network.\(.dev).proto=static
-	set network.\(.dev).ipaddr=\(.ip_local)
-	set network.\(.dev).netmask=255.255.255.0
-	set network.\(.dev).gateway=\(.ip_peer)
-	set network.\(.dev).metric=\(.metric)
-	set network.\(.dev).txqueuelen=1000
-	set network.\(.dev).mtu=\(.mtu)
-	set network.\(.dev).ip4table=\(.table)
-	set network.\(.dev).type=tunnel
-	set network.\(.dev).multipath=off
-	set network.\(.dev).generatedby='"$ME"'
-	del_list firewall.wan.network=\(.dev)
-	add_list firewall.wan.network=\(.dev)
-	"'
-}
-
 _setup_glorytun_mud() {
 	jq -r '@text "
 	set glorytun.\(.dev)=mud
@@ -66,8 +38,6 @@ _setup_glorytun_mud() {
 	set glorytun.\(.dev).server=\(.server)
 	set glorytun.\(.dev).port=\(.port)
 	set glorytun.\(.dev).key=\(.key)
-	set glorytun.\(.dev).mtu=\(.mtu)
-	set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
 
 	delete network.\(.dev)
 	set network.\(.dev)=interface
@@ -84,48 +54,16 @@ _setup_glorytun_mud() {
 	set network.\(.dev).generatedby='"$ME"'
 	del_list firewall.wan.network=\(.dev)
 	add_list firewall.wan.network=\(.dev)
+
+	set network.\(.dev)_rule=rule
+	set network.\(.dev)_rule.lookup=\(.table)
+	set network.\(.dev)_rule.priority=30000
 	"'
 }
 
-tun_app=$(_get tun_conf.app)
-case "$tun_app" in
-	glorytun)
-		_get glorytun_conf | _setup_glorytun
-		echo "$config" | jq ".glorytun_conf+.glorytun_conf.additional_interfaces[0]" | _setup_glorytun
-		;;
-	glorytun_hybrid)
-		_get glorytun_conf | _setup_glorytun
-		echo "$config" | jq ".glorytun_mud_conf+{
-				dev:.glorytun_conf.additional_interfaces[0].dev,
-				table:.glorytun_conf.additional_interfaces[0].table,
-				metric:.glorytun_conf.additional_interfaces[0].metric,
-			}" | _setup_glorytun_mud
-		;;
-	glorytun_mud)
-		_get glorytun_mud_conf | _setup_glorytun_mud
-		;;
-esac | uci -q batch
+_get glorytun_mud_conf | _setup_glorytun_mud | uci -q batch
 
 uci -q batch <<EOF
-set glorytun.app=mode
-set glorytun.app.mode=$tun_app
-
-set shadowsocks.proxy=client
-set shadowsocks.proxy.server=$(_get shadow_conf.server)
-set shadowsocks.proxy.port=$(_get shadow_conf.port)
-set shadowsocks.proxy.lport=$(_get shadow_conf.lport)
-set shadowsocks.proxy.method=$(_get shadow_conf.method)
-set shadowsocks.proxy.timeout=$(_get shadow_conf.timeout)
-set shadowsocks.proxy.reuse_port=$(_get shadow_conf.reuse_port)
-set shadowsocks.proxy.fast_open=$(_get shadow_conf.fast_open)
-set shadowsocks.proxy.disable_sni=$(_get shadow_conf.disable_sni)
-set shadowsocks.proxy.monitoring_ip=$(_get shadow_conf.monitoring_ip)
-set shadowsocks.proxy.track_interval=$(_get shadow_conf.track_interval)
-set shadowsocks.proxy.track_timeout=$(_get shadow_conf.track_timeout)
-set shadowsocks.proxy.track_retry=$(_get shadow_conf.track_retry)
-set shadowsocks.proxy.password=$(_get shadow_conf.password)
-set shadowsocks.proxy.disabled=$(_get shadow_conf.disabled)
-
 set system.@system[0].log_ip=$(_get log_conf.host)
 set system.@system[0].log_port=$(_get log_conf.port)
 set system.@system[0].log_proto=$(_get log_conf.protocol)

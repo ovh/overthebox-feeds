@@ -59,15 +59,4 @@ if fs.access("/usr/sbin/br2684ctl") then
 	m.pageaction = true
 end
 
-local network = require "luci.model.network"
-if fs.access("/proc/sys/net/mptcp") then
-    local s = m:section(NamedSection, "globals", "globals", translate("Global network options"))
-
-    local mtcp = s:option(ListValue, "multipath", translate("Multipath TCP"))
-    mtcp:value("enable", translate("enable"))
-    mtcp:value("disable", translate("disable"))
-
-    m.pageaction = true
-end
-
 return m

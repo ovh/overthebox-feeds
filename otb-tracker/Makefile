@@ -10,7 +10,7 @@ define Package/$(PKG_NAME)
   SECTION:=OVH
   CATEGORY:=OverTheBox
   TITLE:=OverTheBox tracker
-  DEPENDS:=+overthebox +bind-dig
+  DEPENDS:=+overthebox
   PKGARCH:=all
 endef
 
@@ -27,14 +27,10 @@ endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) bin $(1)/bin/otb-tracker
+	$(INSTALL_BIN) bin $(1)/bin/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
-	$(INSTALL_BIN) post-tracking.d/* $(1)/usr/share/otb/post-tracking.d
-	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DATA) config $(1)/etc/config/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

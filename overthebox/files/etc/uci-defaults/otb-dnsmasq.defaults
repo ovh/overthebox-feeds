@@ -2,152 +2,24 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
-
 uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
 set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
+set dhcp.@dnsmasq[0].noresolv='1'
+
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra
 delete dhcp.lan.ra_default
 delete dhcp.lan.ra_management
 delete dhcp.lan.ra_preference
 delete dhcp.lan.dhcpv6
+
+delete dhcp.@dnsmasq[0].server
+add_list dhcp.@dnsmasq[0].server='1.1.1.1'
+add_list dhcp.@dnsmasq[0].server='1.0.0.1'
+
 set dhcp.lan.force='1'
 EOF
-
-#################################
-# Migration from openwrt to lede
-#################################
-
-config_load dhcp
-
-# Listen to the lan interface only if no other interface is configured
-if ! uci -q get dhcp.@dnsmasq[0].interface >/dev/null; then
-	uci -q add_list dhcp.@dnsmasq[0].interface='lan'
-fi
-
-# Setup the lan names to be resolved localy
-lan_names="
-	overthebox
-	overthebox.ovh
-	www.overthebox.ovh
-"
-for lan_name in $lan_names; do
-	uci -q del_list "dhcp.lan.interface_name=$lan_name"
-	uci -q add_list "dhcp.lan.interface_name=$lan_name"
-done
-
-# Remove the old cnames, it is now configured on the lan dhcp-range
-delete_old_cnames() {
-	cname=
-	config_get cname "$1" cname
-	[ "${cname%%.*}" = "overthebox" ] && uci -q delete "dhcp.$1"
-}
-config_foreach delete_old_cnames cname
-
-# Remove the old hostrecords
-delete_old_hostrecords() {
-	name=
-	config_get name "$1" name
-	case $name in
-		lan|loopback|tun0|xtun0|if*) uci -q delete "dhcp.$1";;
-	esac
-}
-config_foreach delete_old_hostrecords hostrecord
-
-# Rename old tags
-rename_old_tags() {
-	case "$1" in
-		*_gw|*_old) return 0 ;;
-	esac
-
-	uci -q rename "dhcp.$1=${1}_old"
-}
-config_load dhcp
-config_foreach rename_old_tags tag
-
-# Update dhcp
-update_dhcp() {
-	interface=
-	config_get interface "$1" interface
-
-	[ -z "$interface" ] && return
-	[ "$interface" = lan ] && return
-
-	options=
-	config_get options "$1" dhcp_option
-
-	[ -n "$options" ] && uci -q set "dhcp.${interface}_old=tag"
-
-	uci -q rename "dhcp.$1=$interface"
-}
-config_load dhcp
-config_foreach update_dhcp dhcp
-
-# Setup the static ranges, and gateway tags
-create_static_ranges() {
-	interface="$1"
-
-	# Skip well formatted tags, e.g. XXX_gw
-	case "$interface" in
-		*_gw) return 0 ;;
-		*_old) interface=${interface%%_old} ;;
-	esac
-
-	config_get options "$interface" dhcp_option
-
-	# Delete old configs
-	uci -q batch <<-EOF
-	delete dhcp.$1
-	delete dhcp.$interface
-	EOF
-
-	# Create/update dhcp config
-	uci -q batch <<-EOF
-	set dhcp.${interface}=dhcp
-	set dhcp.${interface}.interface='$interface'
-	set dhcp.${interface}.start='1'
-	set dhcp.${interface}.leasetime='12h'
-	set dhcp.${interface}.dynamicdhcp='0'
-	set dhcp.${interface}.force='1'
-	EOF
-
-	# Create the new tags
-	uci -q batch <<-EOF
-	delete dhcp.${interface}_gw
-	set dhcp.${interface}_gw=tag
-	EOF
-	for option in $options; do
-		option=$(echo "$option" | sed 's/option:router/3/')
-		option=$(echo "$option" | sed 's/option:dns-server/6/')
-		uci -q add_list "dhcp.${interface}_gw.dhcp_option=$option"
-	done
-	uci -q add_list "dhcp.${interface}_gw.dhcp_option=1,255.255.255.0"
-
-	# Change the host configuration to use the new tag
-	update_host_tag() {
-		tag=
-		config_get tag "$1" tag
-		[ "$tag" = "$interface" ] && uci -q set "dhcp.$1.tag=${interface}_gw"
-	}
-	config_foreach update_host_tag host
-}
-config_load dhcp
-config_foreach create_static_ranges tag
-
-# Cleanup the old dhcp
-cleanup_dhcp() {
-	interface=
-	config_get interface "$1" interface
-	[ "$1" = "$interface" ] || uci -q delete "dhcp.$1"
-}
-config_load dhcp
-config_foreach cleanup_dhcp dhcp
-
-##################################
-# / Migration from openwrt to lede
-##################################
