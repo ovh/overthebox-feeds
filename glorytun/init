@@ -71,5 +71,5 @@ start_service() {
 }
 
 service_triggers() {
-	procd_add_reload_trigger glorytun network
+	procd_add_reload_trigger glorytun
 }

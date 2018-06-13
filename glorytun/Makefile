@@ -48,6 +48,8 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/iface/90-$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp/
 	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/dhcp/90-$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/usr/share/otb/config-check.d/
+	$(INSTALL_BIN) hotplug $(1)/usr/share/otb/config-check.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
