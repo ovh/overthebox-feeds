@@ -5,7 +5,7 @@ jobs:
     timezone: Europe/Paris
 
     environment:
-      - OTB_VERSION: v3.6
+      - OTB_VERSION: v4.0
       - OTB_TARGET: x86_64
 
     working_directory: ~/
