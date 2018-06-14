@@ -4,25 +4,16 @@
 
 mode="$(uci -q get glorytun.app.mode)"
 
-[ "$mode" ] || exit 0
-
-logger -t update -p 6 "Update config from 0.6 to 0.7"
+[ "$mode" ] && logger -t update -p 6 "Update glorytun from $mode"
 
 case "$mode" in
 	glorytun_hybrid)
 		key="$(uci -q get glorytun.xtun0.key)"
-		ipaddr="$(uci -q get network.xtun0.ipaddr)"
-		gateway="$(uci -q get network.xtun0.gateway)"
 		uci -q batch <<-EOF
 		set glorytun.tun0='mud'
 		set glorytun.tun0.key='$key'
-		set network.tun0.ipaddr='$ipaddr'
-		set network.tun0.gateway='$gateway'
 		delete glorytun.xtun0
 		delete glorytun.app
-		delete network.xtun0
-		delete network.tun0.mtu
-		commit
 		EOF
 		;;
 	glorytun_mud)
@@ -30,7 +21,20 @@ case "$mode" in
 		delete glorytun.tun0.mtu
 		delete glorytun.tun0.mtu_auto
 		delete glorytun.app
-		commit
 		EOF
 		;;
 esac
+
+uci -q get "glorytun.xtun0" || exit 0
+
+logger -t update -p 6 "Remove xtun0"
+
+ipaddr="$(uci -q get network.xtun0.ipaddr)"
+gateway="$(uci -q get network.xtun0.gateway)"
+
+uci -q batch <<-EOF
+set network.tun0.ipaddr='$ipaddr'
+set network.tun0.gateway='$gateway'
+delete network.tun0.mtu
+delete network.xtun0
+EOF
