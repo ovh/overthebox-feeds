@@ -5,7 +5,13 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 
+[ "$(uci -q get "glorytun.tun0")" = "mud" ] || exit 0
+
 _gt_setup_interface() {
+	case "$1" in
+		loopback|lan|if0|*tun*|ifb*) return ;;
+	esac
+
 	local ipaddr=
 	network_get_ipaddr ipaddr "$1"
 
