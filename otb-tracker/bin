@@ -37,18 +37,14 @@ while true; do
 
 	ubus call network.interface dump | jq -r '.interface[] | select(.l3_device != "lan") | @text "\(.l3_device) \(.interface)"' > "$OTB_DEV_FILE"
 
-	glorytun path dev tun0 2>/dev/null | while read -r key value _; do
-		case "$key" in
-		"path")    case "$value" in
-		*"UP")     OTB_TRACKER_STATUS="OK" ;;
-		*)         OTB_TRACKER_STATUS="DOWN" ;;
-		           esac ;;
-		"bind:")   OTB_TRACKER_DEVICE_IP="$value" ;;
-		"public:") OTB_TRACKER_PUBLIC_IP="$value" ;;
-		"rtt:")    OTB_TRACKER_LATENCY="$value" ;;
-		"input:")  _post_tracking
-		           _cleanup ;;
-		esac
+	glorytun path dev tun0 2>/dev/null | while read -r \
+		SKIP OTB_TRACKER_STATUS \
+		OTB_TRACKER_DEVICE_IP SKIP \
+		OTB_TRACKER_PUBLIC_IP SKIP \
+		SKIP SKIP SKIP \
+		OTB_TRACKER_LATENCY SKIP; do
+		_post_tracking
+		_cleanup
 	done
 
 	if glorytun sync dev tun0 2>/dev/null; then
