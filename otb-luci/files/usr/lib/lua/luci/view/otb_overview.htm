@@ -1,3 +1,63 @@
+<%
+local uci       = require("luci.model.uci").cursor()
+local device_id = uci:get("overthebox", "me", "device_id")
+local service   = uci:get("overthebox", "me", "service")
+local if0       = uci:get("network", "if0")
+%>
 <%+header%>
-<h2>Overview</h2>
+<script type="text/javascript">
+    XHR.poll(5, '<%=url('admin/glorytun/path')%>', null,
+        function(x,p) {
+            var d = document.getElementById("paths_table")
+            if (d) {
+                while (d.rows.length > 1)
+                    d.rows[0].parentNode.deleteRow(1);
+                for (var i=0; i<p.length; i++) {
+                    var tr = d.rows[0].parentNode.insertRow(-1);
+                    tr.className = 'cbi-section-table-row';
+                    tr.insertCell(-1).innerHTML = p[i].state;
+                    tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + '.' + p[i].bind.port;
+                    tr.insertCell(-1).innerHTML = p[i].public.ipaddr + '.' + p[i].public.port;
+                    tr.insertCell(-1).innerHTML = p[i].rtt          + " ms";
+                    tr.insertCell(-1).innerHTML = p[i].mtu + 28     + " bytes";
+                    tr.insertCell(-1).innerHTML = p[i].upload.max   + " bytes/s";
+                    tr.insertCell(-1).innerHTML = p[i].download.max + " bytes/s";
+                }
+            }
+        }
+    );
+</script>
+<h2><%:Overview%></h2>
+<fieldset class="cbi-section">
+    <legend><%:Informations%></legend>
+    <table width="100%" cellspacing="10">
+        <tr><td width="33%"><%:Device%></td><td><%=device_id%></td></tr>
+        <tr><td width="33%"><%:Service%></td><td><%=service%></td></tr>
+        <tr></tr>
+    </table>
+</fieldset>
+<% if service then %>
+<fieldset class="cbi-section">
+    <legend><%:Paths%></legend>
+    <table class="cbi-section-table" id="paths_table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-cell">State</th>
+            <th class="cbi-section-table-cell">Bind</th>
+            <th class="cbi-section-table-cell">Public</th>
+            <th class="cbi-section-table-cell">RTT</th>
+            <th class="cbi-section-table-cell">MTU</th>
+            <th class="cbi-section-table-cell">Upload MAX</th>
+            <th class="cbi-section-table-cell">Download MAX</th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td colspan="4"><em>Collecting data...</em></td>
+        </tr>
+    </table>
+</fieldset>
+<% if if0 then %>
+<div class="alert-message warning">TODO: Add an interface</div>
+<% end %>
+<% else %>
+<div class="alert-message warning">TODO: Setup service</div>
+<% end %>
 <%+footer%>
