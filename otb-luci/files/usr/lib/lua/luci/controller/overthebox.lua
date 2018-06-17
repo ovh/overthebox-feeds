@@ -1,5 +1,4 @@
--- Copyright 2018 OVH SAS
-
+-- vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2 :
 module("luci.controller.overthebox", package.seeall)
 
 function index()
