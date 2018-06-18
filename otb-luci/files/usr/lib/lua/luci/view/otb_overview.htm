@@ -1,12 +1,24 @@
 <!-- vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4 : -->
 <%
-local uci       = require("luci.model.uci").cursor()
-local device_id = uci:get("overthebox", "me", "device_id")
-local service   = uci:get("overthebox", "me", "service")
-local if0       = uci:get("network", "if0")
+local uci               = require("luci.model.uci").cursor()
+local device_id         = uci:get("overthebox", "me", "device_id")
+local service           = uci:get("overthebox", "me", "service")
+local needs_activation  = uci:get("overthebox", "me", "needs_activation")
+local if0               = uci:get("network", "if0")
 %>
 <%+header%>
 <script type="text/javascript">
+    var xhr = new XHR();
+
+    function activate() {
+        xhr.get('<%=url("admin/overthebox/activate")%>', null,
+            function (x) {
+                if (x.status == 200)
+                    document.location.reload();
+            }
+        );
+    }
+
     function prettySize(fileSizeInByte) {
         var bits = fileSizeInByte * 8;
         var prefixes = ['', 'k', 'M', 'G'];
@@ -45,6 +57,12 @@ local if0       = uci:get("network", "if0")
     </table>
 </fieldset>
 <% if service then %>
+<% if needs_activation == "true" then %>
+<div class="cbi-page-actions">
+    <input type="button" class="cbi-button cbi-button-apply"
+           value="<%:Activate your device%>" onclick="activate()">
+</div>
+<% else %>
 <fieldset class="cbi-section">
     <legend><%:Paths%></legend>
     <table class="cbi-section-table" id="paths_table">
@@ -62,6 +80,7 @@ local if0       = uci:get("network", "if0")
         </tr>
     </table>
 </fieldset>
+<% end %>
 <% if if0 then %>
 <div class="alert-message warning">TODO: Add an interface</div>
 <% end %>
