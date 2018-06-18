@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-luci
-PKG_VERSION:=0.2
+PKG_VERSION:=0.3
 PKG_RELEASE:=0
 
 PKG_LICENSE:=GPLv3
