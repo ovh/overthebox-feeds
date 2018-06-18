@@ -8,16 +8,11 @@ local if0       = uci:get("network", "if0")
 <%+header%>
 <script type="text/javascript">
     function prettySize(fileSizeInByte) {
-        var i = -1;
-        s = fileSizeInByte * 8;
-        var units = [' kb/s', ' Mb/s', ' Gb/s'];
-        do {
-            s = s / 1024;
-            i++;
-        } while (s > 1024);
-
-        return Math.max(s, 0.1).toFixed(1) + units[i];
-    };
+        var bits = fileSizeInByte * 8;
+        var prefixes = ['', 'k', 'M', 'G'];
+        var log = Math.min(Math.log10(bits) / 3 | 0, prefixes.length - 1);
+        return (bits * Math.pow(10, -log * 3)).toFixed(1) + ' ' + prefixes[log] + 'bit/s';
+    }
 
     XHR.poll(5, '<%=url('admin/glorytun/path')%>', null,
         function(x,p) {
@@ -31,8 +26,8 @@ local if0       = uci:get("network", "if0")
                     tr.insertCell(-1).innerHTML = p[i].state;
                     tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
                     tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
-                    tr.insertCell(-1).innerHTML = p[i].rtt          + " ms";
-                    tr.insertCell(-1).innerHTML = p[i].mtu + 28     + " bytes";
+                    tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
+                    tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
                     tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
                     tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
                 }
