@@ -23,7 +23,7 @@ local if0               = uci:get("network", "if0")
         return (bits * Math.pow(10, -log * 3)).toFixed(1) + ' ' + prefixes[log] + 'bit/s';
     }
 
-    XHR.poll(5, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
+    XHR.poll(1, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
         var d = document.getElementById("paths_table");
         if (d) {
             while (d.rows.length > 1)
