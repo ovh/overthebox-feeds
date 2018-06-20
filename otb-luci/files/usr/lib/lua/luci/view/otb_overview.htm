@@ -7,16 +7,13 @@ local needs_activation  = uci:get("overthebox", "me", "needs_activation")
 local if0               = uci:get("network", "if0")
 %>
 <%+header%>
+<% if service then %>
 <script type="text/javascript">
-    var xhr = new XHR();
-
     function activate() {
-        xhr.get('<%=url("admin/overthebox/activate")%>', null,
-            function (x) {
-                if (x.status == 200)
-                    document.location.reload();
-            }
-        );
+        (new XHR()).get('<%=url("admin/overthebox/activate")%>', null, function (x) {
+            if (x.status == 200)
+                window.location.reload();
+        });
     }
 
     function prettySize(fileSizeInByte) {
@@ -26,34 +23,32 @@ local if0               = uci:get("network", "if0")
         return (bits * Math.pow(10, -log * 3)).toFixed(1) + ' ' + prefixes[log] + 'bit/s';
     }
 
-    XHR.poll(5, '<%=url("admin/glorytun/path")%>', null,
-        function(x,p) {
-            var d = document.getElementById("paths_table");
-            if (d) {
-                while (d.rows.length > 1)
-                    d.rows[0].parentNode.deleteRow(1);
-                for (var i=0; i<p.length; i++) {
-                    var tr = d.rows[0].parentNode.insertRow(-1);
-                    tr.className = 'cbi-section-table-row';
-                    tr.insertCell(-1).innerHTML = p[i].state;
-                    tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
-                    tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
-                    tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
-                    tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
-                    tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
-                    tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
-                }
+    XHR.poll(5, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
+        var d = document.getElementById("paths_table");
+        if (d) {
+            while (d.rows.length > 1)
+                d.rows[0].parentNode.deleteRow(1);
+            for (var i=0; i<p.length; i++) {
+                var tr = d.rows[0].parentNode.insertRow(-1);
+                tr.className = 'cbi-section-table-row';
+                tr.insertCell(-1).innerHTML = p[i].state;
+                tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
+                tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
+                tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
+                tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
+                tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
+                tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
             }
         }
-    );
+    });
 </script>
+<% end %>
 <h2><%:Overview%></h2>
 <fieldset class="cbi-section">
     <legend><%:Informations%></legend>
     <table width="100%" cellspacing="10">
         <tr><td width="33%"><%:Device%></td><td><%=device_id%></td></tr>
         <tr><td width="33%"><%:Service%></td><td><%=service%></td></tr>
-        <tr></tr>
     </table>
 </fieldset>
 <% if service then %>
