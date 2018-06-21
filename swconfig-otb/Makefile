@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-swconfig-otb
-PKG_VERSION:=1.2
+PKG_VERSION:=1.3
 PKG_RELEASE:=2
 PKG_LICENSE:=MIT
 
@@ -19,7 +19,7 @@ define Package/$(PKG_NAME)
   SECTION:=OVH
   CATEGORY:=OverTheBox
   TITLE:=Tools to manage OVH OverTheBox switches
-  DEPENDS:=+python-light +python-logging +python-pyserial +lsof
+  DEPENDS:=+python-light +python-logging +python-pyserial +lsof +otb-luci-swconfig
 endef
 
 define Package/$(PKG_NAME)/description
