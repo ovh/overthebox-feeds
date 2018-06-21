@@ -4,35 +4,27 @@
 
 . /lib/functions.sh
 
-[ "$(uci -q get "network.lan.proto")" = static ] || \
-	uci -q batch <<-EOF
-	set network.lan=interface
-	set network.lan.proto=static
-	set network.lan.ipaddr=192.168.100.1
-	set network.lan.netmask=255.255.255.0
-	set network.lan.ifname=eth0
-	EOF
-
 uci -q batch <<EOF
 delete network.none
 delete network.if6rd
 reorder network.loopback=0
 reorder network.globals=1
 reorder network.lan=2
-set network.globals.multipath=enable
 EOF
 
-# Set the ip rule for the lan with a pref of 100
+# Add the lan as a named routing table
+if ! grep -s -q "lan" /etc/iproute2/rt_tables; then
+	echo "50 lan" >> /etc/iproute2/rt_tables
+fi
+
+# Set the ip rule for lan
 uci -q show network.lan_rule >/dev/null || \
 	uci -q batch <<-EOF
+	set network.lan.ip4table=lan
 	set network.lan_rule=rule
 	set network.lan_rule.lookup=lan
 	set network.lan_rule.priority=100
 	EOF
-
-if [ "$(uci -q get network.vpn0.proto)" = "none" ]; then
-	uci -q delete network.vpn0
-fi
 
 _setup_multipath() {
 	uci -q get "network.$1.multipath" >/dev/null && return
@@ -72,60 +64,6 @@ _setup_macvlan() {
 	_macaddr=$(uci -q get "network.$1.macaddr")
 	_setup_macaddr "$1" "${_macaddr:-auto$(date +%s)}"
 }
-
-_fix_old_vlan() {
-	case "$1" in
-	vlan?*)
-		uci -q delete "network.$1"
-		return
-		;;
-	esac
-
-	local _type
-	config_get _type "$1" type
-	[ "$_type" = "macvlan" ] || return
-
-	local _iface
-	config_get _iface "$1" interface
-
-	case "$_iface" in
-	eth*.*)
-		uci -q batch <<-EOF
-		delete network.$1.type
-		delete network.$1.interface
-		delete network.$1.macaddr
-		set network.$1.ifname=$_iface
-		EOF
-		;;
-	esac
-}
-config_load network
-config_foreach _fix_old_vlan interface
-
-_rename_to_ifX() {
-	case "$1" in
-	loopback|lan|if*|cif*|wan*|*tun*)
-		return
-		;;
-	esac
-
-	local _type
-	config_get _type "$1" type
-	[ "$_type" = "macvlan" ] || return
-
-	local _id=1
-	while uci -q get "network.if$_id" >/dev/null; do
-		_id=$((_id+1))
-	done
-
-	uci -q batch <<-EOF
-	set network.$1.label=$1
-	del_list firewall.wan.network=$1
-	rename network.$1=if$_id
-	EOF
-}
-config_load network
-config_foreach _rename_to_ifX interface
 
 _setup() {
 	case "$1" in
@@ -169,9 +107,3 @@ _setup() {
 }
 config_load network
 config_foreach _setup interface
-
-# Add the lan as a named routing table
-if ! grep -s -q "lan" /etc/iproute2/rt_tables; then
-	echo "50 lan" >> /etc/iproute2/rt_tables
-fi
-uci -q set network.lan.ip4table='lan'
