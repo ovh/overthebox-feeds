@@ -6,10 +6,16 @@ set -e
 
 . /lib/overthebox
 
-otb_service_post confirm
-echo
+case "$1" in
+overthebox.*-*-*-*-*)
+	OTB_SERVICE_ID="$1"
+	if [ "$(otb_service_post confirm)" = "OK" ]; then
+		uci -q batch <<-EOF
+		set overthebox.me.service=$OTB_SERVICE_ID
+		commit overthebox
+		EOF
+		exit
+	fi ;;
+esac
 
-uci -q batch << EOF
-delete overthebox.me.needs_activation
-commit overthebox
-EOF
+exit 1
