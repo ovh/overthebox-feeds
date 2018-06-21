@@ -3,61 +3,20 @@
 local uci               = require("luci.model.uci").cursor()
 local device_id         = uci:get("overthebox", "me", "device_id")
 local service           = uci:get("overthebox", "me", "service")
-local needs_activation  = uci:get("overthebox", "me", "needs_activation")
 local if0               = uci:get("network", "if0")
 %>
 <%+header%>
-<% if service then %>
-<script type="text/javascript">
-    function activate() {
-        (new XHR()).get('<%=url("admin/overthebox/activate")%>', null, function (x) {
-            if (x.status == 200)
-                window.location.reload();
-        });
-    }
-
-    function prettySize(fileSizeInByte) {
-        var bits = fileSizeInByte * 8;
-        var prefixes = ['', 'k', 'M', 'G'];
-        var log = Math.min(Math.log10(bits) / 3 | 0, prefixes.length - 1);
-        return (bits * Math.pow(10, -log * 3)).toFixed(1) + ' ' + prefixes[log] + 'bit/s';
-    }
-
-    XHR.poll(1, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
-        var d = document.getElementById("paths_table");
-        if (d) {
-            while (d.rows.length > 1)
-                d.rows[0].parentNode.deleteRow(1);
-            for (var i=0; i<p.length; i++) {
-                var tr = d.rows[0].parentNode.insertRow(-1);
-                tr.className = 'cbi-section-table-row';
-                tr.insertCell(-1).innerHTML = p[i].state;
-                tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
-                tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
-                tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
-                tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
-                tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
-                tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
-            }
-        }
-    });
-</script>
-<% end %>
 <h2><%:Overview%></h2>
 <fieldset class="cbi-section">
     <legend><%:Informations%></legend>
     <table width="100%" cellspacing="10">
         <tr><td width="33%"><%:Device%></td><td><%=device_id%></td></tr>
-        <tr><td width="33%"><%:Service%></td><td><%=service%></td></tr>
+        <tr><td width="33%"><%:Service%></td><td>
+                <%if service then write(service) else%><div id="service_div"></div><%end%>
+        </td></tr>
     </table>
 </fieldset>
-<% if service then %>
-<% if needs_activation == "true" then %>
-<div class="cbi-page-actions">
-    <input type="button" class="cbi-button cbi-button-apply"
-           value="<%:Activate your device%>" onclick="activate()">
-</div>
-<% else %>
+<%if service then%>
 <fieldset class="cbi-section">
     <legend><%:Paths%></legend>
     <table class="cbi-section-table" id="paths_table">
@@ -75,11 +34,144 @@ local if0               = uci:get("network", "if0")
         </tr>
     </table>
 </fieldset>
-<% end %>
-<% if if0 then %>
-<div class="alert-message warning">TODO: Add an interface</div>
-<% end %>
-<% else %>
-<div class="alert-message warning">TODO: Setup service</div>
-<% end %>
+<script type="text/javascript">
+    function prettySize(fileSizeInByte) {
+        var bits = fileSizeInByte * 8;
+        var prefixes = ['', 'k', 'M', 'G'];
+        var log = Math.min(Math.log10(bits) / 3 | 0, prefixes.length - 1);
+        return (bits * Math.pow(10, -log * 3)).toFixed(1) + ' ' + prefixes[log] + 'bit/s';
+    }
+
+    XHR.poll(1, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
+        var d = document.getElementById("paths_table");
+        if (d) {
+            while (d.rows.length > 1) {
+                d.rows[0].parentNode.deleteRow(1);
+            }
+            for (var i=0; p && i<p.length; i++) {
+                var tr = d.rows[0].parentNode.insertRow(-1);
+                tr.className = 'cbi-section-table-row';
+                tr.insertCell(-1).innerHTML = p[i].state;
+                tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
+                tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
+                tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
+                tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
+                tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
+                tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
+            }
+        }
+    });
+</script>
+<%else%>
+<script type="text/javascript" src="<%=resource%>/sha1.min.js"></script>
+<script type="text/javascript">
+    function get_cookie(name) {
+        var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+
+    function set_cookie(name, value) {
+        document.cookie = name + "=" + value;
+    }
+
+    XHR.prototype.send_json = function(method, url, headers, data, callback) {
+        this.reinit();
+        var xhr = this._xmlHttp;
+        xhr.onreadystatechange = function() {
+            xhr.readyState == 4 && callback(xhr, JSON.parse(xhr.responseText));
+        };
+        xhr.open(method, url, true);
+        xhr.setRequestHeader("Content-type", "application/json");
+        for (h in headers) {
+            xhr.setRequestHeader(h, headers[h]);
+        }
+        xhr.send(typeof data == "string" ? data : JSON.stringify(data));
+    }
+
+    function apiovhcom(method, query, body, callback) {
+        var data = body ? JSON.stringify(body) : null;
+        (new XHR()).get('<%=url("admin/overthebox/time")%>', null, function(x, p) {
+            if (x.status == 200 && p && p.timestamp) {
+                var sign = "$1$" + hex_sha1([
+                    ovh_as, ovh_ck,
+                    method, ovh_uri + query,
+                    data, p.timestamp
+                ].join("+"));
+                (new XHR()).send_json(method, ovh_uri + query, {
+                    "X-Ovh-Application": ovh_ak,
+                    "X-Ovh-Timestamp": p.timestamp,
+                    "X-Ovh-Signature": sign,
+                    "X-Ovh-Consumer": ovh_ck
+                }, data, function(x, p) {
+                    callback(x, p);
+                });
+            }
+        });
+    }
+
+    var ovh_uri = "https://eu.api.ovh.com/1.0";
+    var ovh_ak = "rxaOYP724BG7eG76";
+    var ovh_as = "4DOAMmAqBVmesDM5Jjp0mRQkBYleqded";
+    var ovh_ck = get_cookie("consumerKey");
+    var service_div = document.getElementById("service_div");
+
+    if (ovh_ck && ovh_ck.length > 0) {
+        apiovhcom("GET", "/overTheBox", null, function(x, p) {
+            if (x.status == 200 && p) {
+                var e = document.createElement("select");
+                for (var i=0; i<p.length; i++) {
+                    var o = document.createElement("option");
+                    o.value = i;
+                    o.text = p[i];
+                    e.appendChild(o);
+                }
+                var b = document.createElement("input");
+                b.setAttribute("type", "button");
+                b.setAttribute("class", "cbi-button cbi-button-apply");
+                b.setAttribute("value", "Link device");
+                b.onclick = function() {
+                    var service = e.options[e.selectedIndex].text;
+                    apiovhcom("POST", "/overTheBox/" + service + "/linkDevice", {
+                        "deviceId": "<%=device_id%>"
+                    }, function (x, p) {
+                        if (x.status == 200 || x.status == 409) {
+                            (new XHR()).get('<%=url("admin/overthebox/confirm_service")%>', {
+                                "service": service
+                            }, function (x) {
+                                x.status == 200 && window.location.reload();
+                            });
+                        }
+                    });
+                };
+                service_div.appendChild(e);
+                service_div.appendChild(b);
+            } else {
+                set_cookie("consumerKey", "");
+                window.location.reload();
+            }
+        });
+    } else {
+        var e = document.createElement("input");
+        e.setAttribute("type", "button");
+        e.setAttribute("class", "cbi-button cbi-button-apply");
+        e.setAttribute("value", "Get services list");
+        e.onclick = function() {
+            (new XHR()).send_json("POST", ovh_uri + "/auth/credential",
+                { "X-Ovh-Application": ovh_ak },
+                { accessRules: [
+                    { method: "GET",  path: "/overTheBox" },
+                    { method: "POST", path: "/overTheBox/*/linkDevice" }
+                ], redirection: window.location.href
+                }, function(x, p) {
+                    if (p && p.consumerKey && p.validationUrl) {
+                        set_cookie("consumerKey", p.consumerKey);
+                        window.location.replace(p.validationUrl);
+                    }
+                }
+            );
+        };
+        service_div.appendChild(e);
+    }
+</script>
+<%end%>
 <%+footer%>
