@@ -9,6 +9,7 @@ OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 mkdir -p "$OTB_DATA_DIR" "$OTB_TODO_DIR"
 
 otb_reload() {
+	[ -f /etc/config/overthebox ] || touch /etc/config/overthebox
 	OTB_DEVICE_ID=$(uci -q get overthebox.me.device_id || true)
 	OTB_SERVICE_ID=$(uci -q get overthebox.me.service || true)
 	OTB_TOKEN=$(uci -q get overthebox.me.token || true)
