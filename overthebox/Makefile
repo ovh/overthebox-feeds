@@ -31,6 +31,8 @@ endef
 
 define Package/$(PKG_NAME)/install
 	$(CP) ./files/* $(1)/
+	$(INSTALL_DIR) $(1)/etc/config
+	touch $(1)/etc/config/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
