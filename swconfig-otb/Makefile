@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-swconfig-otb
-PKG_VERSION:=1.3
+PKG_VERSION:=1.4
 PKG_RELEASE:=2
 PKG_LICENSE:=MIT
 
@@ -42,6 +42,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig.py $(1)/usr/bin/swconfig
 	$(CP) $(PKG_BUILD_DIR)/switch.sh $(1)/lib/network/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig-reset $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig-reset-todo $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
