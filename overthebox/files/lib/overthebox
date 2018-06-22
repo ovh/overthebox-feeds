@@ -74,11 +74,12 @@ otb_call_api() {
 	method=$1
 	path=$2
 	shift 2
+	api="$(uci -q get network.tun0.gateway)" || return
 	otb_debug "call api: $method $path $*"
 	curl --silent --show-error --max-time 1 \
 		-X "$method" \
 		-H "Content-Type: application/json" \
-		"http://api/$path" \
+		"http://$api/$path" \
 		"$@"
 }
 

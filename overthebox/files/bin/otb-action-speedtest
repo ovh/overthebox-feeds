@@ -11,43 +11,22 @@ server_ip=
 
 . /lib/functions.sh
 . /lib/functions/network.sh
+. /lib/overthebox
 
-# Setup stops the QoS and opens the iperf server
 setup() {
-	# Open the Iperf server
-	output=$(curl -s -X POST api/ipt/iperf)
-	if [ $? -ne "0" ]; then
-		echo "Couldn't open iperf server :"
-		echo "$output"
-		exit 1
-	fi
+	echo "Start iperf..."
+	otb_call_api POST ipt/iperf
 
-	# Stop the QoS
-	output=$(/etc/init.d/otb-qos stop)
-	if [ $? -ne "0" ]; then
-		echo "Couldn't stop qos :"
-		echo "$output"
-		exit 1
-	fi
+	echo "Stop QoS..."
+	/etc/init.d/otb-qos stop
 }
 
-# cleanup starts the QoS and closes the iperf server when the test is finished
 cleanup() {
-	# Close the Iperf server
-	output=$(curl -s -X DELETE api/ipt/iperf)
-	if [ $? -ne "0" ]; then
-		echo "Couldn't open iperf server :"
-		echo "$output"
-		exit 1
-	fi
+	echo "Stop iperf..."
+	otb_call_api DELETE ipt/iperf
 
-	# Start the QoS
-	output=$(/etc/init.d/otb-qos start)
-	if [ $? -ne "0" ]; then
-		echo "Couldn't start qos :"
-		echo "$output"
-		exit 1
-	fi
+	echo "Start QoS..."
+	/etc/init.d/otb-qos start
 }
 
 # test_interface performs an iperf test and returns download, upload values plus an error
