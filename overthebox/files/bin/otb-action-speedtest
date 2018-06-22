@@ -67,7 +67,7 @@ test_interface() {
 		return
 	fi
 
-	upload=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1024")
+	upload=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1000")
 	printf "%s Kbps\n" "$upload"
 
 	printf "[%s] Download : " "$ifname"
@@ -79,7 +79,7 @@ test_interface() {
 		return
 	fi
 
-	download=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1024")
+	download=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1000")
 
 	printf "%s Kbps\n" "$download"
 	sleep 1
