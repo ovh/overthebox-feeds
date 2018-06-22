@@ -1,113 +1,60 @@
 #!/bin/sh
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# Do the iperf during 5 seconds
-test_time=5
-# Skip the data of the first second of the test
-skip_test_time=1
-server_port=5008
-server_ip=
+interface="$1"    # Do the iperf only one this interface
+test_time=5       # Do the iperf during 5 seconds
+skip_test_time=1  # Skip the data of the first second of the test
+
+server_ip="$(uci -q get glorytun.tun0.server)" || {
+	echo "Can't find server ip"
+	exit 1
+}
 
 . /lib/functions.sh
 . /lib/functions/network.sh
 . /lib/overthebox
 
-setup() {
-	echo "Start iperf..."
-	otb_call_api POST ipt/iperf
+trap : HUP INT TERM
 
-	echo "Stop QoS..."
-	/etc/init.d/otb-qos stop
+setup() {
+	otb_call_api POST ipt/iperf >/dev/null || echo "Couldn't start iperf"
+	/etc/init.d/otb-qos stop 2>/dev/null
 }
 
 cleanup() {
-	echo "Stop iperf..."
-	otb_call_api DELETE ipt/iperf
-
-	echo "Start QoS..."
+	otb_call_api DELETE ipt/iperf >/dev/null
 	/etc/init.d/otb-qos start
 }
 
-# test_interface performs an iperf test and returns download, upload values plus an error
-test_interface() {
-	result=
-	multipath=
-	ifname=
-	ipaddr=
-	config_get ifname "$1" ifname
-	network_get_ipaddr ipaddr "$1" || true
-	config_get multipath "$1" multipath "off"
+speedtest() {
+	local ipaddr multipath
 
-	# Skip unwanted interfaces
-	if [ -z "$multipath" ] || [ "$multipath" = "off" ]; then
-		return 0
+	if [ "$interface" ]; then
+		[ "$interface" != "$1" ] && return
+	else
+		config_get multipath "$1" multipath "off"
+		[ "$multipath" = "off" ] && return
 	fi
 
-	#   -- Do the iperf test
-	#   --   during 5 seconds
-	#   --   omit the first few seconds of the test to be more accurate
-	#   --   on interface interface_name
-	#   --   return json data
-	iperf_command="iperf3 \
-			--client $server_ip
-			--port $server_port
-			--time $test_time
-			--omit $skip_test_time
-			--bind $ipaddr
-			--json
-	"
+	network_get_ipaddr ipaddr "$1"
+	[ "$ipaddr" ] || return
 
-	printf "[%s] Upload   : " "$ifname"
+	do_iperf() {
+		iperf3 --client "$server_ip" --port 5008 \
+		       --time "$test_time" --omit "$skip_test_time" \
+		       --bind "$ipaddr" --json "$@" \
+			   | jq "(.end.sum_received.bits_per_second // 0) / 1000 | floor"
+	}
 
-	result=$($iperf_command)
-	if [ $? -ne "0" ]; then
-		echo "error when running iperf"
-		echo "$result"
-		return
-	fi
-
-	upload=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1000")
-	printf "%s Kbps\n" "$upload"
-
-	printf "[%s] Download : " "$ifname"
-
-	result=$($iperf_command -R)
-	if [ $? -ne "0" ]; then
-		echo "error when running iperf"
-		echo "$result"
-		return
-	fi
-
-	download=$(echo "$result" | jq ".end.sum_received.bits_per_second / 1000")
-
-	printf "%s Kbps\n" "$download"
-	sleep 1
+	upload="$(do_iperf)" || return
+	download="$(do_iperf -R)" || return
+	echo -e "[$1] \\tUpload: $upload kbit/s \\t\\tDownload: $download kbit/s"
 }
 
-# -- Get the wan ip of the service
-server_ip=$(uci get glorytun.tun0.server)
-if [ -z "$server_ip" ]; then
-	echo "Can't find server ip"
-	exit 1
-fi
-
-# Setup all the components to get ready to do the test
 setup
 
-# Cleanup getting a SIGINT/HUP/TERM signal
-trap : HUP INT TERM
-
-# Ignore valid json input
-INPUT=$1
-echo "$1" | jq --exit-status . 1>/dev/null 2>/dev/null && INPUT=
-
 config_load network
-if [ -n "$INPUT" ]; then
-	test_interface "$INPUT"
-else
-	config_foreach test_interface interface
-fi
+config_foreach speedtest interface
 
-# Cleanup when the test is done
 cleanup
