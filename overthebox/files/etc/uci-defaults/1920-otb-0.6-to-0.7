@@ -38,3 +38,8 @@ set network.tun0.gateway='$gateway'
 delete network.tun0.mtu
 delete network.xtun0
 EOF
+
+# delete old stuff
+sed -i '/169.254.254.1 api/d; /213.186.33.11 provisionning.overthebox.net/d' /etc/hosts
+uci -q delete "dhcp.api_hostrecord"
+rm -f /etc/sysctl.d/shadowsocks.conf
