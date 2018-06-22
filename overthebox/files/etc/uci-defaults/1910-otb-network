@@ -71,6 +71,7 @@ _setup() {
 		uci -q batch <<-EOF
 		set network.$1.metric=${1#wan}
 		set network.$1.ip4table=$((200+${1#wan}))
+		set network.$1.dns_metric=${1#wan}
 		del_list firewall.wan.network=$1
 		add_list firewall.wan.network=$1
 		EOF
@@ -94,6 +95,7 @@ _setup() {
 		uci -q batch <<-EOF
 		set network.$1.metric=${1#if}
 		set network.$1.ip4table=$((200+${1#if}))
+		set network.$1.dns_metric=${1#if}
 		del_list firewall.wan.network=$1
 		add_list firewall.wan.network=$1
 		EOF
