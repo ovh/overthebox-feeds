@@ -1,57 +1,29 @@
 #!/bin/sh
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions.sh
 
 _setup() {
-	name=
+	local name network
 	config_get name "$1" name
+	config_get network "$1" network
 
 	case "$name" in
 	lan|wan)
+		for iface in $network; do
+			[ "$(uci -q get "network.$iface")" ] || \
+				uci -q del_list "firewall.$1.network=$iface"
+		done
 		uci -q rename "firewall.$1=$name"
 		;;
 	esac
 }
 
-_update_network_list() {
-	cfg="$1"
-	interface_list=
-	config_get interface_list "$cfg" network
-
-	# Delete this interface
-	uci -q delete "firewall.$cfg.network"
-
-	# Add each interfaces individually
-	for interface in $interface_list; do
-		uci -q del_list "firewall.$cfg.network=$interface"
-		uci -q add_list "firewall.$cfg.network=$interface"
-	done
-}
-
-_lowercase_proto() {
-	cfg="$1"
-	proto=
-	config_get proto "$cfg" proto
-
-	# shellcheck disable=SC2018,2019
-	lcProto=$(echo "$proto" | tr 'A-Z' 'a-z')
-
-	[ "$proto" != "$lcProto" ] && uci -q set "firewall.$cfg.proto=$lcProto"
-}
-
 config_load firewall
-config_foreach _update_network_list zone
 config_foreach _setup zone
-config_foreach _lowercase_proto rule
-config_foreach _lowercase_proto redirect
 
 uci -q batch <<-EOF
-set firewall.lan.mtu_fix=1
-del_list firewall.lan.network=if0
-del_list firewall.wan.network=if0
-add_list firewall.wan.network=if0
 set firewall.allow_dhcp_request=rule
 set firewall.allow_dhcp_request.name=Allow-DHCP-Request
 set firewall.allow_dhcp_request.src=wan
