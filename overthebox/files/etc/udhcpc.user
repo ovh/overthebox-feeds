@@ -73,7 +73,7 @@ manage_if0() {
 		uci -q batch <<-EOF
 		set network.lan_if${_id}=interface
 		set network.lan_if${_id}.proto=static
-		set network.lan_if${_id}.ifname=lan
+		set network.lan_if${_id}.ifname=$(uci -q get network.lan.ifname)
 		set network.lan_if${_id}.ipaddr=$ip
 		set network.lan_if${_id}.netmask=$subnet
 		set network.${INTERFACE}_dev.macaddr=auto.lan_if$_id
