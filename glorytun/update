@@ -2,38 +2,37 @@
 # shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
-. /lib/functions/network.sh
-
 [ "$(uci -q get "glorytun.tun0")" = "mud" ] || exit 0
 
-_gt_setup_interface() {
-	case "$1" in
-		loopback|lan|if0|*tun*|ifb*) return ;;
-	esac
+. /lib/functions/network.sh
 
-	local ipaddr=
-	network_get_ipaddr ipaddr "$1"
+_setup_multipath() {
+	for iface in $(uci -q get firewall.wan.network); do
+		case "$iface" in
+			wan|tun0) continue ;;
+		esac
 
-	[ "$ipaddr" ] || return
+		local ipaddr
+		network_get_ipaddr ipaddr "$iface"
+		[ "$ipaddr" ] || continue
 
-	local multipath=
-	config_get multipath "$1" multipath "off"
+		local table
+		table="$(uci -q get "network.$iface.ip4table")"
+		[ "$table" ] || continue
 
-	case "$multipath" in
-		on|master) glorytun path "$ipaddr" up ;;
-		backup)    glorytun path "$ipaddr" backup ;;
-		*)         glorytun path "$ipaddr" down ;;
-	esac
+		case "$(uci -q get "network.$iface.multipath")" in
+			on|up|) glorytun path "$ipaddr" up     ;;
+			backup) glorytun path "$ipaddr" backup ;;
+			*)      glorytun path "$ipaddr" down   ;;
+		esac
+	done
 }
-
-config_load network
 
 retry=3
 
 while true; do
 	if glorytun show 2>/dev/null | grep -sq client; then
-		config_foreach _gt_setup_interface interface
+		_setup_multipath
 		exit
 	fi
 	if [ "$retry" == 0 ]; then
