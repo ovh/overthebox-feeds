@@ -2,24 +2,24 @@
 # shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-interface="$1"    # Do the iperf only one this interface
+. /lib/overthebox
+
 test_time=5       # Do the iperf during 5 seconds
 skip_test_time=1  # Skip the data of the first second of the test
 
 server_ip="$(uci -q get glorytun.tun0.server)" || {
-	echo "Can't find server ip"
+	otb_err "Couldn't find server ip"
 	exit 1
 }
 
 . /lib/functions.sh
 . /lib/functions/network.sh
-. /lib/overthebox
 
 trap : HUP INT TERM
 
 setup() {
-	otb_call_api POST ipt/iperf >/dev/null || echo "Couldn't start iperf"
-	/etc/init.d/otb-qos stop 2>/dev/null
+	otb_call_api POST ipt/iperf >/dev/null || return
+	/etc/init.d/otb-qos stop 2>/dev/null   || true
 }
 
 cleanup() {
@@ -28,17 +28,13 @@ cleanup() {
 }
 
 speedtest() {
-	local ipaddr multipath
-
-	if [ "$interface" ]; then
-		[ "$interface" != "$1" ] && return
-	else
-		config_get multipath "$1" multipath "off"
-		[ "$multipath" = "off" ] && return
-	fi
+	local ipaddr gateway
 
 	network_get_ipaddr ipaddr "$1"
 	[ "$ipaddr" ] || return
+
+	network_get_gateway gateway "$1"
+	[ "$gateway" ] || return
 
 	do_iperf() {
 		iperf3 --client "$server_ip" --port 5008 \
@@ -49,12 +45,18 @@ speedtest() {
 
 	upload="$(do_iperf)" || return
 	download="$(do_iperf -R)" || return
-	echo -e "[$1] \\tUpload: $upload kbit/s \\t\\tDownload: $download kbit/s"
+	printf "[%8s]  Upload: %8s kbits/s  Download: %8s kbit/s\\n" "$1" "$upload" "$download"
 }
 
-setup
-
-config_load network
-config_foreach speedtest interface
-
-cleanup
+if setup; then
+	if [ "$(uci -q get "network.$1")" = interface ]; then
+		speedtest "$1"
+	else
+		config_load network
+		config_foreach speedtest interface
+	fi
+	cleanup
+else
+	otb_err "Couldn't start iperf3"
+	exit 1
+fi
