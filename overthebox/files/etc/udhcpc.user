@@ -31,28 +31,6 @@ manage_if0() {
 	_macaddr=$(cat "/sys/class/net/$INTERFACE/address")
 	_ifname=$(uci -q get "network.${INTERFACE}_dev.ifname")
 
-	UCI_TMP_DIR="/tmp/dhcpdiscovery"
-	mkdir -p "$UCI_TMP_DIR"
-	touch "$UCI_TMP_DIR/dhcpdiscovery"
-
-	uci -q -c "$UCI_TMP_DIR" batch <<-EOF
-	set dhcpdiscovery.$INTERFACE=lease
-	set dhcpdiscovery.$INTERFACE.timestamp=$(date +%s)
-	set dhcpdiscovery.$INTERFACE.lease=$lease
-	set dhcpdiscovery.$INTERFACE.ip=$ip
-	set dhcpdiscovery.$INTERFACE.siaddr=$siaddr
-	set dhcpdiscovery.$INTERFACE.subnet=$subnet
-	set dhcpdiscovery.$INTERFACE.timezone=$timezone
-	set dhcpdiscovery.$INTERFACE.router=$router
-	set dhcpdiscovery.$INTERFACE.hostname=$hostname
-	set dhcpdiscovery.$INTERFACE.domain=$domain
-	set dhcpdiscovery.$INTERFACE.ipttl=$ipttl
-	set dhcpdiscovery.$INTERFACE.mtu=$mtu
-	set dhcpdiscovery.$INTERFACE.broadcast=$broadcast
-	set dhcpdiscovery.$INTERFACE.serverid=$serverid
-	commit dhcpdiscovery
-	EOF
-
 	uci -q show network | grep -sq "network\.if.*\.gateway='$router'" && exit
 
 	if uci -q get "network.lan_if${_id}" >/dev/null; then
