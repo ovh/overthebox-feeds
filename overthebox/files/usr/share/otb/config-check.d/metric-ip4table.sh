@@ -1,69 +1,43 @@
-# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# Ensure all wan interfaces have a metric and a ip4table
+# Ensure that all lan/wan interfaces have a private routing table
 
-. /lib/functions.sh
-
-OTB_CONFIG_INTERFACE_METRIC_OFFSET=30
-OTB_CONFIG_INTERFACE_TABLE_OFFSET=230
-
-# $1 type
-# $2 value
-_config_count() {
-	uci -q show network | grep -c "$1='$2'"
+_get_table() {
+	table=200
+	while uci -q show network | grep -s -q "ip4table='$table'"; do
+		table=$((table+1))
+	done
 }
 
-# $1 interface
-# $2 type
-_remove_duplicates() {
-	value=$(uci -q get "network.$1.$2")
-	count=$(_config_count "$2" "$value")
-	[ "$count" -le 1 ] && return
-	otb_info "removing duplicate network config $2 $value for $1"
-	uci -q delete "network.$1.$2"
-}
-
-# $1 interface
-# $2 type
-# #3 config offset
-_add_missing_value() {
-	[ -n "$(uci -q get "network.$1.$2")" ] && return
-	value=$3
-	while [ "$(_config_count "$2" "$value")" = 1 ]; do value=$((value+1)); done
-	otb_info "setup missing network config $2 to $value for $1"
-	uci -q set "network.$1.$2=$value"
-}
-
-# $1 interface
-_add_missing_rule() {
-	[ -n "$(uci -q get "network.$1_rule")" ] && return
-	table=$(uci -q get "network.$1.ip4table")
-	[ -n "$table" ] || return
-	otb_info "setup missing network rule to $table for $1"
+for iface in $(uci -q get firewall.wan.network); do
+	[ "$iface" = "if0" ] && continue
+	[ "$(uci -q get "network.$iface.ifname")" ] || continue
+	[ "$(uci -q get "network.${iface}_rule")" ] && continue
+	table="$(uci -q get "network.$iface.ip4table")"
+	[ "$table" ] || _get_table
+	otb_info "setup missing network rule to $table for $iface"
 	uci -q batch <<-EOF
-	set network.$1_rule=rule
-	set network.$1_rule.lookup=$table
-	set network.$1_rule.priority=30200
+	set network.$iface.ip4table=$table
+	set network.${iface}_rule=rule
+	set network.${iface}_rule.lookup=$table
+	set network.${iface}_rule.priority=30200
 	EOF
-}
+done
 
-_setup_interface() {
-	# Don't touch if0
-	[ "$1" = "if0" ] && return
-	# Don't touch interfaces without devices
-	uci -q get "network.$1.ifname" >/dev/null || return
+if [ "$(uci -q get "network.lan_rule")" != rule ]; then
+	otb_info "setup missing lan rule"
+	uci -q batch <<-EOF
+	set network.lan_rule=rule
+	set network.lan_rule.lookup=50
+	set network.lan_rule.priority=100
+	EOF
+fi
 
-	_remove_duplicates "$1" "metric"
-	_remove_duplicates "$1" "ip4table"
-
-	_add_missing_value "$1" "metric" "$OTB_CONFIG_INTERFACE_METRIC_OFFSET"
-	_add_missing_value "$1" "ip4table" "$OTB_CONFIG_INTERFACE_TABLE_OFFSET"
-
-	_add_missing_rule "$1"
-}
-
-config_load firewall
-config_list_foreach wan network _setup_interface
+for iface in $(uci -q get firewall.lan.network); do
+	if [ "$(uci -q get "network.$iface.ip4table")" != 50 ]; then
+		otb_info "setup missing network table to lan for $iface"
+		uci -q set "network.$iface.ip4table=50"
+	fi
+done
 
 uci -q commit network
