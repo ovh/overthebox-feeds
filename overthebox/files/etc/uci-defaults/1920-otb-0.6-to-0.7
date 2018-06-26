@@ -4,10 +4,9 @@
 
 mode="$(uci -q get glorytun.app.mode)"
 
-[ "$mode" ] && logger -t update -p 6 "Update glorytun from $mode"
-
 case "$mode" in
 	glorytun_hybrid)
+		logger -t update -p 6 "Update glorytun from xtun0"
 		key="$(uci -q get glorytun.xtun0.key)"
 		uci -q batch <<-EOF
 		set glorytun.tun0='mud'
@@ -17,6 +16,7 @@ case "$mode" in
 		EOF
 		;;
 	glorytun_mud)
+		logger -t update -p 6 "Delete tun0.mtu"
 		uci -q batch <<-EOF
 		delete glorytun.tun0.mtu
 		delete glorytun.tun0.mtu_auto
@@ -25,21 +25,22 @@ case "$mode" in
 		;;
 esac
 
-uci -q get "glorytun.xtun0" || exit 0
-
-logger -t update -p 6 "Remove xtun0"
-
 ipaddr="$(uci -q get network.xtun0.ipaddr)"
 gateway="$(uci -q get network.xtun0.gateway)"
 
-uci -q batch <<-EOF
-set network.tun0.ipaddr='$ipaddr'
-set network.tun0.gateway='$gateway'
-delete network.tun0.mtu
-delete network.xtun0
-EOF
+if [ "$ipaddr" ] && [ "$gateway" ]; then
+	logger -t update -p 6 "Remove xtun0"
+	uci -q batch <<-EOF
+	set network.tun0.ipaddr='$ipaddr'
+	set network.tun0.gateway='$gateway'
+	delete network.tun0.mtu
+	delete network.xtun0
+	EOF
+fi
 
 # delete old stuff
 sed -i '/169.254.254.1 api/d; /213.186.33.11 provisionning.overthebox.net/d' /etc/hosts
 uci -q delete "dhcp.api_hostrecord"
 rm -f /etc/sysctl.d/shadowsocks.conf
+rm -f /etc/config/shadowsocks
+rm -f /etc/config/otb-tracker
