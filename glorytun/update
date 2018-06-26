@@ -21,9 +21,9 @@ _setup_multipath() {
 		[ "$table" ] || continue
 
 		case "$(uci -q get "network.$iface.multipath")" in
-			on|up|) glorytun path "$ipaddr" up     ;;
-			backup) glorytun path "$ipaddr" backup ;;
-			*)      glorytun path "$ipaddr" down   ;;
+			on|up|'') glorytun path "$ipaddr" up     ;;
+			backup)   glorytun path "$ipaddr" backup ;;
+			*)        glorytun path "$ipaddr" down   ;;
 		esac
 	done
 }
