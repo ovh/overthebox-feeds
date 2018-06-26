@@ -3,7 +3,7 @@
 local uci               = require("luci.model.uci").cursor()
 local device_id         = uci:get("overthebox", "me", "device_id")
 local service           = uci:get("overthebox", "me", "service")
-local if0               = uci:get("network", "if0")
+local wan               = uci:get("network", "wan")
 %>
 <%+header%>
 <h2><%:Overview%></h2>

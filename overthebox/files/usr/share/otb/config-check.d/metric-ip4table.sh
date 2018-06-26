@@ -10,7 +10,7 @@ _get_table() {
 }
 
 for iface in $(uci -q get firewall.wan.network); do
-	[ "$iface" = "if0" ] && continue
+	[ "$iface" = wan ] && continue
 	[ "$(uci -q get "network.$iface.ifname")" ] || continue
 	[ "$(uci -q get "network.${iface}_rule")" ] && continue
 	table="$(uci -q get "network.$iface.ip4table")"

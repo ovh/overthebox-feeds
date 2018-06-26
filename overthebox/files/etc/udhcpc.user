@@ -10,7 +10,7 @@ _log() {
 
 [ -z "$router" ] && exit 0
 
-manage_if0() {
+manage_wan() {
 	case "$action" in
 	renew|bound)
 		;;
@@ -107,8 +107,8 @@ manage_cifX() {
 _log "got udhcpc $action on $INTERFACE"
 
 case "$INTERFACE" in
-	if0)
-		manage_if0 ;;
+	wan)
+		manage_wan ;;
 	cif*)
 		manage_cifX ;;
 esac
