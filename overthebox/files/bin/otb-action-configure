@@ -21,9 +21,7 @@ if [ "$config_error" ]; then
 	exit 1
 fi
 
-# delete last conf
-
-for conf in glorytun shadowsocks graph; do
+for conf in glorytun graph; do
 	true > /etc/config/"$conf"
 	uci -q revert "$conf"
 done
@@ -39,7 +37,6 @@ _setup_glorytun_mud() {
 	set glorytun.\(.dev).port=\(.port)
 	set glorytun.\(.dev).key=\(.key)
 
-	delete network.\(.dev)
 	set network.\(.dev)=interface
 	set network.\(.dev).ifname=\(.dev)
 	set network.\(.dev).proto=static
@@ -58,6 +55,7 @@ _setup_glorytun_mud() {
 	set network.\(.dev)_rule=rule
 	set network.\(.dev)_rule.lookup=\(.table)
 	set network.\(.dev)_rule.priority=30000
+	set network.\(.dev)_rule.generatedby='"$ME"'
 	"'
 }
 
