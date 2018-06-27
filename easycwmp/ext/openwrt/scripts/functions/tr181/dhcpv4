@@ -1,0 +1,388 @@
+#!/bin/sh
+# Copyright (C) 2016 MOHAMED Kallel <mohamed.kallel@yahoo.fr>
+
+#common_execute_method_param "$parameter" "$permission" "$get_cmd" "$set_cmd" "xsd:$type" "$forcedinform"
+#  $forcedinform should be set to 1 if the parameter is included in the inform message otherwise empty
+#  Default of $type = string
+
+#############################
+#   Entry point functions   #
+#############################
+
+prefix_list="$prefix_list $DMROOT.DHCPv4."
+entry_execute_method_list="$entry_execute_method_list entry_execute_method_root_DHCPv4"
+
+entry_execute_method_root_DHCPv4() {
+	case "$1" in ""|"$DMROOT."|"$DMROOT.DHCPv4."*)
+		common_execute_method_obj "$DMROOT.DHCPv4." "0"
+		common_execute_method_obj "$DMROOT.DHCPv4.Server." "0"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Enable" "1" "dhcpv4server_get_Enable" "dhcpv4server_set_Enable" "xsd:boolean"
+		common_execute_method_obj "$DMROOT.DHCPv4.Server.Pool." "1" "add_dhcpv4server_pool" "" "dhcp_pool_browse_instances $1"
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+sub_entry_DHCPv4_Server_Pool() {
+	local j="$2"
+	local pool="$3"
+	case_param "$1" belongto "$DMROOT.DHCPv4.Server.Pool.$j." && {
+		common_execute_method_obj "$DMROOT.DHCPv4.Server.Pool.$j." "1" "" "del_dhcpv4server_pool $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.Enable" "1" "dhcpv4server_pool_get_Enable $pool" "dhcpv4server_pool_set_Enable $pool" "xsd:boolean"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.Status" "0" "dhcpv4server_pool_get_Status $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.Interface" "1" "dhcpv4server_pool_get_Interface $pool" "dhcpv4server_pool_set_Interface $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.MinAddress" "1" "dhcpv4server_pool_get_MinAddress $pool" "dhcpv4server_pool_set_MinAddress $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.MaxAddress" "1" "dhcpv4server_pool_get_MaxAddress $pool" "dhcpv4server_pool_set_MaxAddress $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.SubnetMask" "1" "dhcpv4server_pool_get_SubnetMask $pool" "dhcpv4server_pool_set_SubnetMask $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.DNSServers" "1" "dhcpv4server_pool_get_DNSServers $pool" "dhcpv4server_pool_set_DNSServers $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.IPRouters" "1" "dhcpv4server_pool_get_IPRouters $pool" "dhcpv4server_pool_set_IPRouters $pool"
+		common_execute_method_param "$DMROOT.DHCPv4.Server.Pool.$j.LeaseTime" "1" "dhcpv4server_pool_get_LeaseTime $pool" "dhcpv4server_pool_set_LeaseTime $pool" "xsd:int"
+		return 0
+	}
+	return $E_INVALID_PARAMETER_NAME;		
+}
+
+dhcp_pool_get_max_instance() {
+	local max=`$UCI_SHOW -X dhcp | grep "dhcp_pool_instance" | cut -d'=' -f2 | sed 's/[^0-9]*//g' | sort -nru | head -1`
+	echo ${max:-0}
+}
+
+dhcp_pool_update_instance() {
+	local pool="$1"
+	local instance=`$UCI_GET $pool.dhcp_pool_instance`
+	if [ -z "$instance" ]; then
+		instance=`dhcp_pool_get_max_instance`
+		$UCI_SET $pool.dhcp_pool_instance=$((++instance))
+		$UCI_COMMIT
+	fi
+	echo $instance
+}
+
+dhcp_pool_browse_instances() {
+	local pool pools=`$UCI_SHOW -X dhcp | grep "dhcp\..*=dhcp" | cut -d "=" -f 1`
+	for pool in $pools; do
+		local j=`dhcp_pool_update_instance $pool`
+		sub_entry_DHCPv4_Server_Pool  "$1" "$j" "$pool"
+	done
+}
+
+add_dhcpv4server_pool() {
+	local instance=`dhcp_pool_get_max_instance`
+	local section=`$UCI_ADD  dhcp dhcp`
+	$UCI_SET dhcp.$section.dhcp_pool_instance=$((++instance))
+	$UCI_COMMIT
+	echo $instance
+}
+
+del_dhcpv4server_pool() {
+	local pool="$1"
+	$UCI_DELETE $pool
+	$UCI_COMMIT
+	return 0
+}
+
+dhcpv4server_get_Enable() {
+	[ -f /etc/rc.d/*dnsmasq ] && echo "1" || echo "0"
+}
+
+dhcpv4server_set_Enable() {
+	local val=`echo "$1" | tr '[A-Z]' '[a-z]'`
+	if [ "$val" = "1" -o "$val" = "true" ]; then
+		/etc/init.d/dnsmasq enable
+		/etc/init.d/dnsmasq start
+	else
+		/etc/init.d/dnsmasq disable
+		/etc/init.d/dnsmasq stop
+	fi
+	return 0
+}
+
+dhcpv4server_pool_get_Enable() {
+	local val=`$UCI_GET $1.ignore`
+	[ "$val" = "1" ] && echo "0" || echo "1"
+}
+
+dhcpv4server_pool_set_Enable() {
+	local ret
+	common_set_bool "$1.ignore" "$2" "" "1"
+	ret=$?
+	return $ret
+}
+
+dhcpv4server_pool_get_Status() {
+	local val=`$UCI_GET $1.ignore`
+	[ "$val" = "1" ] && echo "Disabled" || echo "Enabled"
+}
+
+dhcpv4server_pool_get_Interface() {
+	local network=`$UCI_GET $1.interface`
+	local instance=`$UCI_GET network.$network.ip_int_instance`
+	[ "$instance" != "" ] && echo "$DMROOT.IP.Interface.$instance."
+}
+
+dhcpv4server_pool_set_Interface() {
+	local tmp=${2#$DMROOT.IP.Interface.}
+	[ "$tmp" = "$2" ] && return
+	local instance=${tmp%.}
+	[ "$tmp" = "$instance" ] && return
+	local network=`$UCI_SHOW -X network | grep "ip_int_instance=$instance" | cut -d'.' -f2`
+	$UCI_SET $1.interface=$network
+	return 0
+}
+
+dhcpv4server_pool_get_MinAddress() {
+	local ip mask res address interface
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0
+	ip=`$UCI_GET network.$interface.ipaddr`
+	mask=`$UCI_GET network.$interface.netmask`
+	if [ "$ip" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		[ "$res" = "" ] && return 0
+		json_init
+		json_load "$res" >&2
+		json_select "ipv4-address" >&2
+		json_select "1" >&2
+		json_get_var address address >&2
+		json_get_var mask mask >&2
+		ip=$address
+		[ "$mask" != "" ] && mask=`cdr2mask $mask`
+	fi
+	[ "$ip" = "" ] && { echo "0.0.0.0"; return 0; }
+	[ "$mask" = "" ] && mask="255.255.255.0"
+	local min=`$UCI_GET $1.start`
+	min=${min:-0}
+	ip=`ipstr2int $ip`
+	mask=`ipstr2int $mask`
+	ip=$((ip&mask))
+	let ip+=$min
+	ip=`int2ipstr $ip`
+	echo $ip
+}
+
+dhcpv4server_pool_get_MaxAddress() {
+	local ip mask res address interface
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0
+	ip=`$UCI_GET network.$interface.ipaddr`
+	mask=`$UCI_GET network.$interface.netmask`
+	if [ "$ip" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		[ "$res" = "" ] && return 0
+		json_init
+		json_load "$res" >&2
+		json_select "ipv4-address" >&2
+		json_select "1" >&2
+		json_get_var address address >&2
+		json_get_var mask mask >&2
+		ip=$address
+		[ "$mask" != "" ] && mask=`cdr2mask $mask`
+	fi
+	[ "$ip" = "" ] && { echo "0.0.0.0"; return 0; }
+	[ "$mask" = "" ] && mask="255.255.255.0"
+	local min=`$UCI_GET $1.start`
+	local max=`$UCI_GET $1.limit`
+	min=${min:-0}
+	max=${max:-0}
+	ip=`ipstr2int $ip`
+	mask=`ipstr2int $mask`
+	ip=$((ip&mask))
+	let ip+=$min+$max
+	ip=`int2ipstr $ip`
+	echo $ip
+}
+
+dhcpv4server_pool_set_MinAddress() {
+	local ip mask res address interface min omin max
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0;
+	mask=`$UCI_GET network.$interface.netmask`
+	if [ "$mask" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		if [ "$res" != "" ]; then
+			json_init
+			json_load "$res" >&2
+			json_select "ipv4-address" >&2
+			json_select "1" >&2
+			json_get_var mask mask >&2
+			[ "$mask" != "" ] && mask=`cdr2mask $mask`
+		fi
+	fi
+	[ "$mask" = "" ] && mask="255.255.255.0"
+	omin=`$UCI_GET $1.start`
+	omin=${omin:-0}
+	max=`$UCI_GET $1.limit`
+	max=${max:-0}
+	mask=`ipstr2int $mask`
+	ip=`ipstr2int $2`
+	min=$((ip&~mask))
+	max=$((max+omin-min))
+	$UCI_SET $1.start=$min
+	$UCI_SET $1.limit=$max
+	return 0
+}
+
+dhcpv4server_pool_set_MaxAddress() {
+	local ip mask res address interface min max
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0;
+	mask=`$UCI_GET network.$interface.netmask`
+	if [ "$mask" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		if [ "$res" != "" ]; then
+			json_init
+			json_load "$res" >&2
+			json_select "ipv4-address" >&2
+			json_select "1" >&2
+			json_get_var mask mask >&2
+			[ "$mask" != "" ] && mask=`cdr2mask $mask`
+		fi
+	fi
+	[ "$mask" = "" ] && mask="255.255.255.0"
+	min=`$UCI_GET $1.start`
+	min=${min:-0}
+	
+	mask=`ipstr2int $mask`
+	ip=`ipstr2int $2`
+	max=$((ip&~mask))
+	max=$((max-min))
+	$UCI_SET $1.limit=$max
+	return 0
+}
+
+dhcp_get_option_byid()
+{
+	local pool=$1
+	local oid=$2
+	local option options=`$UCI_GET $1.dhcp_option`
+	for option in $options; do
+		[ "$oid" = "${option%%,*}" ] && { echo ${option#*,}; return 0; }
+	done
+}
+
+dhcp_set_option_byid()
+{
+	local pool=$1
+	local oid=$2
+	local val=$3
+	local option options=`$UCI_GET $1.dhcp_option`
+	for option in $options; do
+		[ "$oid" = "${option%%,*}" ] && { $UCI_DEL_LIST $1.dhcp_option=$option ; break; }
+	done
+	$UCI_ADD_LIST $1.dhcp_option="$oid,$val"
+	return 0
+}
+
+dhcpv4server_pool_get_SubnetMask()
+{
+	local res
+	local mask=`dhcp_get_option_byid "$1" 1`
+	[ "$mask" != "" ] && { echo $mask; return 0; }
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0;
+	mask=`$UCI_GET network.$interface.netmask`
+	if [ "$mask" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		[ "$res" = "" ] && return 0
+		json_init
+		json_load "$res" >&2
+		json_select "ipv4-address" >&2
+		json_select "1" >&2
+		json_get_var mask mask >&2
+		[ "$mask" != "" ] && mask=`cdr2mask $mask`
+	fi
+	echo $mask
+}
+
+dhcpv4server_pool_set_SubnetMask()
+{
+	[ "$2" = "" ] && return 0;
+	dhcp_set_option_byid "$1" 1 "$2"
+	return 0
+}
+
+dhcpv4server_pool_get_DNSServers()
+{
+	local res type
+	local dns=`dhcp_get_option_byid "$1" 6`
+	[ "$dns" != "" ] && { echo $dns; return 0; }
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0;
+	dns=`$UCI_GET network.$interface.dns`
+	dns=${dns//,/ }
+	if [ "$dns" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		[ "$res" = "" ] && return 0
+		json_init
+		json_load "$res" >&2
+		json_select "dns-server" >&2
+		local Index="1"
+		while json_get_type type $Index && [ "$type" = string ]; do
+			json_get_var arrvar "$((Index++))" >&2
+			dns="$dns,$arrvar"
+		done
+		dns=${dns#,}
+	fi
+	echo $dns
+}
+
+dhcpv4server_pool_set_DNSServers()
+{
+	[ "$2" = "" ] && return 0;
+	dhcp_set_option_byid "$1" 6 "$2"
+	return 0
+}
+
+dhcpv4server_pool_get_IPRouters()
+{
+	local res
+	local gw=`dhcp_get_option_byid "$1" 3`
+	[ "$gw" != "" ] && { echo $gw; return 0; }
+	local interface=`$UCI_GET $1.interface`
+	[ "$interface" = "" ] && return 0;
+	gw=`$UCI_GET network.$interface.ipaddr`
+	if [ "$gw" = "" ]; then
+		res=`ubus call network.interface.$interface status`
+		[ "$res" = "" ] && return 0
+		json_init
+		json_load "$res" >&2
+		json_select "ipv4-address" >&2
+		json_select "1" >&2
+		json_get_var gw address >&2
+	fi
+	echo $gw
+}
+
+dhcpv4server_pool_set_IPRouters()
+{
+	[ "$2" = "" ] && return 0;
+	dhcp_set_option_byid "$1" 3 "$2"
+	return 0
+}
+
+dhcpv4server_pool_get_LeaseTime()
+{
+	local leasetime dy hr mn
+	leasetime=`$UCI_GET $1.leasetime`
+	dy=${leasetime%d*}
+	[ "$dy" = "$leasetime" ] && dy=0
+	leasetime=${leasetime#*d}
+	hr=${leasetime%h*}
+	[ "$hr" = "$leasetime" ] && hr=0
+	leasetime=${leasetime#*h}
+	mn=${leasetime%m}
+	[ "$mn" = "$leasetime" ] && mn=0
+	leasetime=$((dy*24*60*60+hr*60*60+mn*60))
+	echo $leasetime
+}
+
+dhcpv4server_pool_set_LeaseTime()
+{
+	[ "$2" = "" ] && return 0;
+	local leasetime=$2
+	leasetime=$((leasetime/60))
+	$UCI_SET $1.leasetime=$leasetime"m"
+	return 0
+}
+

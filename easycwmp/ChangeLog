@@ -1,0 +1,181 @@
+EasyCwmp change log:
+====================
+
+* EasyCwmp-1.7.0 (date of 25th of June 2018)
+  -#0000336: fork child error when making many Connection Requests
+  -#0000312: Remove gz/bz files in the download config before make the folder copy
+  -#0000337: wrong name reference LIBUBOX_LDFLAGS in configure.ac
+  -#0000302: Does not filter illegal characters in DEVICE_PRODUCT, interacts badly with some ACSes
+  -#0000303: Typos and ident fixes for the easycwmp action script for openwrt
+  -#0000295: Should execute apply service before Reboot in the cwmp_handle_end_session()
+  -#0000289: dev_rand(/dev/urandom) is not closed in the function http_digest_init_nonce_priv_key()
+  -#0000335: Add basic authentication for connection request
+
+* EasyCwmp-1.6.2 (date of 08th of June 2018)
+  -#0000332: array out of index in src/time.c
+  -#0000333: Interoperability issue with Pace ACS. Parse infrom response fails
+
+* EasyCwmp-1.6.1 (date of 04th of December 2017)
+  -#0000305: do not replace multispace by 1 space in the xml tag values
+
+* EasyCwmp-1.6.0 (date of 25th of August 2017)
+  -#0000288: Make the easycwmp backup configurable and possible to save backup in easycwmp config
+
+* EasyCwmp-1.5.3 (date of 01st of June 2017)
+  -#0000235: remove the tri of parameters when getting them from external pipe
+  -#0000233: fix warning issues in the build with the last OpenWRT SDK version
+  -#0000225: get ip address should use also ubus command in the Device.IP. script
+  -#0000210: external_free_list_parameter() is missing in the set notification in xml.c
+  -#0000211: Use UBUS_METHOD_NOARG instead of UBUS_METHOD for easycwmpd_handle_notify
+  -#0000222: remove forced inform from IP, DHCPv4 and WiFi
+  -#0000226: Some functions are missing input arguments in the common script
+  -#0000227: Use ubus call uci commit to restart services in the script
+  -#0000234: Enhancement of Fault handlers in EasyCwmp core
+
+* EasyCwmp-1.5.2 (date of 17th of February 2017)
+  -#0000203: Support tar.gz file of luci in the apply download of config
+
+* EasyCwmp-1.5.1 (date of 3rd of February 2017)
+  -#0000181: add log details
+
+* EasyCwmp-1.5.0 (date of 27th of January 2017)
+  -#0000194: Add TR-181 WiFi and DHCPv4 params and Enhancement of Download
+  -#0000178: The forced inform parameters list are not conform with the TR-181 standrad
+  -#0000180: strip double and single quotes from Device_info value. 
+
+* EasyCwmp-1.4.1 (date of 21th of November 2016)
+  -#0000179: [IPPing Diagnostics ] :8 DIAGNOSTICS COMPLETE event is not send when host is bad
+  -#0000166: error in the case of DMROOT.IP.Interface.
+
+* EasyCwmp-1.4.0 (date of 04th of October 2016)
+  -#0000158: source code indent and clean
+  -#0000164: Supporting TR-098 and TR-181 in easycwmp
+  -#0000154: Replace '//' by '/' in the OpenWRT Makefile
+
+* EasyCwmp-1.3.4 (date of 16th of July 2016)
+  -#0000153: remove null from log message of external
+  -#0000151: crash in ubuntu when launching download with invalid url 
+  -#0000152: ipping diagnostic does not work properly in Ubuntu
+  -#0000150: All scripts should be 'chmod +x' in the install
+
+* EasyCwmp-1.3.3 (date of 14th of July 2016)
+  -#0000142,n:0000489: Add libcurl error message in the syslog of easycwmp
+  -#0000149: Launch data mdel command directly with /usr/sbin/easycwmp instead of using /bin/sh
+
+* EasyCwmp-1.3.2 (date of 14th of July 2016)
+  -#Merge pull request #26 from TDT-GmbH/tdt-master-log-failed-authorization
+  -#0000140: easycwmp crashes with Segmentation Fault
+  -#0000148: memory leak: should call blob_buf_free() after calling blob_buf_init()
+  -#0000147: Enhancement Add ipping_stop function to ipping_launch script
+  -#0000146: Enhancement launch of easycwmp script could be done with --json-input instead of json_input argument
+
+* EasyCwmp-1.3.1 (date of 11th of May 2016)
+  - #0000134: Enhancement Add IPPingDiagnostic parameters
+
+* EasyCwmp-1.3.0 (date of 11th of May 2016)
+  - #0000133: Enhancement of the data model instances browsing
+
+* EasyCwmp-1.2.8 (date of 11th of May 2016)
+  - #private: fix get_white_space() issue
+  - #0000120: Can EasyCwmp parse InformResponse xml message with header soapenv from ACS
+  - #0000112: Service trigger does not work
+  - #0000115: Update Nand (wearout) on every restart
+  - #0000131: Incorrect use of comma operator in loops in xml.c
+  - #0000123: HTTP SERVER CONNECTION FAILED
+
+* EasyCwmp-1.2.7 (date of 5th of January 2016)
+  - #0000108: handling arguments with white spaces (schedule inform CommandKey as example)
+  - #0000106(Note0000358): Supporting HTTP 302, 307 status code in EasyCwmp
+
+* EasyCwmp-1.2.6 (date of 4th of January 2016)
+  - #0000106: Supporting HTTP 302, 307 status code in EasyCwmp
+
+* EasyCwmp-1.2.5 (date of 30th of December 2015)
+  - #0000107: Support '8 DIAGNOSTICS COMPLETE' event in the command ubus call tr069 inform
+
+* EasyCwmp-1.2.4 (date of 28th of December 2015)
+  - #0000104: Connection Request failed when the WAN ipaddress is changed
+
+* EasyCwmp-1.2.3 (date of 27th of November 2015)
+  - #0000099: Multiple uci errors on file /etc/init.d/easycwmpd
+  - #0000098: /usr/sbin/easycwmp: line 1: syntax error: unterminated quoted string
+
+* EasyCwmp-1.2.2 (date of 25th of November 2015)
+  - #0000097: build error: undefined reference to cwmp_add_inform_timer
+  - #0000073: procd
+  - #0000096: make the syslog message displayed in the output
+
+* EasyCwmp-1.2.1 (date of 13th of October 2015)
+  - #0000094: warning in 'autoreconf -i': option 'subdir-objects' is disabled
+
+* EasyCwmp-1.2.0 (date of 7th of October 2015)
+  - #0000091: The services to restart at the end session should be found automatically by uci change
+  - #0000086: update documentation
+  - #0000089: Add uci commit in the funcition init device info in init.d
+  - #0000090: check acs url in set parameter value does not work properly
+  - #0000088: Enhancement: cwmp inform should loop only method objects which contain forced inform params
+  - #0000087: enhancement of the ubus call notify
+
+* EasyCwmp-1.1.7 (date of 5th of October 2015)
+  - #0000066: pull request on github
+  - #0000065: http_digest_auth_fail_response with easycwmp
+  - #0000084: Remove the shflags dependencie
+  - #0000081: Firmware update fails
+  - #0000083: factory reset does not work anymore on CC
+  - #0000062: Support SOAPAction in the http header
+  - #0000085: wrong declaration of the variable old_addr in easycwmp.c
+  - #0000076: NONCE_PRIV_KEY
+  - #0000068: build error (is_error() in json.c) when compiling with the last version of json-c
+  - #0000072: Add a configuration option to enable/disable the expect 100 continue in the http header
+  - #0000071: compilation error of easycwmp in the last version of openwrt: tunknown type name 'time_t'
+
+* EasyCwmp-1.1.6 (date of 23th of July 2015)
+  - #0000070: Event code responded after firmware upgrade is not accurate
+
+* EasyCwmp-1.1.5 (date of 15th of July 2015)
+  - #0000067: Firmware upgrade functionality is broken in EasyCwmp1.1.3 version
+
+* EasyCwmp-1.1.4 (date of 13th of July 2015)
+  - #0000061: Parse Inform xml message from ACS failed
+
+* EasyCwmp-1.1.3 (date of 9th of June 2015)
+  - #0000056: define add object and delete object functions as arguments in "common_execute_method_obj"
+  - #0000055: Supporting parameters under root path
+  - #0000054: Some issues in script file lan_device
+  - #0000045: Handling of ParameterKey Containing Whitespace
+  - #0000044: Change the usage of the case_param function. Use "&& {...}" instead of "|| return"
+
+* EasyCwmp-1.1.2 (date of 16th of March 2015)
+  - #0000041: remove the "$1" "$2" "$3" from the definition of data model parameters in the scripts
+  - #0000039: Ability to reduce the amount of logging
+  - #0000030: no type provided for parameters added to inform message when notification is activated
+  - #0000032: upgrade firmware return 0, but don't take effect and make a new file /etc/easycwmp/.backup.xml
+
+* EasyCwmp-1.1.1 (date of 25th of February 2015)
+  - #0000036: acs url should be configured via only one option in the acs section
+  - #0000034: Avoid the inherit of opened sockets and opened files to the fork() child
+  - #0000037: make fails with struct storage size of 'tm' isn't known
+
+* EasyCwmp-1.1.0 (date of 20th of February 2015)
+  - #0000035: improve the easycwmp scripts. make the implementation of new parameters more easier
+
+* EasyCwmp-1.0.5 (date of 29th of december 2014)
+  - #0000025: easycwmp executable crashes upon CTRL + C
+  - #0000024: remove Accept and change content type of the HTTP header
+
+* EasyCwmp-1.0.4 (date of 21st of november 2014)
+  - #000023: Add InternetGatewayDevice.ManagementServer.PeriodicInformTime parameter 
+  
+* EasyCwmp-1.0.3 (date of 24th of september 2014)
+  - #00011 : Add cwmp id to the RPC ACS (Inform, GetRPCMethod, TransferComplete...)
+  - #00010 : XML parsing problem (fixed)
+
+* EasyCwmp-1.0.2 (date of 9th of september 2014)
+  - #00008 : avoid the launch of easycwmp twice 
+  - #00007 : Connection request causes problem
+
+* EasyCwmp-1.0.1 (date of 30th of May 2014)
+  - #00003 : remove checking of xsd and xsi namespaces. This check is not mandatory for all ACS messages according to the cwmp standard. This check causes a problem with Perl-CWMP ACS.
+
+* EasyCwmp-1.0 (date of 31th of March 2014)
+  - Initial release

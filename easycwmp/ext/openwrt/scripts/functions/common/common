@@ -1,0 +1,965 @@
+#!/bin/sh
+# Copyright (C) 2012-2014 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+# 	Author: AHMED Zribi <ahmed.zribi@pivasoftware.com>
+
+common_get_parameter_notification() {
+	local _dest="$1"
+	local _parm="$2"
+	local _val=0
+	local p ntype len maxlen=0
+	
+	for ntype in "active:2" "passive:1" "none:0"; do
+		local list_notif=`$UCI_GET easycwmp.@notifications[0].${ntype%:*}`
+		for p in $list_notif; do
+			if [ "$p" = "$_parm" ]; then
+				_val=${ntype#*:}
+				eval "export -- \"$_dest=$_val\""
+				return
+			fi
+			case $p in
+				*.)
+				case $_parm in
+					$p*)
+					len=${#p}
+					if [ $len -gt $maxlen ]; then
+						_val=${ntype#*:}
+						maxlen=$len
+					fi
+				esac
+				;;
+			esac
+		done
+	done
+	eval "export -- \"$_dest=$_val\""
+}
+
+common_remove_parameter_notification() {
+	local _parm="$1"
+	local ntype
+	for ntype in active passive none; do
+		case $_parm in
+			*.)
+			local list_del=`$UCI_GET easycwmp.@notifications[0].$ntype`
+			local del
+			for del in $list_del; do
+				case $del in
+					$_parm*)
+					$UCI_DEL_LIST easycwmp.@notifications[0].$ntype=$del 2>/dev/null
+					;;
+				esac
+			done
+			;;
+			*)
+			$UCI_DEL_LIST easycwmp.@notifications[0].$ntype=$_parm 2>/dev/null
+			;;
+		esac
+	done
+}
+
+common_set_parameter_notification() {
+	local _parm="$1"
+	local _val="$2"
+	local tmp=`$UCI_GET easycwmp.@notifications[0] 2>/dev/null`
+	if [ "$tmp" = "" ]; then
+		$UCI_ADD easycwmp notifications 2>&1 >/dev/null
+	else
+		common_remove_parameter_notification $_parm
+	fi
+	local notif
+	common_get_parameter_notification notif $_parm
+	[ "$notif" = "$_val" ] && return
+	if [ "$_val" -eq "1" ]; then
+		$UCI_ADD_LIST easycwmp.@notifications[0].passive="$_parm" 2>&1 >/dev/null
+	elif [ "$_val" -eq "2" ]; then
+		$UCI_ADD_LIST easycwmp.@notifications[0].active="$_parm" 2>&1 >/dev/null
+	elif [ "$_val" -eq "0" ]; then
+		local list_prm="`$UCI_GET easycwmp.@notifications[0].active` `$UCI_GET easycwmp.@notifications[0].passive`"
+		for prm in $list_prm; do
+			case $prm in
+				*.)
+				case $_parm in
+					$prm*)
+					$UCI_ADD_LIST easycwmp.@notifications[0].none="$_parm" 2>&1 >/dev/null
+					break
+					;;
+				esac
+				;;
+			esac
+		done
+	fi
+}
+
+common_delay_service_restart_in_apply_service() {
+local service="$1"
+local delay="$2"
+[ "`cat $apply_service_tmp_file 2>/dev/null | grep /etc/init.d/$service`" != "" ] && return
+cat >> "$apply_service_tmp_file" <<EOF
+/etc/init.d/$service stop >/dev/null 2>/dev/null
+sleep $delay
+/etc/init.d/$service start >/dev/null 2>/dev/null
+EOF
+}
+
+common_execute_command_in_apply_service() {
+local command="$1"
+local chk=`cat "$apply_service_tmp_file" 2>/dev/null | grep "^$command "`
+[ "$chk" != "" ] && return
+cat >> "$apply_service_tmp_file" <<EOF
+$command >/dev/null 2>/dev/null
+EOF
+}
+
+common_set_parameter_fault() {
+	local _parm="$1"
+	local _fault="$2"
+	common_json_output_fault "$_parm" "$_fault" >> $set_fault_tmp_file
+}
+
+common_get_inform_deviceid()
+{
+	local msg
+
+	json_init
+	json_add_string "manufacturer" "`$UCI_GET easycwmp.@device[0].manufacturer 2> /dev/null`"
+	json_add_string "oui" "`$UCI_GET easycwmp.@device[0].oui 2> /dev/null`"
+	json_add_string "product_class" "`$UCI_GET easycwmp.@device[0].product_class 2> /dev/null`"
+	json_add_string "serial_number" "`$UCI_GET easycwmp.@device[0].serial_number 2> /dev/null`"
+
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+case_param() {
+	[ -z "$1" ] && return 0
+	[ "${3/$1/}" != "$3" -o "${1/$3/}" != "$1" ] && return 0
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_set_bool() {
+	local cfg="$1"
+	local val="$2"
+	local true="$3"
+	local false="$4"
+	val=`echo "$val" | tr '[A-Z]' '[a-z]'`
+	if [ "$val" = "true" -o "$val" = "1" ]; then
+		$UCI_SET $cfg=$true
+	elif [ "$val" = "false" -o "$val" = "0" ]; then
+		$UCI_SET $cfg=$false
+	else
+		return $E_INVALID_PARAMETER_VALUE
+	fi
+	return 0
+}
+
+common_set_list() {
+	local cfg="$1"
+	local val="$2"
+	local element list=${val//,/ }
+	$UCI_DELETE $cfg
+	for element in $list; do
+		$UCI_ADD_LIST $cfg="$element"
+	done
+	return 0
+}
+
+common_uci_change_packages_lookup() {
+	local ch changes
+	changes=`$UCI_CHANGES | cut -d. -f1`
+	for ch in $changes; do
+		ch=${ch//[+-]/}
+		if [ "$ch" = "easycwmp" ]; then
+			easycwmp_config_changed="1"
+			continue;
+		fi
+		if [ "${uci_change_packages//$ch/}" = "$uci_change_packages" ]; then
+			uci_change_packages="$uci_change_packages $ch"
+		fi
+	done
+}
+
+common_rec_append_uci_track_services()
+{
+	local package="$1"	
+	local service=`$UCI_GET ucitrack.@$package[0].init`
+	[ "${uci_change_services//$service/}" != "$uci_change_services" ] && return
+	uci_change_services="$uci_change_services $service"
+	local af affects=`$UCI_GET ucitrack.@$package[0].affects`
+	for af in $affects; do
+		common_rec_append_uci_track_services $af
+	done
+	
+}
+
+common_restart_services() {
+	local package service
+	if [ -f /etc/config/ucitrack ]; then
+		uci_change_services=""
+		for package in $uci_change_packages; do
+			common_rec_append_uci_track_services $package
+		done
+		for service in $uci_change_services; do
+			[ "$service" = "easycwmpd" ] && continue
+			/etc/init.d/$service restart
+		done
+	else
+		for package in $uci_change_packages; do
+			[ "$package" = "easycwmp" ] && continue
+			ubus call uci commit "{\"config\": \"$package\"}"
+		done
+	fi
+}
+
+##### common entries called by easycwmp.sh #####
+common_entry_get_value() {
+	local param="$1"
+	g_fault_code=$E_INVALID_PARAMETER_NAME
+	local entry method=""
+	local tmp=" $prefix_list "
+	if [ -z "$param" -o "${tmp/ $param /}" != "$tmp" ]; then method="common_get_value"; g_fault_code=0
+	elif [ "${param%.}" != "$param" ]; then method="common_get_value_inparam_isobj_check"
+	else method="common_get_value_inparam_isparam_check"
+	fi
+	
+	g_entry_param="$param"
+	g_entry_arg=""
+	g_entry_method="$method"	
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param" 
+	done
+	return $g_fault_code
+}
+
+common_entry_get_name() {
+	local param="$1"
+	local nextlevel="$2"
+	g_fault_code=$E_INVALID_PARAMETER_NAME
+	local entry method=""
+	local tmp=" $prefix_list "
+	
+	if [ -z "$param" -a "$nextlevel" = "1" ]; then
+		g_entry_param="$param"
+		g_entry_arg="$nextlevel"
+		g_entry_method="common_get_name_emptyin_nl1"
+		$entry_method_root "$g_entry_param"  
+		return 0
+	fi
+	if [ -z "$param" -o "${tmp/ $param /}" != "$tmp" ]; then 
+		if [ "$nextlevel" = "0" ]; then
+			g_fault_code=0
+			method="common_get_name"
+		else 
+			method="common_get_name_inparam_isobj_check"
+		fi
+	elif [ "${param%.}" != "$param" ]; then method="common_get_name_inparam_isobj_check"
+	else method="common_get_name_inparam_isparam_check"
+	fi
+	
+	g_entry_param="$param"
+	g_entry_arg="$nextlevel"
+	g_entry_method="$method"
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param" 
+	done
+	return $g_fault_code
+}
+
+common_entry_get_notification() {
+	local param="$1"
+	g_fault_code=$E_INVALID_PARAMETER_NAME
+	local entry method=""
+	local tmp=" $prefix_list "
+	if [ -z "$param" -o "${tmp/ $param /}" != "$tmp" ]; then method="common_get_notification"; g_fault_code=0
+	elif [ "${param%.}" != "$param" ]; then method="common_get_notification_inparam_isobj_check"
+	else method="common_get_notification_inparam_isparam_check"
+	fi
+	
+	g_entry_param="$param"
+	g_entry_arg=""
+	g_entry_method="$method"
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param" 
+	done
+	return $g_fault_code
+}
+
+common_entry_set_value() {
+	local param="$1"
+	local val="$2"
+	local entry method="common_set_value_check"
+
+	[ -z "$param" -o "${param%.}" != "$param" ] && return $E_INVALID_PARAMETER_NAME
+	
+	g_entry_param="$param"
+	g_entry_arg="$val"
+	g_entry_method="$method"
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param"
+	done
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_entry_set_notification() {
+	local param="$1"
+	local notification="$2"
+	local entry method="common_set_notification_check"
+
+	[ -z "$param" ] && return $E_NOTIFICATION_REJECTED
+	g_entry_param="$param"
+	g_entry_arg="$notification"
+	g_entry_method="$method"
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param" 
+	done
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_entry_inform() {
+	local entry method="common_inform_check"
+	local forced_list=${entry_execute_method_list_forcedinform:-$entry_execute_method_list}
+	
+	g_entry_param=""
+	g_entry_arg=""
+	g_entry_method="$method"
+	for entry in $forced_list; do
+		$entry "$g_entry_param"
+	done
+	return 0
+}
+
+common_entry_add_object() {
+	local param="$1"
+	[ -z "$param" -o "$param" = "$DMROOT" ] && return $E_INVALID_PARAMETER_NAME
+	
+	g_entry_param="$param"
+	g_entry_arg=""
+	g_entry_method="common_add_object"
+	
+	local entry
+	for entry in $entry_execute_method_list; do
+		$entry "$param"
+	done
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_entry_delete_object() {
+	local param="$1"
+	[ -z "$param" -o "$param" = "$DMROOT" ] && return $E_INVALID_PARAMETER_NAME
+	
+	g_entry_param="$param"
+	g_entry_arg=""
+	g_entry_method="common_delete_object"
+	
+	local entry
+	for entry in $entry_execute_method_list; do
+		$entry "$param"
+	done
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_entry_update_value_change() {
+	local entry method="common_update_value_change"
+  g_entry_param=""
+	g_entry_arg=""
+  g_entry_method="$method"
+	rm -f $NOTIF_PARAM_VALUES
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param"
+	done
+	return 0
+}
+
+common_entry_check_value_change() {
+	local param="$1"
+	local oldvalue="$2"
+
+	g_fault_code=$E_INVALID_PARAMETER_NAME
+	local entry method=""
+	method="common_check_value_change"
+	
+	g_entry_param="$param"
+	g_entry_arg="$oldvalue"
+	g_entry_method="$method"	
+	for entry in $entry_execute_method_list; do
+		$entry "$g_entry_param" 
+	done
+	return $g_fault_code
+}
+
+##### common execute methods #####
+
+common_execute_method_obj() {
+	local refparam="$1"
+	local permission="$2"
+	local addobj="$3"
+	local delobj="$4"
+	local browseinstances="$5"
+	"$g_entry_method""_obj" "$g_entry_arg" "$g_entry_param" "$refparam" "$permission" "$addobj" "$delobj"
+	[ "$browseinstances" != "" ] && $browseinstances
+}
+
+common_execute_method_param() {
+	local refparam="$1"
+	local permission="$2"
+	local getcmd="$3"
+	local setcmd="$4"
+	local type="$5"
+	local forcedinform="$6"
+	
+	"$g_entry_method""_param" "$g_entry_arg" "$g_entry_param" "$refparam" "$permission" "$getcmd" "$setcmd" "$type" "$forcedinform"
+}
+##### get value #####
+common_get_value_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	local val=`$getcmd`
+	common_json_output_get_value "$refparam" "$val" "$type"
+	return 0
+}
+
+common_get_value_obj() {
+	return 0
+}
+
+common_get_value_inparam_isparam_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	local val=`$getcmd`
+	common_json_output_get_value "$refparam" "$val" "$type"
+	exit 0
+}
+
+common_get_value_inparam_isparam_check_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_value_inparam_isobj_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	case "$refparam" in "$inparam"*)
+		local val=`$getcmd`
+		common_json_output_get_value "$refparam" "$val" "$type"
+		g_fault_code=0
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_value_inparam_isobj_check_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+
+	case "$refparam" in "$inparam"*)
+		g_fault_code=0
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+##### get name #####
+common_get_name_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	common_json_output_get_name "$refparam" "$permission"
+	return 0
+}
+
+common_get_name_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	
+	common_json_output_get_name "$refparam" "$permission"
+	return 0
+}
+
+common_get_name_inparam_isparam_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+
+	local nextlevel="$arg"
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	[ "$nextlevel" = "1" ] && exit $E_INVALID_ARGUMENTS
+
+	common_json_output_get_name "$refparam" "$permission"
+	exit 0
+}
+
+common_get_name_inparam_isparam_check_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_name_inparam_isobj_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	case "$refparam" in "$inparam"*)
+		g_fault_code=0
+		if [ "$nextlevel" = "0" -o "${refparam%.*}." = "$inparam" ]; then
+			common_json_output_get_name "$refparam" "$permission"
+			return 0;
+		fi
+		return 0;
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_name_inparam_isobj_check_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+		
+	case "$refparam" in "$inparam"*)
+		g_fault_code=0
+		if [ "$nextlevel" = "0" -o "${refparam%.*.}." = "$inparam" ]; then
+			common_json_output_get_name "$refparam" "$permission"
+			return 0;
+		fi
+		return 0;
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_name_emptyin_nl1_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	return 0
+}
+
+common_get_name_emptyin_nl1_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	
+	common_json_output_get_name "$refparam" "$permission"
+	return 0
+}
+
+
+##### get notification #####
+common_get_notification_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	local notification=""
+	common_get_parameter_notification "notification" "$refparam"
+	common_json_output_get_notification "$refparam" "$notification"
+	return 0
+}
+
+common_get_notification_obj() {
+	return 0
+}
+
+common_get_notification_inparam_isparam_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	local notification=""
+	common_get_parameter_notification "notification" "$refparam"
+	common_json_output_get_notification "$refparam" "$notification"
+	exit 0
+}
+
+common_get_notification_inparam_isparam_check_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_notification_inparam_isobj_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	case "$refparam" in "$inparam"*)
+		local notification=""
+		common_get_parameter_notification "notification" "$refparam"
+		common_json_output_get_notification "$refparam" "$notification"
+		g_fault_code=0
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_get_notification_inparam_isobj_check_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	case "$refparam" in "$inparam"*)
+		g_fault_code=0
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME
+}
+
+##### set value #####
+common_set_value_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	local val="$arg"
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	[ "$permission" != "1" -o -z "$setcmd" ] && exit $E_NON_WRITABLE_PARAMETER
+	echo "$refparam<delim>$setcmd \"$val\"<delim>$getcmd" >> $set_command_tmp_file
+	exit 0
+}
+
+common_set_value_check_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+##### set notification #####
+common_set_notification_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	local notification="$arg"
+	common_set_parameter_notification "$refparam" "$notification"
+	exit 0
+}
+
+common_set_notification_check_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	local notification="$arg"
+	common_set_parameter_notification "$refparam" "$notification"
+	exit 0
+}
+
+##### add object #####
+common_add_object_param() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_add_object_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local addobj="$5"
+	local delobj="$6"
+
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	[ -z "$addobj" ] && return $E_INVALID_PARAMETER_NAME
+	local instance=`$addobj $refparam`
+	common_set_parameter_notification "$refparam$instance." "0"
+	common_json_output_status "1" "$instance"
+	exit 0
+}
+
+##### delete object #####
+common_delete_object_param() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+common_delete_object_obj() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local addobj="$5"
+	local delobj="$6"
+
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	[ -z "$delobj" ] && return $E_INVALID_PARAMETER_NAME
+	$delobj $refparam
+	local e=$?
+	[ "$e" != "0" ] && exit $e
+	common_json_output_status "1"
+	exit 0
+}
+
+##### inform #####
+common_inform_check_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	[ -z "$forcedinform" ] && return $E_INVALID_PARAMETER_NAME
+	local val=`$getcmd`
+	common_json_output_get_value "$refparam" "$val" "$type"
+	return 0
+}
+
+common_inform_check_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+##### notif param update #####
+common_update_value_change_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	local notification=""
+	common_get_parameter_notification "notification" "$refparam"
+	[ "$notification" = "0" ] && return 
+
+	local val=`$getcmd`
+	common_json_output_value_change "$refparam" "$val" "$notification" "$type" >> $NOTIF_PARAM_VALUES
+	return 0
+}
+
+common_update_value_change_obj() {
+	return 0
+}
+
+##### check value change #####
+common_check_value_change_param() {
+	local arg="$1"
+	local inparam="$2"
+	local refparam="$3"
+	local permission="$4"
+	local getcmd="$5"
+	local setcmd="$6"
+	local type="$7"
+	local forcedinform="$8"
+	
+	[ "$inparam" != "$refparam" ] && return $E_INVALID_PARAMETER_NAME
+	local notification oldvalue
+	local val=`$getcmd`
+	json_get_var oldvalue value
+	if [ "$val" != "$oldvalue" ]; then
+		json_get_var notification notification
+		common_json_output_value_change "$refparam" "$val" "$notification" "$type"
+	fi
+	exit 0
+}
+
+common_check_value_change_obj() {
+	return $E_INVALID_PARAMETER_NAME
+}
+
+##### json output #####
+common_json_output_get_value() {
+	local parameter="$1"
+	local value="$2"
+	local type="$3"
+
+	json_init
+	json_add_string "parameter" "$parameter"
+	json_add_string "value" "$value"
+	[ -n "$type" ] && json_add_string "type" "$type"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+common_json_output_get_name() {
+	local parameter="$1"
+	local permission="$2"
+
+	json_init
+	json_add_string "parameter" "$parameter"
+	json_add_string "writable" "$permission"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+common_json_output_get_notification() {
+	local parameter="$1"
+	local notification="$2"
+
+	json_init
+	json_add_string "parameter" "$parameter"
+	json_add_string "notification" "$notification"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+common_json_output_fault() {
+	local parameter="$1"
+	local fault_code="$2"
+	
+	json_init
+	[ -n "$parameter" ] && json_add_string "parameter" "$parameter"
+	json_add_string "fault_code" "$fault_code"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+common_json_output_status() {
+	local status="$1"
+	local instance="$2"
+	
+	json_init
+	json_add_string "status" "$status"
+	[ -n "$instance" ] && json_add_string "instance" "$instance"
+	[ "$easycwmp_config_changed" = "1" ] && json_add_string "config_load" "1"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+common_json_output_value_change() {
+	local parameter="$1"
+	local value="$2"
+	local notification="$3"
+	local type="$4"
+
+	json_init
+	json_add_string "parameter" "$parameter"
+	json_add_string "value" "$value"
+	json_add_string "notification" "$notification"
+	[ -n "$type" ] && json_add_string "type" "$type"
+	json_close_object
+	local msg=`json_dump`
+	echo "$msg"
+}
+
+mask2cdr ()
+{
+	# Assumes there's no "255." after a non-255 byte in the mask
+	local x=${1##*255.}
+	set -- 0^^^128^192^224^240^248^252^254^ $(( (${#1} - ${#x})*2 )) ${x%%.*}
+	x=${1%%$3*}
+	echo $(( $2 + (${#x}/4) ))
+}
+
+
+cdr2mask ()
+{
+	# Number of args to shift, 255..255, first non-255 byte, zeroes
+	set -- $(( 5 - ($1 / 8) )) 255 255 255 255 $(( (255 << (8 - ($1 % 8))) & 255 )) 0 0 0
+	[ $1 -gt 1 ] && shift $1 || shift
+	echo ${1-0}.${2-0}.${3-0}.${4-0}
+}
+ipstr2int()
+{
+	local n ip 
+	local ipint=0
+	local pw=16777216
+	ip=${1//./ }
+	for n in $ip; do
+		ipint=$((ipint+n*pw))
+		let pw/=256
+	done
+	echo $ipint
+}
+
+int2ipstr()
+{
+	local ip1 ip2 ip3 ip4 
+	local pw=16777216
+	local ipint=$1
+
+	ip1=$((ipint/pw))
+	ipint=$((ipint%pw))
+	pw=$((pw/256))
+	ip2=$((ipint/pw))
+	ipint=$((ipint%pw))
+	pw=$((pw/256))
+	ip3=$((ipint/pw))
+	ipint=$((ipint%pw))
+	pw=$((pw/256))
+	ip4=$ipint
+	echo $ip1.$ip2.$ip3.$ip4
+}

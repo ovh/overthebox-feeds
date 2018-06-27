@@ -1,0 +1,81 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+
+#############################
+#   Entry point functuons   #
+#############################
+
+UCI_GET_VARSTATE="/sbin/uci -q ${UCI_CONFIG_DIR:+-c $UCI_CONFIG_DIR} -P /var/state get"
+UCI_SET_VARSTATE="/sbin/uci -q ${UCI_CONFIG_DIR:+-c $UCI_CONFIG_DIR} -P /var/state set"
+
+entry_execute_method_root_IPPingDiagnostics() {
+	case_param "$1" belongto "$DMROOT.IP.Diagnostics.IPPing." && {
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.DiagnosticsState" "1" "ipping_get easycwmp.@local[0].DiagnosticsState None" "ipping_set_diagnostic_state"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.Host" "1" "ipping_get easycwmp.@local[0].Host" "ipping_set easycwmp.@local[0].Host"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.NumberOfRepetitions" "1" "ipping_get easycwmp.@local[0].NumberOfRepetitions 3" "ipping_set_number easycwmp.@local[0].NumberOfRepetitions" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.Timeout" "1" "ipping_get easycwmp.@local[0].Timeout 1000" "ipping_set_number easycwmp.@local[0].Timeout" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.DataBlockSize" "1" "ipping_get easycwmp.@local[0].DataBlockSize 64" "ipping_set_number easycwmp.@local[0].DataBlockSize" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.SuccessCount" "0" "ipping_get easycwmp.@local[0].SuccessCount 0" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.FailureCount" "0" "ipping_get easycwmp.@local[0].FailureCount 0" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.AverageResponseTime" "0" "ipping_get easycwmp.@local[0].AverageResponseTime 0" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.MinimumResponseTime" "0" "ipping_get easycwmp.@local[0].MinimumResponseTime 0" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Diagnostics.IPPing.MaximumResponseTime" "0" "ipping_get easycwmp.@local[0].MaximumResponseTime 0" "" "xsd:unsignedInt"
+		return 0;
+	}
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+#######################################
+#   Data model parameters functions   #
+#######################################
+
+ipping_get() {
+	local val=`$UCI_GET_VARSTATE $1`
+	echo ${val:-$2}
+}
+
+ipping_set() {
+	ipping_stop_diagnostic
+	if [ "`$UCI_GET_VARSTATE easycwmp.@local[0].DiagnosticsState`" != "Requested" ]; then
+		$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=None
+	fi
+	$UCI_SET_VARSTATE $1=$2
+	return 0
+}
+
+ipping_set_number() {
+	case $2 in
+		(*[^0-9]*|'') return $E_INVALID_PARAMETER_VALUE;;
+	esac
+	[ $2 -lt 1 ] && return $E_INVALID_PARAMETER_VALUE
+	ipping_stop_diagnostic
+	if [ "`$UCI_GET_VARSTATE easycwmp.@local[0].DiagnosticsState`" != "Requested" ]; then
+		$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=None
+	fi
+	$UCI_SET_VARSTATE $1=$2
+	return 0
+}
+
+ipping_set_diagnostic_state() {
+	local val="$1"
+	case $val in 
+		Requested)
+			ipping_stop_diagnostic
+			$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=Requested
+			common_execute_command_in_apply_service "/bin/sh $FUNCTION_PATH/ipping_launch run &"
+			return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_VALUE;
+}
+
+ipping_stop_diagnostic() {
+	local pids=`ps aux | grep ipping_launch | grep -v grep | awk '{print $2}'`
+	if [ -n "$pids" ]; then
+		kill -9 $pids
+		$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=None
+	fi
+}
+
+

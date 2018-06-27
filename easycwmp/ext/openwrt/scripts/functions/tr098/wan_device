@@ -1,0 +1,120 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+
+#############################
+#   Entry point functuons   #
+#############################
+
+prefix_list="$prefix_list $DMROOT.WANDevice."
+entry_execute_method_list="$entry_execute_method_list entry_execute_method_root_WANDevice"
+entry_execute_method_list_forcedinform="$entry_execute_method_list_forcedinform entry_execute_method_root_WANDevice"
+
+
+entry_execute_method_root_WANDevice() {
+	case "$1" in ""|"$DMROOT."|"$DMROOT.WANDevice."*)
+		common_execute_method_obj "$DMROOT.WANDevice." "0"
+		common_execute_method_obj "$DMROOT.WANDevice.1." "0"
+		common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice." "0" "" "" "wan_device_browse_instances_wancxdev $1"
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+sub_entry_wandevice_wanconnectiondevice() {
+	local j="$2"
+	local iface="$3"
+	local protocol="$4"
+	local default="$5"
+	case_param "$1" belongto "$DMROOT.WANDevice.1.WANConnectionDevice.$j." && {
+		common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice.$j." "0"
+		case $protocol in
+			IP)
+			common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANIPConnection." "0"
+			common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANIPConnection.1." "0"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANIPConnection.1.ConnectionStatus" "0" "wan_device_get_ipcx_status"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANIPConnection.1.ExternalIPAddress" "0" "wan_device_get_ipcx_ipaddr $iface" "" "" "$default"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANIPConnection.1.MACAddress" "0" "wan_device_get_ipcx_macaddr $iface"
+			;;
+			PPP)
+			common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANPPPConnection." "0"
+			common_execute_method_obj "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANPPPConnection.1." "0"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANPPPConnection.1.Enable" "1" "wan_device_get_ipcx_macaddr $iface" "wan_device_set_wan_ppp_enable $iface" "xsd:boolean"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANPPPConnection.1.Username" "1" "$UCI_GET network.$iface.username" "wan_device_set_wan_ppp_cfg network.$iface.username"
+			common_execute_method_param "$DMROOT.WANDevice.1.WANConnectionDevice.$j.WANPPPConnection.1.Password" "1" "" "wan_device_set_wan_ppp_cfg network.$iface.password"
+			;;
+		esac
+		return 0
+	}
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+#######################################
+#     Data model browse instances     #
+#######################################
+
+wan_device_browse_instances_wancxdev() {
+	local map maps=`wan_device_get_interface_maps` 
+	for map in $maps; do
+		local iface=${map%%:*}
+		map=${map#*:}
+		local j=${map%%:*}
+		map=${map#*:}
+		local protocol=${map%%:*}
+		local default=${map#*:}
+		sub_entry_wandevice_wanconnectiondevice "$1" "$j" "$iface" "$protocol" "$default"
+	done
+	return 0;
+}
+
+#######################################
+#   Data model parameters functions   #
+#######################################
+
+wan_device_get_interface_maps() {
+	#should return a list like this: "<interface1>:<instance1>:<protocol>:<default interface? 1 : 0> <interface2>:<instance>:<protocol>:<default interface? 1 : 0>"
+	echo "mng:1:IP:1 wan:2:PPP:0"
+}
+
+wan_device_get_ipcx_status() {
+	echo "Connected"
+}
+
+wan_device_get_ipcx_ipaddr() {
+	local val iface="$1"
+	network_get_ipaddr val "$iface"
+	echo "$val"
+}
+
+wan_device_get_ipcx_macaddr() {
+	local val iface="$1"
+	if [ -z "$default_wan_device_mng_interface_mac" ]; then
+		val=`$UCI_GET network.$iface.macaddr`
+	else
+		val=$default_wan_device_mng_interface_mac
+	fi
+	echo $val
+}
+
+wan_device_get_wan_ppp_enable() {
+	local iface="$1"
+	local val=`$UCI_GET network.$iface.auto`
+	echo ${val:-1}
+}
+
+wan_device_set_wan_ppp_enable() {
+	local iface="$1"
+	local val="$2"
+	common_set_bool "network.$iface.auto" "$val" "1" "0"
+	local e="$?"
+	[ "$e" != "0" ] && return $e
+	return 0
+}
+
+wan_device_set_wan_ppp_cfg() {
+	local cfg="$1"
+	local val="$2"
+	$UCI_SET $cfg="$val"
+	return 0
+}

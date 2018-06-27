@@ -1,0 +1,41 @@
+if PACKAGE_easycwmp
+
+config EASYCWMP_SCRIPTS_FULL
+	bool "Install all easycwmp scripts"
+	default y
+	
+if EASYCWMP_SCRIPTS_FULL
+choice
+	prompt "Selected Data Model"
+	default EASYCWMP_DATA_MODEL_TR181
+
+	config EASYCWMP_DATA_MODEL_TR181
+		bool "TR-181 Data Model"
+		
+	config EASYCWMP_DATA_MODEL_TR98
+		bool "TR-098 Data Model"
+
+endchoice
+endif
+
+choice
+	prompt "Save Backup Data"
+	default EASYCWMP_BACKUP_DATA_FILE
+
+	config EASYCWMP_BACKUP_DATA_FILE
+		bool "/etc/easycwmp/.backup.xml"
+		
+	config EASYCWMP_BACKUP_DATA_CONFIG
+		bool "easycwmp config"
+
+endchoice
+
+config EASYCWMP_DEBUG
+	bool "Compile with debug options"
+	default n
+
+config EASYCWMP_DEVEL
+	bool "Compile with development options"
+	default n
+
+endif

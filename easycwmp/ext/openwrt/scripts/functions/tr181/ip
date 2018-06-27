@@ -1,0 +1,269 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: Anis Ellouze <anis.ellouze@pivasoftware.com>
+
+#common_execute_method_param "$parameter" "$permission" "$get_cmd" "$set_cmd" "xsd:$type" "$forcedinform"
+#  $forcedinform should be set to 1 if the parameter is included in the inform message otherwise empty
+#  Default of $type = string
+
+#############################
+#   Entry point functions   #
+#############################
+
+prefix_list="$prefix_list $DMROOT.IP."
+entry_execute_method_list="$entry_execute_method_list entry_execute_method_root_IP"
+
+entry_execute_method_root_IP() {
+	case "$1" in ""|"$DMROOT."|"$DMROOT.IP."*)
+		common_execute_method_obj "$DMROOT.IP." "0"
+		common_execute_method_obj "$DMROOT.IP.Interface." "1" "add_ip_iface" "" "ip_device_browse_instances $1"
+		common_execute_method_obj "$DMROOT.IP.Diagnostics." "0"
+		common_execute_method_obj "$DMROOT.IP.Diagnostics.IPPing." "0" "" "" "entry_execute_method_root_IPPingDiagnostics"
+		return 0
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+sub_entry_ip_interface() {
+	local j="$2"
+	local ip_int="$3"
+	case_param "$1" belongto "$DMROOT.IP.Interface.$j." && {
+		common_execute_method_obj "$DMROOT.IP.Interface.$j." "1" "" "del_ip_iface $ip_int"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.Enable" "0" "ip_iface_get_ip_enable" "" "xsd:boolean"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.Name" "0" "ip_get_iface_name $ip_int"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.Type" "0" "ip_iface_get_ip_type $ip_int"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.IPv4AddressNumberOfEntries" "0" "echo 1" "" "xsd:unsignedInt"
+		common_execute_method_obj "$DMROOT.IP.Interface.$j.IPv4Address." "1" "" "" "ipv4_browse_instances $j $ip_int"
+		common_execute_method_obj "$DMROOT.IP.Interface.$j.Stats." "0" "" "" "ip_browse_stat $j $ip_int"
+		return 0
+	}
+	return $E_INVALID_PARAMETER_NAME;		
+}
+
+sub_entry_ipv4_interface() {
+	local j="$1"
+	local ip_int="$2"
+	case_param "$1" belongto "$DMROOT.IP.Interface.$j.IPv4Address.1." && {
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.IPv4Address.1.IPAddress" "1" "ipv4address_iface_get_ip_adress $ip_int" "ipv4address_iface_set_ip_adress $ip_int"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.IPv4Address.1.AddressingType" "0" "ipv4address_iface_get_type_adress $ip_int"
+		common_execute_method_param  "$DMROOT.IP.Interface.$j.IPv4Address.1.Enable" "0" "echo 1" "" "xsd:boolean"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.IPv4Address.1.SubnetMask" "0" "get_net_mask $ip_int"
+		return 0
+	}
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+sub_entry_ip_stat() {
+	local j="$1"
+	local ip_int="$2"
+	case_param "$1" belongto "$DMROOT.IP.Interface.$j.Stats." && {
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.BytesSent" "0" "get_tx_byte_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.BytesReceived" "0" "get_rx_byte_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.PacketsSent" "0" "get_tx_packet_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.PacketsReceived" "0" "get_rx_packet_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.ErrorsSent" "0" "get_tx_error_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.ErrorsReceived" "0" "get_rx_error_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.DiscardPacketsSent" "0" "get_tx_discard_stats" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.IP.Interface.$j.Stats.DiscardPacketsReceived" "0" "get_rx_discard_stats" "" "xsd:unsignedInt"
+		return 0
+	}
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+#######################################
+#     Data model browse instances     #
+#######################################
+
+ip_get_max_instance() {
+	local max=`$UCI_SHOW network | grep "ip_int_instance" | cut -d'=' -f2 | sed 's/[^0-9]*//g' | sort -nru | head -1`
+	echo ${max:-0}
+}
+
+ip_device_update_instance() {
+	local ip_int="$1"
+	local instance=`$UCI_GET $1.ip_int_instance`
+	if [ -z "$instance" ]; then
+		instance=`ip_get_max_instance`
+		$UCI_SET $1.ip_int_instance=$((++instance))
+		$UCI_COMMIT
+	fi
+	echo $instance
+}
+
+ip_device_browse_instances() {
+	local ip_int ip_ints=`$UCI_SHOW network |grep interface | cut -d "=" -f 1`
+	for ip_int in $ip_ints; do
+		local type=`$UCI_GET $ip_int.type`
+		if [ "$type" != "alias" ]; then
+			local j=`ip_device_update_instance $ip_int`
+			sub_entry_ip_interface  "$1" "$j" "$ip_int"
+		fi
+	done
+}
+
+ipv4_browse_instances() {
+	sub_entry_ipv4_interface $1 $2
+}
+
+ip_browse_stat(){
+	get_stat $2
+	sub_entry_ip_stat $1 $2
+}
+
+#######################################
+#   ADD & DEL obj                     #
+#######################################
+
+add_ip_iface() {
+	local instance=`ip_get_max_instance`
+	$UCI_SET  network.ip_interface_$instance=interface
+	$UCI_SET  network.ip_interface_$instance.proto=dhcp
+	$UCI_SET  network.ip_interface_$instance.ip_int_instance=$((++instance))
+	$UCI_COMMIT
+	echo $instance
+}
+
+del_ip_iface() {
+	local iface="$1"
+	$UCI_DELETE $iface
+	$UCI_COMMIT
+	return 0
+}
+
+#######################################
+#   GET & SET Values                  #
+#######################################
+
+ip_get_iface_name() {
+	local interface=`echo $1 |cut -d "." -f 2`
+	echo $interface
+}
+
+ip_iface_get_ip_enable() {
+	echo "1"
+}
+
+ip_iface_get_ip_type() {
+	local name=`ip_get_iface_name $1`
+	if [ "$name" == "loopback" ]; then
+		echo "Loopback"
+	else
+		echo "Normal"
+	fi
+}
+
+ipv4address_iface_get_ip_adress() {
+	local name=$(echo $1 |cut -d "." -f 2)
+	local address=""
+	local res
+	res=`ubus call network.interface.$name status`
+	if [ "$?" = 0 ]; then
+		json_init
+		json_load "$res" >/dev/null
+		json_select "ipv4-address" >/dev/null
+		if [ "$?" = 0 ]; then
+			json_select 1 >/dev/null
+			json_get_var address address >/dev/null
+			echo "$address"
+			return
+		fi
+	fi
+	$UCI_GET $1.ipaddr
+}
+
+ipv4address_iface_set_ip_adress() {
+	$UCI_SET $1.ipaddr="$2"
+	$UCI_SET $1.proto="static"
+	return 0
+}
+
+ipv4address_iface_get_type_adress() {
+	local val=`$UCI_GET $1.proto`
+	case $val in
+		dhcp*|ppp*)
+			echo "DHCP"
+			;;
+		*)
+			echo "Static"
+			;;
+	esac
+}
+
+get_net_mask() {
+	local name=$(echo $1 |cut -d "." -f 2)
+	local mask=""
+	local res
+	res=`ubus call network.interface.$name status`
+	if [ "$?" = 0 ]; then
+		json_init
+		json_load "$res" >/dev/null
+		json_select "ipv4-address" >/dev/null
+		if [ "$?" = 0 ]; then
+			json_select 1 >/dev/null
+			json_get_var mask mask >/dev/null
+			mask=`cdr2mask $mask` 
+			echo "$mask"
+			return
+		fi
+	fi
+	$UCI_GET $1.netmask
+}
+
+#######################################
+#   Stats                             #
+#######################################
+
+get_stat() {
+	local name=$(echo $1 |cut -d "." -f 2)
+	local dev=""
+	local res=`ubus call network.interface.$name status`
+	if [ "$?" != 0 ]; then
+		return
+	fi
+	json_init
+	json_load "$res" &> /dev/null
+	if [ "$?" != 0 ]; then
+		return
+	fi
+	json_get_var dev device
+	res=`ubus call network.device status`
+	json_init
+	json_load "$res" &> /dev/null
+	json_select "$dev" &> /dev/null
+	json_select statistics &> /dev/null  
+	json_get_vars tx_dropped rx_bytes tx_errors rx_packets rx_dropped tx_packets rx_errors tx_bytes
+}
+
+get_tx_byte_stats() {
+	echo ${tx_bytes:-0}
+}
+
+get_rx_byte_stats() {
+	echo ${rx_bytes:-0}
+}
+
+get_rx_packet_stats() {
+	echo ${rx_packets:-0}
+}
+
+get_tx_packet_stats() {
+	echo ${tx_packets:-0}
+}
+
+get_rx_error_stats() {
+	echo ${rx_errors:-0}
+}
+
+get_tx_error_stats() {
+	echo ${tx_errors:-0}
+}
+
+
+get_rx_discard_stats() {
+	echo ${rx_dropped:-0}
+}
+
+get_tx_discard_stats() {
+	echo ${tx_dropped:-0}
+}

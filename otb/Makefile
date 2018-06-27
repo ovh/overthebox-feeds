@@ -18,7 +18,8 @@ MY_DEPENDS := \
     tcpdump-mini conntrack conntrackd \
     lsblk dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
-    TARGET_x86:kmod-cherrytrail-gpio-powerbutton
+    TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
+    easycwmp
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
