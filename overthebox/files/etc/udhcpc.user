@@ -19,6 +19,8 @@ manage_wan() {
 		;;
 	esac
 
+	uci -q show network | grep -sq "network\\.if.*\\.gateway='$router'" && exit
+
 	# Guess the new interface id
 	_id=1
 	while uci -q get network.if$_id >/dev/null; do
@@ -27,8 +29,6 @@ manage_wan() {
 
 	_macaddr=$(cat "/sys/class/net/$INTERFACE/address")
 	_ifname=$(uci -q get "network.${INTERFACE}_dev.ifname")
-
-	uci -q show network | grep -sq "network\\.if.*\\.gateway='$router'" && exit
 
 	if uci -q get "network.lan_if${_id}" >/dev/null; then
 		uci -q batch <<-EOF
@@ -67,10 +67,17 @@ manage_wan() {
 		# lan_ifX are IP aliases on the lan
 		# Those are needed in order to tell the DHCP server to bind on the LAN and
 		# offer static leases on all its ranges
+
+		if [ "$(uci -q get "network.lan.type")" = bridge ]; then
+			lan_ifname="br-lan"
+		else
+			lan_ifname="$(uci -q get network.lan.ifname)"
+		fi
+
 		uci -q batch <<-EOF
 		set network.lan_if${_id}=interface
 		set network.lan_if${_id}.proto=static
-		set network.lan_if${_id}.ifname=$(uci -q get network.lan.ifname)
+		set network.lan_if${_id}.ifname=$lan_ifname
 		set network.lan_if${_id}.ipaddr=$ip
 		set network.lan_if${_id}.netmask=$subnet
 		set network.${INTERFACE}_dev.macaddr=auto.lan_if$_id
