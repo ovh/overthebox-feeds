@@ -1,120 +1,39 @@
 #!/bin/sh
+# shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 set -e
 
-# shellcheck disable=SC1091
 . /lib/functions.sh
-# shellcheck disable=SC1091
 . /lib/overthebox
 
 config_load network
-
-# Number of interfaces to setup the QoS on
-interface_to_setup_count=
 
 _log() {
 	logger -t otb-qos "$@"
 }
 
-_should_setup_qos_on_interface() {
+_setup_interface() {
 	# The QoS should be applied only if traffic control is set to static
-	trafficcontrol=
+	local trafficcontrol
 	config_get trafficcontrol "$1" trafficcontrol
-	[ "$trafficcontrol" = static ] || return 1
+	[ "$trafficcontrol" = static ] || return 0
 
-	# And multipath is enabled
-	multipath='' ; config_get multipath "$1" multipath
-	case "$multipath" in
-		master|on|backup|handover)  return 0 ;;
-		*)                          return 1 ;;
-	esac
-}
-
-_add_interface_to_count() {
-	_should_setup_qos_on_interface "$1" || return 0
-
-	download='' ; config_get download "$1" download
-	[ -z "$download" ] && return 0
-
-	interface_to_setup_count=$((interface_to_setup_count+1))
-}
-
-_count_interfaces_to_setup() {
-	interface_to_setup_count=0
-	config_foreach _add_interface_to_count interface
-}
-
-_setup_remote_interface() {
-	_should_setup_qos_on_interface "$1" || return 0
-
-	ifname=''   ; config_get ifname   "$1" ifname
-	metric=''   ; config_get metric   "$1" metric
-	download='' ; config_get download "$1" download
-	upload=''   ; config_get upload   "$1" upload
-
-	# Get the public IP
-	public_ip=$(otb_get_data "$1/public_ip")
-	if [ -z "$public_ip" ]; then
-		_log "missing public IP for $ifname, can't apply the download QoS for now"
-		return 0
-	fi
-	qos_data="$metric-$download-$public_ip"
-
-	# If there's no QoS, we can simply apply the new one
-	current_qos_data=$(otb_get_data "$1/qos")
-	if [ -z "$current_qos_data" ] ; then
-		_log "QoS is not present, setting it up on $ifname"
-		otb_set_data "$1/qos" "$qos_data"
-
-		_log "sending download QoS on $ifname [$1] - maximum download ${download}kbps"
-
-		#shellcheck disable=SC2016
-		jq -n -c \
-			--arg ifname "$ifname" \
-			--arg metric "$metric" \
-			--arg download "$download" \
-			--arg upload "$upload" \
-			--arg public_ip "$public_ip" \
-			'{
-				interface: $ifname,
-				metric: $metric,
-				wan_ip: $public_ip,
-				downlink: $download,
-				uplink: $upload,
-			}' | otb_todo otb_call_api PUT qos -d@-
-	elif  [ "$current_qos_data" = "$qos_data" ] ; then
-		_log "QoS is already good on $ifname"
-	else
-		_log "QoS has changed on $ifname need to restart"
-		_restart
-	fi
-}
-
-_setup_local_interface() {
-	_should_setup_qos_on_interface "$1" || return 0
-	ifname=''   ; config_get ifname   "$1" ifname
-	upload=''   ; config_get upload   "$1" upload
+	local ifname upload
+	config_get ifname "$1" ifname
+	config_get upload "$1" upload
 
 	_log "setting upload QoS on $ifname [$1] to ${upload}kbps"
 	tc qdisc rep dev "$ifname" root cake bandwidth "$upload"kbit diffserv4 flows memlimit 10m
 }
 
-_setup_interface() {
-	# Setup on the local device
-	_setup_local_interface "$1"
-	# Setup on remote service
-	_setup_remote_interface "$1"
-}
-
 _stop_interface() {
-	ifname=
+	local ifname
 	config_get ifname "$1" ifname
 
 	if tc qdisc del dev "$ifname" root cake 2>/dev/null; then
 		_log "upload QoS deleted on $ifname [$1]"
 	fi
-	otb_unset_data "$1/qos"
 }
 
 _start() {
@@ -124,46 +43,12 @@ _start() {
 
 _stop() {
 	_log "stopping QoS"
-	# Delete the QoS locally
 	config_foreach _stop_interface interface
-	# Delete the QoS remotely
-	otb_todo otb_call_api DELETE qos </dev/null
-}
-
-_restart() {
-	_log "restarting QoS"
-	_stop
-	_start
-}
-
-_check() {
-	_log "checking QoS"
-
-	# Local count
-	_count_interfaces_to_setup
-	# Remote count
-	remote_count=$(otb_call_api GET qos | jq '.links | length')
-
-	[ "$remote_count" = "$interface_to_setup_count" ] && return 0
-
-	_log "$remote_count/$interface_to_setup_count QoS applied. Need to restart"
-	_restart
 }
 
 case "$1" in
-	start)
-		_start
-		;;
-	stop)
-		_stop
-		;;
-	check)
-		_check
-		;;
-	setup)
-		_setup_remote_interface "$2"
-		;;
-	*)
-		exit 1
-		;;
+	start) _start ;;
+	setup) _setup_interface "$2" ;;
+	stop) _stop ;;
+	*) exit 1 ;;
 esac
