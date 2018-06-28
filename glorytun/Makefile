@@ -37,19 +37,10 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
-	$(INSTALL_BIN) update $(1)/usr/sbin/$(PKG_NAME)-update.sh
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/config
 	touch $(1)/etc/config/glorytun
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/net/
-	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/net/90-$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface/
-	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/iface/90-$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp/
-	$(INSTALL_BIN) hotplug $(1)/etc/hotplug.d/dhcp/90-$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/config-check.d/
-	$(INSTALL_BIN) hotplug $(1)/usr/share/otb/config-check.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
