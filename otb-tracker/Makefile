@@ -30,7 +30,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) bin $(1)/bin/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

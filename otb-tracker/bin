@@ -2,50 +2,19 @@
 # shellcheck disable=SC1091,SC1090,SC2034
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
 . /lib/overthebox
 
-OTB_DEV_FILE="$OTB_DATA_DIR/dev"
-
-_cleanup() {
-	OTB_TRACKER_STATUS=
-	OTB_TRACKER_DEVICE_IP=
-	OTB_TRACKER_PUBLIC_IP=
-	OTB_TRACKER_LATENCY=
-	OTB_TRACKER_INTERFACE=
-	OTB_TRACKER_DEVICE=
-	OTB_TRACKER_DEVICE_GATEWAY=
-}
-
-_post_tracking() {
-	OTB_TRACKER_DEVICE=$(ip addr | awk '/mtu/{split($2,d,"[@:]")} /inet '"$OTB_TRACKER_DEVICE_IP"'[\/\ ]/{print d[1]}')
-	OTB_TRACKER_INTERFACE=$(awk /"$OTB_TRACKER_DEVICE"/'{print $2}' "$OTB_DEV_FILE")
-	OTB_TRACKER_DEVICE_GATEWAY=$(ip route get 0.0.0.0 from "$OTB_TRACKER_DEVICE_IP" | awk '/via/{print $5}')
-	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
-		[ -x "$tracker_bin" ] && (
-			_log() {
-				logger -t "post-tracking-${tracker_bin##*/}" "$*"
-			}
-			. "$tracker_bin"
-		)
-	done
-}
-
-# 100% legacy stuff
 while true; do
-	_cleanup
-
-	ubus call network.interface dump | jq -r '.interface[] | select(.l3_device != "lan") | @text "\(.l3_device) \(.interface)"' > "$OTB_DEV_FILE"
-
-	glorytun path dev tun0 2>/dev/null | while read -r \
-		SKIP OTB_TRACKER_STATUS \
-		OTB_TRACKER_DEVICE_IP SKIP \
-		OTB_TRACKER_PUBLIC_IP SKIP \
-		SKIP SKIP SKIP \
-		OTB_TRACKER_LATENCY SKIP; do
-		_post_tracking
-		_cleanup
-	done
+	glorytun path dev tun0 2>/dev/null | \
+		while read -r _ _ IP _ PUBIP _; do
+			[ "$PUBIP" ] || continue
+			[ "$PUBIP" = "-" ] || continue
+			PUBIP_OLD=$(otb_get_data "$IP/pubip")
+			[ "$PUBIP" = "$PUBIP_OLD" ] && continue
+			otb_set_data "$IP/pubip" "$PUBIP"
+			asn="$(curl --max-time 2 --silent --show-error "api.iptoasn.com/v1/as/ip/$PUBIP")"
+			[ "$asn" ] && otb_set_data "$IP/asn" "$asn"
+		done
 
 	if glorytun sync dev tun0 2>/dev/null; then
 		ubus -S call network.interface.tun0 up
