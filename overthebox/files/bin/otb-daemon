@@ -24,10 +24,7 @@ otb_todo otb-action-refreshProperties </dev/null
 _run() {
 	otb_reload
 
-	# check config
-	for file in "$OTB_CONFIG_CHECK_DIR"/*; do
-		[ -f "$file" ] && (. "$file")
-	done
+	otb-check-config
 	reload_config
 
 	if [ -z "$OTB_DEVICE_ID" ]; then
