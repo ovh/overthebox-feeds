@@ -1,0 +1,93 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+
+[ "$1" != "run" -a "$1" != "stop" ] && return
+
+UCI_GET_VARSTATE="/sbin/uci -q ${UCI_CONFIG_DIR:+-c $UCI_CONFIG_DIR} -P /var/state get"
+UCI_SET_VARSTATE="/sbin/uci -q ${UCI_CONFIG_DIR:+-c $UCI_CONFIG_DIR} -P /var/state set"
+
+ipping_get() {
+	local val=`$UCI_GET_VARSTATE $1`
+	echo ${val:-$2}
+}
+
+ipping_launch() {
+	local i res ba stc times sc1 success_count failure_count min_time avg_time max_time avg_time_sum min max
+	[ "`$UCI_GET_VARSTATE easycwmp.@local[0].DiagnosticsState`" != "Requested" ] && return
+	local host=`ipping_get easycwmp.@local[0].Host`
+	local cnt=`ipping_get easycwmp.@local[0].NumberOfRepetitions 3`
+	local dsize=`ipping_get easycwmp.@local[0].DataBlockSize 64`
+	local timeout=`ipping_get easycwmp.@local[0].Timeout 1000`
+	[ "$host" = "" ] && return
+	timeout=$((timeout/1000))
+	[ "$timeout" = "0" ] && timeout = "1"
+	success_count=0
+	avg_time_sum=0
+	min=9999999
+	max=0
+	i=0
+	
+	while [ $i -lt $cnt ]; do
+		let i++
+		res=$(ping -q -c 1 -s $dsize -W $timeout $host 2>&1)
+		ba=`echo "$res" | grep "bad address"`
+		[ -n "$ba" ] && { $UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=Error_CannotResolveHostName; event_dignostic; return; }
+		ba=`echo "$res" | grep "unknown host"`
+		[ -n "$ba" ] && { $UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=Error_CannotResolveHostName; event_dignostic; return; }
+		stc=`echo "$res" | grep "received"`
+		[ -z "$stc" ] && { $UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=Error_Other; event_dignostic; return; }
+		times=`echo "$res" | grep "min/avg/max"`
+		[ -z "$times" ] && continue
+		sc1=`echo $stc | awk '{print $4}'`
+		sc1=${sc1:-0}
+		success_count=$((success_count+sc1))
+		times=`echo $times | awk -F'=' '{ print $2 }'`
+		min_time=`echo $times | awk -F'[=/ ]' '{ print $1 }'`	
+		avg_time=`echo $times | awk -F'[=/ ]' '{ print $2 }'`
+		max_time=`echo $times | awk -F'[=/ ]' '{ print $3 }'`
+		min_time=${min_time:-0}
+		avg_time=${avg_time:-0}
+		max_time=${max_time:-0}
+		min_time=${min_time%.*}
+		avg_time=${avg_time%.*}
+		max_time=${max_time%.*}
+		[ $min_time -lt $min ] && min=$min_time
+		[ $max_time -gt $max ] && max=$max_time
+		avg_time_sum=$((avg_time_sum+avg_time))
+	done
+	failure_count=$((cnt-success_count))
+	[ $success_count -gt 0 ] && avg_time=$((avg_time_sum/success_count)) || avg_time=0
+	min_time=$min
+	max_time=$max
+	$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=Complete
+	$UCI_SET_VARSTATE easycwmp.@local[0].SuccessCount=$success_count
+	$UCI_SET_VARSTATE easycwmp.@local[0].FailureCount=$failure_count
+	$UCI_SET_VARSTATE easycwmp.@local[0].AverageResponseTime=$avg_time
+	$UCI_SET_VARSTATE easycwmp.@local[0].MinimumResponseTime=$min_time
+	$UCI_SET_VARSTATE easycwmp.@local[0].MaximumResponseTime=$max_time
+	event_dignostic
+}
+
+event_dignostic() {
+	local e=1
+	local i=0
+	while [ "$e" != 0 -a $i -lt 200 ]; do	
+		ubus -t 1 call tr069 inform '{"event":"8 DIAGNOSTICS COMPLETE"}'
+		e=$?
+		[ "$e" != "0" ] && sleep 1;
+		let i++
+	done
+}
+
+ipping_stop() {
+	local pids=`ps aux | grep ipping_launch | grep -v grep | grep -v stop | awk '{print $2}'`
+	[ -z "$pids" ] && pids=`ps | grep ipping_launch | grep -v grep | grep -v stop | awk '{print $2}'`
+	if [ -n "$pids" ]; then
+		kill -9 $pids 2>/dev/null
+		$UCI_SET_VARSTATE easycwmp.@local[0].DiagnosticsState=None
+	fi
+}
+
+[ "$1" == "run" ] && { ipping_launch 2>/dev/null; exit 0; }
+[ "$1" == "stop" ] && ipping_stop 2>/dev/null

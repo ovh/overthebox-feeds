@@ -1,0 +1,31 @@
+# easycwmp uci configuration
+
+config local
+	option interface eth0
+	option port 7547
+	option ubus_socket /var/run/ubus.sock
+	option date_format %FT%T%z
+	option username easycwmp
+	option password easycwmp
+	option provisioning_code ''
+#basic authentication = 'Basic', Digest authentication = 'Digest', Default value = 'Digest'
+	option authentication 'Digest'
+#Logging levels: Critic=0, Warning=1, Notice=2, Info=3, Debug=4
+	option logging_level '3'
+
+config acs
+	option url http://192.168.1.110:8080/openacs/acs
+	option username easycwmp
+	option password easycwmp
+	option parameter_key ''
+	option periodic_enable '1'
+	option periodic_interval '100'
+	option periodic_time '0001-01-01T00:00:00Z'
+
+config device
+	option manufacturer easycwmp
+	option oui FFFFFF
+	option product_class easycwmp
+	option serial_number FFFFFF123456
+	option hardware_version example_hw_version
+	option software_version example_sw_version

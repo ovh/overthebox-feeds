@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<soap_env:Envelope
+	xmlns:soap_env="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:soap_enc="http://schemas.xmlsoap.org/soap/encoding/"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:cwmp="urn:dslforum-org:cwmp-1-2">
+	<soap_env:Header>
+		<cwmp:ID soap_env:mustUnderstand="1"/>
+	</soap_env:Header>
+	<soap_env:Body>
+		<cwmp:Inform>
+			<DeviceId>
+				<Manufacturer/>
+				<OUI/>
+				<ProductClass/>
+				<SerialNumber/>
+			</DeviceId>
+			<Event soap_enc:arrayType="cwmp:EventStruct[0]" />
+			<MaxEnvelopes>1</MaxEnvelopes>
+			<CurrentTime/>
+			<RetryCount/>
+			<ParameterList soap_enc:arrayType="cwmp:ParameterValueStruct[11]">
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.SpecVersion</Name>
+					<Value xsi:type="xsd:string">1.0</Value>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.Manufacturer</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.ManufacturerOUI</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.ProductClass</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.SerialNumber</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.HardwareVersion</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.SoftwareVersion</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.DeviceInfo.ProvisioningCode</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.ManagementServer.ParameterKey</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.ManagementServer.ConnectionRequestURL</Name>
+					<Value xsi:type="xsd:string" />
+				</ParameterValueStruct>
+				<ParameterValueStruct>
+					<Name>InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress</Name>
+					<Value xsi:type="xsd:string"/>
+				</ParameterValueStruct>
+			</ParameterList>
+		</cwmp:Inform>
+	</soap_env:Body>
+</soap_env:Envelope>

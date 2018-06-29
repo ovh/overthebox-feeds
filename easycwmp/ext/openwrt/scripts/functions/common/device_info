@@ -1,0 +1,59 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+
+#common_execute_method_param "$parameter" "$permission" "$get_cmd" "$set_cmd" "xsd:$type" "$forcedinform"
+#  $forcedinform should be set to 1 if the parameter is included in the inform message otherwise empty
+#  Default of $type = string
+
+#############################
+#   Entry point functuons   #
+#############################
+
+prefix_list="$prefix_list $DMROOT.DeviceInfo."
+entry_execute_method_list="$entry_execute_method_list entry_execute_method_root_DeviceInfo"
+entry_execute_method_list_forcedinform="$entry_execute_method_list_forcedinform  entry_execute_method_root_DeviceInfo"
+
+entry_execute_method_root_DeviceInfo() {
+	case "$1" in ""|"$DMROOT."|"$DMROOT.DeviceInfo."*)
+		common_execute_method_obj "$DMROOT.DeviceInfo." "0"
+		common_execute_method_param "$DMROOT.DeviceInfo.SpecVersion" "0" "echo 1.0" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.ProvisioningCode" "1" "$UCI_GET easycwmp.@local[0].provisioning_code" "device_info_set_provisioningcode" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.Manufacturer" "0" "$UCI_GET easycwmp.@device[0].manufacturer" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.ManufacturerOUI" "0" "$UCI_GET easycwmp.@device[0].oui" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.ProductClass" "0" "$UCI_GET easycwmp.@device[0].product_class" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.SerialNumber" "0" "$UCI_GET easycwmp.@device[0].serial_number" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.HardwareVersion" "0" "$UCI_GET easycwmp.@device[0].hardware_version" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.SoftwareVersion" "0" "$UCI_GET easycwmp.@device[0].software_version" "" "" "1"
+		common_execute_method_param "$DMROOT.DeviceInfo.UpTime" "0" "device_info_get_uptime" "" "xsd:unsignedInt"
+		common_execute_method_param "$DMROOT.DeviceInfo.DeviceLog" "0" "dmesg | tail -n1"
+		common_execute_method_obj "$DMROOT.DeviceInfo.MemoryStatus." "0"
+		common_execute_method_param "$DMROOT.DeviceInfo.MemoryStatus.Total" "0" "device_info_get_total_memory"
+		common_execute_method_param "$DMROOT.DeviceInfo.MemoryStatus.Free" "0" "device_info_get_free_memory"
+		return 0;
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME;
+}
+
+#######################################
+#   Data model parameters functions   #
+#######################################
+
+device_info_get_total_memory() {
+		cut -d: -f 2 /proc/meminfo | head -n 1| tail -n 1 |  tr -d " kKbB"
+}
+
+device_info_get_free_memory() {
+		cut -d: -f 2 /proc/meminfo | head -n 2| tail -n 1 | tr -d " kKbB" 
+}
+
+device_info_set_provisioningcode() {
+	local val="$1"
+	$UCI_SET easycwmp.@local[0].provisioning_code="$val"
+	return 0
+}
+
+device_info_get_uptime() {
+	awk -F '.' '{ print $1 }' /proc/uptime
+}

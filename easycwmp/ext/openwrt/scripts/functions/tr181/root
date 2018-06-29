@@ -1,0 +1,19 @@
+#!/bin/sh
+# Copyright (C) 2015 PIVA Software <www.pivasoftware.com>
+# 	Author: MOHAMED Kallel <mohamed.kallel@pivasoftware.com>
+
+#############################
+#   Entry point functuons   #
+#############################
+DMROOT="Device"
+entry_method_root="entry_execute_method_root"
+entry_execute_method_list_forcedinform="$entry_method_root $entry_execute_method_list_forcedinform"
+
+entry_execute_method_root() {
+	case "$1" in ""|"$DMROOT."|"$DMROOT."*[^.])
+		common_execute_method_obj "$DMROOT." "0"
+		return 0;
+		;;
+	esac
+	return $E_INVALID_PARAMETER_NAME;
+}
