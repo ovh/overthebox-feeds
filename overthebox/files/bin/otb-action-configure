@@ -8,6 +8,8 @@ ME=$(basename "$0")
 
 . /lib/overthebox
 
+[ "$OTB_SERVICE_ID" ]
+
 config=$(otb_device_get config)
 
 _get() {
