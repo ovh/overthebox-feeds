@@ -9,6 +9,8 @@ set -o pipefail
 . /lib/functions/network.sh
 . /lib/overthebox
 
+[ "$OTB_SERVICE_ID" ]
+
 INTERFACES="[]"
 MOUNTS="[]"
 
