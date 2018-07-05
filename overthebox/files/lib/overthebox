@@ -133,12 +133,3 @@ otb_save_event() {
 	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
 		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' | otb_todo otb_device_post events -d@-
 }
-
-otb_save_action_id() {
-	[ -z "$1" ] && return
-	id=$(otb_json_get "$1" id)
-	[ "$id" ] && [ "$id" != null ] && uci -q batch <<-EOF
-	set overthebox.me.action_id=$id
-	commit overthebox
-	EOF
-}

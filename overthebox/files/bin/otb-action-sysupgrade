@@ -12,8 +12,6 @@ export_bootdevice || {
 	exit 1
 }
 
-otb_save_action_id "$1" 2>/dev/null || true
-
 if [ -z "$1" ]; then
 	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
 else

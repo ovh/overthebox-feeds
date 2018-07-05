@@ -5,20 +5,6 @@
 . /lib/overthebox
 
 otb_save_event start
-
-# This code is really bad and should be removed as soons as possible
-id=$(uci -q get overthebox.me.action_id)
-
-if [ -n "$id" ]; then
-	otb_todo otb_device_post "actions/$id" -d@- <<-EOF
-	{"status":"done"}
-	EOF
-	uci -q batch <<-EOF
-	delete overthebox.me.action_id
-	commit overthebox
-	EOF
-fi
-
 otb_todo otb-action-refreshProperties </dev/null
 
 _run() {
