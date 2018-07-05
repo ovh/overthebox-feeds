@@ -2,10 +2,4 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-set -e
-
-. /lib/overthebox
-
-otb_save_action_id "$1"
-
-exec reboot
+reboot
