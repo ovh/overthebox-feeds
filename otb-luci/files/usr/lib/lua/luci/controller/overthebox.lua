@@ -4,7 +4,8 @@ module("luci.controller.overthebox", package.seeall)
 function index()
   entry({"admin", "overthebox"}, alias("admin", "overthebox", "overview"), "OverTheBox", 10).index = true
   entry({"admin", "overthebox", "overview"}, template("otb_overview"), "Overview", 1)
-  entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 2)
+  entry({"admin", "overthebox", "routing"}, cbi("otb_routing"), "Routing", 2)
+  entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 3)
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
 end
