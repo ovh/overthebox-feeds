@@ -8,14 +8,18 @@ set -e
 
 otb_info "Subscribing to the overthebox service..."
 
-ubus call network.interface dump \
-	| jq '.interface // []
+ubus call network.interface dump | jq \
+	--arg board "$(cat /tmp/sysinfo/board_name)" \
+	--arg macaddr "$(cat /sys/class/net/eth0/address)" \
+	'.interface // []
 		| map(select(.interface == "lan" or .device == "lan"))
 		| map(."ipv4-address"[0].address)
-		| {private_ips: .}' \
+		| {private_ips: .}
+		+ {board: $board, macaddr: $macaddr}' \
 	| otb_call POST subscribe -d@- \
 	| jq -r '"
 set overthebox.me=config
+set overthebox.me.service=\(.service // "")
 set overthebox.me.device_id=\(.device_id)
 set overthebox.me.token=\(.token)
 commit overthebox
