@@ -8,8 +8,10 @@ function index()
   entry({"admin", "overthebox", "dns"}, cbi("otb_dns"), "DNS", 3)
   entry({"admin", "overthebox", "routing"}, cbi("otb_routing"), "Routing", 4)
   entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 5)
+
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
+  entry({"admin", "overthebox", "dhcp_leases_status"}, call("otb_dhcp_leases_status")).dependent = false
 end
 
 function otb_confirm_service()
@@ -24,4 +26,10 @@ end
 function otb_time()
   luci.http.prepare_content("application/json")
   luci.http.write_json({ timestamp = tostring(os.time()) })
+end
+
+function otb_dhcp_leases_status()
+  local s = require "luci.tools.status"
+  luci.http.prepare_content("application/json")
+  luci.http.write_json(s.dhcp_leases())
 end
