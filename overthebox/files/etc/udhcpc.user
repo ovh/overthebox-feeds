@@ -94,7 +94,11 @@ _check_ip() {
 		ip="${ip%.*}.$((${ip##*.}+1))"
 	done
 
-	[ "$original_ip" != "$ip" ] && ipcalc.sh "$ip" | grep -s -q "IP=$ip"
+	[ "$original_ip" = "$ip" ] && return 1
+
+	_log "setup static interface from ip $original_ip to $ip"
+
+	ipcalc.sh "$ip" | grep -s -q "IP=$ip"
 }
 
 manage_cifX() {
