@@ -27,6 +27,7 @@ uci -q batch <<-EOF
 set network.cif${_id}=interface
 set network.cif${_id}.proto=dhcp
 set network.cif${_id}.ifname=$dev_name
+set network.cif${_id}.multipath=on
 commit network
 
 del_list firewall.wan.network=cif$_id
