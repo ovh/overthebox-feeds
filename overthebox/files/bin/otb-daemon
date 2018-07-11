@@ -35,6 +35,10 @@ _run() {
 		return
 	fi
 
+	if [ "$(uci -q get "network.tun0")" != interface ]; then
+		otb-action-configure
+	fi
+
 	# todo
 	for file in "$OTB_TODO_DIR"/*; do
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
