@@ -19,7 +19,7 @@ MY_DEPENDS := \
     lsblk dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
-    kmod-macvlan
+    kmod-macvlan birdcl4
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
