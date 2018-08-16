@@ -3,4 +3,5 @@
 
 set -ex
 
-otb-status -f
+glorytun show
+glorytun path
