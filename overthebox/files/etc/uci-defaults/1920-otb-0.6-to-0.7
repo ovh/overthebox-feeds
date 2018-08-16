@@ -2,6 +2,9 @@
 # shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# lan is now a bridge
+uci -q set "network.lan.type=bridge"
+
 mode="$(uci -q get glorytun.app.mode)"
 
 case "$mode" in
