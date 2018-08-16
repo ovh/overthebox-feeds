@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     graph glorytun birdcl4 kmod-macvlan \
     jq curl ca-bundle ca-certificates \
-    @LIBCURL_THREADED_RESOLVER
+    iperf3 @LIBCURL_THREADED_RESOLVER
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
