@@ -14,12 +14,11 @@ MY_DEPENDS := \
     usb-modeswitch bwm-ng screen \
     libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
-    tc iperf3 mtr rng-tools ss strace \
+    mtr rng-tools ss strace \
     tcpdump-mini conntrack conntrackd \
-    lsblk dnsmasq-full kmod-nf-nathelper \
+    dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
-    TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
-    kmod-macvlan birdcl4
+    TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
