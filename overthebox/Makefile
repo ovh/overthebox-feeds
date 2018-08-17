@@ -7,7 +7,7 @@ PKG_RELEASE:=1
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
-    graph glorytun birdcl4 kmod-macvlan \
+    graph glorytun frr frr-bgpd kmod-macvlan \
     jq curl ca-bundle ca-certificates \
     @LIBCURL_THREADED_RESOLVER
 
