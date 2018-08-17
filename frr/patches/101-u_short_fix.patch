@@ -1,0 +1,10 @@
+--- a/lib/log.h	2017-08-13 05:11:58.624824609 +0300
++++ b/lib/log.h	2017-08-13 05:12:10.020121314 +0300
+@@ -25,6 +25,7 @@
+ 
+ #include <syslog.h>
+ #include <stdio.h>
++#include <sys/types.h>
+ 
+ /* Here is some guidance on logging levels to use:
+  *
