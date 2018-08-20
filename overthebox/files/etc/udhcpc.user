@@ -2,35 +2,25 @@
 # shellcheck disable=SC2154,SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-action="$1"
-
 _log() {
 	logger -p daemon.info -t "udhcpc.user" "$@"
 }
 
-[ -z "$router" ] && exit 0
-
 manage_wan() {
-	case "$action" in
-	renew|bound)
-		;;
-	*)
-		exit 0
-		;;
-	esac
-
-	uci -q show network | grep -sq "network\\.if.*\\.gateway='$router'" && exit
+	uci -q show network | grep -sq "network\\.if.*\\.gateway='$router'" && return
 
 	# Guess the new interface id
 	_id=1
-	while uci -q get network.if$_id >/dev/null; do
+	while uci -q get "network.if$_id" >/dev/null; do
 		_id=$((_id+1))
 	done
 
-	_macaddr=$(cat "/sys/class/net/$INTERFACE/address")
-	_ifname=$(uci -q get "network.${INTERFACE}_dev.ifname")
+	if uci -q get "network.lan_if$_id" >/dev/null; then
+		_ifname="$(uci -q get "network.${INTERFACE}_dev.ifname")" || return
+		_macaddr="$(cat "/sys/class/net/$DEVICE/address")" || return
 
-	if uci -q get "network.lan_if${_id}" >/dev/null; then
+		_log "create interface if$_id with ip $ip"
+
 		uci -q batch <<-EOF
 		set network.if${_id}_dev=device
 		set network.if${_id}_dev.name=if$_id
@@ -68,6 +58,8 @@ manage_wan() {
 		# Those are needed in order to tell the DHCP server to bind on the LAN and
 		# offer static leases on all its ranges
 
+		_log "create interface lan_if$_id with ip $ip"
+
 		if [ "$(uci -q get "network.lan.type")" = bridge ]; then
 			lan_ifname="br-lan"
 		else
@@ -86,42 +78,38 @@ manage_wan() {
 	fi
 }
 
-_check_ip() {
+fix_ip() {
 	original_ip="$ip"
 
 	# Naively increment the last part of the IP to find an unused one
-	while ip -4 -o addr | grep -s -v "$INTERFACE" | grep -s -q "inet $ip/"; do
+	while ip -4 -o addr | grep -s -v "$DEVICE" | grep -s -q "inet $ip/"; do
 		ip="${ip%.*}.$((${ip##*.}+1))"
 	done
 
-	[ "$original_ip" = "$ip" ] && return 1
+	[ "$original_ip" = "$ip" ] && return 0
+	ipcalc.sh "$ip" | grep -s -q "IP=$ip" || return 1
 
-	_log "setup static interface from ip $original_ip to $ip"
-
-	ipcalc.sh "$ip" | grep -s -q "IP=$ip"
+	deconfig_interface
+	setup_interface
 }
 
-manage_cifX() {
-	[ "$action" != "bound" ] && exit
+DEVICE="$interface"
 
-	_check_ip && uci -q batch <<-EOF
-	set network.$INTERFACE.proto=static
-	set network.$INTERFACE.ipaddr=$ip
-	set network.$INTERFACE.netmask=$subnet
-	set network.$INTERFACE.gateway="$router"
-	set network.$INTERFACE.dns=$dns
-	set network.$INTERFACE.mtu=$mtu
-	commit network
-	EOF
-}
+case "$1" in
+	bound|renew) ;;
+	*) exit 0 ;;
+esac
 
-_log "got udhcpc $action on $INTERFACE"
+[ "$INTERFACE" ] || exit 0
+[ "$DEVICE"    ] || exit 0
+[ "$ip"        ] || exit 0
+[ "$router"    ] || exit 0
+
+_log "got udhcpc $1 on $INTERFACE"
 
 case "$INTERFACE" in
-	wan)
-		manage_wan ;;
-	cif*)
-		manage_cifX ;;
+	wan) manage_wan ;;
+	*) fix_ip ;;
 esac
 
 [ -d /var/run/config.check ] || reload_config

@@ -15,22 +15,20 @@ for p in /sys/class/net/*; do
 	[ -d "$p/device" ] || continue
 
 	ifname="$(basename "$p")"
+	iface="${ifname}_dhcp"
+
 	uci -q show network | grep -s -q "$ifname" && continue
 
-	id=1
-	while [ "$(uci -q get "network.cif$id")" = interface ]; do
-		id=$((id+1))
-	done
-
-	otb_info "setup missing network interface cif$id for $ifname"
+	otb_info "create dhcp interface for $ifname"
 
 	uci -q batch <<-EOF
-	set network.cif$id=interface
-	set network.cif$id.ifname=$ifname
-	set network.cif$id.proto=dhcp
+	set network.$iface=interface
+	set network.$iface.ifname=$ifname
+	set network.$iface.proto=dhcp
+	set network.$iface.peerdns=0
 
-	del_list firewall.wan.network=cif$id
-	add_list firewall.wan.network=cif$id
+	del_list firewall.wan.network=$iface
+	add_list firewall.wan.network=$iface
 	EOF
 done
 
