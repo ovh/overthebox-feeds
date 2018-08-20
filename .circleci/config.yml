@@ -16,8 +16,8 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -yq build-essential git unzip ncurses-dev libz-dev libssl-dev python subversion gettext gawk wget curl rsync perl
-            echo "cache 1 $OTB_TARGET" > /tmp/cache-target
-            echo "cache 4 $OTB_TARGET $OTB_VERSION" > /tmp/cache-version
+            echo "cache 2 $OTB_TARGET" > /tmp/cache-target
+            echo "cache 5 $OTB_TARGET $OTB_VERSION" > /tmp/cache-version
 
       - restore_cache:
           keys:
