@@ -18,6 +18,8 @@ MY_DEPENDS := \
     tcpdump-mini conntrack conntrackd \
     dnsmasq-full kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
+    netcat vim-full htop iputils-ping bmon \
+    ethtool sysstat pciutils mini_snmpd \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
 define Package/$(PKG_NAME)
