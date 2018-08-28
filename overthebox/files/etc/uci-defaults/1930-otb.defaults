@@ -12,6 +12,7 @@ if ! uci -q get system.@system[0].zonename >/dev/null; then
 fi
 
 uci -q set "system.@system[0].ttylogin=1"
+uci -q set "mini_snmpd.default.enabled=0"
 
 # Do not redirect http to https, allow both
 # overthebox.ovh will redirect to http for easier configuration
