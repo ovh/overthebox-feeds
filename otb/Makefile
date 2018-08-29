@@ -14,7 +14,7 @@ MY_DEPENDS := \
     usb-modeswitch bwm-ng screen \
     libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
-    mtr rng-tools ss strace \
+    mtr rng-tools ss strace babeld \
     tcpdump-mini conntrack conntrackd \
     dnsmasq kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
