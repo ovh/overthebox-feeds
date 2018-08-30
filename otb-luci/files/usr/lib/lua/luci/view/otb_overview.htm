@@ -21,6 +21,7 @@ local wan               = uci:get("network", "wan")
     <legend><%:Paths%></legend>
     <table class="cbi-section-table" id="paths_table">
         <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-cell">Interface</th>
             <th class="cbi-section-table-cell">State</th>
             <th class="cbi-section-table-cell">Local IP</th>
             <th class="cbi-section-table-cell">Public IP</th>
@@ -81,6 +82,7 @@ local wan               = uci:get("network", "wan")
             for (var i=0; p && i<p.length; i++) {
                 var tr = d.rows[0].parentNode.insertRow(-1);
                 tr.className = 'cbi-section-table-row';
+                tr.insertCell(-1).innerHTML = p[i].bind.interface;
                 tr.insertCell(-1).innerHTML = p[i].state;
                 tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
                 tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';

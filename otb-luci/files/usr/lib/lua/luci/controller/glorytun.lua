@@ -32,7 +32,7 @@ function gt_path()
   if dump then
     for line in dump:lines() do
       local word = string.split(line, " ")
-      table.insert(data, {
+      local info = {
         state = word[2],
         bind = { ipaddr = word[3], port = tonumber(word[4]) },
         public = { ipaddr = word[5], port = tonumber(word[6]) },
@@ -44,7 +44,15 @@ function gt_path()
         download = { current = tonumber(word[14]), max = tonumber(word[15]) },
         output = tonumber(word[16]),
         input = tonumber(word[17])
-      })
+      }
+      -- Get interface name from binded ip
+      if (info.bind.ipaddr) then
+        local ip_to_itf = luci.sys.exec("ip address show to %s" % info.bind.ipaddr)
+        if ip_to_itf then
+          info.bind.interface = string.match(ip_to_itf, "scope global (%w+)")
+        end
+      end
+      table.insert(data, info)
     end
   end
   luci.http.prepare_content("application/json")
