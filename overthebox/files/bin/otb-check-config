@@ -34,7 +34,9 @@ done
 
 for iface in $(uci -q get firewall.wan.network); do
 	[ "$iface" = wan ] && continue
-	[ "$(uci -q get "network.$iface.ifname")" ] || continue
+
+	ifname="$(uci -q get "network.$iface.ifname")"
+	[ "$ifname" ] || continue
 
 	if [ "$(uci -q get "network.${iface}_rule")" != rule ]; then
 		table="$(uci -q get "network.$iface.ip4table")"
@@ -62,7 +64,14 @@ for iface in $(uci -q get firewall.wan.network); do
 	network_get_ipaddr ipaddr "$iface"
 	[ "$ipaddr" ] || continue
 
-	case "$(uci -q get "network.$iface.multipath")" in
+	state="$(uci -q get "network.$iface.multipath")"
+
+	case "$(ip -o route get from "$ipaddr" to 8.8.8.8)" in
+		*"dev $ifname table"*) ;;
+		*) state="down" ;;
+	esac
+
+	case "$state" in
 		on|up|'') glorytun path "$ipaddr" up     2>/dev/null ;;
 		backup)   glorytun path "$ipaddr" backup 2>/dev/null ;;
 		*)        glorytun path "$ipaddr" down   2>/dev/null ;;
