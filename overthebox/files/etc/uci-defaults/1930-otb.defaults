@@ -2,8 +2,6 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-rm -rf /tmp/luci-*
-
 if ! uci -q get system.@system[0].zonename >/dev/null; then
 	uci -q batch <<-EOF
 	set system.@system[0].zonename="Europe/Paris"
