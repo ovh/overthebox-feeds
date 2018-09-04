@@ -21,16 +21,33 @@ local wan               = uci:get("network", "wan")
     <legend><%:Paths%></legend>
     <table class="cbi-section-table" id="paths_table">
         <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-cell">Interface</th>
             <th class="cbi-section-table-cell">State</th>
             <th class="cbi-section-table-cell">Local IP</th>
+            <th class="cbi-section-table-cell">Router IP</th>
             <th class="cbi-section-table-cell">Public IP</th>
+            <th class="cbi-section-table-cell">ASN</th>
             <th class="cbi-section-table-cell">RTT</th>
             <th class="cbi-section-table-cell">MTU</th>
             <th class="cbi-section-table-cell">Upload MAX</th>
             <th class="cbi-section-table-cell">Download MAX</th>
         </tr>
         <tr class="cbi-section-table-row">
-            <td colspan="4"><em>Collecting data...</em></td>
+            <td colspan="10"><em>Collecting data...</em></td>
+        </tr>
+    </table>
+</fieldset>
+
+<fieldset class="cbi-section">
+    <legend><%:Realtime graphs%></legend>
+    <table class="cbi-section-table" id="graphs_table">
+        <tr class="cbi-section-table-titles">
+                <th class="cbi-section-table-cell">Upload</th>
+                <th class="cbi-section-table-cell">Download</th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td><canvas width="500" height="300px" id="mountNode_tx"></canvas></td>
+            <td><canvas width="500" height="300px" id="mountNode_rx"></canvas></td>
         </tr>
     </table>
 </fieldset>
@@ -50,6 +67,7 @@ local wan               = uci:get("network", "wan")
     </table>
 </fieldset>
 
+<script type="text/javascript" src="<%=resource%>/f2.min.js"></script>
 <script type="text/javascript">
     function prettySize(fileSizeInByte) {
         var bits = fileSizeInByte * 8;
@@ -72,6 +90,186 @@ local wan               = uci:get("network", "wan")
         return ret + seconds + ' seconds';
     }
 
+    /* start of otb-get-data section */
+    var _otb_data = {};
+    XHR.poll(15, '<%=url("admin/overthebox/data")%>', null, function(x,p) {
+        _otb_data = p;
+    });
+    function otb_get_data(args) {
+        var data = _otb_data;
+        for(var i=0; i < args.length; i++)
+            if (data && (args[i] in data))
+                data = data[args[i]];
+            else
+                return false;
+        return data;
+    }
+    /* end of otb-get-data section */
+
+    /* start of overview-graph config */
+    var graphs = [
+        {plot: 'rx'}, {plot: 'tx'}
+    ];
+
+    var _colors = { };
+    var _color_bank = [
+        'rgb(148, 139, 61)', 'rgb(146, 36, 40)', 'rgb(107, 76, 154)', 'rgb(83, 81, 84)',
+        'rgb(204, 37, 41)', 'rgb(62, 150, 81)', 'rgb(218, 124, 48)', 'rgb(57, 106, 177)'
+    ];
+    interface_colors = (str) => {
+        if (str in _colors)
+            return _colors[str];
+        if (_color_bank.length)
+            return _colors[str] = _color_bank.pop();
+        return false;
+    };
+
+    var graphs_data_map = {
+        date: {
+            type: 'timeCat',
+            formatter: function formater(val){ return ((_overview_graph_data[_overview_graph_data.length-1].date.getTime() - val)/1000) + ' s' }
+        },
+        tx: {
+            tickCount: 4,
+            formatter: function formater(val){ return prettySize(val) },
+            alias: 'Upload'
+        },
+        tx_max: {
+            tickCount: 4,
+            formatter: function formater(val){ return prettySize(val) },
+            alias: 'Upload Max'
+        },
+        rx: {
+            tickCount: 4,
+            formatter: function formater(val){ return prettySize(val) },
+            alias: 'Download'
+        },
+        rx_max: {
+            tickCount: 4,
+            formatter: function formater(val){ return prettySize(val) },
+            alias: 'Download Max'
+        },
+        rtt:{
+            alias: 'Ping',
+            formatter: function formater(val){ return val + ' ms' },
+            min: 0
+        },
+        rtt_var: {
+            alias: 'Jitter',
+            formatter: function formater(val){ return val + ' ms' },
+            min: 0
+        }
+    }
+
+    // Graph window time in millisecond
+    var _overview_graph_timeout = 60*1000;
+    /* end of overview-graph config */
+
+    /* start of overview-graph helpers */
+    var _overview_graph_data = [ ];
+    function updateGraphs() {
+        if(_overview_graph_data.length) {
+            var cutout_time = _overview_graph_data[_overview_graph_data.length - 1].date.getTime() - _overview_graph_timeout;
+            for(var i=0; i<_overview_graph_data.length;)
+                if (cutout_time > _overview_graph_data[i].date.getTime())
+                    _overview_graph_data.splice(i, 1);
+                else
+                    i++;
+        }
+        graphs.forEach(function(elem) {
+            var chart = elem.chart;
+            var plot  = elem.plot;
+            chart.changeData(_overview_graph_data);
+        });
+    }
+
+    /* end of overview-graph helpers */
+    graphs.forEach(function(elem) {
+        var plot  = elem.plot;
+        var chart = new F2.Chart({
+            id: 'mountNode_'+plot,
+            pixelRatio: window.devicePixelRatio,
+        });
+        elem.chart = chart;
+        chart.line().position('date*'+plot).color('interface', interface_colors).adjust('stack').shape('smooth');
+        chart.area().position('date*'+plot).color('interface', interface_colors).adjust('stack').shape('smooth');
+        chart.animate({
+            line: false,
+            area: false,
+            point: false
+        });
+        var legend = chart.legend('interface', {
+            position: 'right',
+            valueStyle: {
+                fill: '#333',
+                fontWeight: 'bold'
+            },
+            marker(x, y, r, ctx) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.moveTo(x - r - 3, y);
+                ctx.lineTo(x + r + 3, y);
+                ctx.stroke();
+                ctx.arc(x, y, r, 0, Math.PI * 2, false);
+                ctx.fill();
+            },
+            itemFormatter(val) {
+                // Bug workaround when Items are setted by tooltip
+                if ((val.length >= 2) && val[val.length-2] == ':' && val[val.length-1] == ' ') {
+                    val = val.slice(0,-2);
+                    return (otb_get_data([val, 'interface']) || val) + ': ';
+                }
+                return (otb_get_data([val, 'interface']) || val);
+            }
+        });
+        ['last', 'peak'].forEach(function(elem) {
+            var guide = chart.guide().tag({
+                position: function position(xScale, yScales) {
+                    var position = { };
+                    position[plot] = 0;
+                    var interfaces = {};
+                    chart.getLegendItems().interface.map(function (item) {
+                        interfaces[item.dataValue] = item.checked;
+                    });
+                    var data = {};
+                    chart.get('data').map(function (item) {
+                        if(!(item.date in data))
+                            data[item.date] = [];
+                        data[item.date].push(item);
+                    });
+                    for(date in data) {
+                        var rdate = data[date];
+                        var date = new Date(date);
+                        var value = 0;
+                        for(var i=0; i<rdate.length; i++) {
+                            var _position = rdate[i];
+                            if (interfaces[_position.interface])
+                                if (plot in _position)
+                                    value += _position[plot];
+                        }
+                        if (elem == 'peak')
+                            if (value > position[plot]) {
+                                position[plot] = value;
+                                position.date  = date;
+                            }
+                        if (elem == 'last')
+                            if(!(position.date) || (date.getTime() > position.date.getTime())) {
+                                position[plot] = value;
+                                position.date  = date;
+                            }
+                    };
+                    if (graphs_data_map[plot] && graphs_data_map[plot].formatter)
+                        guide.content = graphs_data_map[plot].formatter(position[plot]);
+                    else
+                        guide.content = position[plot].value;
+                    return [ position.date, position[plot] ];
+                }
+            });
+        });
+        chart.source( [ ], graphs_data_map );
+    });
+
+    /* start of graphs data pooler */
     XHR.poll(1, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
         var d = document.getElementById("paths_table");
         if (d) {
@@ -81,18 +279,34 @@ local wan               = uci:get("network", "wan")
             for (var i=0; p && i<p.length; i++) {
                 var tr = d.rows[0].parentNode.insertRow(-1);
                 tr.className = 'cbi-section-table-row';
+                tr.insertCell(-1).innerHTML = otb_get_data([p[i].bind.ipaddr, 'interface']) || p[i].bind.ipaddr;
                 tr.insertCell(-1).innerHTML = p[i].state;
                 tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
+                tr.insertCell(-1).innerHTML = otb_get_data([p[i].bind.ipaddr, 'gateway']) || '-';
                 tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
+                tr.insertCell(-1).innerHTML = otb_get_data([p[i].bind.ipaddr, 'asn', 'as_description']) || '-'
                 tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
                 tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
                 tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
                 tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
+                var date = new Date(p[i].timestamp);
+                _overview_graph_data.push({
+                    interface: p[i].bind.ipaddr,
+                    tx: p[i].upload.current,
+                    tx_max: p[i].upload.max,
+                    rx: p[i].download.current,
+                    rx_max: p[i].download.max,
+                    rtt: p[i].rtt,
+                    rtt_var: p[i].rttvar,
+                    date: date
+                });
             }
+            updateGraphs();
         }
     });
+    /* end of graphs data pooler */
 
-    XHR.poll(1, '<%=url("admin/overthebox/dhcp_leases_status")%>', null, function(x,p) {
+    XHR.poll(15, '<%=url("admin/overthebox/dhcp_leases_status")%>', null, function(x,p) {
         var d = document.getElementById("lease_status_table");
         if (d) {
             while (d.rows.length > 1) {
