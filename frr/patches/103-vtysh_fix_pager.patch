@@ -1,0 +1,11 @@
+--- a/vtysh/vtysh.c     2017-08-13 19:34:50.552975949 +0300
++++ b/vtysh/vtysh.c     2017-08-13 19:35:15.891427915 +0300
+@@ -249,7 +249,7 @@
+ 	if (pager_defined)
+ 		vtysh_pager_name = strdup(pager_defined);
+ 	else
+-		vtysh_pager_name = strdup("more");
++		vtysh_pager_name = strdup("less");
+ }
+ 
+ /* Command execution over the vty interface. */
