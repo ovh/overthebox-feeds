@@ -16,7 +16,7 @@ MY_DEPENDS := \
     iptables-mod-trace kmod-ipt-raw \
     mtr rng-tools ss strace \
     tcpdump-mini conntrack conntrackd \
-    dnsmasq-full kmod-nf-nathelper \
+    dnsmasq kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt \
     netcat vim-full htop iputils-ping bmon \
     ethtool sysstat pciutils mini_snmpd \
