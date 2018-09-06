@@ -11,16 +11,12 @@ MY_DEPENDS := \
     otb-qos otb-dscp otb-remote \
     otb-tracker otb-luci ip-full \
     TARGET_x86:python-swconfig-otb \
-    usb-modeswitch bwm-ng screen \
-    libimobiledevice usbmuxd \
+    TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
+    usb-modeswitch libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
-    mtr rng-tools ss strace babeld \
-    tcpdump-mini conntrack conntrackd \
-    dnsmasq kmod-nf-nathelper \
-    kmod-nf-nathelper-extra comgt \
-    netcat vim-full htop iputils-ping bmon \
-    ethtool sysstat pciutils mini_snmpd \
-    TARGET_x86:kmod-cherrytrail-gpio-powerbutton
+    rng-tools conntrack conntrackd \
+    dnsmasq kmod-nf-nathelper babeld \
+    kmod-nf-nathelper-extra comgt
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
