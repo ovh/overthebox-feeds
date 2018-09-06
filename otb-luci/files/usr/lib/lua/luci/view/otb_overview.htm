@@ -68,6 +68,8 @@ local wan               = uci:get("network", "wan")
 </fieldset>
 
 <script type="text/javascript" src="<%=resource%>/f2.min.js"></script>
+<script type="text/javascript" src="<%=resource%>/lodash.min.js"></script>
+
 <script type="text/javascript">
     function prettySize(fileSizeInByte) {
         var bits = fileSizeInByte * 8;
@@ -180,6 +182,7 @@ local wan               = uci:get("network", "wan")
             var chart = elem.chart;
             var plot  = elem.plot;
             chart.changeData(_overview_graph_data);
+            chart.showTooltip(chart.getPosition(_overview_graph_data[_overview_graph_data.length -1]));
         });
     }
 
@@ -199,7 +202,9 @@ local wan               = uci:get("network", "wan")
             point: false
         });
         var legend = chart.legend('interface', {
-            position: 'right',
+            align: 'left',
+            position: 'bottom',
+            offsetX: 60,
             valueStyle: {
                 fill: '#333',
                 fontWeight: 'bold'
@@ -220,6 +225,31 @@ local wan               = uci:get("network", "wan")
                     return (otb_get_data([val, 'interface']) || val) + ': ';
                 }
                 return (otb_get_data([val, 'interface']) || val);
+            }
+        });
+        chart.tooltip({
+            custom: true,
+            alwaysShow: true,
+            showCrosshairs: true,
+            showTooltipMarker: false,
+            onChange: function onChange(obj) {
+                var legend = chart.get('legendController').legends.bottom[0];
+                var tooltipItems = obj.items;
+                var legendItems = legend.items;
+                var map = {};
+                legendItems.map(function(item) {
+                    var name = item.name;
+                    map[item.name] = _.clone(item);
+                });
+                tooltipItems.map(function(item) {
+                    var name = item.name;
+                    var value = item.value;
+                    if (map[name]) {
+                        map[name].value = value;
+                        map[name].text  = (otb_get_data([name, 'interface']) || name);
+                    }
+                });
+                legend.setItems(_.values(map));
             }
         });
         ['last', 'peak'].forEach(function(elem) {
