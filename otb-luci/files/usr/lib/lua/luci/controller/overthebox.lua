@@ -12,6 +12,8 @@ function index()
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
   entry({"admin", "overthebox", "dhcp_leases_status"}, call("otb_dhcp_leases_status")).dependent = false
+
+  entry({"admin", "overthebox", "data"}, call("otb_get_data")).dependent = false
 end
 
 function otb_confirm_service()
@@ -32,4 +34,30 @@ function otb_dhcp_leases_status()
   local s = require "luci.tools.status"
   luci.http.prepare_content("application/json")
   luci.http.write_json(s.dhcp_leases())
+end
+
+function _readr(src)
+   local dst = {}
+   local type = nixio.fs.stat(src, "type")
+   if type == "dir" then
+      for file in nixio.fs.dir(src) do
+         dst[file] = _readr(src..'/'..file);
+      end
+   elseif type == "reg" then
+      local dataFile = io.open(src, "r")
+      data = dataFile:read("*line")
+      dst = luci.jsonc.parse(data) or data
+      dataFile:close()
+   end
+   return dst
+end
+
+function otb_get_data()
+   local dataPath = "/tmp/otb-data"
+   local result   = {}
+   if nixio.fs.access(dataPath) then
+      result = _readr(dataPath);
+   end
+   luci.http.prepare_content("application/json")
+   luci.http.write_json(result)
 end
