@@ -6,11 +6,15 @@
 
 while true; do
 	glorytun path dev tun0 2>/dev/null | \
-		while read -r _ _ IP _ PUBIP _; do
+		while read -r _ _ IP _ PUBIP _ PEER _; do
 			[ "$PUBIP" ] || continue
 			[ "$PUBIP" = "-" ] && continue
 			PUBIP_OLD=$(otb_get_data "$IP/pubip")
 			[ "$PUBIP" = "$PUBIP_OLD" ] && continue
+			IFACE=$(ip address show to "$IP" | awk '/scope global/ {print $NF}')
+			[ "$IFACE" ] && otb_set_data "$IP/interface" "$IFACE"
+			GATEWAY=$(ip -o route get from "$IP" to "$PEER" | cut -f 5 -d " ")
+			[ "$GATEWAY" ] && otb_set_data "$IP/gateway" "$GATEWAY"
 			otb_set_data "$IP/pubip" "$PUBIP"
 			asn="$(curl --max-time 2 --silent --show-error "api.iptoasn.com/v1/as/ip/$PUBIP")"
 			[ "$asn" ] && otb_set_data "$IP/asn" "$asn"

@@ -30,6 +30,7 @@ function gt_path()
   local data = {}
   local dump = io.popen("glorytun path")
   if dump then
+    local timestamp = os.time()*1000
     for line in dump:lines() do
       local word = string.split(line, " ")
       table.insert(data, {
@@ -43,7 +44,8 @@ function gt_path()
         upload = { current = tonumber(word[12]), max = tonumber(word[13]) },
         download = { current = tonumber(word[14]), max = tonumber(word[15]) },
         output = tonumber(word[16]),
-        input = tonumber(word[17])
+        input = tonumber(word[17]),
+        timestamp = timestamp
       })
     end
   end
