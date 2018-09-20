@@ -1,0 +1,63 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions/network.sh
+. /lib/overthebox
+
+[ "$(uci -q get "network.tun0")" = "interface" ] || otb-action-configure
+
+# Setup unknown devices
+for p in /sys/class/net/*; do
+	[ -d "$p/device" ] || continue
+
+	ifname="$(basename "$p")"
+	iface="${ifname}_dhcp"
+
+	uci -q show network | grep -s -q "$ifname" && continue
+
+	otb_info "create dhcp interface for $ifname"
+
+	uci -q batch <<-EOF
+	set network.$iface=interface
+	set network.$iface.ifname=$ifname
+	set network.$iface.proto=dhcp
+	set network.$iface.multipath=on
+
+	del_list firewall.wan.network=$iface
+	add_list firewall.wan.network=$iface
+	EOF
+done
+
+for iface in $(uci -q get firewall.wan.network); do
+	[ "$iface" = if0 ] && continue
+
+	ifname="$(uci -q get "network.$iface.ifname")"
+	[ "$ifname" ] || continue
+
+	table="$(uci -q get "network.$iface.ip4table")"
+
+	if [ -z "$table" ]; then
+		table=200
+		while uci -q show network | grep -s -q "ip4table='$table'"; do
+			table=$((table+1))
+		done
+	fi
+
+	metric="$(uci -q get "network.$iface.metric")"
+
+	if [ -z "$metric" ]; then
+		metric=30
+		while uci -q show network | grep -s -q "metric='$metric'"; do
+			metric=$((metric+1))
+		done
+	fi
+
+	uci -q batch <<-EOF
+	set network.$iface.ip4table=$table
+	set network.$iface.metric=$metric
+	EOF
+done
+
+uci -q commit firewall
+uci -q commit network
