@@ -5,10 +5,7 @@
 . /lib/functions/network.sh
 . /lib/overthebox
 
-if [ "$(uci -q get "network.tun0")" != "interface" ]; then
-	otb-action-configure
-	exit
-fi
+[ "$(uci -q get "network.tun0")" = "interface" ] || otb-action-configure
 
 # Setup unknown devices
 for p in /sys/class/net/*; do
