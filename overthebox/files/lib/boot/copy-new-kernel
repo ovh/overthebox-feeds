@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+    echo "Usage: partition_number"
+    exit 1
+fi
+
+partition_number="$1"
+
+# Check if it is a raspberry
+if [ -f /boot/cmdline.txt ]; then
+    echo "Copying arm kernel"
+    cp -f /mnt/boot/kernel8.img /boot/kernel$partition_number
+fi
+
+# Check for efi and grub boot
+if [ -f /boot/efi/boot/boot.nsh ]; then
+    echo "Copying efi kernel"
+    cp -f /mnt/boot/efi/boot/linux.efi /boot/kernel$partition_number
+fi

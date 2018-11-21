@@ -1,0 +1,108 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+. /lib/overthebox
+. /lib/upgrade/common.sh
+
+export_bootdevice || {
+	otb_err "Invalid /proc/cmdline, please reboot your device"
+	exit 1
+}
+
+# Get the image url
+if [ -z "$1" ]; then
+	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
+else
+	case "$1" in
+		http*.img.gz|ftp*.img.gz) url=$1 ;;
+		*) url=$(otb_json_get "$1" "arguments.url") ;;
+	esac
+fi
+
+cd /tmp
+
+# Get the major/minor of our disk
+export_bootdevice
+
+# Export the devname
+. /sys/dev/block/"$BOOTDEV_MAJOR:$BOOTDEV_MINOR"/uevent
+
+while read -r _ _ MAJOR_MINOR _ MOUNTPOINT _ _ _ _ _; do
+	case "$MOUNTPOINT" in
+		"/rom")
+			. /sys/dev/block/"$MAJOR_MINOR"/uevent
+			old_part_name="$DEVNAME"
+			old_part_number="$MINOR"
+			;;
+		"/boot")
+			. /sys/dev/block/"$MAJOR_MINOR"/uevent
+			boot_part="$DEVNAME"
+			boot_number="$MINOR"
+			;;
+	esac
+done < /proc/self/mountinfo
+
+if [ -z "$old_part_name" ] || [ -z "$old_part_number" ]; then
+    otb_err "Cannot find actual system partition"
+    exit 1
+fi
+
+if [ -z "$boot_part" ] || [ -z "$boot_number" ]; then
+	otb_err "Cannot find boot partition"
+	exit 1
+fi
+
+# Compute the new part number (part 2 or 3)
+new_part_number=$((2 + (($old_part_number + 1) % 2)))
+new_part_name=$(echo $old_part_name | sed -E "s/\d.?$/$new_part_number/g")
+
+# Umount /boot/boot and remount /boot in rw
+umount /boot
+mount -o remount,rw "/dev/$boot_part" /boot
+
+[ -f /boot/startup.nsh ] || {
+	echo "Cannot access /boot partition, is /boot mounted ?"
+	exit 1
+}
+
+otb_info "Downloading image from '$url'..."
+curl -sS --connect-timeout 5 "$url" -o latest.img.gz
+
+# Uncompress the image
+gunzip latest.img.gz
+
+# Create the corresponding loop device 
+partx -a latest.img
+
+# Get the good loop device
+loop_device=
+for loop in /sys/class/block/loop*
+do
+	if [ "$(cat "$loop/loop/backing_file")" = "$(pwd)/latest.img" ]; then
+		. "$loop/uevent"
+		loop_device="$DEVNAME"
+		break
+	fi
+done
+
+# Mount the first partition to /mnt/boot
+mkdir -p /mnt/boot
+mount /dev/${loop_device}p1 /mnt/boot
+
+# Copy the new filesystem
+dd if=/dev/${loop_device}p2 bs=1M of=/dev/$new_part_name
+
+# Save the configuration
+sysupgrade -b /boot/sysupgrade.tgz
+
+# Copy the new kernel to /boot
+/lib/boot/copy-new-kernel "$new_part_number" "$new_part_name"
+
+# Load the new kernel
+kexec -l  "/boot/kernel$new_part_number" --append "root=/dev/$new_part_name"
+
+# Start the new kernel
+kexec -e
