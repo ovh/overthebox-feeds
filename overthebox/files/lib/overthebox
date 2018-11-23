@@ -5,6 +5,8 @@ OTB_TODO_DIR="/tmp/otb-todo"
 OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
+OTB_PROVISIONING="provisionning.overthebox.net:4443"
+OTB_PROVISIONING_IP="213.186.33.11"
 
 mkdir -p "$OTB_DATA_DIR" "$OTB_TODO_DIR"
 
@@ -65,7 +67,8 @@ otb_call() {
 		-H "Content-Type: application/json" \
 		-H "X-Auth-OVH: $OTB_TOKEN" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		"https://provisionning.overthebox.net:4443/$path" \
+		"https://$OTB_PROVISIONING/$path" \
+		--resolve "$OTB_PROVISIONING:$OTB_PROVISIONING_IP" \
 		"$@"
 }
 
