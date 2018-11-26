@@ -22,7 +22,6 @@ for p in /sys/class/net/*; do
 	set network.$iface=interface
 	set network.$iface.ifname=$ifname
 	set network.$iface.proto=dhcp
-	set network.$iface.peerdns=0
 
 	del_list firewall.wan.network=$iface
 	add_list firewall.wan.network=$iface
