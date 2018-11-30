@@ -6,7 +6,7 @@
 
 while true; do
 	glorytun path dev tun0 2>/dev/null | \
-		while read -r _ _ IP _ PUBIP _; do
+		while read -r _ _ _ IP _ PUBIP _; do
 			[ "$PUBIP" ] || continue
 			[ "$PUBIP" = "-" ] && continue
 			PUBIP_OLD=$(otb_get_data "$IP/pubip")
