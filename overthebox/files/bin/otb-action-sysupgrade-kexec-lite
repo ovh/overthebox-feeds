@@ -1,0 +1,125 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+set -e
+
+_get_uuid() {
+    dd if="$1" bs=1 skip=440 count=4 2>/dev/null | hexdump -v -e '4/1 "%02x "'
+}
+
+. /lib/overthebox
+. /lib/upgrade/common.sh
+
+export_bootdevice || {
+	otb_err "Invalid /proc/cmdline, please reboot your device"
+	exit 1
+}
+
+# Get the image url
+if [ -z "$1" ]; then
+	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
+else
+	case "$1" in
+		http*.img.gz|ftp*.img.gz) url=$1 ;;
+		*) url=$(otb_json_get "$1" "arguments.url") ;;
+	esac
+fi
+
+cd /tmp
+
+# Get the major/minor of our disk
+export_bootdevice
+
+# Export the devname
+. /sys/dev/block/"$BOOTDEV_MAJOR:$BOOTDEV_MINOR"/uevent
+
+while read -r _ _ MAJOR_MINOR _ MOUNTPOINT _ _ _ _ _; do
+	case "$MOUNTPOINT" in
+		"/rom")
+			. /sys/dev/block/"$MAJOR_MINOR"/uevent
+			old_part_name="$DEVNAME"
+			old_part_number="$MINOR"
+			;;
+		"/boot")
+			. /sys/dev/block/"$MAJOR_MINOR"/uevent
+			boot_part="$DEVNAME"
+			boot_number="$MINOR"
+	esac
+done < /proc/self/mountinfo
+
+if [ -z "$old_part_name" ] || [ -z "$old_part_number" ]; then
+    otb_err "Cannot find current system partition"
+    exit 1
+fi
+
+new_part_number=3
+
+if [ "$old_part_number" = $new_part_number ]; then
+	otb_err "You are already in a kexec system"
+	exit 1
+fi
+
+new_part_name=$(echo $old_part_name | sed -E "s/\d*$/$new_part_number/g")
+
+otb_info "Downloading image from '$url'..."
+curl -sS --connect-timeout 5 "$url" -o latest.img.gz
+
+gunzip latest.img.gz
+
+# Create a loop device to mount the partitions
+partx -a latest.img
+
+# Get the good loop device and partition size
+loop_device=
+new_sys_size=
+for loop in /sys/class/block/loop*; do
+	if [ "$(cat "$loop/loop/backing_file")" = "$(pwd)/latest.img" ]; then
+		. "$loop/uevent"
+		loop_device="$DEVNAME"
+		new_sys_size=$(cat /sys/class/block/${DEVNAME}p2/size)
+		break
+	fi
+done
+
+if [ -z "$loop_device" ]; then
+	otb_err "Cannot find loop device"
+	exit 1
+fi
+
+target_part_size=$(cat /sys/class/block/$new_part_name/size)
+
+if [ "$new_sys_size" -lt "$target_part_size" ]; then
+	otb_err "Target partition is too small"
+	exit 1
+fi
+
+# Copy the new filesystem
+dd if=/dev/${loop_device}p2 bs=1M of=/dev/$new_part_name
+
+# Get the boot device dev name
+. /sys/dev/block/$BOOTDEV_MAJOR:$BOOTDEV_MINOR/uevent
+
+# Prepare the command-line
+set -- $(_get_uuid /dev/$DEVNAME)
+part_uuid=$(printf "$4$3$2$1-%02d" $new_part_number)
+cmdline=$(cat /proc/cmdline | sed -E "s/root=PARTUUID=[0-9a-f]*-[0-4]*/root=PARTUUID=$part_uuid/g")
+
+# Unmount two times because /boot/boot is mounted on /boot
+umount /boot || true
+umount /boot || true
+if grep /boot /proc/mounts ; then
+	otb_err "Failed to umount /boot"
+	exit 1
+fi
+
+mount /dev/$boot_part /boot
+
+# Save the system on /boot to 
+sysupgrade -b /boot/sysupgrade.tgz
+
+otb_info "Loading new kernel using cmdline : $cmdline"
+mount /dev/${loop_device}p1 /mnt/
+/lib/boot/load-new-kernel "$cmdline"
+
+# Start the new kernel
+kexec -e
