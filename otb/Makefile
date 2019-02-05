@@ -18,7 +18,7 @@ MY_DEPENDS := \
     tc iperf3 mtr rng-tools ss strace \
     tcpdump-mini conntrack conntrackd \
     luci luci-lib-json luci-app-overthebox \
-    lsblk dnsmasq-full kmod-nf-nathelper \
+    lsblk dnsmasq kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt luci-proto-3g \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton
 
