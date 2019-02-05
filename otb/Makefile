@@ -15,7 +15,7 @@ MY_DEPENDS := \
     usb-modeswitch libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
     rng-tools conntrack conntrackd \
-    dnsmasq kmod-nf-nathelper babeld \
+    dnsmasq kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt
 
 define Package/$(PKG_NAME)
