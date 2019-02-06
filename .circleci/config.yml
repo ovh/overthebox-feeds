@@ -2,10 +2,9 @@ version: 2
 jobs:
   build:
     machine: true
-    timezone: Europe/Paris
 
     environment:
-      - OTB_VERSION: v4.7
+      - OTB_VERSION: v4.8
       - OTB_TARGET: x86_64
 
     working_directory: ~/
