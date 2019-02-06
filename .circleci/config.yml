@@ -2,7 +2,6 @@ version: 2
 jobs:
   build:
     machine: true
-    timezone: Europe/Paris
 
     environment:
       - OTB_VERSION: v3.7
