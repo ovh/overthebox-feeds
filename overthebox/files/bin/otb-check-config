@@ -67,8 +67,11 @@ for iface in $(uci -q get firewall.wan.network); do
 		*) state="down" ;;
 	esac
 
+	rate_tx="$(uci -q get "network.$iface.rate_tx" || echo  125000)"
+	rate_rx="$(uci -q get "network.$iface.rate_rx" || echo 2500000)"
+
 	case "$state" in
-		on|up|'') glorytun path "$ipaddr" up     2>/dev/null ;;
+		on|up|'') glorytun path "$ipaddr" up rate rx "$rate_rx" tx "$rate_tx" 2>/dev/null ;;
 		backup)   glorytun path "$ipaddr" backup 2>/dev/null ;;
 		*)        glorytun path "$ipaddr" down   2>/dev/null ;;
 	esac
