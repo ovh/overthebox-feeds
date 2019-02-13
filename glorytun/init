@@ -1,7 +1,6 @@
 #!/bin/sh /etc/rc.common
-# shellcheck disable=SC1091,SC2039
+# shellcheck disable=SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-# Copyright (C) 2015 ovh.com
 
 # shellcheck disable=SC2034
 {
@@ -49,7 +48,6 @@ start_instance() {
 
 	procd_open_instance
 
-	# shellcheck disable=SC2086,SC2154
 	procd_set_param command $PROG \
 		bind "0.0.0.0" "$port" \
 		to "$server" "$port" \
