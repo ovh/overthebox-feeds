@@ -45,8 +45,8 @@ otb_info() {
 }
 
 otb_debug()  {
-	# shellcheck disable=SC2015
-	[ "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
+	[ "$OTB_DEBUG" ] || return 0
+	logger -t otb -p 7 "$*" || true
 }
 
 otb_pretty_print() {
@@ -132,7 +132,6 @@ otb_get_data() {
 otb_save_event() {
 	details=$2
 	[ "$details" ] || details="{}"
-	# shellcheck disable=SC2016
 	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
 		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' | otb_todo otb_device_post events -d@-
 }
