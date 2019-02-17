@@ -5,7 +5,7 @@
 . /lib/overthebox
 
 otb_save_event start
-otb_todo otb-action-refreshProperties </dev/null
+otb_todo refresh otb-action-refreshProperties </dev/null
 
 _run() {
 	otb_reload

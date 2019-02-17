@@ -102,4 +102,4 @@ protocol bgp {
 }
 EOF
 
-otb_todo /etc/init.d/bird4 restart </dev/null
+otb_todo restart-bird /etc/init.d/bird4 restart </dev/null
