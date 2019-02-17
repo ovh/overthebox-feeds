@@ -15,8 +15,10 @@ _run() {
 
 	if [ -z "$OTB_DEVICE_ID" ]; then
 		otb-subscribe
-		return
+		otb_reload
 	fi
+
+	[ "$OTB_SERVICE_ID" ] || return
 
 	# todo
 	for file in "$OTB_TODO_DIR"/*; do
