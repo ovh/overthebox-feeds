@@ -53,7 +53,7 @@ _add_dscp_rules() {
 			;;
 		download)
 			# Send the route to the remote server
-			otb_todo otb_call_api POST "dscp" -d@- <<-EOF
+			otb_todo post-dscp otb_call_api POST "dscp" -d@- <<-EOF
 			{
 				"proto": "$proto",
 				"src_ip": "$src_ip",
@@ -93,7 +93,7 @@ _stop() {
 	_remove_prerouting_chain dscp_prerouting
 	_remove_output_chain dscp_output
 
-	otb_todo otb_call_api DELETE "dscp" </dev/null
+	otb_todo delete-dscp otb_call_api DELETE "dscp" </dev/null
 }
 
 _start() {
