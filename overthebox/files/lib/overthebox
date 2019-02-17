@@ -111,8 +111,11 @@ otb_service_get() {
 }
 
 otb_todo() {
+	todo=$1
+	shift 1
 	mkdir -p "$OTB_TODO_DIR"
-	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)"
+	[ "$todo" ] && rm -rf "$OTB_TODO_DIR/"*"-$todo"
+	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)-$todo"
 }
 
 otb_set_data() {
@@ -133,5 +136,6 @@ otb_save_event() {
 	details=$2
 	[ "$details" ] || details="{}"
 	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
-		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' | otb_todo otb_device_post events -d@-
+		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' \
+		| otb_todo "event-$1" otb_device_post events -d@-
 }
