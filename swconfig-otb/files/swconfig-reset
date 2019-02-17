@@ -3,4 +3,4 @@
 # shellcheck disable=SC1091
 . /lib/overthebox
 
-otb_todo swconfig-reset-todo "$@"
+otb_todo reset-swconfig swconfig-reset-todo "$@"
