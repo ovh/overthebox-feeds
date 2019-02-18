@@ -22,6 +22,7 @@ local wan               = uci:get("network", "wan")
     <table class="cbi-section-table" id="paths_table">
         <tr class="cbi-section-table-titles">
             <th class="cbi-section-table-cell">State</th>
+            <th class="cbi-section-table-cell">Status</th>
             <th class="cbi-section-table-cell">Local IP</th>
             <th class="cbi-section-table-cell">Public IP</th>
             <th class="cbi-section-table-cell">RTT</th>
@@ -82,12 +83,13 @@ local wan               = uci:get("network", "wan")
                 var tr = d.rows[0].parentNode.insertRow(-1);
                 tr.className = 'cbi-section-table-row';
                 tr.insertCell(-1).innerHTML = p[i].state;
+                tr.insertCell(-1).innerHTML = p[i].status;
                 tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
                 tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
                 tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
                 tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
-                tr.insertCell(-1).innerHTML = prettySize(p[i].upload.max);
-                tr.insertCell(-1).innerHTML = prettySize(p[i].download.max);
+                tr.insertCell(-1).innerHTML = prettySize(p[i].rate_tx);
+                tr.insertCell(-1).innerHTML = prettySize(p[i].rate_rx);
             }
         }
     });

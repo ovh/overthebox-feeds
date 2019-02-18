@@ -34,16 +34,17 @@ function gt_path()
       local word = string.split(line, " ")
       table.insert(data, {
         state = word[2],
-        bind = { ipaddr = word[3], port = tonumber(word[4]) },
-        public = { ipaddr = word[5], port = tonumber(word[6]) },
-        peer = { ipaddr = word[7], port = tonumber(word[8]) },
-        mtu = tonumber(word[9]),
-        rtt = tonumber(word[10]),
-        rttvar = tonumber(word[11]),
-        upload = { current = tonumber(word[12]), max = tonumber(word[13]) },
-        download = { current = tonumber(word[14]), max = tonumber(word[15]) },
-        output = tonumber(word[16]),
-        input = tonumber(word[17])
+        status = word[3],
+        bind = { ipaddr = word[4], port = tonumber(word[5]) },
+        public = { ipaddr = word[6], port = tonumber(word[7]) },
+        peer = { ipaddr = word[8], port = tonumber(word[9]) },
+        mtu = tonumber(word[10]),
+        rtt = tonumber(word[11]),
+        rttvar = tonumber(word[12]),
+        rate_tx = tonumber(word[13]),
+        rate_rx = tonumber(word[14]),
+        total_tx = tonumber(word[15]),
+        total_rx = tonumber(word[16])
       })
     end
   end
