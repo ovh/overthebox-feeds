@@ -1,12 +1,11 @@
 include $(TOPDIR)/rules.mk
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/angt/glorytun.git
-PKG_SOURCE_VERSION:=a36f1d5354638f13cd9d0abfc6193af825f1a671
-
 PKG_NAME:=glorytun
-PKG_VERSION:=0.0.99-$(PKG_SOURCE_VERSION)
-PKG_RELEASE:=18
+PKG_VERSION:=0.1.0
+PKG_RELEASE:=0
+PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
+PKG_HASH:=65adee2945f377ec41c1384745d5676c99768bba8fd4456755ee4c7d73915ede
 
 PKG_FIXUP:=autoreconf
 
@@ -25,11 +24,6 @@ TARGET_CPPFLAGS += -DGT_RUNDIR=\\\"/var/run/$(PKG_NAME)\\\"
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/glorytun
-endef
-
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	echo "$(PKG_VERSION)" > $(PKG_BUILD_DIR)/VERSION
 endef
 
 define Package/$(PKG_NAME)/install

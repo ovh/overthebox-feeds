@@ -37,11 +37,13 @@ start_instance() {
 		return 1
 	}
 
-	[ "$enable" = "1" ] || return 1
-	[ -n "$key" ] || return 1
-	[ -n "$server" ] || return 1
+	[ "$enable" = "1" ] || return
+	[ "$key"    ] || return
+	[ "$server" ] || return
+	[ "$port"   ] || return
 
-	( umask 077; echo "$key" > /tmp/${PROG_NAME}.key )
+	keyfile="/tmp/$PROG_NAME.key"
+	( umask 077; echo "$key" > "$keyfile" )
 	key=""
 
 	_log "starting $PROG_NAME instance $*"
@@ -51,11 +53,11 @@ start_instance() {
 	procd_set_param command $PROG \
 		bind "0.0.0.0" "$port" \
 		to "$server" "$port" \
-		keyfile /tmp/$PROG_NAME.key \
+		keyfile "$keyfile" \
 		${dev:+dev "$dev"}
 
 	procd_set_param respawn 0 30 0
-	procd_set_param file /tmp/${PROG_NAME}.key
+	procd_set_param file "$keyfile"
 
 	procd_set_param stdout 1
 	procd_set_param stderr 1
