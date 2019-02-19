@@ -1,10 +1,13 @@
 #!/bin/sh /etc/rc.common
-# shellcheck disable=SC2154,SC2034
+# shellcheck disable=SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-START=90
-STOP=10
-
-USE_PROCD=1
+# shellcheck disable=SC2034
+{
+	START=90
+	STOP=10
+	USE_PROCD=1
+}
 
 validate_section() {
 	uci_validate_section otb-remote remote "$1" \
@@ -17,36 +20,41 @@ validate_section() {
 }
 
 start_instance() {
+	local enable host port forwarded_port server_public_key remote_public_key
+
 	validate_section "$1" || return
 
 	[ "$enable" = "0" ] && return
 
-	[ -z "${host}" ] && return
-	[ -z "${port}" ] && return
-	[ -z "${forwarded_port}" ] && return
+	[ "$host" ] || return
+	[ "$port" ] || return
+	[ "$forwarded_port" ] || return
 
-	[ -z "${server_public_key}" ] && return
-	[ -z "${remote_public_key}" ] && return
+	[ "$server_public_key" ] || return
+	[ "$remote_public_key" ] || return
 
-	home=/tmp/otb-remote/$1
-	dir=${home}/.ssh
+	home="/tmp/otb-remote/$1"
 
-	mkdir -p -m 0700 "${dir}"
-	echo "${host} ${server_public_key% *}" > "${dir}/known_hosts"
+	(
+		dir="$home/.ssh"
+		auth="/etc/dropbear/authorized_keys"
 
-	# Add the remote user pubkey in the authorized_keys of root
-	if ! grep -sq "$1" /etc/dropbear/authorized_keys; then
-		echo "${remote_public_key} ${1}" >> /etc/dropbear/authorized_keys
-	fi
+		umask 066
+		mkdir -p "$dir"
 
-	chmod 0600 "${dir}/known_hosts" /etc/dropbear/authorized_keys
+		echo "$host ${server_public_key% *}" > "$dir/known_hosts"
+
+		[ "$remote_public_key" = "ssh-rsa dummyRsaKey" ] && exit
+		grep -sq "$1" "$auth" && exit
+		echo "$remote_public_key $1" >> "$auth"
+	)
 
 	procd_open_instance
 	procd_set_param command /usr/bin/ssh -l limited-user "$host" -p "$port" -N -R "6666:0.0.0.0:$forwarded_port" -K 30 -i /etc/dropbear/dropbear_rsa_host_key
 	procd_set_param respawn 0 10 0
 	procd_set_param stderr 1
 	procd_set_param user root
-	procd_set_param env HOME="${home}"
+	procd_set_param env "HOME=$home"
 	procd_close_instance
 }
 
