@@ -26,13 +26,12 @@ _run() {
 	done
 
 	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || return
-
-	if [ -z "$OTB_SERVICE_ID" ]; then
-		read -r LINE < "$OTB_HEADERS_FILE"
-		case "$LINE" in
-			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; return ;;
-		esac
-	fi
+	read -r LINE < "$OTB_HEADERS_FILE"
+	case "$LINE" in
+		HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; return ;;
+		HTTP*200*) ;;
+		*) return ;;
+	esac
 
 	action=$(otb_json_get "$ret" action)
 	id=$(otb_json_get "$ret" id)
@@ -43,7 +42,6 @@ _run() {
 	otb_debug "Got status '$status' for action '$action'"
 	[ -z "$id" ] || [ "$id" = "null" ] && return
 
-	# shellcheck disable=SC2016
 	jq -c -n --arg status "$status" --arg details "$details" \
 		'{status: $status, details: $details}' | otb_device_post "actions/$id" -d@-
 }
