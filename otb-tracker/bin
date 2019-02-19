@@ -5,7 +5,7 @@
 . /lib/overthebox
 
 while true; do
-	glorytun sync dev tun0
+	glorytun sync dev tun0 2>/dev/null
 	sleep 1
 
 	glorytun path dev tun0 2>/dev/null | (
