@@ -1,5 +1,4 @@
 #!/bin/sh /etc/rc.common
-# shellcheck disable=SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # shellcheck disable=SC2034
