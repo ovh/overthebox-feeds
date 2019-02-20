@@ -8,7 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     otb-backup otb-diagnostics \
-    otb-qos otb-dscp otb-remote \
+    otb-dscp otb-remote \
     otb-tracker otb-luci ip-full \
     TARGET_x86:python-swconfig-otb \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
