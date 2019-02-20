@@ -67,11 +67,23 @@ for iface in $(uci -q get firewall.wan.network); do
 		*) state="down" ;;
 	esac
 
-	rate_tx="$(uci -q get "network.$iface.rate_tx" || echo  125000)"
-	rate_rx="$(uci -q get "network.$iface.rate_rx" || echo 2500000)"
+	upload="$(uci -q get "network.$iface.upload")"
+	download="$(uci -q get "network.$iface.download")"
+
+	if [ -z "$upload" ]; then
+		upload=125000
+		otb_info "setup missing upload to $upload for $iface"
+		uci -q set "network.$iface.upload=$upload"
+	fi
+
+	if [ -z "$download" ]; then
+		download=2500000
+		otb_info "setup missing download to $download for $iface"
+		uci -q set "network.$iface.download=$download"
+	fi
 
 	case "$state" in
-		on|up|'') glorytun path "$ipaddr" up rate rx "$rate_rx" tx "$rate_tx" 2>/dev/null ;;
+		on|up|'') glorytun path "$ipaddr" up rate rx "$download" tx "$upload" 2>/dev/null ;;
 		backup)   glorytun path "$ipaddr" backup 2>/dev/null ;;
 		*)        glorytun path "$ipaddr" down   2>/dev/null ;;
 	esac
