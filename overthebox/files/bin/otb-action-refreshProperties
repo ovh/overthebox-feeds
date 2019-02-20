@@ -30,10 +30,9 @@ _get_interface_json() {
 	# Retrieve the netmask from the subnet
 	eval "$(ipcalc.sh "$subnet" | grep NETMASK)"
 
-	local ifname label trafficcontrol upload download multipath
+	local ifname label upload download multipath
 	config_get ifname "$1" ifname
 	config_get label "$1" label
-	config_get trafficcontrol "$1" trafficcontrol
 	config_get upload "$1" upload "0"
 	config_get download "$1" download "0"
 	config_get multipath "$1" multipath
@@ -47,7 +46,6 @@ _get_interface_json() {
 		--arg device "$ifname" \
 		--arg public_ip "$(otb_get_data "$ipaddr/pubip")" \
 		--arg _label "$label" \
-		--arg trafficcontrol "$trafficcontrol" \
 		--arg upload "$upload" \
 		--arg download "$download" \
 		--arg multipath "$multipath" '{
@@ -60,7 +58,7 @@ _get_interface_json() {
 			name: $name,
 			label: $_label,
 			device: $device,
-			traffic_control: $trafficcontrol,
+			traffic_control: "static",
 			upload: $upload|tonumber,
 			download: $download|tonumber,
 			multipath_status: $multipath,
