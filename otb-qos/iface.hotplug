@@ -1,6 +1,0 @@
-#!/bin/sh
-# Need to check that the QoS is setup correctly after tun is detected up
-
-[ "$DEVICE-$ACTION" = tun0-ifup ] || exit 0
-
-otb-qos check
