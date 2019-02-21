@@ -37,6 +37,9 @@ _get_interface_json() {
 	config_get download "$1" download "0"
 	config_get multipath "$1" multipath
 
+	local traffic_control="static"
+	[ "$upload-$download" = "0-0" ] && traffic_control="off"
+
 	ubus call "network.interface.$1" status | jq -c \
 		--argjson asn "$asn" \
 		--arg name "$1" \
@@ -45,6 +48,7 @@ _get_interface_json() {
 		--arg gateway "$gateway" \
 		--arg device "$ifname" \
 		--arg public_ip "$(otb_get_data "$ipaddr/pubip")" \
+		--arg traffic_control "$traffic_control" \
 		--arg _label "$label" \
 		--arg upload "$upload" \
 		--arg download "$download" \
@@ -58,7 +62,7 @@ _get_interface_json() {
 			name: $name,
 			label: $_label,
 			device: $device,
-			traffic_control: "static",
+			traffic_control: $traffic_control,
 			upload: $upload|tonumber,
 			download: $download|tonumber,
 			multipath_status: $multipath,
