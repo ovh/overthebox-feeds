@@ -14,7 +14,7 @@ MY_DEPENDS := \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
     usb-modeswitch libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
-    rng-tools conntrack conntrackd \
+    conntrack conntrackd \
     dnsmasq kmod-nf-nathelper \
     kmod-nf-nathelper-extra comgt
 
@@ -23,6 +23,11 @@ SECTION:=OVH
 CATEGORY:=OverTheBox
 DEPENDS:=$(foreach p,$(MY_DEPENDS),+$(p))
 TITLE:=$(PKG_NAME)
+KCONFIG:=\
+  CONFIG_CRYPTO_ANSI_CPRNG=y \
+  CONFIG_CRYPTO_DRBG_MENU=y \
+  CRYPTO_JITTERENTROPY=y \
+  CONFIG_CRYPTO_HW=y
 PKGARCH:=all
 endef
 
