@@ -8,47 +8,27 @@ local wan               = uci:get("network", "wan")
 <%+header%>
 <h2><%:Overview%></h2>
 <fieldset class="cbi-section">
-    <legend><%:Informations%></legend>
-    <table width="100%" cellspacing="10">
-        <tr><td width="33%"><%:Device%></td><td><%=device_id%></td></tr>
-        <tr><td width="33%"><%:Service%></td><td>
-                <%if service then write(service) else%><div id="service_div"></div><%end%>
-        </td></tr>
-    </table>
+    <legend>Informations</legend>
+    <div class="table">
+        <div class="tr">
+            <div class="td right" width="33%"><strong>Device</strong></div>
+            <div class="td left"><%=device_id%></div>
+        </div>
+        <div class="tr">
+            <div class="td right" width="33%"><strong>Service</strong></div>
+            <div class="td left"><%if service then write(service) else%><div id="service_div"></div><%end%></div>
+        </div>
+    </div>
 </fieldset>
 <%if service then%>
 <fieldset class="cbi-section">
-    <legend><%:Paths%></legend>
-    <table class="cbi-section-table" id="paths_table">
-        <tr class="cbi-section-table-titles">
-            <th class="cbi-section-table-cell">State</th>
-            <th class="cbi-section-table-cell">Status</th>
-            <th class="cbi-section-table-cell">Local IP</th>
-            <th class="cbi-section-table-cell">Public IP</th>
-            <th class="cbi-section-table-cell">RTT</th>
-            <th class="cbi-section-table-cell">MTU</th>
-            <th class="cbi-section-table-cell">Upload MAX</th>
-            <th class="cbi-section-table-cell">Download MAX</th>
-        </tr>
-        <tr class="cbi-section-table-row">
-            <td colspan="4"><em>Collecting data...</em></td>
-        </tr>
-    </table>
+    <legend>Paths</legend>
+    <div class="table" id="paths_table"><em>Collecting data...</em></div>
 </fieldset>
 
 <fieldset class="cbi-section">
     <legend>Active DHCP Leases</legend>
-    <table class="cbi-section-table" id="lease_status_table">
-        <tr class="cbi-section-table-titles">
-            <th class="cbi-section-table-cell">Hostname</th>
-            <th class="cbi-section-table-cell">IP</th>
-            <th class="cbi-section-table-cell">MAC Address</th>
-            <th class="cbi-section-table-cell">Lease time remaining</th>
-        </tr>
-        <tr class="cbi-section-table-row">
-            <td colspan="4"><em>Collecting data...</em></td>
-        </tr>
-    </table>
+    <div class="table" id="lease_status_table"><em>Collecting data...</em></div>
 </fieldset>
 
 <script type="text/javascript">
@@ -75,40 +55,64 @@ local wan               = uci:get("network", "wan")
 
     XHR.poll(1, '<%=url("admin/glorytun/path")%>', null, function(x,p) {
         var d = document.getElementById("paths_table");
-        if (d) {
-            while (d.rows.length > 1) {
-                d.rows[0].parentNode.deleteRow(1);
+        if (!d) return;
+        var label = [
+            "State", "Status",
+            "Local IP", "Public IP",
+            "RTT", "MTU",
+            "Upload MAX",
+            "Download MAX",
+        ];
+        var txt = '<div class="tr table-titles">';
+        label.forEach(function(e) {
+            txt += '<div class="th">'+e+'</div>';
+        });
+        txt += '</div>';
+        for (var i=0; p && i<p.length; i++) {
+            txt += '<div class="tr">';
+            var value = [
+                p[i].state, p[i].status,
+                p[i].bind.ipaddr + ' (' + p[i].bind.port + ')',
+                p[i].public.ipaddr + ' (' + p[i].public.port + ')',
+                p[i].rtt + " ms",
+                p[i].mtu + 28 + " bytes",
+                prettySize(p[i].rate_tx),
+                prettySize(p[i].rate_rx),
+            ];
+            for (var j=0; j<value.length; j++) {
+                txt += '<div class="td" data-title="'+label[j]+'">'+value[j]+'</div>';
             }
-            for (var i=0; p && i<p.length; i++) {
-                var tr = d.rows[0].parentNode.insertRow(-1);
-                tr.className = 'cbi-section-table-row';
-                tr.insertCell(-1).innerHTML = p[i].state;
-                tr.insertCell(-1).innerHTML = p[i].status;
-                tr.insertCell(-1).innerHTML = p[i].bind.ipaddr + ' (' + p[i].bind.port + ')';
-                tr.insertCell(-1).innerHTML = p[i].public.ipaddr + ' (' + p[i].public.port + ')';
-                tr.insertCell(-1).innerHTML = p[i].rtt + " ms";
-                tr.insertCell(-1).innerHTML = p[i].mtu + 28 + " bytes";
-                tr.insertCell(-1).innerHTML = prettySize(p[i].rate_tx);
-                tr.insertCell(-1).innerHTML = prettySize(p[i].rate_rx);
-            }
+            txt += '</div>';
         }
+        d.innerHTML = txt;
     });
 
     XHR.poll(1, '<%=url("admin/overthebox/dhcp_leases_status")%>', null, function(x,p) {
         var d = document.getElementById("lease_status_table");
-        if (d) {
-            while (d.rows.length > 1) {
-                d.rows[0].parentNode.deleteRow(1);
+        if (!d) return;
+        var label = [
+            "Hostname",
+            "IP", "MAC",
+            "Lease time remaining",
+        ];
+        var txt = '<div class="tr table-titles">';
+        label.forEach(function(e) {
+            txt += '<div class="th">'+e+'</div>';
+        });
+        txt += '</div>';
+        for (var i=0; p && i<p.length; i++) {
+            txt += '<div class="tr">';
+            var value = [
+                p[i].hostname,
+                p[i].ipaddr, p[i].macaddr,
+                prettyDuration(p[i].expires),
+            ];
+            for (var j=0; j<value.length; j++) {
+                txt += '<div class="td" data-title="'+label[j]+'">'+value[j]+'</div>';
             }
-            for (var i=0; p && i<p.length; i++) {
-                var tr = d.rows[0].parentNode.insertRow(-1);
-                tr.className = 'cbi-section-table-row';
-                tr.insertCell(-1).innerHTML = p[i].hostname;
-                tr.insertCell(-1).innerHTML = p[i].ipaddr;
-                tr.insertCell(-1).innerHTML = p[i].macaddr;
-                tr.insertCell(-1).innerHTML = prettyDuration(p[i].expires);
-            }
+            txt += '</div>';
         }
+        d.innerHTML = txt;
     });
 </script>
 <%else%>
