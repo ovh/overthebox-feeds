@@ -5,9 +5,6 @@
 . /lib/overthebox
 
 while true; do
-	glorytun sync dev tun0 2>/dev/null
-	sleep 1
-
 	glorytun path dev tun0 2>/dev/null | (
 		ACTION=down
 
@@ -28,5 +25,5 @@ while true; do
 
 		ubus -S call network.interface.tun0 "$ACTION"
 	)
-	sleep 4
+	sleep 5
 done
