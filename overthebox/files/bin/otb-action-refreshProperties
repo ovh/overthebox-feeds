@@ -14,6 +14,27 @@ set -o pipefail
 INTERFACES="[]"
 MOUNTS="[]"
 
+_ununitify() {
+	V=$(echo "$1" | tr -dc '0-9')
+
+	BYTES=1
+	case "$1" in
+		*b|*bit|*bits) BYTES=8 ;;
+	esac
+
+	SIZE=1
+	case "$1" in
+		*[Gg]|*[Gg]i*) SIZE="$((1024*1024*1024))" ;;
+		*[Mm]|*[Mm]i*) SIZE="$((1024*1024))" ;;
+		*[Kk]|*[Kk]i*) SIZE="$((1024))" ;;
+		*[Gg]*) SIZE="$((1000*1000*1000))" ;;
+		*[Mm]*) SIZE="$((1000*1000))" ;;
+		*[Kk]*) SIZE="$((1000))" ;;
+	esac
+
+	echo "$((V*SIZE/BYTES))"
+}
+
 _get_interface_json() {
 	local ipaddr gateway subnet asn
 	network_get_ipaddr ipaddr "$1"
@@ -36,6 +57,9 @@ _get_interface_json() {
 	config_get upload "$1" upload "0"
 	config_get download "$1" download "0"
 	config_get multipath "$1" multipath
+
+	upload="$(_ununitify "$upload")"
+	download="$(_ununitify "$download")"
 
 	local traffic_control="static"
 	[ "$upload-$download" = "0-0" ] && traffic_control="off"
