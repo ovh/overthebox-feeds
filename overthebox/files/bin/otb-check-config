@@ -54,8 +54,6 @@ for iface in $(uci -q get firewall.wan.network); do
 		EOF
 	fi
 
-	[ "$iface" = tun0 ] && continue
-
 	ipaddr=
 	network_get_ipaddr ipaddr "$iface"
 	[ "$ipaddr" ] || continue
