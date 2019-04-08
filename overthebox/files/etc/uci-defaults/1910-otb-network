@@ -11,9 +11,11 @@ EOF
 
 _setup() {
 	local zone
+
 	case "$1" in
 		lan*) zone=lan ;;
 		wan*) zone=wan ;;
+		tun*) zone=tun ;;
 	esac
 
 	[ "$zone" ] && uci -q batch <<-EOF

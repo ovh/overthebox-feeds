@@ -45,8 +45,8 @@ set network.tun0.txqueuelen=1000
 set network.tun0.type=tunnel
 set network.tun0.multipath=off
 set network.tun0.generatedby=$ME
-del_list firewall.wan.network=tun0
-add_list firewall.wan.network=tun0
+del_list firewall.tun.network=tun0
+add_list firewall.tun.network=tun0
 
 set network.tun0_rule=rule
 set network.tun0_rule.lookup=100
