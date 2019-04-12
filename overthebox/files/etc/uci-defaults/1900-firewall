@@ -48,6 +48,12 @@ set firewall.allow_dhcp_request.dest_port=67
 set firewall.allow_dhcp_request.target=ACCEPT
 set firewall.allow_dhcp_request.family=ipv4
 
+del_list firewall.wan.masq_dest='!10.0.0.0/8'
+del_list firewall.wan.masq_dest='!172.16.0.0/12'
+del_list firewall.wan.masq_dest='!192.168.0.0/16'
+del_list firewall.wan.masq_src='!151.127.0.0/16'
+del_list firewall.wan.masq_src='!109.190.0.0/16'
+
 del_list firewall.tun.masq_dest='!10.0.0.0/8'
 del_list firewall.tun.masq_dest='!172.16.0.0/12'
 del_list firewall.tun.masq_dest='!192.168.0.0/16'
