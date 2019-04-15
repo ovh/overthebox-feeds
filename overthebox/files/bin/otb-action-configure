@@ -51,8 +51,25 @@ _setup_glorytun_mud() {
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
 	set network.\(.dev).generatedby='"$ME"'
+
 	del_list firewall.tun.network=\(.dev)
 	add_list firewall.tun.network=\(.dev)
+
+	set firewall.accept_glorytun_wan=rule
+	set firewall.accept_glorytun_wan.name=accept_glorytun_wan
+	set firewall.accept_glorytun_wan.target=ACCEPT
+	set firewall.accept_glorytun_wan.proto=udp
+	set firewall.accept_glorytun_wan.src_ip=\(.server)
+	set firewall.accept_glorytun_wan.src_port=\(.port)
+	set firewall.accept_glorytun_wan.generatedby='"$ME"'
+
+	set firewall.notrack_glorytun_wan=rule
+	set firewall.notrack_glorytun_wan.name=notrack_glorytun_wan
+	set firewall.notrack_glorytun_wan.target=NOTRACK
+	set firewall.notrack_glorytun_wan.proto=udp
+	set firewall.notrack_glorytun_wan.dest_ip=\(.server)
+	set firewall.notrack_glorytun_wan.dest_port=\(.port)
+	set firewall.notrack_glorytun_wan.generatedby='"$ME"'
 
 	set network.\(.dev)_rule=rule
 	set network.\(.dev)_rule.lookup=\(.table)
