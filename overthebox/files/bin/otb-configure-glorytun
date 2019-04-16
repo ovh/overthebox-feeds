@@ -45,8 +45,17 @@ set network.tun0.txqueuelen=1000
 set network.tun0.type=tunnel
 set network.tun0.multipath=off
 set network.tun0.generatedby=$ME
+
 del_list firewall.tun.network=tun0
 add_list firewall.tun.network=tun0
+
+set firewall.accept_glorytun_wan=rule
+set firewall.accept_glorytun_wan.name=accept_glorytun_wan
+set firewall.accept_glorytun_wan.target=ACCEPT
+set firewall.accept_glorytun_wan.src=wan
+set firewall.accept_glorytun_wan.proto=udp
+set firewall.accept_glorytun_wan.src_ip=$SERVER
+set firewall.accept_glorytun_wan.src_port=${PORT:-$_PORT}
 
 set network.tun0_rule=rule
 set network.tun0_rule.lookup=100
