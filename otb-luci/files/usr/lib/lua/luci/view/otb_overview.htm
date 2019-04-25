@@ -145,7 +145,7 @@ local wan               = uci:get("network", "wan")
         var data = body ? JSON.stringify(body) : null;
         (new XHR()).get('<%=url("admin/overthebox/time")%>', null, function(x, p) {
             if (x.status == 200 && p && p.timestamp) {
-                var sign = "$1$" + hex_sha1([
+                var sign = "$1$" + sha1([
                     ovh_as, ovh_ck,
                     method, ovh_uri + query,
                     data, p.timestamp
