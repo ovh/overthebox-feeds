@@ -8,6 +8,7 @@ function index()
   entry({"admin", "overthebox", "dns"}, cbi("otb_dns"), "DNS", 3)
   entry({"admin", "overthebox", "routing"}, cbi("otb_routing"), "Routing", 4)
   entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 5)
+  entry({"admin", "overthebox", "multipath"}, cbi("otb_multipath"), "Multipath", 6)
 
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
