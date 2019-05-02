@@ -9,6 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     graph glorytun birdcl4 kmod-macvlan \
     jq curl ca-bundle ca-certificates \
+    kmod-sched-cake tc \
     iperf3 @LIBCURL_THREADED_RESOLVER kexec
 
 define Package/$(PKG_NAME)

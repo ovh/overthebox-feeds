@@ -5,7 +5,9 @@
 . /lib/functions/network.sh
 . /lib/overthebox
 
-[ "$(uci -q get "network.tun0")" = "interface" ] || otb-action-configure
+TUN_NAME=tun0
+
+[ "$(uci -q get "network.$TUN_NAME")" = "interface" ] || otb-action-configure
 
 # Setup unknown devices
 for p in /sys/class/net/*; do
@@ -86,6 +88,14 @@ for iface in $(uci -q get firewall.wan.network); do
 		*)        glorytun path "$ipaddr" down   2>/dev/null ;;
 	esac
 done
+
+if [ -d "/sys/devices/virtual/net/$TUN_NAME" ]; then
+	tun_tc=$(tc -j qdisc show dev "$TUN_NAME" 2>/dev/null | jq -r .[0].kind)
+	if [ "$tun_tc" != "cake" ]; then
+		otb_info "changing the queue discipline on $TUN_NAME to cake"
+		tc qdisc replace dev "$TUN_NAME" root cake diffserv4 flows
+	fi
+fi
 
 if [ "$(uci -q get "network.lan_rule")" != rule ]; then
 	otb_info "setup missing lan rule"
