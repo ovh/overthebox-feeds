@@ -8,11 +8,22 @@ while true; do
 	glorytun path dev tun0 2>/dev/null | (
 		ACTION=down
 
-		while read -r _ _ STATUS IP _ PUBIP _; do
+		MAX_RTT=0
+		TOTAL_RATE_TX=0
+		OVERHEAD=22
+
+		while read -r _ _ STATUS IP _ PUBIP _ _ _ _ RTT _ RATE_TX _ _ _; do
 			[ "$STATUS" = "OK" ] && ACTION=up
 
 			[ "$PUBIP" ] || continue
 			[ "$PUBIP" = "-" ] && continue
+
+			if [ "$RTT" != "-" ]; then
+				RTT="${RTT%%.*}"
+				[ "$RTT" -gt "$MAX_RTT" ] && MAX_RTT=${RTT%%*.}
+			fi
+
+			[ "$RATE_TX" != "-" ] && TOTAL_RATE_TX=$(( TOTAL_RATE_TX + RATE_TX ))
 
 			PUBIP_OLD=$(otb_get_data "$IP/pubip")
 			[ "$PUBIP" = "$PUBIP_OLD" ] && continue
@@ -22,6 +33,15 @@ while true; do
 			asn="$(curl --max-time 2 --silent --show-error "api.iptoasn.com/v1/as/ip/$PUBIP")"
 			[ "$asn" ] && otb_set_data "$IP/asn" "$asn"
 		done
+
+		tc qdisc replace dev tun0 root cake \
+			bandwidth "$(( TOTAL_RATE_TX * 9 / 10 ))bps" \
+			rtt "${MAX_RTT}ms" \
+			diffserv4 \
+			flows \
+			wash \
+			nat \
+			overhead "$OVERHEAD" noatm
 
 		ubus -S call network.interface.tun0 "$ACTION"
 	)
