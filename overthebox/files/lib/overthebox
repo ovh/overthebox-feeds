@@ -114,7 +114,6 @@ otb_todo() {
 	todo=$1
 	shift 1
 	mkdir -p "$OTB_TODO_DIR"
-	[ "$todo" ] && rm -rf "$OTB_TODO_DIR/"*"-$todo"
 	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)-$todo"
 }
 
