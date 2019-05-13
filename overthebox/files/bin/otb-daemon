@@ -18,9 +18,7 @@ _run() {
 		otb_reload
 	fi
 
-	[ "$OTB_SERVICE_ID" ] || return
-
-	# todo
+	# Handle todos
 	for file in "$OTB_TODO_DIR"/*; do
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
@@ -28,7 +26,15 @@ _run() {
 	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || return
 	read -r LINE < "$OTB_HEADERS_FILE"
 	case "$LINE" in
-		HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; return ;;
+		HTTP*401*)
+			otb_err "Got 401"
+			# Resubscribe if we don't have a service ID
+			# We shouldn't have to check that, but you never know,
+			# because resubscribing a device already linked to
+			# service would break it irrevocably
+			[ -z "$OTB_SERVICE_ID" ] && otb-subscribe
+			return
+			;;
 		HTTP*200*) ;;
 		*) return ;;
 	esac
