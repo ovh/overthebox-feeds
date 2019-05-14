@@ -118,6 +118,12 @@ otb_todo() {
 	(echo "$* <<EOF"; cat -; echo EOF) > "$OTB_TODO_DIR/$(date +%s%N)-$todo"
 }
 
+otb_todo_wild_clean() {
+	todo=$1
+	shift 1
+	[ "$todo" ] && rm -rf "$OTB_TODO_DIR/"*-"$todo"-*
+}
+
 otb_set_data() {
 	mkdir -p "$(dirname "$OTB_DATA_DIR/$1")"
 	echo "$2" > "$OTB_DATA_DIR/$1"
