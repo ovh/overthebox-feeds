@@ -24,6 +24,19 @@ while true; do
 		done
 
 		ubus -S call network.interface.tun0 "$ACTION"
+
+		service_led="off"
+		connectivity_led="off"
+		if [ "$ACTION" = "up" ]; then
+			connectivity_led="on"
+			case "$(ip -o route get 1.1.1.1)" in
+				*"dev tun0 table"*) service_led="on" ;;
+			esac
+		else
+			ping -w 3 -c 1 1.1.1.1 >/dev/null 2>/dev/null && connectivity_led="on"
+		fi
+		otb_led "service" "$service_led"
+		otb_led "connectivity" "$connectivity_led"
 	)
 	sleep 5
 done
