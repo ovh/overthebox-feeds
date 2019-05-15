@@ -144,3 +144,15 @@ otb_save_action_id() {
 	commit overthebox
 	EOF
 }
+
+otb_led() {
+	sysfs=$(uci -q get "system.$1_led.sysfs")
+	[ "$sysfs" ] || return 0
+	# shellcheck disable=SC1091
+	. /lib/functions/leds.sh
+	case "$2" in
+		on) led_on "$sysfs" ;;
+		off) led_off "$sysfs" ;;
+		blink) led_timer "$sysfs" "500" "500" ;;
+	esac
+}
