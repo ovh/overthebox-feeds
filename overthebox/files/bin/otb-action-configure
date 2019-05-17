@@ -54,6 +54,7 @@ _setup_glorytun() {
 	set network.\(.dev).ip4table=\(.table)
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
+	set network.\(.dev).ipv6=0
 	set network.\(.dev).generatedby='"$ME"'
 	del_list firewall.wan.network=\(.dev)
 	add_list firewall.wan.network=\(.dev)
@@ -83,6 +84,7 @@ _setup_glorytun_mud() {
 	set network.\(.dev).txqueuelen=1000
 	set network.\(.dev).type=tunnel
 	set network.\(.dev).multipath=off
+	set network.\(.dev).ipv6=0
 	set network.\(.dev).generatedby='"$ME"'
 	del_list firewall.wan.network=\(.dev)
 	add_list firewall.wan.network=\(.dev)
