@@ -65,6 +65,7 @@ for port in $WAN; do
 	set network.wan$port.proto='dhcp'
 	set network.wan$port.metric='$port'
 	set network.wan$port.ip4table='$((200+port))'
+	set network.wan$port.ipv6='0'
 
 	del_list firewall.wan.network='wan$port'
 	add_list firewall.wan.network='wan$port'
