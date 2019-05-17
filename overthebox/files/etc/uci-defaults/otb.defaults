@@ -19,6 +19,9 @@ if [ "$(uci -q get system.@system[-1].hostname)" = "OpenWrt" ]; then
 	uci -q set system.@system[-1].hostname='OverTheBox'
 fi
 
+# Disable mini snmpd
+[ -f "/etc/config/mini_snmpd" ] && uci -q set "mini_snmpd.default.enabled=0"
+
 config_load dhcp
 has_api_hostrecord=false
 _check_api_hostrecord() {
