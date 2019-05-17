@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     otb-backup otb-diagnostics \
     otb-qos otb-dscp otb-remote \
-    otb-tracker otb-autoroute \
+    otb-tracker otb-autoroute otb-leds \
     TARGET_x86:python-swconfig-otb \
     usb-modeswitch bwm-ng screen \
     libimobiledevice usbmuxd \

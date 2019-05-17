@@ -1,0 +1,23 @@
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+_handle_tracker_ok() {
+	otb_led "connectivity" "on"
+	[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_led "service" "on"
+	exit 0
+}
+
+_handle_tracker_ko() {
+	[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && otb_led "service" "off"
+
+	for iface in $(uci -q get firewall.wan.network); do
+		connectivity_file="$OTB_DATA_DIR/$iface/connectivity"
+		[ -f "$connectivity_file" ] || continue
+		[ "$(cat "$connectivity_file")" = "OK" ] && exit 0
+	done
+
+	otb_led "connectivity" "off"
+	exit 0
+}
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] && _handle_tracker_ok
+_handle_tracker_ko
