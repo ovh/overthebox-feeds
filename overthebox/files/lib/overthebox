@@ -139,11 +139,13 @@ otb_get_data() {
 }
 
 otb_save_event() {
+	name=$1
 	details=$2
+	filename=${3:-$1}
 	[ "$details" ] || details="{}"
-	jq -n -c --arg name "$1" --arg timestamp "$(date +%s)" --argjson details "$details" \
+	jq -n -c --arg name "$name" --arg timestamp "$(date +%s)" --argjson details "$details" \
 		'{event_name: $name, timestamp: $timestamp|tonumber, details: $details}' \
-		| otb_todo "event-$1" otb_device_post events -d@-
+		| otb_todo "event-$filename" otb_device_post events -d@-
 }
 
 otb_led() {

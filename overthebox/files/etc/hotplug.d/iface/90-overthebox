@@ -7,4 +7,4 @@
 details=$(jq -n -c --arg interface "$INTERFACE" --arg device "$DEVICE" \
 	'{ interface: $interface, device: $device }')
 
-otb_save_event "$ACTION-$INTERFACE" "$details"
+otb_save_event "$ACTION" "$details" "$ACTION-$INTERFACE"
