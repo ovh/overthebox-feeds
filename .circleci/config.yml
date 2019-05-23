@@ -5,7 +5,7 @@ jobs:
 
     environment:
       - OTB_VERSION: v3.10
-      - OTB_TARGET: x86_64
+      - OTB_TARGET: rpi3
 
     working_directory: ~/
 
