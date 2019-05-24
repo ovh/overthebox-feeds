@@ -24,8 +24,8 @@ fi
 cd /tmp
 
 otb_info "Downloading image from '$url'..."
-curl -sS --connect-timeout 5 "$url"     -o img.gz
 curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
+curl -sS --connect-timeout 5 "$url"     -o img.gz
 
 usign -V -m img.gz -P /etc/opkg/keys
 
