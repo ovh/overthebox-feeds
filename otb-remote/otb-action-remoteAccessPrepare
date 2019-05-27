@@ -39,6 +39,17 @@ if [ "$luci_user" != "null" ] && [ "$luci_password" != "null" ]; then
 		otb_debug "Create luci user '$luci_user'"
 		adduser -G root -s /bin/false -H -D -h /tmp "$luci_user"
 		echo "$luci_user:$luci_password" | chpasswd
+
+		uci -q batch <<-EOF
+		set rpcd.$luci_user=login
+		set rpcd.$luci_user.username="$luci_user"
+		set rpcd.$luci_user.password="\$p\$$luci_user"
+		add_list rpcd.$luci_user.read="*"
+		add_list rpcd.$luci_user.write="*"
+		commit rpcd
+		EOF
+
+		/etc/init.d/rpcd reload
 	fi
 fi
 
