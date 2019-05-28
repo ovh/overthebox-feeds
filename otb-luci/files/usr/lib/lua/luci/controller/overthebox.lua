@@ -10,6 +10,10 @@ function index()
   entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 5)
   entry({"admin", "overthebox", "multipath"}, cbi("otb_multipath"), "Multipath", 6)
 
+  entry({"admin", "overthebox", "firewall"}, alias("admin", "overthebox", "firewall", "firewall"), _("Firewall"), 7)
+  entry({"admin", "overthebox", "firewall", "firewall"}, cbi("otb_firewall"), "Port Forwards", 1).leaf = true
+  entry({"admin", "overthebox", "firewall", "dmz"}, cbi("otb_dmz"), "DMZ", 2).leaf = true
+
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
   entry({"admin", "overthebox", "dhcp_leases_status"}, call("otb_dhcp_leases_status")).dependent = false
