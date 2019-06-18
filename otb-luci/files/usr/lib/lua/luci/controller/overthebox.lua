@@ -24,7 +24,7 @@ function index()
 	entry({"admin", "overthebox", "realtime", "load"}, template("graph/load"), _("Load"), 3).leaf = true
 	entry({"admin", "overthebox", "realtime", "load_status"}, call("action_load")).leaf = true
 
-	entry({"admin", "overthebox", "realtime", "status", "nameinfo"}, call("action_nameinfo")).leaf = true
+	entry({"admin", "overthebox", "realtime", "nameinfo"}, call("action_nameinfo")).leaf = true
 end
 
 function otb_confirm_service()
@@ -121,3 +121,13 @@ function action_bandwidth(iface)
 	end
 end
 
+function action_nameinfo(...)
+	local util = require "luci.util"
+
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(util.ubus("network.rrdns", "lookup", {
+		addrs = { ... },
+		timeout = 5000,
+		limit = 1000
+	}) or { })
+end

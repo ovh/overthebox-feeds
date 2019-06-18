@@ -174,7 +174,7 @@
 						cbi_update_table(conn_table, rows, '<em><%:No information available%></em>');
 
 						if (lookup_queue.length > 0)
-							XHR.get('<%=build_url("admin/overthebox/realtim/status/nameinfo")%>/' + lookup_queue.slice(0, 100).join('/'), null,
+							XHR.get('<%=build_url("admin/overthebox/realtime/nameinfo")%>/' + lookup_queue.slice(0, 100).join('/'), null,
 								function(x, json)
 								{
 									for (var addr in json)
