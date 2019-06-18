@@ -9,10 +9,22 @@ function index()
   entry({"admin", "overthebox", "routing"}, cbi("otb_routing"), "Routing", 4)
   entry({"admin", "overthebox", "qos"}, cbi("otb_qos"), "QoS", 5)
   entry({"admin", "overthebox", "multipath"}, cbi("otb_multipath"), "Multipath", 6)
+	entry({"admin", "overthebox", "realtime"}, alias("admin", "overthebox", "realtime", "connections"), _("Realtime Graphs"), 7)
 
   entry({"admin", "overthebox", "confirm_service"}, call("otb_confirm_service")).dependent = false
   entry({"admin", "overthebox", "time"}, call("otb_time")).dependent = false
   entry({"admin", "overthebox", "dhcp_leases_status"}, call("otb_dhcp_leases_status")).dependent = false
+
+	entry({"admin", "overthebox", "realtime", "bandwidth"}, template("graph/bandwidth"), _("Traffic"), 1).leaf = true
+	entry({"admin", "overthebox", "realtime", "bandwidth_status"}, call("action_bandwidth")).leaf = true
+
+	entry({"admin", "overthebox", "realtime", "connections"}, template("graph/connections"), _("Connections"), 2).leaf = true
+	entry({"admin", "overthebox", "realtime", "connections_status"}, call("action_connections")).leaf = true
+
+	entry({"admin", "overthebox", "realtime", "load"}, template("graph/load"), _("Load"), 3).leaf = true
+	entry({"admin", "overthebox", "realtime", "load_status"}, call("action_load")).leaf = true
+
+	entry({"admin", "overthebox", "realtime", "status", "nameinfo"}, call("action_nameinfo")).leaf = true
 end
 
 function otb_confirm_service()
@@ -34,3 +46,78 @@ function otb_dhcp_leases_status()
   luci.http.prepare_content("application/json")
   luci.http.write_json(s.dhcp_leases())
 end
+
+function action_load()
+	luci.http.prepare_content("application/json")
+
+	local bwc = io.popen("luci-bwc -l 2>/dev/null")
+	if bwc then
+		luci.http.write("[")
+
+		while true do
+			local ln = bwc:read("*l")
+			if not ln then break end
+			luci.http.write(ln)
+		end
+
+		luci.http.write("]")
+		bwc:close()
+	end
+end
+
+function action_connections()
+	local sys = require "luci.sys"
+
+	luci.http.prepare_content("application/json")
+
+	luci.http.write('{ "connections": ')
+	luci.http.write_json(sys.net.conntrack())
+
+	local bwc = io.popen("luci-bwc -c 2>/dev/null")
+	if bwc then
+		luci.http.write(', "statistics": [')
+
+		while true do
+			local ln = bwc:read("*l")
+			if not ln then break end
+			luci.http.write(ln)
+		end
+
+		luci.http.write("]")
+		bwc:close()
+	end
+
+	luci.http.write(" }")
+end
+
+function action_nameinfo(...)
+  local util = require "luci.util"
+
+  luci.http.prepare_content("application/json")
+  luci.http.write_json(util.ubus("network.rrdns", "lookup", {
+    addrs = { ... },
+    timeout = 5000,
+    limit = 1000
+  }) or { })
+end
+
+function action_bandwidth(iface)
+	luci.http.prepare_content("application/json")
+
+	local bwc = io.popen("luci-bwc -i %s 2>/dev/null"
+		% luci.util.shellquote(iface))
+
+	if bwc then
+		luci.http.write("[")
+
+		while true do
+			local ln = bwc:read("*l")
+			if not ln then break end
+			luci.http.write(ln)
+		end
+
+		luci.http.write("]")
+		bwc:close()
+	end
+end
+
