@@ -63,21 +63,21 @@
 	function bandwidth_label(bytes, br)
 	{
 		var uby = '<%:kB/s%>';
-		var kby = (bytes / 1024);
+		var kby = (bytes / 1000);
 
-		if (kby >= 1024)
+		if (kby >= 1000)
 		{
 			uby = '<%:MB/s%>';
-			kby = kby / 1024;
+			kby = kby / 1000;
 		}
 
 		var ubi = '<%:kbit/s%>';
-		var kbi = (bytes * 8 / 1024);
+		var kbi = (bytes * 8 / 1000);
 
-		if (kbi >= 1024)
+		if (kbi >= 1000)
 		{
 			ubi = '<%:Mbit/s%>';
-			kbi = kbi / 1024;
+			kbi = kbi / 1000;
 		}
 
 		return String.format("%f %s%s(%f %s)",
