@@ -84,31 +84,3 @@ set graph.opentsdb.freq=$(_get graph_conf.write_frequency)
 
 commit
 EOF
-
-cat > /etc/bird4.conf <<EOF
-log syslog all;
-router id $(_get glorytun_mud_conf.ip_local);
-
-filter rfc_1918 {
-	if net ~ [ 10.0.0.0/8+, 172.16.0.0/12+, 192.168.0.0/16+ ] then accept;
-	else reject;
-}
-
-protocol device {
-	scan time 10;
-}
-
-protocol direct {
-	interface "br-lan";
-}
-
-protocol bgp {
-	import none;
-	export filter rfc_1918;
-	local as 65000;
-	connect retry time 30;
-	neighbor $(_get glorytun_mud_conf.ip_peer) as 65000;
-}
-EOF
-
-otb_todo restart-bird /etc/init.d/bird4 restart </dev/null
