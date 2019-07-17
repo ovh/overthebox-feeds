@@ -7,7 +7,26 @@
 
 [ "$(uci -q get "network.tun0")" = "interface" ] || otb-action-configure
 
-# Setup unknown devices
+# Check and fix LAN setup
+
+if [ "$(uci -q get "network.lan_rule")" != rule ]; then
+	otb_info "setup missing lan rule"
+	uci -q batch <<-EOF
+	set network.lan_rule=rule
+	set network.lan_rule.lookup=50
+	set network.lan_rule.priority=100
+	EOF
+fi
+
+for iface in $(uci -q get firewall.lan.network); do
+	if [ "$(uci -q get "network.$iface.ip4table")" != 50 ]; then
+		otb_info "setup missing network table to lan for $iface"
+		uci -q set "network.$iface.ip4table=50"
+	fi
+done
+
+# Automatically assign a DHCP interface to new devices
+
 for p in /sys/class/net/*; do
 	[ -d "$p/device" ] || continue
 
@@ -27,6 +46,8 @@ for p in /sys/class/net/*; do
 	add_list firewall.wan.network=$iface
 	EOF
 done
+
+OTB_PATH_LIST=
 
 for iface in $(uci -q get firewall.wan.network); do
 	[ "$iface" = wan ] && continue
@@ -80,6 +101,8 @@ for iface in $(uci -q get firewall.wan.network); do
 		uci -q set "network.$iface.download=$download"
 	fi
 
+	OTB_PATH_LIST="$OTB_PATH_LIST $ipaddr"
+
 	case "$state" in
 		on|up|'') glorytun path "$ipaddr" up rate rx "$download" tx "$upload" 2>/dev/null ;;
 		backup)   glorytun path "$ipaddr" backup 2>/dev/null ;;
@@ -87,20 +110,13 @@ for iface in $(uci -q get firewall.wan.network); do
 	esac
 done
 
-if [ "$(uci -q get "network.lan_rule")" != rule ]; then
-	otb_info "setup missing lan rule"
-	uci -q batch <<-EOF
-	set network.lan_rule=rule
-	set network.lan_rule.lookup=50
-	set network.lan_rule.priority=100
-	EOF
-fi
+# Remove old paths
 
-for iface in $(uci -q get firewall.lan.network); do
-	if [ "$(uci -q get "network.$iface.ip4table")" != 50 ]; then
-		otb_info "setup missing network table to lan for $iface"
-		uci -q set "network.$iface.ip4table=50"
-	fi
+glorytun path | dd obs=1M 2>/dev/null | while read -r _ _ _ IP _; do
+	case "$OTB_PATH_LIST" in
+		*" $IP"*) ;;
+		*) glorytun path "$IP" down 2>/dev/null ;;
+	esac
 done
 
 uci -q commit firewall
