@@ -5,3 +5,4 @@ set -ex
 
 glorytun show
 glorytun path
+glorytun version
