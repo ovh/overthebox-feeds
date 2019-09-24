@@ -1,16 +1,13 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# shellcheck disable=SC1091
+. /lib/functions/network.sh
 . /lib/overthebox
 
 while true; do
 	glorytun path dev tun0 2>/dev/null | (
-		ACTION=down
-
-		while read -r _ _ STATUS IP _ PUBIP _; do
-			[ "$STATUS" = "OK" ] && ACTION=up
-
+		while read -r _ _ _ IP _ PUBIP _; do
 			[ "$PUBIP" ] || continue
 			[ "$PUBIP" = "-" ] && continue
 
@@ -22,21 +19,37 @@ while true; do
 			asn="$(curl --max-time 2 --silent --show-error "api.iptoasn.com/v1/as/ip/$PUBIP")"
 			[ "$asn" ] && otb_set_data "$IP/asn" "$asn"
 		done
-
-		ubus -S call network.interface.tun0 "$ACTION"
-
-		service_led="off"
-		connectivity_led="off"
-		if [ "$ACTION" = "up" ]; then
-			connectivity_led="on"
-			case "$(ip -o route get 1.1.1.1)" in
-				*"dev tun0 table"*) service_led="on" ;;
-			esac
-		else
-			ping -w 3 -c 1 1.1.1.1 >/dev/null 2>/dev/null && connectivity_led="on"
-		fi
-		otb_led "service" "$service_led"
-		otb_led "connectivity" "$connectivity_led"
 	)
+
+	rm -rf /tmp/tracker
+	mkdir -p /tmp/tracker
+
+	for iface in tun0 $(uci -q get "firewall.wan.network"); do
+		[ "$iface" = wan ] || (
+			ip4table=$(uci -q get "network.$iface.ip4table")
+			[ "$ip4table" ] || return
+
+			action=del
+			ipaddr=
+			network_get_ipaddr ipaddr "$iface"
+
+			if [ "$ipaddr" ] && ping -w 3 -I "$ipaddr" -c 1 1.1.1.1; then
+				[ "$iface" = tun0 ] && touch /tmp/tracker/service
+				touch /tmp/tracker/connectivity
+				action=add
+			fi
+
+			ip rule "$action" lookup "$ip4table" pref $((30000+ip4table))
+		) >/dev/null 2>/dev/null &
+	done
+
+	wait
+
+	for x in service connectivity; do
+		led=off
+		[ -f "/tmp/tracker/$x" ] && led=on
+		otb_led "$x" "$led"
+	done
+
 	sleep 5
 done
