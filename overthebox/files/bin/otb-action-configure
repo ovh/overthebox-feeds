@@ -62,11 +62,6 @@ _setup_glorytun_mud() {
 	set firewall.accept_glorytun_wan.proto=udp
 	set firewall.accept_glorytun_wan.src_ip=\(.server)
 	set firewall.accept_glorytun_wan.src_port=\(.port)
-
-	set network.\(.dev)_rule=rule
-	set network.\(.dev)_rule.lookup=\(.table)
-	set network.\(.dev)_rule.priority=30000
-	set network.\(.dev)_rule.generatedby='"$ME"'
 	"'
 }
 
