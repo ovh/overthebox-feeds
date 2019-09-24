@@ -55,24 +55,17 @@ for iface in $(uci -q get firewall.wan.network); do
 	ifname="$(uci -q get "network.$iface.ifname")"
 	[ "$ifname" ] || continue
 
-	if [ "$(uci -q get "network.${iface}_rule")" != rule ]; then
-		table="$(uci -q get "network.$iface.ip4table")"
+	table="$(uci -q get "network.$iface.ip4table")"
 
-		if [ -z "$table" ]; then
-			table=200
-			while uci -q show network | grep -s -q "ip4table='$table'"; do
-				table=$((table+1))
-			done
-		fi
+	if [ -z "$table" ] || [ "$table" -lt 200 ]; then
+		table=200
 
-		otb_info "setup missing network rule to $table for $iface"
+		while uci -q show network | grep -s -q "ip4table='$table'"; do
+			table=$((table+1))
+		done
 
-		uci -q batch <<-EOF
-		set network.$iface.ip4table=$table
-		set network.${iface}_rule=rule
-		set network.${iface}_rule.lookup=$table
-		set network.${iface}_rule.priority=30200
-		EOF
+		otb_info "setup missing network table $table for $iface"
+		uci -q set "network.$iface.ip4table=$table"
 	fi
 
 	ipaddr=

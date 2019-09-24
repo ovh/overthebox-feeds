@@ -62,3 +62,8 @@ rm -f /etc/config/shadowsocks
 rm -f /etc/config/otb-tracker
 rm -rf /usr/share/otb/post-tracking.d
 rm -f /etc/sysctl.d/ipv6default.conf
+
+# remove old 30xxx rules
+for rule in $(uci show network | grep -s "network\\..*\\.priority='30[0-9][0-9][0-9]'"); do
+	uci -q del "${rule%.*}"
+done

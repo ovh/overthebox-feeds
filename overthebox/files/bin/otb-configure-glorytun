@@ -57,10 +57,5 @@ set firewall.accept_glorytun_wan.proto=udp
 set firewall.accept_glorytun_wan.src_ip=$SERVER
 set firewall.accept_glorytun_wan.src_port=${PORT:-$_PORT}
 
-set network.tun0_rule=rule
-set network.tun0_rule.lookup=100
-set network.tun0_rule.priority=30000
-set network.tun0_rule.generatedby=$ME
-
 commit
 EOF
