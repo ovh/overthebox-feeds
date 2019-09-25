@@ -8,6 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     graph glorytun kmod-macvlan \
+    tc kmod-sched kmod-sched-cake \
     jq curl ca-bundle ca-certificates \
     iperf3 @LIBCURL_THREADED_RESOLVER kexec
 
