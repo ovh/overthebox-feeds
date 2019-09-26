@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC1091,SC2039
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 . /lib/functions/network.sh
@@ -30,7 +30,7 @@ done
 for p in /sys/class/net/*; do
 	[ -d "$p/device" ] || continue
 
-	ifname="$(basename "$p")"
+	ifname=$(basename "$p")
 	iface="${ifname}_dhcp"
 
 	uci -q show network | grep -s -q "$ifname" && continue
@@ -47,16 +47,15 @@ for p in /sys/class/net/*; do
 	EOF
 done
 
-OTB_PATH_LIST=
+# Automatically assign table, upload and download
 
 for iface in $(uci -q get firewall.wan.network); do
 	[ "$iface" = wan ] && continue
 
-	ifname="$(uci -q get "network.$iface.ifname")"
+	ifname=$(uci -q get "network.$iface.ifname")
 	[ "$ifname" ] || continue
 
-	table="$(uci -q get "network.$iface.ip4table")"
-
+	table=$(uci -q get "network.$iface.ip4table")
 	if [ -z "$table" ] || [ "$table" -lt 200 ]; then
 		table=200
 
@@ -72,45 +71,79 @@ for iface in $(uci -q get firewall.wan.network); do
 	network_get_ipaddr ipaddr "$iface"
 	[ "$ipaddr" ] || continue
 
-	state="$(uci -q get "network.$iface.multipath")"
-
-	case "$(ip -o route get from "$ipaddr" to 8.8.8.8)" in
-		*"dev $ifname table"*) ;;
-		*) state="down" ;;
+	state=$(uci -q get "network.$iface.multipath")
+	case "$state" in
+		on|up|'') OTB_PATH_LIST="$OTB_PATH_LIST $iface" ;;
+		# backup are not supported
 	esac
 
-	upload="$(uci -q get "network.$iface.upload")"
-	download="$(uci -q get "network.$iface.download")"
-
+	upload=$(uci -q get "network.$iface.upload")
 	if [ -z "$upload" ]; then
 		upload=125000
 		otb_info "setup missing upload to $upload for $iface"
 		uci -q set "network.$iface.upload=$upload"
 	fi
 
+	download=$(uci -q get "network.$iface.download")
 	if [ -z "$download" ]; then
 		download=2500000
 		otb_info "setup missing download to $download for $iface"
 		uci -q set "network.$iface.download=$download"
 	fi
-
-	OTB_PATH_LIST="$OTB_PATH_LIST $ipaddr"
-
-	case "$state" in
-		on|up|'') glorytun path "$ipaddr" up rate rx "$download" tx "$upload" 2>/dev/null ;;
-		backup)   glorytun path "$ipaddr" backup 2>/dev/null ;;
-		*)        glorytun path "$ipaddr" down   2>/dev/null ;;
-	esac
 done
 
-# Remove old paths
-
-glorytun path 2>/dev/null | while read -r _ _ _ IP _; do
-	case "$OTB_PATH_LIST" in
-		*" $IP"*) ;;
-		*) glorytun path "$IP" down 2>/dev/null ;;
-	esac
-done
-
+# update network
 uci -q commit firewall
 uci -q commit network
+reload_config
+
+OTB_PATH_LIST=
+
+# add paths
+
+for iface in $(uci -q get firewall.wan.network); do
+	[ "$iface" = wan ] && continue
+
+	ifname=$(uci -q get "network.$iface.ifname")
+	[ "$ifname" ] || continue
+
+	table=$(uci -q get "network.$iface.ip4table")
+	[ "$table" ] || continue
+
+	ipaddr=
+	network_get_ipaddr ipaddr "$iface"
+	[ "$ipaddr" ] || continue
+
+	upload=$(uci -q get "network.$iface.upload")
+	[ "$upload" ] || continue
+
+	download=$(uci -q get "network.$iface.download")
+	[ "$download" ] || continue
+
+	case "$(uci -q get "network.$iface.multipath")" in
+		on|up|'') ;;
+		backup) otb_info "backup are not supported yet"; continue ;;
+		*) continue ;;
+	esac
+
+	case "$(ip -o route get from "$ipaddr" to 8.8.8.8)" in
+		*"dev $ifname table $table"*) ;;
+		*) otb_info "bad route from $ipaddr, skipping..."; continue ;;
+	esac
+
+	OTB_PATH_LIST="$OTB_PATH_LIST $ipaddr"
+	glorytun path "$ipaddr" up rate rx "$download" tx "$upload" 2>/dev/null
+done
+
+# Remove paths
+
+path() {
+	ip=$3
+	[ "$ip" ] || return
+	case "$OTB_PATH_LIST" in
+		*" $ip"*) ;;
+		*) glorytun path "$ip" down 2>/dev/null ;;
+	esac
+}
+
+glorytun path 2>/dev/null | . /proc/self/fd/0
