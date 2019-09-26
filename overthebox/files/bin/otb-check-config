@@ -105,7 +105,7 @@ done
 
 # Remove old paths
 
-glorytun path | dd obs=1M 2>/dev/null | while read -r _ _ _ IP _; do
+glorytun path 2>/dev/null | while read -r _ _ _ IP _; do
 	case "$OTB_PATH_LIST" in
 		*" $IP"*) ;;
 		*) glorytun path "$IP" down 2>/dev/null ;;
