@@ -9,9 +9,7 @@ otb_todo refresh otb-action-refreshProperties </dev/null
 
 _run() {
 	otb_reload
-
 	otb-check-config
-	reload_config
 
 	if [ -z "$OTB_DEVICE_ID" ]; then
 		otb-subscribe
