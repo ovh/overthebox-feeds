@@ -5,39 +5,15 @@
 # lan is now a bridge
 uci -q set "network.lan.type=bridge"
 
-mode="$(uci -q get glorytun.app.mode)"
-
-case "$mode" in
-	glorytun_hybrid)
-		logger -t update -p 6 "Update glorytun from xtun0"
-		key="$(uci -q get glorytun.xtun0.key)"
-		uci -q batch <<-EOF
-		set glorytun.tun0='mud'
-		set glorytun.tun0.key='$key'
-		delete glorytun.xtun0
-		delete glorytun.app
-		EOF
-		;;
-	glorytun_mud)
-		logger -t update -p 6 "Delete tun0.mtu"
-		uci -q batch <<-EOF
-		delete glorytun.tun0.mtu
-		delete glorytun.tun0.mtu_auto
-		delete glorytun.app
-		EOF
-		;;
-esac
-
-ipaddr="$(uci -q get network.xtun0.ipaddr)"
-gateway="$(uci -q get network.xtun0.gateway)"
-
-if [ "$ipaddr" ] && [ "$gateway" ]; then
-	logger -t update -p 6 "Remove xtun0"
+# just remove glorytun config, this will also force a reconfigure after migration
+if [ "$(uci -q get "network.xtun0")" = interface ]; then
+	logger -t update -p 6 "Delete tun0/xtun0"
+	true > /etc/config/glorytun
 	uci -q batch <<-EOF
-	set network.tun0.ipaddr='$ipaddr'
-	set network.tun0.gateway='$gateway'
-	delete network.tun0.mtu
+	delete network.tun0
 	delete network.xtun0
+	del_list firewall.wan.network=tun0
+	del_list firewall.wan.network=xtun0
 	EOF
 fi
 
