@@ -1,9 +1,0 @@
-#!/bin/sh
-# shellcheck disable=SC1091
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-. /lib/overthebox
-
-delay=$(otb_json_get "$1" "arguments.delay")
-
-exec sleep "${delay:-10}"
