@@ -46,6 +46,10 @@ set network.tun0.type=tunnel
 set network.tun0.multipath=off
 set network.tun0.generatedby=$ME
 
+set network.all6=route
+set network.all6.interface=tun0
+set network.all6.target=::/0
+
 del_list firewall.tun.network=tun0
 add_list firewall.tun.network=tun0
 
