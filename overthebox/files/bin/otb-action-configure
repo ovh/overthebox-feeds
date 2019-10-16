@@ -52,9 +52,10 @@ _setup_glorytun_mud() {
 	set network.\(.dev).multipath=off
 	set network.\(.dev).generatedby='"$ME"'
 
-	set network.all6=route
+	set network.all6=route6
 	set network.all6.interface=\(.dev)
 	set network.all6.target=::/0
+	set network.all6.generatedby='"$ME"'
 
 	del_list firewall.tun.network=\(.dev)
 	add_list firewall.tun.network=\(.dev)
