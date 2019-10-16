@@ -7,8 +7,8 @@ BEGIN {
         queue_nb=0
 }
 {
-        # The line title is right after the capacity line
-        if (position == "header" && $1 ~ /capacity/ ) {
+        # The line title starts just after the 9th line
+        if (NR==9) {
                 position="title"
         }
         else if (position == "title") {
