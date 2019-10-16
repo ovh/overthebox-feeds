@@ -3,7 +3,11 @@
 
 iifs=
 for lan in $(uci -q get "firewall.lan.network"); do
-	iifs="$iifs $(uci -q get "network.$lan.ifname")"
+	if [ "$(uci -q get "network.$lan.type")" = "bridge" ]; then
+		iifs="$iifs br-$lan"
+	else
+		iifs="$iifs $(uci -q get "network.$lan.ifname")"
+	fi
 done
 
 [ -z "$iifs" ] && exit 1
