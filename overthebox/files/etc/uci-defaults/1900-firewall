@@ -4,6 +4,39 @@
 
 . /lib/functions.sh
 
+uci -q batch <<EOF
+set firewall.tun=zone
+set firewall.tun.name=tun
+set firewall.tun.input=REJECT
+set firewall.tun.output=ACCEPT
+set firewall.tun.forward=REJECT
+set firewall.tun.masq=1
+set firewall.tun.mtu_fix=1
+
+set firewall.lan_tun=forwarding
+set firewall.lan_tun.src=lan
+set firewall.lan_tun.dest=tun
+
+set firewall.tun_lan=forwarding
+set firewall.tun_lan.src=tun
+set firewall.tun_lan.dest=lan
+
+del_list firewall.wan.network=tun0
+del_list firewall.wan.network=xtun0
+
+del_list firewall.tun.masq_dest='!10.0.0.0/8'
+del_list firewall.tun.masq_dest='!172.16.0.0/12'
+del_list firewall.tun.masq_dest='!192.168.0.0/16'
+del_list firewall.tun.masq_src='!151.127.0.0/16'
+del_list firewall.tun.masq_src='!109.190.0.0/16'
+
+add_list firewall.tun.masq_dest='!10.0.0.0/8'
+add_list firewall.tun.masq_dest='!172.16.0.0/12'
+add_list firewall.tun.masq_dest='!192.168.0.0/16'
+add_list firewall.tun.masq_src='!151.127.0.0/16'
+add_list firewall.tun.masq_src='!109.190.0.0/16'
+EOF
+
 _setup() {
 	name=
 	config_get name "$1" name
@@ -61,12 +94,28 @@ _lowercase_proto() {
 	[ "$proto" != "$lcProto" ] && uci -q set "firewall.$cfg.proto=$lcProto"
 }
 
+_zone_tun_redirect() {
+	# Change wan -> lan into tun -> lan
+	# Change wan -> wan into tun -> wan
+	cfg="$1"
+	src=
+	dest=
+	config_get src "$cfg" src
+	config_get dest "$cfg" dest
+
+	[ "$src" = "wan" ] || return
+	[ "$dest" = "lan" ] || [ "$dest" = "wan" ] || return
+
+	uci -q set "firewall.$cfg.src=tun"
+}
+
 config_load firewall
 config_foreach _update_network_list zone
 config_foreach _setup zone
 config_foreach _delete_mptcp_forwarding forwarding
 config_foreach _lowercase_proto rule
 config_foreach _lowercase_proto redirect
+config_foreach _zone_tun_redirect redirect
 
 uci -q batch <<-EOF
 set firewall.lan.mtu_fix=1
