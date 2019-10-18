@@ -22,6 +22,12 @@ reorder network.lan=2
 set network.globals.multipath=enable
 EOF
 
+# Delete tun0 and xtun0 and let the configure get the right configuration
+uci -q batch <<EOF
+delete network.tun0
+delete network.xtun0
+EOF
+
 # Set the ip rule for the lan with a pref of 100
 uci -q show network.lan_rule >/dev/null || \
 	uci -q batch <<-EOF
