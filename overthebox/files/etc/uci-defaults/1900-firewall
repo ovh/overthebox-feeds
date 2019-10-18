@@ -69,4 +69,8 @@ add_list firewall.tun.masq_src='!109.190.0.0/16'
 set firewall.lan_tun=forwarding
 set firewall.lan_tun.src=lan
 set firewall.lan_tun.dest=tun
+
+set firewall.tun_lan=forwarding
+set firewall.tun_lan.src=tun
+set firewall.tun_lan.dest=lan
 EOF
