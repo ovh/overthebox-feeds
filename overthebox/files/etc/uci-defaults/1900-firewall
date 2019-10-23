@@ -122,6 +122,7 @@ set firewall.lan.mtu_fix=1
 del_list firewall.lan.network=if0
 del_list firewall.wan.network=if0
 add_list firewall.wan.network=if0
+
 set firewall.allow_dhcp_request=rule
 set firewall.allow_dhcp_request.name=Allow-DHCP-Request
 set firewall.allow_dhcp_request.src=wan
@@ -129,4 +130,12 @@ set firewall.allow_dhcp_request.proto=udp
 set firewall.allow_dhcp_request.dest_port=67
 set firewall.allow_dhcp_request.target=ACCEPT
 set firewall.allow_dhcp_request.family=ipv4
+
+set firewall.allow_ping_tun=rule
+set firewall.allow_ping_tun.name=Allow-Ping-tun
+set firewall.allow_ping_tun.src=tun
+set firewall.allow_ping_tun.proto=icmp
+set firewall.allow_ping_tun.icmp_type='echo-request'
+set firewall.allow_ping_tun.family=ipv4
+set firewall.allow_ping_tun.target=ACCEPT
 EOF
