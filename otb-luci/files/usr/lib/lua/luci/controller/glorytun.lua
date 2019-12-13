@@ -42,9 +42,9 @@ function gt_path()
         rtt = tonumber(word[11]),
         rttvar = tonumber(word[12]),
         rate_tx = tonumber(word[13]),
-        rate_rx = tonumber(word[14]),
+        rate_rx = tonumber(word[16]),
         total_tx = tonumber(word[15]),
-        total_rx = tonumber(word[16])
+        total_rx = tonumber(word[18])
       })
     end
   end
