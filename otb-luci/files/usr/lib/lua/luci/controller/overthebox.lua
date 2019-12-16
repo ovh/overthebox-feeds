@@ -36,5 +36,9 @@ end
 function otb_dhcp_leases_status()
   local s = require "luci.tools.status"
   luci.http.prepare_content("application/json")
+  luci.http.write('[')
   luci.http.write_json(s.dhcp_leases())
+  luci.http.write(',')
+  luci.http.write_json(s.dhcp6_leases())
+  luci.http.write(']')
 end
