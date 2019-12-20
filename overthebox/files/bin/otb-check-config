@@ -127,7 +127,7 @@ for iface in $(uci -q get firewall.wan.network); do
 	esac
 
 	case "$(ip -o route get from "$ipaddr" to 8.8.8.8)" in
-		*"dev $ifname table $table"*) ;;
+		*"table $table"*) ;;
 		*) otb_info "bad route from $ipaddr, skipping..."; continue ;;
 	esac
 
