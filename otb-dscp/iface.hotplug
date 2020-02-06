@@ -1,6 +1,0 @@
-#!/bin/sh
-# Need to check that the DSCP are setup correctly after tun is detected up
-
-[ "$DEVICE-$ACTION" = tun0-ifup ] || exit 0
-
-otb-dscp check

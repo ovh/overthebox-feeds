@@ -7,8 +7,7 @@ PKG_RELEASE:=0
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
-    otb-backup otb-diagnostics \
-    otb-dscp otb-remote \
+    otb-backup otb-diagnostics otb-remote \
     otb-tracker otb-luci ip-full \
     TARGET_x86:python-swconfig-otb \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
