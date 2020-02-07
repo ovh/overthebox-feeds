@@ -19,7 +19,7 @@ uci -q set "mini_snmpd.default.enabled=0"
 
 # Do not redirect http to https, allow both
 # overthebox.ovh will redirect to http for easier configuration
-uci -q set "uhttpd.main.redirect_https='0'"
+uci -q set "uhttpd.main.redirect_https=0"
 
 # netifd will fail to reload the network if the file if not present
 touch /etc/config/wireless
