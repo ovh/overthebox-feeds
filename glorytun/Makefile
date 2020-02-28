@@ -1,11 +1,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
-PKG_VERSION:=0.3.0
+PKG_VERSION:=0.3.1
 PKG_RELEASE:=0
 PKG_SOURCE:=glorytun-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/glorytun/releases/download/v$(PKG_VERSION)
-PKG_HASH:=458098b9df0650f65e3f07406fa774401939dd31f8048fc1d6b54225f3f591f8
+PKG_HASH:=380ade6f9da3bc713dabcd1955a32355100b6d729fa5ee09b72526761acfd5b1
 PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
