@@ -18,7 +18,8 @@ _set_rule() {
 _track() {
 	iface=$1 action=del ipaddr=
 	network_get_ipaddr ipaddr "$iface"
-	[ "$ipaddr" ] && ping -w 3 -Q 184 -I "$ipaddr" -c 1 1.1.1.1 >/dev/null && action=add
+	[ "$ipaddr" ] && ping -w 5 -Q 184 -I "$ipaddr" -c 3 1.1.1.1 | \
+		grep -sq 'bytes from 1.1.1.1' && action=add >/dev/null
 	_set_rule "$iface" "$action"
 }
 
