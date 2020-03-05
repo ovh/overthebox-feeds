@@ -71,12 +71,6 @@ for iface in $(uci -q get firewall.wan.network); do
 	network_get_ipaddr ipaddr "$iface"
 	[ "$ipaddr" ] || continue
 
-	state=$(uci -q get "network.$iface.multipath")
-	case "$state" in
-		on|up|'') OTB_PATH_LIST="$OTB_PATH_LIST $iface" ;;
-		# backup are not supported
-	esac
-
 	upload=$(uci -q get "network.$iface.upload")
 	if [ -z "$upload" ]; then
 		upload=125000
@@ -120,9 +114,10 @@ for iface in $(uci -q get firewall.wan.network); do
 	download=$(uci -q get "network.$iface.download")
 	[ "$download" ] || continue
 
+	state=
 	case "$(uci -q get "network.$iface.multipath")" in
-		on|up|'') ;;
-		backup) otb_info "backup are not supported yet"; continue ;;
+		on|up|'') state=up ;;
+		backup)   state=backup ;;
 		*) continue ;;
 	esac
 
@@ -132,7 +127,7 @@ for iface in $(uci -q get firewall.wan.network); do
 	esac
 
 	OTB_PATH_LIST="$OTB_PATH_LIST $ipaddr"
-	glorytun path "$ipaddr" up rate rx "$download" tx "$upload" 2>/dev/null
+	glorytun path "$ipaddr" "$state" rate rx "$download" tx "$upload" 2>/dev/null
 done
 
 # Remove paths
