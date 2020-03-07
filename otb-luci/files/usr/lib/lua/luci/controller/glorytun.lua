@@ -42,13 +42,14 @@ function gt_path()
         rtt = tonumber(word[11]),
         rttvar = tonumber(word[12]),
         rate = word[13],
-        beat = word[14],
-        rate_tx = tonumber(word[15]),
-        loss_tx = tonumber(word[16]),
-        total_tx = tonumber(word[17]),
-        rate_rx = tonumber(word[18]),
-        loss_rx = tonumber(word[19]),
-        total_rx = tonumber(word[20])
+        beat = tonumber(word[14]),
+        losslimit = tonumber(word[15]),
+        rate_tx = tonumber(word[16]),
+        loss_tx = tonumber(word[17]),
+        total_tx = tonumber(word[18]),
+        rate_rx = tonumber(word[19]),
+        loss_rx = tonumber(word[20]),
+        total_rx = tonumber(word[21])
       })
     end
   end
