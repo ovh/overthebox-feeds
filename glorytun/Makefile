@@ -10,7 +10,7 @@ PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/$(PKG_NAME)
+define Package/glorytun
 SECTION:=net
 CATEGORY:=Network
 DEPENDS:=+kmod-tun +libsodium +librt
@@ -19,19 +19,25 @@ URL:=https://github.com/angt/glorytun
 SUBMENU:=VPN
 endef
 
-TARGET_CPPFLAGS += -DGT_RUNDIR=\\\"/var/run/$(PKG_NAME)\\\"
+define Package/glorytun/description
+Glorytun is a vpn designed to improve your internet connectivity:
+ - Fast and highly secure.
+ - Multipath and active failover.
+ - Traffic shaping.
+ - Path MTU discovery without ICMP.
+endef
 
-define Package/$(PKG_NAME)/conffiles
+define Package/glorytun/conffiles
 /etc/config/glorytun
 endef
 
-define Package/$(PKG_NAME)/install
+define Package/glorytun/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/glorytun $(1)/usr/sbin
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_BIN) init $(1)/etc/init.d/glorytun
 	$(INSTALL_DIR) $(1)/etc/config
 	touch $(1)/etc/config/glorytun
 endef
 
-$(eval $(call BuildPackage,$(PKG_NAME)))
+$(eval $(call BuildPackage,glorytun))
