@@ -2,13 +2,13 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb
 PKG_VERSION:=0.7
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
-    otb-backup otb-diagnostics otb-remote \
-    otb-tracker otb-luci ip-full \
+    otb-backup otb-diagnostics \
+    otb-remote otb-luci ip-full \
     TARGET_x86:python-swconfig-otb \
     TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
     usb-modeswitch libimobiledevice usbmuxd \
