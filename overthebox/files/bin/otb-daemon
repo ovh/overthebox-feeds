@@ -13,6 +13,11 @@ _run() {
 	otb_reload
 	otb-check-config
 
+	if ! otb-tracker; then
+		sleep 10
+		return
+	fi
+
 	if [ -z "$OTB_DEVICE_ID" ]; then
 		otb-subscribe
 		otb_reload

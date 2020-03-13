@@ -5,13 +5,11 @@
 . /lib/functions/network.sh
 . /lib/overthebox
 
-exec 2>/dev/null
-
 _set_rule() {
 	iface=$1 action=$2
 	ip4table=$(uci -q get "network.$iface.ip4table")
 	[ "$ip4table" ] || return
-	ip rule "$action" lookup "$ip4table" pref $((30000+ip4table))
+	ip rule "$action" lookup "$ip4table" pref $((30000+ip4table)) 2>/dev/null
 	[ "$action" = add ] && touch /tmp/tracker/connectivity
 }
 
@@ -36,29 +34,27 @@ path() {
 	) &
 }
 
-while true; do
-	rm -rf /tmp/tracker
-	mkdir -p /tmp/tracker
+rm -rf /tmp/tracker
+mkdir -p /tmp/tracker
 
-	glorytun path dev tun0 | (
-		OK=
-		. /proc/self/fd/0
-		[ "$OK" ] && _track tun0 && touch /tmp/tracker/service
-	)
+glorytun path dev tun0 2>/dev/null | (
+	OK=
+	. /proc/self/fd/0
+	[ "$OK" ] && _track tun0 && touch /tmp/tracker/service
+)
 
-	if [ ! -f /tmp/tracker/connectivity ]; then
-		_set_rule tun0 del
-		for iface in $(uci -q get "firewall.wan.network"); do
-			[ "$iface" = wan ] || ( _track "$iface" ) &
-		done
-	fi
-	wait
-
-	for x in service connectivity; do
-		led=off
-		[ -f "/tmp/tracker/$x" ] && led=on
-		otb_led "$x" "$led"
+if [ ! -f /tmp/tracker/connectivity ]; then
+	_set_rule tun0 del
+	for iface in $(uci -q get "firewall.wan.network"); do
+		[ "$iface" = wan ] || ( _track "$iface" ) &
 	done
+fi
+wait
 
-	sleep 5
+for x in service connectivity; do
+	led=off
+	[ -f "/tmp/tracker/$x" ] && led=on
+	otb_led "$x" "$led"
 done
+
+[ -f /tmp/tracker/connectivity ]
