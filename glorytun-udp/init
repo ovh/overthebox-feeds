@@ -91,9 +91,10 @@ start_instance() {
 		host "$server" \
 		${BIND_BACKUP_ARGS:+bind-backup "$BIND_BACKUP_ARGS"} \
 		${dev:+dev "$dev"} \
-		${port:+port "$port" bind-port "$port"} \
+		${port:+port "$port"} \
 		${mtu:+mtu "$mtu"} \
 		${mtu_auto:+mtu-auto} \
+		bind-port 0 \
 		v4only
 
 	procd_set_param respawn 0 30 0
