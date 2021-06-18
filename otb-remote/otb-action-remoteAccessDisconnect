@@ -32,6 +32,9 @@ fi
 
 if [ "$luci_user" ]; then
 	deluser "$luci_user" || true
+	uci delete rpcd.$luci_user || true
+	uci commit rpcd
+	/etc/init.d/rpcd reload
 fi
 
 uci -q batch <<EOF
