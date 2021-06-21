@@ -101,9 +101,10 @@ _get_mounts
 
 ubus call system board | jq -c \
 	--argjson interfaces "$INTERFACES" \
-	--argjson mounts "$MOUNTS" '{
+	--argjson mounts "$MOUNTS" \
+	--arg macaddr "$(cat /sys/class/net/eth0/address)" '{
 		interfaces: $interfaces,
 		mounts: $mounts,
 		release: .release,
-		board: del(.release)
+		board: (del(.release) + {mac_addr: $macaddr})
 	}' | otb_device_post properties -d@-
