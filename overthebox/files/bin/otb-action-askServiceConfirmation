@@ -6,7 +6,7 @@ set -e
 
 . /lib/overthebox
 
-json=$(otb_device_get service)
+json=$(otb_device_get service/associated)
 service_id=$(otb_json_get "$json" service)
 
 # Save the service name

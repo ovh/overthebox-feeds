@@ -40,6 +40,6 @@ for diag in $DIAGS; do
 						 }')
 
 	echo "$diag"
-	otb_device_post "diagnostics/$diag_id" --data "$post_data"
+	otb_device_put "diagnostics/$diag_id" --data "$post_data"
 	echo
 done

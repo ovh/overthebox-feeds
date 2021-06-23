@@ -64,7 +64,7 @@ for file in $FILES; do
 		otb_debug "Backing up $file"
 		json_data=$(_get_file_stat "$file")
 		echo "$file"
-		otb_service_post "backups/$backup_id" --data "$json_data"
+		otb_service_put "backups/$backup_id" --data "$json_data"
 		echo
 	else
 		otb_debug "$file won't be backed up, this is not a text file"
