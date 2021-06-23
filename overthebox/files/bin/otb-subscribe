@@ -8,7 +8,7 @@ set -e
 
 otb_info "Subscribing to the overthebox service..."
 
-ubus call network.interface dump | jq \
+ret="$(ubus call network.interface dump | jq \
 	--arg board "$(cat /tmp/sysinfo/board_name)" \
 	--arg macaddr "$(cat /sys/class/net/eth0/address)" \
 	'.interface // []
@@ -16,8 +16,14 @@ ubus call network.interface dump | jq \
 		| map(."ipv4-address"[0].address)
 		| {private_ips: .}
 		+ {board: $board, macaddr: $macaddr}' \
-	| otb_call POST subscribe -d@- \
-	| jq -r '"
+			| otb_call POST subscribe -d@-)"
+
+if [ "$(echo "$ret" | jq '.device_id')" = "null" ]; then
+	otb_crit "Failed to get device_id"
+	exit
+fi
+
+echo "$ret" | jq -r '"
 set overthebox.me=config
 set overthebox.me.service=\(.service // "")
 set overthebox.me.device_id=\(.device_id)

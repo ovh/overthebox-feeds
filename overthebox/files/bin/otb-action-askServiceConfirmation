@@ -9,6 +9,8 @@ set -e
 json=$(otb_device_get service/associated)
 service_id=$(otb_json_get "$json" service)
 
+[ "$service_id" = "null" ] && return
+
 # Save the service name
 uci -q batch << EOF
 set overthebox.me.service=$service_id
