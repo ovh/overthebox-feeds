@@ -37,7 +37,7 @@ _run() {
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
-	ret=$(otb_device_get actions/todo --dump-header "$OTB_HEADERS_FILE") || return
+	ret=$(otb_device_get actions/todo --dump-header "$OTB_HEADERS_FILE") || (sleep 30 && return)
 
 	if [ -z "$OTB_SERVICE_ID" ]; then
 		read -r LINE < "$OTB_HEADERS_FILE"
