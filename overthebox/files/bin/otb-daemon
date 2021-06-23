@@ -10,7 +10,7 @@ otb_save_event start
 id=$(uci -q get overthebox.me.action_id)
 
 if [ -n "$id" ]; then
-	otb_todo otb_device_post "actions/$id" -d@- <<-EOF
+	otb_todo otb_device_put "actions/$id" -d@- <<-EOF
 	{"status":"done"}
 	EOF
 	uci -q batch <<-EOF
@@ -37,7 +37,7 @@ _run() {
 		[ -f "$file" ] && (. "$file") && rm -f "$file"
 	done
 
-	ret=$(otb_device_get actions --dump-header "$OTB_HEADERS_FILE") || return
+	ret=$(otb_device_get actions/todo --dump-header "$OTB_HEADERS_FILE") || return
 
 	if [ -z "$OTB_SERVICE_ID" ]; then
 		read -r LINE < "$OTB_HEADERS_FILE"
@@ -57,7 +57,7 @@ _run() {
 
 	# shellcheck disable=SC2016
 	jq -c -n --arg status "$status" --arg details "$details" \
-		'{status: $status, details: $details}' | otb_device_post "actions/$id" -d@-
+		'{status: $status, details: $details}' | otb_device_put "actions/$id" -d@-
 }
 
 RUNNING=1

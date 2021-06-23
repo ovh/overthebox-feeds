@@ -85,6 +85,12 @@ otb_call_api() {
 		"$@"
 }
 
+otb_device_put() {
+	subpath=$1
+	shift 1
+	[ "$OTB_DEVICE_ID" ] && otb_call PUT "devices/$OTB_DEVICE_ID/$subpath" "$@"
+}
+
 otb_device_post() {
 	subpath=$1
 	shift 1
@@ -95,6 +101,12 @@ otb_device_get() {
 	subpath=$1
 	shift 1
 	[ "$OTB_DEVICE_ID" ] && otb_call GET "devices/$OTB_DEVICE_ID/$subpath" "$@"
+}
+
+otb_service_put() {
+	subpath=$1
+	shift 1
+	[ "$OTB_SERVICE_ID" ] && otb_device_put "service/$OTB_SERVICE_ID/$subpath" "$@"
 }
 
 otb_service_post() {
