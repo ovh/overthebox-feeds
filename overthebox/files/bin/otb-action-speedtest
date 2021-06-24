@@ -43,8 +43,22 @@ speedtest() {
 			   | jq "(.end.sum_received.bits_per_second // 0) / 1000 | floor"
 	}
 
-	upload="$(do_iperf)" || return
-	download="$(do_iperf -R)" || return
+	# loop five times max to handle speedtest timeout when determining upload speed
+	for i in $(seq 1 1 5); do
+		upload="$(do_iperf)" || return
+		if [ "$upload" -ne 0 ]; then
+			break
+		fi
+	done
+
+	# loop five times max to handle speedtest timeout when determining download speed
+	for i in $(seq 1 1 5); do
+		download="$(do_iperf -R)" || return
+		if [ "$download" -ne 0 ]; then
+			break
+		fi
+	done
+
 	printf "[%8s]  Upload: %8s kbits/s  Download: %8s kbit/s\\n" "$1" "$upload" "$download"
 }
 
