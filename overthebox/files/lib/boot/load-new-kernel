@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+    echo "Usage: command_line"
+    exit 1
+fi
+
+command_line="$1"
+
+# Check if it is a raspberry
+if [ -f /boot/cmdline.txt ]; then
+    echo "Loading arm kernel"
+    kexec -l /mnt/kernel8.img --command-line "$command_line"
+fi
+
+# Check for efi and grub boot
+if [ -f /boot/efi/boot/boot.nsh ]; then
+    echo "Loading efi kernel"
+    kexec -l /mnt/efi/boot/linux.efi --command-line "$command_line"
+fi
