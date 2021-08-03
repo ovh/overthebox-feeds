@@ -42,7 +42,8 @@ _run() {
 	if [ -z "$OTB_SERVICE_ID" ]; then
 		read -r LINE < "$OTB_HEADERS_FILE"
 		case "$LINE" in
-			HTTP*401*) otb_err "Got 401: resubscribe" ; otb-subscribe ; return ;;
+			HTTP*403*) otb_err "Got 403: resubscribe" ; otb-subscribe ; return ;;
+			HTTP*401*) otb_err "Got 401: renewing jwt" ; otb-renew-jwt ; return ;;
 		esac
 	fi
 

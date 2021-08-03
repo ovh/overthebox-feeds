@@ -1,0 +1,27 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+. /lib/overthebox
+
+otb_info "Renewing jwt token ..."
+
+ret="$(jq -n \
+	--arg device_id "$(uci get overthebox.me.device_id)" \
+	--arg token "$(uci get overthebox.me.token)" \
+	'{id: $device_id, token: $token}' | \
+	otb_call POST renew_jwt -d@-)"
+
+if [ "$(echo "$ret" | jq '.jwt')" = "null" ]; then
+	otb_crit "Failed to get new jwt"
+	exit
+fi
+
+echo "$ret" | jq -r '"
+set overthebox.me.jwt=\(.jwt)
+commit overthebox
+"' | uci -q batch
+
+otb_info "JWT renewed"

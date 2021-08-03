@@ -28,5 +28,6 @@ set overthebox.me=config
 set overthebox.me.service=\(.service // "")
 set overthebox.me.device_id=\(.device_id)
 set overthebox.me.token=\(.token)
+set overthebox.me.jwt=\(.jwt)
 commit overthebox
 "' | uci -q batch
