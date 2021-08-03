@@ -65,9 +65,9 @@ otb_call() {
 	curl --silent --show-error --max-time 5 \
 		-X "$method" \
 		-H "Content-Type: application/json" \
-		-H "X-Auth-OVH: $OTB_TOKEN" \
+		-H "Authorization: Bearer $(uci get overthebox.me.jwt)" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		"https://$OTB_PROVISIONING/$path" \
+		"http://$OTB_PROVISIONING/1.0/$path" \
 		--resolve "$OTB_PROVISIONING:$OTB_PROVISIONING_IP" \
 		"$@"
 }
