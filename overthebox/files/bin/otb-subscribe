@@ -18,7 +18,8 @@ ret="$(ubus call network.interface dump | jq \
 		+ {board: $board, macaddr: $macaddr}' \
 			| otb_call POST subscribe -d@-)"
 
-if [ "$(echo "$ret" | jq '.device_id')" = "null" ]; then
+device_id="$(echo "$ret" | jq '.device_id')"
+if [ "$device_id" = "null" ] || [ -z "$device_id" ]; then
 	otb_crit "Failed to get device_id"
 	exit
 fi
