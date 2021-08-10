@@ -5,8 +5,7 @@ OTB_TODO_DIR="/tmp/otb-todo"
 OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
-OTB_PROVISIONING="provisionning.overthebox.net:4443"
-OTB_PROVISIONING_IP="213.186.33.11"
+OTB_PROVISIONING="otb.eu.ovhapis.com"
 
 mkdir -p "$OTB_DATA_DIR" "$OTB_TODO_DIR"
 
@@ -61,14 +60,14 @@ otb_call() {
 	method=$1
 	path=$2
 	shift 2
+	jwt="$(uci get overthebox.me.jwt || true)"
 	otb_debug "call: $method $path $*"
 	curl --silent --show-error --max-time 5 \
 		-X "$method" \
 		-H "Content-Type: application/json" \
-		-H "Authorization: Bearer $(uci get overthebox.me.jwt)" \
 		-H "X-Overthebox-Version: $(cat /etc/otb-version || echo 0.0-0)" \
-		"http://$OTB_PROVISIONING/1.0/$path" \
-		--resolve "$OTB_PROVISIONING:$OTB_PROVISIONING_IP" \
+		${jwt:+-H "Authorization: Bearer $jwt"} \
+		"https://$OTB_PROVISIONING/1.0/$path" \
 		"$@"
 }
 
