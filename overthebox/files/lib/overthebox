@@ -60,7 +60,7 @@ otb_call() {
 	method=$1
 	path=$2
 	shift 2
-	jwt="$(uci get overthebox.me.jwt || true)"
+	jwt="$(uci get overthebox.me.jwt 2>/dev/null || true)"
 	otb_debug "call: $method $path $*"
 	curl --silent --show-error --max-time 5 \
 		-X "$method" \
