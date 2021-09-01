@@ -54,7 +54,7 @@ _run() {
 
 	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
-	[ -z "$id" ] || [ "$id" = "null" ] && return
+	[ -z "$id" ] || [ "$id" = "null" ] || [ "$action" = "wait" ] && return
 
 	# shellcheck disable=SC2016
 	jq -c -n --arg status "$status" --arg details "$details" \
