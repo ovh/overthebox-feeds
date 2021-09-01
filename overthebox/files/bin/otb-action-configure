@@ -10,7 +10,11 @@ ME=$(basename "$0")
 
 [ "$OTB_SERVICE_ID" ]
 
-config=$(otb_device_get config)
+config="$(otb_device_get config | jq -r .)"
+if [ -z "$config" ]; then
+	otb_info "failed to get configuration"
+	return
+fi
 
 _get() {
 	otb_json_get "$config" "$1"
