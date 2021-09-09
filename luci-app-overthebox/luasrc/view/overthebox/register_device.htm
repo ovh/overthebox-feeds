@@ -29,13 +29,19 @@
     local service_id	= uci:get("overthebox", "me", "service")
     local wizardStack = 0
 
-    local has_switch = false
-    uci:foreach("network", "switch",
-      function(s)
-        has_switch = true
-        return false
-      end
-    )
+    local has_switch = true
+
+    result = assert (io.popen ("ls /sys/class/net/ | grep eth | wc -l"))
+
+    for line in result:lines() do
+      eth_number = line
+    end
+
+    result:close()
+
+    if tonumber(eth_number) ==  1 then
+      has_switch = false
+    end
 
     local function wizard(title, width, height, status, id)
         local arrowLen = height / 3
