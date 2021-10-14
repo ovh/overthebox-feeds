@@ -156,6 +156,41 @@ otb_save_action_id() {
 	EOF
 }
 
+speedtest() {
+	local ipaddr gateway
+
+	network_get_ipaddr ipaddr "$1"
+	[ "$ipaddr" ] || return
+
+	network_get_gateway gateway "$1"
+	[ "$gateway" ] || return
+
+	do_iperf() {
+		iperf3 --client "$server_ip" --port 5008 \
+		       --time "$test_time" --omit "$skip_test_time" \
+		       --bind "$ipaddr" --json "$@" \
+			   | jq "(.end.sum_received.bits_per_second // 0) / 1000 | floor"
+	}
+
+	# loop five times max to handle speedtest timeout when determining upload speed
+	for i in $(seq 1 1 5); do
+		upload="$(do_iperf)" || return
+		if [ "$upload" -ne 0 ]; then
+			break
+		fi
+	done
+
+	# loop five times max to handle speedtest timeout when determining download speed
+	for i in $(seq 1 1 5); do
+		download="$(do_iperf -R)" || return
+		if [ "$download" -ne 0 ]; then
+			break
+		fi
+	done
+
+	printf "%8s %8s" "$upload" "$download"
+}
+
 otb_led() {
 	sysfs=$(uci -q get "system.$1_led.sysfs")
 	[ "$sysfs" ] || return 0

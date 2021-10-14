@@ -27,47 +27,17 @@ cleanup() {
 	/etc/init.d/otb-qos start
 }
 
-speedtest() {
-	local ipaddr gateway
-
-	network_get_ipaddr ipaddr "$1"
-	[ "$ipaddr" ] || return
-
-	network_get_gateway gateway "$1"
-	[ "$gateway" ] || return
-
-	do_iperf() {
-		iperf3 --client "$server_ip" --port 5008 \
-		       --time "$test_time" --omit "$skip_test_time" \
-		       --bind "$ipaddr" --json "$@" \
-			   | jq "(.end.sum_received.bits_per_second // 0) / 1000 | floor"
-	}
-
-	# loop five times max to handle speedtest timeout when determining upload speed
-	for i in $(seq 1 1 5); do
-		upload="$(do_iperf)" || return
-		if [ "$upload" -ne 0 ]; then
-			break
-		fi
-	done
-
-	# loop five times max to handle speedtest timeout when determining download speed
-	for i in $(seq 1 1 5); do
-		download="$(do_iperf -R)" || return
-		if [ "$download" -ne 0 ]; then
-			break
-		fi
-	done
-
-	printf "[%8s]  Upload: %8s kbits/s  Download: %8s kbit/s\\n" "$1" "$upload" "$download"
+_speedtest() {
+	speedtest "$1" | awk -v iface="$1" \
+	'{ printf "[%8s]  Upload:  %8d kbits/s  Download: %8d kbit/s\n", iface, $1, $2 }'
 }
 
 if setup; then
 	if [ "$(uci -q get "network.$1")" = interface ]; then
-		speedtest "$1"
+		_speedtest "$1"
 	else
 		config_load network
-		config_foreach speedtest interface
+		config_foreach _speedtest interface
 	fi
 	cleanup
 else
