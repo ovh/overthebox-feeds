@@ -1,0 +1,79 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039
+
+. /lib/overthebox
+
+test_time=5       # Do the iperf during 5 seconds
+skip_test_time=1  # Skip the data of the first second of the test
+default_percentage=80
+
+server_ip="$(uci -q get glorytun.tun0.server)" || {
+	otb_err "Couldn't find server ip"
+	exit 1
+}
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+trap : HUP INT TERM
+
+autoqos() {
+	local iface="$1"
+	if ! echo "$iface" | grep 'wan' > /dev/null; then
+		return
+	fi
+	percent="${2:-$default_percentage}"
+
+	result="$(speedtest "$1")"
+
+	upload="$(echo "$result" | awk '{print $1}')"
+	download="$(echo "$result" | awk '{print $2}')"
+
+	if [ -z "$upload" ] || [ "$upload" = "0" ]; then
+		otb_err "Upload is 0"
+		return
+	fi
+
+	if [ -z "$download" ] || [ "$download" = "0" ]; then
+		otb_err "Download is 0"
+		return
+	fi
+
+	upload=$((upload * percent / 100))
+	download=$((download * percent / 100))
+
+	otb_info "Traffic control for $iface download set to: $download kbit/s"
+	otb_info "Traffic control for $iface upload set to: $upload kbit/s"
+
+	uci -q batch <<-EOF
+	set network.$iface.trafficcontrol='static'
+	set network.$iface.download='$download'
+	set network.$iface.upload='$upload'
+	commit
+	EOF
+}
+
+setup() {
+	otb_call_api POST ipt/iperf >/dev/null || return
+	/etc/init.d/otb-qos stop 2>/dev/null   || true
+}
+
+cleanup() {
+	otb_call_api DELETE ipt/iperf >/dev/null
+	/etc/init.d/otb-qos start
+}
+
+if setup; then
+	iface=$(otb_json_get "$1" iface 2>/dev/null)
+	percent=$(otb_json_get "$1" percent 2>/dev/null)
+	if [ "$(uci -q get "network.$iface")" = interface ]; then
+		autoqos "$iface" "$percent"
+	else
+		config_load network
+		config_foreach autoqos interface
+	fi
+	cleanup
+else
+	otb_err "Couldn't start iperf3"
+	exit 1
+fi
