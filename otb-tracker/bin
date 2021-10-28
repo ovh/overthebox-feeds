@@ -1,69 +1,13 @@
 #!/bin/sh
-# shellcheck disable=SC1091,SC1090
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 [ -n "$1" ] || exit
 
 . /lib/functions.sh
 . /lib/overthebox
+. /lib/functions/network.sh
 
-# retrieve args
-OTB_TRACKER_INTERFACE="$1"
-shift
-
-# export vars
-export OTB_TRACKER_INTERFACE
-export OTB_TRACKER_HOST
-export OTB_TRACKER_TIMEOUT
-export OTB_TRACKER_STATUS
-export OTB_TRACKER_DEVICE
-export OTB_TRACKER_DEVICE_IP
-export OTB_TRACKER_DEVICE_GATEWAY
-
-dscp=56   # set DSCP CS7 (56) in outgoing packets
-initial_hosts="$OTB_TRACKER_HOSTS"
-initial_timeout="$OTB_TRACKER_TIMEOUT"
-
-# set constants for rto updating
-# we've changed the default values of the RFC to K=3 and beta=0.25 instead of K=4 and beta=0.125
-# this allows us to lower the gap between rtt and rto when the latency increases quickly as our
-# measurements are less frequent than the standard timeout computation of the TCP stack
-_init_rto() {
-	srtt=
-	rttvar=
-	rto_init=$(( initial_timeout * 1000 ))
-	rto=$rto_init
-}
-
-# update rto as explained in rfc6298
-# rto    : retransmission timeout.
-# rtt    : round trip time
-# rttvar : round trip time variance
-# srtt   : smoothed round trip time
-# alpha  : smoothing coeff for srtt
-# beta   : smoothing coeff for rttvar
-# K      : coeff to increase rttvar impact on rto computation
-_update_rto() {
-	if [ -z "$srtt" ]; then
-		srtt=$1
-		rttvar=$(($1 / 2))
-	else
-		diff=$((srtt - $1))
-		rttvar=$(((75 * rttvar + 25 * (diff >= 0 ? diff : -diff)) / 100))
-		srtt=$(((75 * srtt + 25 * $1) / 100))
-	fi
-	rto=$((tmp = srtt + 3 * rttvar, tmp > rto_init ? tmp : rto_init))
-}
-
-_restart() {
-	OTB_TRACKER_HOST="${OTB_TRACKER_HOSTS%% *}"
-	[ "$OTB_TRACKER_HOST" = "$OTB_TRACKER_HOSTS" ] || {
-		OTB_TRACKER_HOSTS="${OTB_TRACKER_HOSTS#* } $OTB_TRACKER_HOST"
-		_init_rto
-	}
-}
-
-_post_tracking() {
+set_interface() {
+	OTB_TRACKER_STATUS="$1"
 	for tracker_bin in /usr/share/otb/post-tracking.d/*; do
 		[ -x "$tracker_bin" ] && (
 			_log() {
@@ -74,48 +18,39 @@ _post_tracking() {
 	done
 }
 
-_restart
+# Export vars used by post-tracking scripts
+export OTB_TRACKER_INTERFACE="$1"
+export OTB_TRACKER_LATENCY=0
+export OTB_TRACKER_STATUS=OK
+export OTB_TRACKER_DEVICE
+export OTB_TRACKER_DEVICE_GATEWAY
+export OTB_TRACKER_DEVICE_IP
 
-# main loop
+hosts="$(uci get otb-tracker.defaults.hosts)"
+interval="$(uci get otb-tracker.defaults.interval)"
+host_index=1
+host_length="$(echo "$hosts" | awk '{n=split($0,array," "); print(n);}')"
+
 while true; do
-	# setup tracker variables
-	OTB_TRACKER_DEVICE_IP=
-	OTB_TRACKER_DEVICE_GATEWAY=
-	OTB_TRACKER_STATUS="ERROR"
-	OTB_TRACKER_LATENCY=
-	OTB_TRACKER_TIMEOUT=$((rto / 1000 + (rto % 1000 ? 1 : 0)))
+	host_index=1
 
-	if [ -d "/sys/class/net/$OTB_TRACKER_DEVICE" ]; then
-		# retrieve iface ip and gateway
-		OTB_TRACKER_DEVICE_IP=$(ip -4 -br addr ls dev "$OTB_TRACKER_DEVICE" | awk -F'[ /]+' '{print $3}')
-		OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
+	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit
 
-		# execute specific tracker
-		if [ -n "$OTB_TRACKER_DEVICE_IP" ] && [ -n "$OTB_TRACKER_DEVICE_GATEWAY" ]; then
-			# setup loop variable
-			tries="$OTB_TRACKER_TRIES"
-			# loop until tries attempts have been reached
-			while [ "$tries" -gt 0 ]; do
-				ret=$(dig @"$OTB_TRACKER_HOST" \
-					-b "$OTB_TRACKER_DEVICE_IP" \
-					+time="$OTB_TRACKER_TIMEOUT" \
-					+dscp="$dscp" \
-					+tries=1 \
-					"$@"
-				) && echo "$ret" | grep -sq "127.6.8.4" && {
-					OTB_TRACKER_LATENCY=$(echo "$ret" | awk '/Query time/{print $4}')
-					_update_rto "$OTB_TRACKER_LATENCY"
-					OTB_TRACKER_STATUS="OK"
-					break
-				}
-				tries=$((tries - 1))
-				OTB_TRACKER_TIMEOUT=$((OTB_TRACKER_TIMEOUT * 2))
-			done
+	OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
+
+	while [ "$host_index" -le "$host_length" ]; do
+		host="$(echo "$hosts" | awk '{print $'$host_index';}')"
+
+		OTB_TRACKER_LATENCY="$(ping -Q 184 -I "$OTB_TRACKER_DEVICE_IP" -i "$interval" -w 5 -c 3 "$host" | \
+			grep "bytes from $host" | \
+			awk 'match($0,/time=(\d+)/){print substr($0, RSTART+5, RLENGTH-5); exit;}')"
+
+		if [ -n "$OTB_TRACKER_LATENCY" ]; then
+			host_index=1
+			set_interface "OK"
+		else
+			host_index=$((host_index + 1))
 		fi
-	fi
-
-	[ "$OTB_TRACKER_HOSTS" = "$initial_hosts" ] || [ "$OTB_TRACKER_STATUS" = "OK" ] && _post_tracking
-	[ "$OTB_TRACKER_STATUS" = "ERROR" ] && _restart
-
-	sleep "$OTB_TRACKER_INTERVAL"
+	done
+	set_interface "ERROR"
 done

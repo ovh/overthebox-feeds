@@ -22,7 +22,7 @@ url_list="
 _curl() {
 	curl \
 		--interface "$OTB_TRACKER_DEVICE" \
-		--max-time "$OTB_TRACKER_TIMEOUT" \
+		--max-time 5 \
 		--silent \
 		--show-error \
 		"$1"

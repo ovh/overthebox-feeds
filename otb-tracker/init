@@ -45,6 +45,7 @@ _launch_tracker() {
 	config_get ip4table "$1" ip4table
 
 	[ -z "$ifname" ] || [ -z "$ip4table" ] && return
+	[ ! -d "/sys/class/net/$ifname" ] && return
 
 	procd_open_instance
 	# shellcheck disable=SC2086

@@ -4,14 +4,8 @@
 uci -q batch <<EOF
 delete otb-tracker.defaults
 set otb-tracker.defaults=defaults
-set otb-tracker.defaults.call='dns'
-add_list otb-tracker.defaults.hosts='51.254.49.132'
-add_list otb-tracker.defaults.hosts='51.254.49.133'
-set otb-tracker.defaults.timeout='1'
-set otb-tracker.defaults.tries='3'
-set otb-tracker.defaults.interval='2'
-set otb-tracker.defaults.options='tracker.overthebox.ovh'
-delete otb-tracker.tunnel
-set otb-tracker.tunnel='rule_type'
-set otb-tracker.tunnel.tries='5'
+add_list otb-tracker.defaults.hosts='213.186.33.99'
+add_list otb-tracker.defaults.hosts='1.1.1.1'
+add_list otb-tracker.defaults.hosts='8.8.8.8'
+set otb-tracker.defaults.interval=1
 EOF
