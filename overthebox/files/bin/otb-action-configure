@@ -66,6 +66,29 @@ _setup_glorytun() {
 	"'
 }
 
+_setup_tracker() {
+	output="$(_get tracker_conf | jq -c -r '.hosts[]')"
+	if [ "$(echo "$output" | wc -w)" = "0" ]; then
+		otb_err "No tracker in configuration"
+		return
+	fi
+
+
+	uci set otb-tracker.defaults.hosts=
+	echo "$output" | while read -r line; do
+		otb_info "Adding $line as tracker"
+		uci add_list otb-tracker.defaults.hosts="$line"
+	done
+
+	interval="$(_get tracker_conf | jq -r '.interval_seconds')"
+	if [ -z "$interval" ]; then
+		otb_err "No interval defined"
+		return
+	fi
+
+	uci set otb-tracker.defaults.interval="$interval"
+}
+
 _setup_glorytun_mud() {
 	jq -r '@text "
 	set glorytun.\(.dev)=mud
@@ -115,6 +138,8 @@ case "$tun_app" in
 		_get glorytun_mud_conf | _setup_glorytun_mud
 		;;
 esac | uci -q batch
+
+_setup_tracker
 
 uci -q batch <<EOF
 set glorytun.app=mode
