@@ -29,7 +29,7 @@ fi
 
 # delete last conf
 
-for conf in glorytun shadowsocks graph; do
+for conf in glorytun shadowsocks graph otb-graph; do
 	true > /etc/config/"$conf"
 	uci -q revert "$conf"
 done
@@ -144,6 +144,9 @@ set system.@system[0].log_prefix=$(_get log_conf.key)
 set graph.opentsdb=opentsdb
 set graph.opentsdb.url=$(_get graph_conf.host)
 set graph.opentsdb.freq=$(_get graph_conf.write_frequency)
+
+set graph.provisioning=provisioning
+set graph.provisioning.freq=$(_get graph_conf.write_frequency)
 
 commit
 EOF

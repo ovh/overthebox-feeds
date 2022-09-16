@@ -1,0 +1,62 @@
+#!/bin/sh
+
+set -e
+. /lib/overthebox
+
+HOST=${1:-none}
+FREQ=${2:-60}
+PERIOD=
+
+_add() {
+    printf "${PERIOD}"'{"name":"%s","value":%s,"tags":{"host":"'"$HOST"'"%s}}' "$@"
+    PERIOD=,
+}
+
+_graph() {
+    PERIOD=
+
+    printf '['
+
+    while read -r IFACE RX _ _ _ _ _ _ _ TX _ ; do
+        case "${IFACE}" in
+        *:)
+            LOCAL_NAME=$(/sbin/uci -q show "network" | grep "'${IFACE%:}'" | cut -d. -f2)
+            # Send latency of intefaces
+            LATENCY_FILE_NAME=/tmp/otb-data/$LOCAL_NAME/latency
+            if [ -f "$LATENCY_FILE_NAME" ]
+            then
+                LATENCY=$(cat "$LATENCY_FILE_NAME")
+                if [ -n "$LATENCY" ]
+                then
+                    _add "icmp_latency" "$LATENCY" ',"iface":"'"${IFACE%:}"'","uci_name":"'"$LOCAL_NAME"'"'
+                fi
+            fi
+
+            # Adding the rate counter
+            LOCAL_NAME=${LOCAL_NAME:-none}
+            _add "linux_net_bytes" "${RX}" ',"direction":"in","iface":"'"${IFACE%:}"'","uci_name":"'"$LOCAL_NAME"'"'
+            _add "linux_net_bytes" "${TX}" ',"direction":"out","iface":"'"${IFACE%:}"'","uci_name":"'"$LOCAL_NAME"'"'
+            ;;
+        esac
+    done < /proc/net/dev
+
+    read -r AVG1 _ _ < /proc/loadavg
+    _add "proc_loadavg_1m" "${AVG1}"
+
+    while read -r NAME VALUE _ ; do
+        case "${NAME}" in
+        MemFree:)
+            _add "os_mem_free" "${VALUE}"
+            ;;
+        esac
+    done < /proc/meminfo
+
+    printf ']'
+}
+while true; do
+        otb_reload
+        graph_data=$(_graph)
+        otb_service_post "metrics" --data "$graph_data"
+        sleep "$FREQ"
+done
+

@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
-PKG_VERSION:=0.70
+PKG_VERSION:=0.70.1
 PKG_RELEASE:=0
 
 include $(INCLUDE_DIR)/package.mk
@@ -9,6 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 MY_DEPENDS := \
     graph glorytun glorytun-udp mptcp shadowsocks-libev  \
     kmod-macvlan jq curl ca-bundle ca-certificates \
+    otb-graph \
     @LIBCURL_THREADED_RESOLVER
 
 define Package/$(PKG_NAME)
