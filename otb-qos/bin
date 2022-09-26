@@ -48,7 +48,7 @@ _count_interfaces_to_setup() {
 _setup_remote_interface() {
 	_should_setup_qos_on_interface "$1" || return 0
 
-	ifname=''   ; config_get ifname   "$1" ifname
+	device=''   ; config_get device   "$1" device
 	metric=''   ; config_get metric   "$1" metric
 	download='' ; config_get download "$1" download
 	upload=''   ; config_get upload   "$1" upload
@@ -56,7 +56,7 @@ _setup_remote_interface() {
 	# Get the public IP
 	public_ip=$(otb_get_data "$1/public_ip")
 	if [ -z "$public_ip" ]; then
-		_log "missing public IP for $ifname, can't apply the download QoS for now"
+		_log "missing public IP for $device, can't apply the download QoS for now"
 		return 0
 	fi
 	qos_data="$metric-$download-$public_ip"
@@ -64,40 +64,40 @@ _setup_remote_interface() {
 	# If there's no QoS, we can simply apply the new one
 	current_qos_data=$(otb_get_data "$1/qos")
 	if [ -z "$current_qos_data" ] ; then
-		_log "QoS is not present, setting it up on $ifname"
+		_log "QoS is not present, setting it up on $device"
 		otb_set_data "$1/qos" "$qos_data"
 
-		_log "sending download QoS on $ifname [$1] - maximum download ${download}kbps"
+		_log "sending download QoS on $device [$1] - maximum download ${download}kbps"
 
 		#shellcheck disable=SC2016
 		jq -n -c \
-			--arg ifname "$ifname" \
+			--arg device "$device" \
 			--arg metric "$metric" \
 			--arg download "$download" \
 			--arg upload "$upload" \
 			--arg public_ip "$public_ip" \
 			'{
-				interface: $ifname,
+				interface: $device,
 				metric: $metric,
 				wan_ip: $public_ip,
 				downlink: $download,
 				uplink: $upload,
 			}' | otb_todo otb_call_api PUT qos -d@-
 	elif  [ "$current_qos_data" = "$qos_data" ] ; then
-		_log "QoS is already good on $ifname"
+		_log "QoS is already good on $device"
 	else
-		_log "QoS has changed on $ifname need to restart"
+		_log "QoS has changed on $device need to restart"
 		_restart
 	fi
 }
 
 _setup_local_interface() {
 	_should_setup_qos_on_interface "$1" || return 0
-	ifname=''   ; config_get ifname   "$1" ifname
+	device=''   ; config_get device   "$1" device
 	upload=''   ; config_get upload   "$1" upload
 
-	_log "setting upload QoS on $ifname [$1] to ${upload}kbps"
-	tc qdisc rep dev "$ifname" root cake bandwidth "$upload"kbit diffserv4 flows memlimit 10m
+	_log "setting upload QoS on $device [$1] to ${upload}kbps"
+	tc qdisc rep dev "$device" root cake bandwidth "$upload"kbit diffserv4 flows memlimit 10m
 }
 
 _setup_interface() {
@@ -108,11 +108,11 @@ _setup_interface() {
 }
 
 _stop_interface() {
-	ifname=
-	config_get ifname "$1" ifname
+	device=
+	config_get device "$1" device
 
-	if tc qdisc del dev "$ifname" root cake 2>/dev/null; then
-		_log "upload QoS deleted on $ifname [$1]"
+	if tc qdisc del dev "$device" root cake 2>/dev/null; then
+		_log "upload QoS deleted on $device [$1]"
 	fi
 	otb_unset_data "$1/qos"
 }

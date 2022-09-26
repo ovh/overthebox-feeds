@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-qos
-PKG_VERSION:=0.11
+PKG_VERSION:=0.12.0
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
