@@ -10,7 +10,7 @@ MY_DEPENDS := \
     otb-backup otb-diagnostics \
     otb-qos otb-dscp otb-remote \
     otb-tracker otb-autoroute otb-leds \
-    TARGET_x86:python-swconfig-otb \
+    TARGET_x86:otb-v2b \
     usb-modeswitch bwm-ng screen \
     libimobiledevice usbmuxd \
     iptables-mod-trace kmod-ipt-raw \
