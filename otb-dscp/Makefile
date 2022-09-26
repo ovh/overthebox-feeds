@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-dscp
-PKG_VERSION:=0.10
+PKG_VERSION:=0.11.0
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk

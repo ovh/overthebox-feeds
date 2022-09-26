@@ -12,7 +12,7 @@ set -e
 # Get the lan interface name
 lan_device=
 config_load network
-config_get lan_device lan ifname
+config_get lan_device lan device
 
 # Get the tunnel type
 tunnel_type=
