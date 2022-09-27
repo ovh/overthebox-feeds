@@ -7,14 +7,14 @@ set -e
 . /lib/functions/network.sh
 
 check_interface() {
-	local ifname output gateway
-	config_get ifname "$1" ifname
+	local device output gateway
+	config_get device "$1" device
 	network_get_gateway gateway "$1" || true
 	if [ -z "$gateway" ]; then
 		return 0
 	fi
-	output=$(set -x; curl -sS --max-time 1 --interface "$ifname" http://multipath-tcp.org 2>&1)
-	printf "[%s] \t : %s\n" "$ifname" "$output"
+	output=$(set -x; curl -sS --max-time 1 --interface "$device" http://multipath-tcp.org 2>&1)
+	printf "[%s] \t : %s\n" "$device" "$output"
 }
 
 # Load the network config
