@@ -6,9 +6,9 @@
 # Released under GPL 3 or later
 
 if [ -d "/proc/sys/net/mptcp" ]; then
-        if [ `cat /proc/sys/net/mptcp/mptcp_enabled` = 0 ]; then
+        if [ `cat /proc/sys/net/mptcp/enabled` = 0 ]; then
                 echo "MPTCP is disabled!"
-                echo "Please set net.mptcp.mptcp_enabled = 1"
+                echo "Please set net.mptcp.enabled = 1"
                 exit 1
         fi
 else
@@ -43,7 +43,7 @@ case $1 in
         cat /proc/net/mptcp_fullmesh
         exit 0;;
    "-k")
-        echo Enabled: `cat /proc/sys/net/mptcp/mptcp_enabled`
+        echo Enabled: `cat /proc/sys/net/mptcp/enabled`
         echo Path Manager: `cat /proc/sys/net/mptcp/mptcp_path_manager`
         echo Use checksum: `cat /proc/sys/net/mptcp/mptcp_checksum`
         echo Scheduler: `cat /proc/sys/net/mptcp/mptcp_scheduler`
