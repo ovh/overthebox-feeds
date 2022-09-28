@@ -1,5 +1,6 @@
 #!/bin/sh /etc/rc.common
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# shellcheck disable=SC2034
 
 USE_PROCD=1
 
