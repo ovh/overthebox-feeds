@@ -1,5 +1,6 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# shellcheck disable=SC3043
 
 set -e
 
@@ -25,13 +26,24 @@ _log() {
 	logger -t otb-dscp "$@"
 }
 
-_ipt() {
-	iptables -w -t mangle "$@"
+_create_mangle_table() {
+	# Create chains (PREROUTING, POSTROUTING and OUTPUT), mangle chain was already created by "bandwidth" package
+	nft add chain ip mangle PREROUTING '{ type filter hook prerouting priority mangle; policy accept;}'
+	nft add chain ip mangle POSTROUTING '{ type filter hook postrouting priority mangle; policy accept;}'
+	nft add chain ip mangle OUTPUT '{ type route hook output priority mangle; policy accept;}'
 }
 
 _add_dscp_rule() {
-	_ipt -A dscp_prerouting -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j DSCP --set-dscp-class "$class"
-	_ipt -A dscp_prerouting -p "$proto" -s "$src_ip" -d "$dest_ip" "$@" -m comment --comment "$comment" -j RETURN
+	nft add rule ip mangle dscp_prerouting \
+		meta l4proto "$proto" ip saddr "$src_ip" \
+		ip daddr "$dest_ip" ip dscp set  "$class"\
+		comment "\"$comment\""
+
+    nft add rule ip mangle dscp_prerouting \
+		meta l4proto "$proto" ip saddr "$src_ip" \
+		ip daddr "$dest_ip" \
+		return \
+		comment "\"$comment\""
 }
 
 _add_dscp_rules() {
@@ -73,37 +85,59 @@ _add_dscp_rules() {
 }
 
 _add_prerouting_chain() {
-	_ipt -N "$1"
-	_ipt -I PREROUTING -i "$lan_device" -j "$1"
+	nft add chain ip mangle dscp_prerouting
+	nft insert rule ip mangle PREROUTING iifname "$lan_device" counter jump "$1"
 }
 
 _add_fwmark_chain() {
-	_ipt -N dscp_mark
-	_ipt -A PREROUTING -i "$lan_device" -j dscp_mark
+	nft add chain ip mangle dscp_mark
+	nft add rule ip mangle PREROUTING iifname "$lan_device" counter jump dscp_mark
 	for class in cs4 cs5 cs6 cs7; do
 		# xtun (hex) -> 0x7874756e
-		_ipt -A dscp_mark \
-			-m comment --comment "$class" \
-			-m dscp --dscp-class "$class" \
-			-j MARK --set-mark 0x7874756e
+		nft add rule mangle dscp_mark \
+			ip dscp "$class" \
+			ct mark 0x7874756e \
+			comment "$class"
 	done
 }
 
 _add_dscp_output_chain() {
-	_ipt -N dscp_output
-	_ipt -I OUTPUT -j dscp_output
+	nft add chain ip mangle dscp_output
+	nft add rule ip mangle OUTPUT counter jump dscp_output
 }
 
 _remove_prerouting_chain() {
-	_ipt -F "$1" 2>/dev/null || return 0
-	_ipt -D PREROUTING -i "$lan_device" -j "$1"
-	_ipt -X "$1"
+	local subchain_handle
+
+	# Delete rules one by one inside subchain
+	nft flush chain ip mangle "$1" 2>/dev/null || return 0
+
+	# Remove rule from prerouting that allow to jump to subchain
+	subchain_handle=""
+	subchain_handle=$(nft -a list table ip mangle | grep "jump $1" | cut -d ' ' -f 12)
+	nft delete rule ip mangle  PREROUTING handle "$subchain_handle"
+
+	# Remove subchain
+	subchain_handle=""
+	subchain_handle=$(nft -a list table ip mangle | grep "chain $1" | cut -d ' ' -f 6)
+	nft delete chain ip mangle handle "$subchain_handle"
 }
 
 _remove_output_chain() {
-	_ipt -F "$1" 2>/dev/null || return 0
-	_ipt -D OUTPUT -j "$1"
-	_ipt -X "$1"
+	local subchain_handle
+
+	# Delete rules one by one inside subchain
+	nft flush chain ip mangle "$1" 2>/dev/null || return 0
+
+	# Remove rule from prerouting that allow to jump to subchain
+	subchain_handle=""
+	subchain_handle=$(nft -a list table ip mangle | grep "jump $1" | cut -d ' ' -f 10)
+	nft delete rule ip mangle OUTPUT handle "$subchain_handle"
+
+	# Remove subchain
+	subchain_handle=""
+	subchain_handle=$(nft -a list table ip mangle | grep "chain $1" | cut -d ' ' -f 6)
+	nft delete chain ip mangle handle "$subchain_handle"
 }
 
 _setup_tunnel() {
@@ -113,7 +147,7 @@ _setup_tunnel() {
 			_add_fwmark_chain
 			# tun0: cs0 (default)
 			# xtun0: cs6
-			_ipt -A dscp_output -o "xtun0" -j DSCP --set-dscp-class cs6
+			nft add rule ip mangle dscp_output oifname "xtun0" dscp set cs6
 			;;
 		glorytun_hybrid)
 			# Mark the packets to route through xtun0
@@ -136,7 +170,8 @@ _stop() {
 }
 
 _start() {
-	# Add chains
+	# Add table and chains
+	_create_mangle_table
 	_add_prerouting_chain dscp_prerouting
 	_add_dscp_output_chain
 
