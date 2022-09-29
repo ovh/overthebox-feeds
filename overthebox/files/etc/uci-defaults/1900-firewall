@@ -69,7 +69,13 @@ _delete_mptcp_forwarding() {
 }
 
 _update_network_list() {
-	cfg="$1"
+	# according to fw4 default config get the real zone.
+	if [ "$1" = "tun" ]; then
+		cfg="$1"
+	else
+		cfg=$(uci get "firewall.$1.name")
+	fi
+
 	interface_list=
 	config_get interface_list "$cfg" network
 

@@ -3,13 +3,20 @@
 
 HOST="proof.ovh.net"
 
-_ipt() {
-	iptables -w -t nat "$1" socks_emitted_by_myself \
-		-d "$HOST" -j socks_redir -m comment --comment "Test download proof"
+_rule_create(){
+    nft add rule ip nat socks_emitted_by_myself ip daddr "$HOST" jump socks_redir comment \" Test download proof \"
+}
+
+_rule_delete(){
+    # get handle of test rule
+    rule_handle=$(nft -a list chain ip nat socks_emitted_by_myself | grep "socks_redir" | awk '{print $NF}')
+
+    # delete rule with handle value
+    nft delete rule ip nat socks_emitted_by_myself handle "$rule_handle"
 }
 
 _chain_exists() {
-	iptables -w -t nat -nL "$1" 1>/dev/null 2>/dev/null
+	nft list chain ip nat "$1" 1>/dev/null 2>/dev/null
 }
 
 if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_redir"; then
@@ -19,6 +26,6 @@ fi
 
 trap : HUP INT TERM
 
-_ipt -A
+_rule_create
 curl http://$HOST/files/10Gio.dat >/dev/null || echo
-_ipt -D
+_rule_delete

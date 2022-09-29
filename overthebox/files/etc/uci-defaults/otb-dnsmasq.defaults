@@ -2,12 +2,14 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# Replace lease files as suggested here : https://github.com/openwrt/openwrt/issues/9064
 uci -q batch <<-EOF
 set dhcp.@dnsmasq[0].cachesize='8192'
 set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
 set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
+set dhcp.@dnsmasq[0].leasefile='/var/run/dnsmasq/dhcp.leases'
 add_list dhcp.@dnsmasq[0].server="91.121.61.147"
 add_list dhcp.@dnsmasq[0].server="87.98.149.171"
 add_list dhcp.@dnsmasq[0].server="91.121.58.181"
