@@ -95,7 +95,7 @@ function iface_get_network(iface)
 		for _, net in ipairs(dump.interface) do
 			if net.l3_device == iface or net.device == iface then
 				-- cross check with uci to filter out @name style aliases
-				local uciname = cur:get("network", net.interface, "ifname")
+				local uciname = cur:get("network", net.interface, "device")
 				if not uciname or uciname:sub(1, 1) ~= "@" then
 					return net.interface
 				end

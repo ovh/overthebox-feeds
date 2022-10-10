@@ -938,7 +938,7 @@ function protocol.add_interface(self, ifname)
 
 		-- add iface to our iface list
 		else
-			_append("network", self.sid, "ifname", ifname)
+			_append("network", self.sid, "device", ifname)
 		end
 	end
 end
@@ -951,7 +951,7 @@ function protocol.del_interface(self, ifname)
 		if wif then _filter("wireless", wif, "network", self.sid) end
 
 		-- remove the interface
-		_filter("network", self.sid, "ifname", ifname)
+		_filter("network", self.sid, "device", ifname)
 	end
 end
 
@@ -965,7 +965,7 @@ function protocol.get_interface(self)
 	else
 		local ifn = nil
 		local num = { }
-		for ifn in utl.imatch(_uci:get("network", self.sid, "ifname")) do
+		for ifn in utl.imatch(_uci:get("network", self.sid, "device")) do
 			ifn = ifn:match("^[^:/]+")
 			return ifn and interface(ifn, self)
 		end
