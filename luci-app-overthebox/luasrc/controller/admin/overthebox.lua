@@ -163,7 +163,8 @@ function interfaces_status()
   if f then
     local content = f:read("*all")
     f:close()
-    local ip = string.match(content, "X%-Otb%-Client%-Ip: (%d+%.%d+%.%d+%.%d+)", 0)
+    content = string.lower(content)
+    local ip = string.match(content, "x%-otb%-client%-ip: (%d+%.%d+%.%d+%.%d+)", 0)
     if ip then
       mArray.overthebox["wan_addr"] = ip
     end
