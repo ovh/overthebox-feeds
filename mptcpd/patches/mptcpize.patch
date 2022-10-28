@@ -1,0 +1,20 @@
+diff --git a/src/mptcpize.c b/src/mptcpize.c
+index b502d75..8acaaf6 100644
+--- a/src/mptcpize.c
++++ b/src/mptcpize.c
+@@ -8,6 +8,7 @@
+  */
+
+ #define  _GNU_SOURCE
++#include <compat.h>
+
+ #include <linux/limits.h>
+
+@@ -18,7 +19,6 @@
+ #include <argp.h>
+ #include <dlfcn.h>
+ #include <errno.h>
+-#include <error.h>
+ #include <fcntl.h>
+ #include <stdio.h>
+ #include <stdlib.h>

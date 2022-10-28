@@ -1,0 +1,29 @@
+diff --git a/include/mptcpd/private/sockaddr.h b/include/mptcpd/private/sockaddr.h
+index 1b8de34..eadd338 100644
+--- a/include/mptcpd/private/sockaddr.h
++++ b/include/mptcpd/private/sockaddr.h
+@@ -18,6 +18,24 @@
+
+ #include <mptcpd/export.h>
+
++/* define  __bswap_constant_xx when using little endian as byte order and macro was not defined previously*/
++#if __BYTE_ORDER == __LITTLE_ENDIAN 
++#ifndef __bswap_constant_16
++
++/* Swap bytes in 16 bit value.  */
++#define __bswap_constant_16(x) \
++     ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
++#endif /*__bswap_constant_16*/
++
++/* Swap bytes in 32 bit value.  */
++#ifndef __bswap_constant_32
++#define __bswap_constant_32(x) \
++     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) |                      \
++      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
++#endif /*__bswap_constant_32*/
++
++#endif /*__BYTE_ORDER == __LITTLE_ENDIAN*/
++
+ /**
+  * @name Swap host ordered bytes in an integer to network byte order.
+  *

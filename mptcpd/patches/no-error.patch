@@ -1,0 +1,46 @@
+diff --git a/src/compat.h b/src/compat.h
+new file mode 100644
+index 0000000..552c960
+--- /dev/null
++++ b/src/compat.h
+@@ -0,0 +1,39 @@
++#ifndef _COMPAT_H
++#define _COMPAT_H
++
++#ifdef HAVE_ERROR_H
++# include <error.h>
++#else
++# include <stdio.h>
++# include <stdarg.h>
++# include <stdlib.h>
++# include <string.h>
++static void error_at_line(int status, int errnum, const char *filename,
++                          unsigned int linenum, const char *format, ...)
++{
++	va_list ap;
++
++	fflush(stdout);
++
++	if (filename != NULL)
++		fprintf(stderr, "%s:%u: ", filename, linenum);
++
++	va_start(ap, format);
++	vfprintf(stderr, format, ap);
++	va_end(ap);
++
++	if (errnum != 0)
++		fprintf(stderr, ": %s", strerror(errnum));
++
++	fprintf(stderr, "\n");
++
++	if (status != 0)
++		exit(status);
++}
++
++#define error(status, errnum, ...) \
++	error_at_line(status, errnum, NULL, 0, __VA_ARGS__)
++
++#endif /* HAVE_ERROR_H */
++
++#endif /* _COMPAT_H */
+\ No newline at end of file

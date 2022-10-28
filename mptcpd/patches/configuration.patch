@@ -1,0 +1,14 @@
+diff --git a/src/configuration.c b/src/configuration.c
+index baefbab..4aec29a 100644
+--- a/src/configuration.c
++++ b/src/configuration.c
+@@ -59,7 +59,8 @@
+ # error Problem configuring default log message destination.
+ #endif
+ /// Name of the default logging function determined at compile-time.
+-#define MPTCPD_SET_LOG_FUNCTION MPTCPD_CONCAT(l_log_set_, MPTCPD_LOGGER)
++// This is temporary impelmentation !!
++#define MPTCPD_SET_LOG_FUNCTION MPTCPD_CONCAT_IMPL(l_log_set_, stderr)
+
+ /**
+  * @brief Get the function that sets the log message destination.
