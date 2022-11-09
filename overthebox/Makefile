@@ -2,17 +2,17 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.71.0
-PKG_RELEASE:=0
+PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
-	graph glorytun glorytun-udp mptcp shadowsocks-libev  \
-	kmod-macvlan jq curl ca-bundle ca-certificates \
-	otb-graph \
-	TARGET_x86:otb-v2b TARGET_x86:otb-v2c \
-	TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
-	@LIBCURL_THREADED_RESOLVER
+    glorytun glorytun-udp mptcp shadowsocks-libev  \
+    kmod-macvlan jq curl ca-bundle ca-certificates \
+    otb-graph \
+    TARGET_x86:otb-v2b TARGET_x86:otb-v2c \
+    TARGET_x86:kmod-cherrytrail-gpio-powerbutton \
+    @LIBCURL_THREADED_RESOLVER
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
