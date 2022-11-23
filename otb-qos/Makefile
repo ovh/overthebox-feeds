@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-qos
 PKG_VERSION:=0.12.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -27,13 +27,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
-	$(INSTALL_BIN) connectivity-change-hook.d/* $(1)/usr/share/otb/connectivity-change-hook.d
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) otb-cake-parser $(1)/bin/otb-cake-parser
-	$(INSTALL_BIN) bin $(1)/bin/${PKG_NAME}
+	$(CP) ./files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
