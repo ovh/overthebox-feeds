@@ -3,4 +3,4 @@
 
 set -ex
 
-iptables-save
+nft list ruleset
