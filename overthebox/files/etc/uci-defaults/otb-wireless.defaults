@@ -1,5 +1,0 @@
-#!/bin/sh
-# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-# netifd will fail to reload the network if the file if not present
-touch /etc/config/wireless

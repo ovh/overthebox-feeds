@@ -6,6 +6,15 @@
 
 rm -rf /tmp/luci-*
 
+OTB_KEY_FILE=/etc/opkg/keys/6bc78405bb9b7cc3
+
+[ -d "$OTB_KEY_FILE" ] && exit
+
+cat > "$OTB_KEY_FILE" <<EOF
+untrusted comment: OTB build key
+RWRrx4QFu5t8wxTWDz+ErjM4vJhhhPzPvEJqaheYtgQXZuFSa+ndn91U
+EOF
+
 if ! uci -q get system.@system[0].zonename >/dev/null; then
 	uci -q batch <<-EOF
 	set system.@system[0].zonename="Europe/Paris"
@@ -15,12 +24,24 @@ fi
 
 uci set "system.@system[0].ttylogin=1"
 
+# enable random key generator
+uci -q get system.@rngd[0] > /dev/null || uci -q add system rngd
+
+uci -q batch <<EOF
+set system.@rngd[0].enabled=1
+set system.@rngd[0].device=/dev/urandom
+EOF
+
+
 if [ "$(uci -q get system.@system[-1].hostname)" = "OpenWrt" ]; then
 	uci -q set system.@system[-1].hostname='OverTheBox'
 fi
 
-# Disable mini snmpd
+# disable mini snmpd
 [ -f "/etc/config/mini_snmpd" ] && uci -q set "mini_snmpd.default.enabled=0"
 
 # Add dmesg link
 [ ! -f "/bin/dmesg" ] && ln -s /usr/bin/dmesg /bin/dmesg
+
+# netifd may fail to reload the network if the file is not present
+[ ! -f "/etc/config/wireless" ] && touch "/etc/config/wireless"
