@@ -6,6 +6,7 @@ OTB_DATA_DIR="/tmp/otb-data"
 OTB_HEADERS_FILE="/tmp/otb-daemon-headers"
 OTB_CONFIG_CHECK_DIR="/usr/share/otb/config-check.d"
 OTB_PROVISIONING="otb.eu.ovhapis.com"
+OTB_SERVICE_API="169.254.254.1"
 
 mkdir -p "$OTB_DATA_DIR" "$OTB_TODO_DIR"
 
@@ -80,7 +81,7 @@ otb_call_api() {
 	curl --silent --show-error --max-time 1 \
 		-X "$method" \
 		-H "Content-Type: application/json" \
-		"http://api/$path" \
+		"http://$OTB_SERVICE_API/$path" \
 		"$@"
 }
 

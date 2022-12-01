@@ -21,37 +21,3 @@ fi
 
 # Disable mini snmpd
 [ -f "/etc/config/mini_snmpd" ] && uci -q set "mini_snmpd.default.enabled=0"
-
-config_load dhcp
-has_api_hostrecord=false
-_check_api_hostrecord() {
-	name=
-	config_get name "$1" name
-	[ "$name" = "api" ] && has_api_hostrecord=true
-}
-config_foreach _check_api_hostrecord hostrecord
-
-if [ "$has_api_hostrecord" = "false" ]; then
-	uci -q batch <<-EOF
-	add dhcp.api_hostrecord=api
-	set dhcp.api_hostrecord.name='api'
-	set dhcp.api_hostrecord.ip='169.254.254.1'
-	EOF
-fi
-
-# Update (and fix) /etc/hosts
-
-awk '!/#/{if(x[$1]++)next}{print $0}' > /tmp/hosts.new <<EOF
-$(cat /etc/hosts)
-169.254.254.1 api
-213.186.33.11 provisionning.overthebox.net
-EOF
-
-cmp -s /tmp/hosts.new /etc/hosts
-[ "$?" = 1 ] && cp -f /tmp/hosts.new /etc/hosts
-
-# TODO: check if we still need this with LEDE
-# Clean the ca-certificates files
-rm -f /etc/ssl/certs/ca-certificates.crt
-# Regenerate them
-cat /etc/ssl/certs/*.crt >/etc/ssl/certs/ca-certificates.crt
