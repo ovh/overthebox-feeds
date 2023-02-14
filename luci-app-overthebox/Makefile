@@ -7,10 +7,10 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI Support for the OverTheBox project
-LUCI_DEPENDS:=+bandwidth +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-ovh +otb-qos
+LUCI_DEPENDS:=+bandwidth +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-ovh +otb-qos +luci +luci-lib-px5g +luci-lib-json +luci-proto-3g
 
 PKG_VERSION:=v1.21.1
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include ../luci/luci.mk
 
