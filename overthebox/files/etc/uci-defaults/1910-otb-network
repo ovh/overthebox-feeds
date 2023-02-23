@@ -16,6 +16,7 @@
 uci -q batch <<EOF
 delete network.none
 delete network.if6rd
+delete network.wan6
 reorder network.loopback=0
 reorder network.globals=1
 reorder network.lan=2

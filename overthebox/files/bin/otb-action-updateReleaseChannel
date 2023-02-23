@@ -9,4 +9,4 @@ set -o pipefail
 . /etc/os-release
 
 otb_device_get release_channel | jq -r '.feeds[] | [.type,.name,.url] | join(" ")' | \
-	sed "s^@ARCH@^$LEDE_ARCH^; s^@BOARD@^$LEDE_BOARD^" > /etc/opkg/distfeeds.conf
+	sed "s^@ARCH@^$OPENWRT_ARCH^; s^@BOARD@^$OPENWRT_BOARD^" > /etc/opkg/distfeeds.conf
