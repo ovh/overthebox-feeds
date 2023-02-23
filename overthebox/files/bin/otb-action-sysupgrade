@@ -15,7 +15,12 @@ export_bootdevice || {
 otb_save_action_id "$1" 2>/dev/null || true
 
 if [ -z "$1" ]; then
-	url="$(grep core /etc/opkg/distfeeds.conf | cut -d' ' -f3)/../latest.img.gz"
+	# Get image URL from provisionning
+	prov_url="$(otb_device_get release_channel | jq -r '.image_url')"
+	case "$prov_url" in
+		http*.img.gz|ftp*.img.gz) url=$prov_url ;;
+		*) otb_err "No valid image URL found !" ; exit 1 ;;
+	esac 
 else
 	case "$1" in
 		http*.img.gz|ftp*.img.gz) url=$1 ;;
