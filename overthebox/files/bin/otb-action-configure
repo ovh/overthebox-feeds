@@ -47,7 +47,7 @@ _setup_glorytun() {
 
 	delete network.\(.dev)
 	set network.\(.dev)=interface
-	set network.\(.dev).ifname=\(.dev)
+	set network.\(.dev).device=\(.dev)
 	set network.\(.dev).proto=static
 	set network.\(.dev).ipaddr=\(.ip_local)
 	set network.\(.dev).netmask=255.255.255.0
@@ -79,7 +79,7 @@ _setup_glorytun_mud() {
 
 	delete network.\(.dev)
 	set network.\(.dev)=interface
-	set network.\(.dev).ifname=\(.dev)
+	set network.\(.dev).device=\(.dev)
 	set network.\(.dev).proto=static
 	set network.\(.dev).ipaddr=\(.ip_local)
 	set network.\(.dev).netmask=255.255.255.0
