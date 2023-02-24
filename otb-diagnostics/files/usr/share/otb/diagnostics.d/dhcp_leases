@@ -3,4 +3,5 @@
 
 set -ex
 
-ip route
+dhcp_lease_file=$(uci get dhcp.@dnsmasq[0].leasefile)
+cat $dhcp_lease_file

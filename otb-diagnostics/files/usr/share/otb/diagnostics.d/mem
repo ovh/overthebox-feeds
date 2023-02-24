@@ -3,4 +3,4 @@
 
 set -ex
 
-cat /tmp/dhcp.leases
+cat /proc/meminfo

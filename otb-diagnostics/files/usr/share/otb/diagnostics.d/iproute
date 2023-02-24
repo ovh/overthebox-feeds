@@ -3,4 +3,4 @@
 
 set -ex
 
-free -m
+ip route show table all

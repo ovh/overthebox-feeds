@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-diagnostics
-PKG_VERSION:=0.8.0
+PKG_VERSION:=0.8.1
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -22,10 +22,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) otb-action-diagnostic $(1)/bin
-	$(INSTALL_DIR) $(1)/usr/share/otb/diagnostics.d
-	$(INSTALL_BIN) diags/* $(1)/usr/share/otb/diagnostics.d
+	$(CP) ./files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

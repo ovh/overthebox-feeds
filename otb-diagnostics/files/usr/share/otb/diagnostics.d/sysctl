@@ -3,4 +3,4 @@
 
 set -ex
 
-dig www.ovh.com @127.0.0.1
+sysctl -a
