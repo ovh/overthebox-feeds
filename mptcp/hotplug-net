@@ -16,7 +16,7 @@ sysctl -qw net.mptcp.mptcp_enabled="$multipath_status"
 # Configuration by interface
 _setup_interface() {
 	device=
-	config_get device "$1" ifname
+	config_get device "$1" device
 	[ -z "$device" ] && return 0
 
 	if_multipath=
