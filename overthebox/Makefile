@@ -2,13 +2,13 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
 PKG_VERSION:=0.71.2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
 MY_DEPENDS := \
     glorytun glorytun-udp mptcp shadowsocks-libev  \
-    kmod-macvlan jq curl ca-bundle ca-certificates \
+    kmod-macvlan jq curl ca-bundle ca-certificates iperf3 \
     otb-graph \
     TARGET_x86:otb-v2b TARGET_x86:otb-v2c \
     @LIBCURL_THREADED_RESOLVER
