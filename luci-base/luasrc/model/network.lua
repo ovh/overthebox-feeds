@@ -508,7 +508,7 @@ function get_interfaces(self)
 			if not base then
 				if not s.device:match("^eth%d") then
 					local l
-					for l in utl.execi("swconfig dev %q help 2>/dev/null" % s.device) do
+					for l in utl.execi("swconfig-v2b help 2>/dev/null") do
 						if not base then
 							base = l:match("^%w+: (%w+)")
 						end

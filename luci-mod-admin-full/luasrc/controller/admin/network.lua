@@ -430,7 +430,7 @@ end
 function action_switch_set_conf()
         local http = require "luci.http"
         local wans = luci.http.formvalue("wans")
-        luci.sys.call("swconfig-reset " .. wans .. " >/dev/null 2>/dev/null")
+        luci.sys.call("swconfig-v2b-reset " .. wans .. " >/dev/null 2>/dev/null")
         luci.http.prepare_content("application/json")
         luci.http.write_json("OK")
 end

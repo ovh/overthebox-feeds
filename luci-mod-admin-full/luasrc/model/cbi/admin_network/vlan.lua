@@ -25,8 +25,8 @@ m.uci:foreach("network", "switch",
 		local switch_title
 		local enable_vlan4k = false
 
-		-- Parse some common switch properties from swconfig help output.
-		local swc = io.popen("swconfig dev %q help 2>/dev/null" % switch_name)
+		-- Parse some common switch properties from swconfig-v2b help output.
+		local swc = io.popen("swconfig-v2b help 2>/dev/null")
 		if swc then
 
 			local is_port_attr = false

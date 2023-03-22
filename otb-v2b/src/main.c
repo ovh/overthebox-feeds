@@ -51,9 +51,18 @@ die(const char *restrict fmt, ...)
 int
 main(int argc, char **argv)
 {
+    
+    //check if help subcommand is required
+    if (strcmp(argv[1], "help") == 0)
+    {
+        // switch characteristics ob otb v2b, these informations will be consumes by web page
+        printf("otbv2sw: otbv2sw(TG-NET S3500-15G-2F), ports: 18 (cpu @ 15), vlans: 4094\n");
+        return 0;
+    }
+    
     if (argc < 4)
         die("usage: %s set VLAN PORT [PORT...]\n", argv[0]);
-
+    //check if subcommand is not set
     if (strcmp(argv[1], "set"))
         die("unknown command: %s\n", argv[1]);
 
