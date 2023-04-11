@@ -1,0 +1,23 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+
+# Migration from 0.8.0 to 0.9.0
+_replace_ifname_to_device() {
+	
+	ifname=
+	ifname="$(uci -q get network."$1".ifname)"
+
+	[ -z "$ifname" ] && return
+
+	uci -q batch <<-EOF
+		delete network.$1.ifname
+		set network.$1.device=$ifname
+	EOF
+	
+}
+
+config_load network
+config_foreach _replace_ifname_to_device interface
