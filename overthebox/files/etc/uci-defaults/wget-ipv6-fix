@@ -1,0 +1,11 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# opkg uses wget which is a sym-link to uclient-fetch package 
+# this package causes random fails when ipv6 is deactivated
+# this script forces uclient-fetch package to always use only ipv4 flag
+
+if ! grep "#!/bin/sh" /bin/uclient-fetch; then
+	mv /bin/uclient-fetch /bin/uclient-fetch.bak
+	printf "#!/bin/sh\n/bin/uclient-fetch.bak -4 \"\$@\"\n" > /bin/uclient-fetch && chmod +x /bin/uclient-fetch
+fi
