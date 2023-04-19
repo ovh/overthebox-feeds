@@ -134,8 +134,11 @@ config_load network
 config_foreach _rename_to_ifX interface
 
 _setup() {
-	# Disable ipv6 on all interfaces
-	uci -q set "network.$1.ipv6=0"
+	# Disable ipv6 on all interfaces except for loopback
+	[ "$1" != "loopback" ] && {
+			uci -q set "network.$1.ipv6=0"
+			uci commit 
+		}
 
 	case "$1" in
 	wan?*)
@@ -176,8 +179,8 @@ _setup() {
 		;;
 	esac
 }
-config_load network
-config_foreach _setup interface
+	config_load network
+	config_foreach _setup interface
 
 # Add the lan as a named routing table
 if ! grep -s -q "lan" /etc/iproute2/rt_tables; then
