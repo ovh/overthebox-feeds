@@ -23,6 +23,7 @@ local tools = require "luci.tools.status"
 local sys   = require "luci.sys"
 local json  = require("luci.json")
 local ucic  = uci.cursor()
+local api = "169.254.254.1"
 module("luci.controller.admin.overthebox", package.seeall)
 
 function index()
@@ -84,14 +85,14 @@ function new_interface()
     devID = ifID.."_dev"
     ucic:set("network", devID, "device")
     ucic:set("network", devID, "name", ifID)
-    ucic:set("network", devID, "ifname", ifname)
+    ucic:set("network", devID, "device", ifname)
     ucic:set("network", devID, "type", "macvlan")
     ifname = ifID
   end
 
   -- Create the interface
   ucic:set("network", ifID, "interface")
-  ucic:set("network", ifID, "ifname", ifname)
+  ucic:set("network", ifID, "device", ifname)
   ucic:set("network", ifID, "proto", protocol)
   ucic:set("network", ifID, "label", interface_name)
   ucic:set("network", ifID, "multipath", "on")
@@ -251,7 +252,7 @@ function interfaces_status()
     -- Don't show if0 in the overview
     if interface == "if0" then return end
 
-    local ifname = section['ifname']
+    local ifname = section['device']
     local dataPath = "/tmp/otb-data/" .. interface .. "/"
 
     local asn
@@ -356,7 +357,7 @@ function get_interface_from_metric(metric)
     function (interface)
       local a = interface["metric"]
       if ifname == metric and a == tostring(metric) then
-        ifname = interface["ifname"]
+        ifname = interface["device"]
         return
       end
     end
@@ -407,21 +408,21 @@ function tc_stats()
         return
       end
 
-      local cakestats = json.decode(sys.exec("tc -s q s dev " .. interface["ifname"] .. " | otb-cake-parser"))
+      local cakestats = json.decode(sys.exec("tc -s q s dev " .. interface["device"] .. " | otb-cake-parser"))
       if cakestats then
         for i,stat in pairs(cakestats) do
           local label = get_qos_label(i, "upload")
           if result["upload"][label] == nil then
             result["upload"][label] = {}
           end
-          result["upload"][label][interface["ifname"]] = { bytes=stat["bytes"], pkt=stat["pkts"], dropped=0, overlimits=0, requeues=0 }
+          result["upload"][label][interface["device"]] = { bytes=stat["bytes"], pkt=stat["pkts"], dropped=0, overlimits=0, requeues=0 }
         end
       end
     end
   )
 
   result["download"] = {}
-  local tcstats = json.decode(sys.exec("curl -s --max-time 1 api/qos/tcstats"))
+  local tcstats = json.decode(sys.exec("curl -s --max-time 1 " .. api .. "/qos/tcstats"))
   if tcstats and tcstats.raw_output then
 
     for line in string.gmatch(tcstats.raw_output, '[^\r\n]+') do
@@ -505,7 +506,7 @@ function multipath_bandwidth()
   uci:foreach("network", "interface",
   function (section)
     local interface = section[".name"]
-    local dev = section["ifname"]
+    local dev = section["device"]
     if dev ~= "lo" then
       local multipath = section["multipath"]
       bandwidth = luci.sys.exec("luci-bwc -i %q 2>/dev/null" % dev)
