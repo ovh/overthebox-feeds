@@ -45,7 +45,7 @@ set network.@switch_vlan[-1].device='otbv2sw'
 set network.@switch_vlan[-1].vlan='2'
 set network.@switch_vlan[-1].ports='$LAN 15t'
 
-set network.lan.ifname='eth0.2'
+set network.lan.device='eth0.2'
 EOF
 
 vlan=3
@@ -60,7 +60,7 @@ for port in $WAN; do
 	set network.@switch_vlan[-1].ports='$port 15t'
 
 	set network.wan$port=interface
-	set network.wan$port.ifname='eth0.$vlan'
+	set network.wan$port.device='eth0.$vlan'
 	set network.wan$port.multipath='on'
 	set network.wan$port.proto='dhcp'
 	set network.wan$port.metric='$port'
