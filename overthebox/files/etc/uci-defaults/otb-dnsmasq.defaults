@@ -8,6 +8,9 @@ set dhcp.@dnsmasq[0].filter_aaaa='1'
 set dhcp.@dnsmasq[0].all_servers='1'
 set dhcp.@dnsmasq[0].authoritative='1'
 set dhcp.@dnsmasq[0].quietdhcp='1'
+add_list dhcp.@dnsmasq[0].server="91.121.61.147"
+add_list dhcp.@dnsmasq[0].server="87.98.149.171"
+add_list dhcp.@dnsmasq[0].server="91.121.58.181"
 delete dhcp.@dnsmasq[0].nonegcache
 delete dhcp.lan.ra
 delete dhcp.lan.ra_default
