@@ -4,4 +4,4 @@
 set -ex
 
 dhcp_lease_file=$(uci get dhcp.@dnsmasq[0].leasefile)
-cat $dhcp_lease_file
+cat "$dhcp_lease_file"

@@ -12,7 +12,7 @@ id=$(otb_json_get "$1" id)
 # Get the diags from the arguments
 DIAGS=$(otb_json_get "$1" "arguments.diags[]?")
 # If no argument is given, fallback to the diag directory
-[ -z "$DIAGS" ] && DIAGS=$(find -type f -perm 755)
+[ -z "$DIAGS" ] && DIAGS=$(find . -type f -perm 755)
 
 # shellcheck disable=SC2016
 create_diag_data=$(jq -n -c --arg id "$id" '{ device_action_id: $id }')
@@ -40,6 +40,6 @@ for diag in $DIAGS; do
 						 }')
 
 	echo "$diag"
-	otb_device_post "diagnostics/$diag_id" --data "$post_data"
+	otb_device_put "diagnostics/$diag_id" --data "$post_data"
 	echo
 done

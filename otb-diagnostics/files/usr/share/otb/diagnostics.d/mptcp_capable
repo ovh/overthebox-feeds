@@ -1,13 +1,16 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# shellcheck disable=SC1091
 set -e
 
 . /lib/functions.sh
 . /lib/functions/network.sh
 
 check_interface() {
-	local device output gateway
+	device=
+	output=
+	gateway=
 	config_get device "$1" device
 	network_get_gateway gateway "$1" || true
 	if [ -z "$gateway" ]; then
