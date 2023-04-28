@@ -38,9 +38,9 @@ fi
 
 otb_debug "Remote access $remote_access_id config written in uci"
 
-[ -s /etc/dropbear/dropbear_rsa_host_key ] || exit
+[ -s /etc/dropbear/dropbear_ed25519_host_key ] || exit
 
-pubkey=$(dropbearkey -y -f /etc/dropbear/dropbear_rsa_host_key | grep ssh-rsa)
+pubkey=$(dropbearkey -y -f /etc/dropbear/dropbear_ed25519_host_key | grep ssh-ed25519)
 
 otb_debug "Remote access $remote_access_id sending public key"
 
