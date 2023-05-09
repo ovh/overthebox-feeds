@@ -2,6 +2,7 @@
 
 set -e
 . /lib/overthebox
+. /lib/functions.sh
 
 HOST=${1:-none}
 FREQ=${2:-60}
@@ -12,6 +13,15 @@ _add() {
     PERIOD=,
 }
 
+_get_uci_name() {
+
+    config_get device "$1" device
+    [ -n "$device" ] && [ "$2" =  "$device" ] && {
+        LOCAL_NAME="$1"
+        return
+    }
+}
+
 _graph() {
     PERIOD=
 
@@ -20,7 +30,10 @@ _graph() {
     while read -r IFACE RX _ _ _ _ _ _ _ TX _ ; do
         case "${IFACE}" in
         *:)
-            LOCAL_NAME=$(/sbin/uci -q show "network" | grep "'${IFACE%:}'" | cut -d. -f2)
+            LOCAL_NAME=none
+            config_load network
+            config_foreach _get_uci_name interface "${IFACE%:}"
+
             # Send latency of intefaces
             LATENCY_FILE_NAME=/tmp/otb-data/$LOCAL_NAME/latency
             if [ -f "$LATENCY_FILE_NAME" ]
@@ -33,7 +46,6 @@ _graph() {
             fi
 
             # Adding the rate counter
-            LOCAL_NAME=${LOCAL_NAME:-none}
             _add "linux_net_bytes" "${RX}" ',"direction":"in","iface":"'"${IFACE%:}"'","uci_name":"'"$LOCAL_NAME"'"'
             _add "linux_net_bytes" "${TX}" ',"direction":"out","iface":"'"${IFACE%:}"'","uci_name":"'"$LOCAL_NAME"'"'
             ;;
