@@ -14,6 +14,8 @@ if [ -f "$public_ip_file" ]; then
 	[ "$elapsed_time" -lt 300 ] && exit
 fi
 
+otb_debug "Starting refreshing WAN IP/ASN informations"
+
 url_list="
 	ifconfig.ovh
 	ipaddr.ovh
@@ -35,15 +37,21 @@ for url in $url_list; do
 done
 [ -z "$pub_ip" ] && exit 1
 
+otb_debug "Updating public IP to $pub_ip"
+
 pub_ip_old=$(otb_get_data "$OTB_TRACKER_INTERFACE/public_ip")
 otb_set_data "$OTB_TRACKER_INTERFACE/public_ip" "$pub_ip"
 
+asn=$(_curl https://iptoasn.isp.ovh.net/v1/as/ip/"$pub_ip")
+if [ -z "$asn" ]; then
+	otb_warn "Fail to refresh ASN for IP $pub_ip"
+else
+	otb_debug "Updating ASN to $asn for IP $pub_ip"
+	otb_set_data "$OTB_TRACKER_INTERFACE/asn" "$asn"
+fi
+
 [ "$pub_ip" = "$pub_ip_old" ] && exit 0
 
+_log "Setup QoS on new public ip interface $OTB_TRACKER_INTERFACE"
 # Setup the QoS on the interface when it gets a new public IP
 otb-qos setup "$OTB_TRACKER_INTERFACE"
-
-asn=$(_curl iptoasn.isp.ovh.net/v1/as/ip/"$pub_ip")
-[ -z "$asn" ] && exit 1
-
-otb_set_data "$OTB_TRACKER_INTERFACE/asn" "$asn"

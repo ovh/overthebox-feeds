@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=1091
 
 [ -n "$1" ] || exit
 
@@ -34,7 +35,7 @@ host_length="$(echo "$hosts" | awk '{n=split($0,array," "); print(n);}')"
 while true; do
 	host_index=1
 
-	# Flush network cache to avoid obselete IP addresses 
+	# Flush network cache to avoid obsolete IP addresses
 	network_flush_cache
 	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit
 
