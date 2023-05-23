@@ -2,14 +2,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-graph
 PKG_VERSION:=1.1.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
-SECTION:=base
-CATEGORY:=Base system
-DEPENDS:=+curl +overthebox
+SECTION:=OVH
+CATEGORY:=OverTheBox
+DEPENDS:=+curl
 TITLE:=Provisioning Graph
 endef
 
