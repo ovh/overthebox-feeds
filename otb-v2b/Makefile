@@ -1,15 +1,19 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-v2b
-PKG_VERSION:=1.1.2
+PKG_VERSION:=1.1.3
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
+
+MY_DEPENDS := \
+	intel-microcode \
 
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
 TITLE:=$(PKG_NAME)
+DEPENDS:=$(foreach p,$(MY_DEPENDS),+$(p))
 KCONFIG:=\
     CONFIG_KEYBOARD_GPIO=y \
     CONFIG_PINCTRL_CHERRYVIEW=y \
