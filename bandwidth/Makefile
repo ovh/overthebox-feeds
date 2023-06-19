@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bandwidth
 PKG_VERSION:=1.0.0
-PKG_RELEASE=1
+PKG_RELEASE=2
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -21,12 +21,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) bin $(1)/bin/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)
-	$(INSTALL_DATA) *.awk $(1)/usr/share/$(PKG_NAME)
+	$(CP) ./files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
