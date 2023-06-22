@@ -52,12 +52,12 @@ autoqos() {
 }
 
 setup() {
-	otb_call_api POST ipt/iperf >/dev/null || return
+	otb_call_api POST nft/iperf >/dev/null || return
 	/etc/init.d/otb-qos stop 2>/dev/null   || true
 }
 
 cleanup() {
-	otb_call_api DELETE ipt/iperf >/dev/null
+	otb_call_api DELETE nft/iperf >/dev/null
 	/etc/init.d/otb-qos start
 }
 
