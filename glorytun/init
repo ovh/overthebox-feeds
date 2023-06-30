@@ -48,7 +48,7 @@ start_instance() {
 
 	procd_open_instance
 
-	procd_set_param mptcpize run command ${PROG} \
+	procd_set_param command mptcpize run ${PROG} \
 		keyfile /tmp/${PROG_NAME}.key \
 		host "$server" \
 		port "$port" \
