@@ -1,0 +1,27 @@
+{
+  "admin/overthebox": {
+    "title": "OverTheBox",
+    "order": 1,
+    "action": {
+      "type": "firstchild"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
+  },
+  "admin/overthebox/overview": {
+    "title": "Overview",
+    "order": 1,
+    "action": {
+      "type": "view",
+      "path": "overthebox/overview"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
+  }
+}

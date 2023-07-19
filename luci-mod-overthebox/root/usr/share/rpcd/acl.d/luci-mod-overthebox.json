@@ -1,0 +1,41 @@
+{
+  "luci-mod-overthebox-overview": {
+    "description": "Grant UCI access to OverTheBox configuration",
+    "read": {
+      "file": {
+        "/etc/otb-version": [
+          "read"
+        ],
+        "/tmp/otb-data/*/*": [
+          "read"
+        ]
+      },
+      "ubus": {
+        "file": [
+          "read"
+        ],
+        "system": [
+          "board",
+          "info"
+        ],
+        "uci": [
+          "get"
+        ]
+      },
+      "uci": [
+        "overthebox"
+      ]
+    },
+    "write": {
+      "ubus": {
+        "uci": [
+          "set",
+          "commit"
+        ]
+      },
+      "uci": [
+        "overthebox"
+      ]
+    }
+  }
+}
