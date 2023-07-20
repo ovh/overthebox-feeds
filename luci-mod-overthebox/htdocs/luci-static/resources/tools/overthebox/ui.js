@@ -24,6 +24,29 @@ return L.Class.extend({
         ) : null
     },
 
+    formatEthSpeed: function (speed, duplex) {
+        if (speed && duplex) {
+            let d = (duplex == 'half') ? '\u202f(H)' : '',
+                e = E('span', { 'title': _('Speed: %d Mibit/s, Duplex: %s').format(speed, duplex) });
+
+            switch (speed) {
+                case 10: e.innerText = '10\u202fM' + d; break;
+                case 100: e.innerText = '100\u202fM' + d; break;
+                case 1000: e.innerText = '1\u202fGbE' + d; break;
+                case 2500: e.innerText = '2.5\u202fGbE'; break;
+                case 5000: e.innerText = '5\u202fGbE'; break;
+                case 10000: e.innerText = '10\u202fGbE'; break;
+                case 25000: e.innerText = '25\u202fGbE'; break;
+                case 40000: e.innerText = '40\u202fGbE'; break;
+                default: e.innerText = '%d\u202fMbE%s'.format(speed, d);
+            }
+
+            return e;
+        }
+
+        return _('No link');
+    },
+
     // We are expecting an array like [name1, value1, name2, value2]
     createTabularElem: function (fields) {
         let table = E('table', { 'class': 'table' });
@@ -46,7 +69,7 @@ return L.Class.extend({
         }
 
         let collapse = E('details', { 'class': 'otb-details', 'id': name }, [
-            E('summary', { 'class': 'otb-summary', 'style':'background-color:'+ color }, summary),
+            E('summary', { 'class': 'otb-summary', 'style': 'background-color:' + color }, summary),
             body
         ]);
 
@@ -62,4 +85,14 @@ return L.Class.extend({
         return collapse;
     },
 
+    // This create a luci ifacebox elements
+    // Head and body should be array
+    createIfaceElem: function (head, body) {
+        let box = E('div', { 'class': 'ifacebox', 'style': 'margin:.35em;min-width:125px;max-width:450px' });
+
+        box.appendChild(E('div', { 'class': 'ifacebox-head', 'style': 'font-weight:bold' }, head))
+        box.appendChild(E('div', { 'class': 'ifacebox-body' }, body))
+
+        return box
+    }
 });
