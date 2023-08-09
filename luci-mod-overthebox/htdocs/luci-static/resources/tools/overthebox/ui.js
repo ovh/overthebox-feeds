@@ -98,5 +98,14 @@ return L.Class.extend({
         box.appendChild(E('div', { 'class': 'ifacebox-body' }, body))
 
         return box
+    },
+
+    // Create a select element
+    createSelectElem: function (options) {
+        let select = E('select', { 'class': 'cbi-input-select' })
+        for (let key in options) {
+            select.appendChild(E('option', { 'value': key }, options[key]))
+        }
+        return select;
     }
 });
