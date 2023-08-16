@@ -12,7 +12,7 @@ PKG_NAME:=shadowsocks-libev
 
 PKG_SOURCE_PROTO=git
 PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
-PKG_SOURCE_VERSION:=abcf85e98300762e4f31953cecf635ab182ef859
+PKG_SOURCE_VERSION:=d61d09aa0caecf31a39660f3a8f0676e53db129e
 
 PKG_LICENSE:=GPL-3.0+
 
