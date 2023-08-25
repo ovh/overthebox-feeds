@@ -12,7 +12,7 @@ EXTRA_COMMANDS="ifup ifdown"
 EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
         ifdown  Disable the hook to prevent traffic from being routed through ss-redir"
 
-# iptables/ipset architecture used in this script for ss-redir:
+# nftable architecture used in this script for ss-redir:
 # PREROUTING/nat
 #   - delegate_prerouting (for OpenWRT and user DNAT)
 #   - socks_hook (This is the main "cable" when we want to enable routing through shadowsocks)
@@ -22,7 +22,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 #               - REDIRECT rule, one for each DSCP (CS1 to CS7), and the last rule is default DSCP
 
 # When reloading:
-# iptables/ipset global skeleton doesn't change.
+# nftable global skeleton doesn't change.
 # Only socks_hook and socks_redir **content** change
 # There is also an ipset swap between socks_staging <-> socks_bypass
 # PREROUTING only changes upon ifup/ifdown
@@ -32,7 +32,7 @@ _log() {
 	logger -t $PROG_NAME-initd -p "$@"
 }
 
-CHAINS="socks_hook socks_decision socks_redir socks_emitted_by_myself socks_tracker"
+CHAINS="socks_hook socks_decision socks_redir socks_emitted_by_myself socks_tracker_and_api"
 
 # List of destinations ports in tcp that will bypassed shadowsocks
 BYPASSED_PORTS="1723"
@@ -140,7 +140,7 @@ _shadow_init_once() {
 	_launch_tracker "$1"
 }
 
-# I'm stateless, I don't make any assumptions on iptables or ipset state.
+# I'm stateless, I don't make any assumptions on nftable.
 # Call me whenever you want to transition from unknown state to a known, clean one
 _nft_clean_all() {
     #Flush table NAT
@@ -213,7 +213,7 @@ _launch_shadow() {
 	done
 }
 
-# This sets up the common ipt skeleton that doesn't change across reloads
+# This sets up the common nft skeleton that doesn't change across reloads
 # Don't call me upon reload. Call me only when starting the service
 _nft_init_skeleton() {
 	# First, make sure we start from a known state.
@@ -244,7 +244,7 @@ _nft_init_skeleton() {
 
 	# Create base chain OUTPUT
 	nft create chain ip nat OUTPUT '{ type nat hook output priority -100; policy accept; }' 2> /dev/null
-	nft add rule ip nat OUTPUT ip protocol tcp counter jump socks_tracker
+	nft add rule ip nat OUTPUT ip protocol tcp counter jump socks_tracker_and_api
 
 	# Now, everything is glued together except socks_hook which is not connected to socks_decision yet.
 	# PREROUTING isn't linked to socks_hook either, traffic doesn't flow through ss-redir for now.
@@ -454,24 +454,26 @@ _update_socks_hook_one_if() {
 	nft add rule ip nat socks_hook iifname "$device" counter jump socks_decision
 }
 
-# If the param "monitoring_ip" is there, we need to add an ipt rule to nat/OUTPUT
+# Add an nft rule to nat/OUTPUT for both monitoring_ip and api_ip 
 # $1 is a ref to the shadowsocks uci section (type =client)
 _update_nft_monitoring_ip_rule() {
 	local lport monitoring_ip
 
 	config_get lport "$1" lport ""
 	config_get monitoring_ip "$1" monitoring_ip ""
+	api_ip="169.254.254.1"
 
 	# First, let's empty the chain!
 	# Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
-	nft flush chain ip nat socks_tracker
+	nft flush chain ip nat socks_tracker_and_api
 
 	# Only add the rule if monitoring_ip is set and the tracker binary is there
 	if [ -n "$monitoring_ip" ] && [ -x "$TRACKER" ]; then
 		# Add the special rule so that when we send a packet to the monitoring_ip, it flows through ss-redir
 		# Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
 		# If shadowsocks is manually stopped, mud will provide network access to API config
-		nft add rule ip nat socks_tracker ip protocol tcp ip daddr "$monitoring_ip/32" counter redirect to :$((lport + TRACKER_CS)) comment \"shadowsocks_tracker CS$TRACKER_CS \"
+		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$monitoring_ip/32" counter redirect to :$((lport + TRACKER_CS)) comment \"shadowsocks_tracker CS$TRACKER_CS \"
+		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$api_ip/32" counter redirect to :8388 comment \"api \"
 	else
 		# When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
 		# Let's plug the cable in! :p
