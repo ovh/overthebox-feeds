@@ -1,0 +1,21 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+config_load network 
+
+adapt_multipath_config() {
+
+	device=
+	config_get device "$1" device
+	[ -z "$device" ] && return 0
+
+	if_multipath=
+	config_get if_multipath "$1" multipath "off"
+
+	# Handover is not supported by MPTCPv1
+	[ "$if_multipath" = "handover" ] && {
+		config_set "$1" multipath "on"
+	}
+}
+
+config_foreach adapt_multipath_config interface

@@ -1,18 +1,33 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+# Get device name of tracker device
+device=$(uci -q get network.OTB_TRACKER_DEVICE.device)
+[ -z "$device" ] &&  exit 0
+
+_add_mptcp_endpoint() {
+	ip mptcp endpoint add "$1" dev "$2" "$@"
+}
+
+_delete_mptcp_endpoint() {
+	id=
+	id=$(ip mptcp endpoint | grep "$1" | awk '{print $3}')
+	[ -z "$id" ] && return 1
+
+	ip mptcp enpoint delete id "$id"
+}
 # Get the current multipath status
 multipath_status="off"
-case "$(multipath "$OTB_TRACKER_DEVICE")" in
-	*default*)      multipath_status="on"       ;;
+case $(ip mptcp endpoint show | grep "$device") in
+	*subflow*)      multipath_status="on"       ;;
 	*backup*)       multipath_status="backup"   ;;
-	*handover*)     multipath_status="handover" ;;
+	*) _log "Invalid multipath configuration"  exit 1 ;; 
 esac
 
 # An interface in error will never be used in MPTCP
 if [ "$OTB_TRACKER_STATUS" = "ERROR" ]; then
 	[ "$multipath_status" = "off" ] && exit 0
 	_log "$OTB_TRACKER_DEVICE switched off"
-	multipath "$OTB_TRACKER_DEVICE" off
+	_delete_mptcp_endpoint "$device"
 	exit 0
 fi
 
@@ -20,5 +35,21 @@ multipath_config=$(uci -q get "network.$OTB_TRACKER_INTERFACE.multipath" || echo
 [ "$multipath_config" = "master" ] && multipath_config="on"
 [ "$multipath_status" = "$multipath_config" ] && exit 0
 
+# Delete old endpoint
+_delete_mptcp_endpoint "$device"
+
+# Get ipv4 address
+ipv4=$(ifstatus "$OTB_TRACKER_DEVICE" | jq '.["ipv4-address"][0]["address"]' | sed 's/"//g')
+[ -z "$ipv4" ] && {
+	_log "failed to retreive ip address of $OTB_TRACKER_DEVICE"
+	exit 0
+}
+
 _log "$OTB_TRACKER_DEVICE switched to $multipath_config"
-multipath "$OTB_TRACKER_DEVICE" "$multipath_config"
+
+# shellcheck disable=SC2086
+case $multipath_config in
+	on) _add_mptcp_endpoint $ipv4 $device subflow signal;; 
+	backup) _add_mptcp_endpoint $ipv4 $device backup;;
+esac
+
