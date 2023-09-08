@@ -17,6 +17,170 @@ function activate (step) {
     switch (step.name) {
         case 'step1':
         case 'step2':
+        case 'step3':
+    }
+}
+
+return view.extend({
+        title: _('Register'),
+        step: {},
+
+        load: function () {
+            let auth = ovhapi.authentication()
+                .then(response => {
+                    if (!response.ok) {
+                        return 'login'
+                    }
+
+                    return 'associate'
+                })
+                .then(name => {
+                    this.step.name = name;
+                    switch (name) {
+                        case 'associate':
+                            this.step.value = [];
+                            return ovhapi.services()
+                                .then(response => response.json())
+                                .then(data => {
+                                    let call = [];
+                                    data.forEach(id => {
+                                        this.step.value.push({ name: id, details: {}, device:{} });
+
+                                        let serviceDetails = ovhapi.service(id)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                let service = this.step.value.find(({name}) => name === data.serviceName);
+                                                service.details = data;
+                                            });
+
+                                        call.push(serviceDetails);
+
+                                        let deviceDetails = ovhapi.device(id)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                let service = this.step.value.find(({name}) => name === id);
+                                                service.device = data;
+                                            });
+
+                                        call.push(deviceDetails);
+
+                                    });
+                                    return Promise.all(call)
+                                })
+                        default:
+                            return Promise.resolve(null);
+                    };
+                })
+
+                return Promise.all([
+                        L.resolveDefault(uci.load('overthebox')),
+                        auth
+                        // L.resolveDefault(callSystemInfo(), {}),
+                        // fs.lines('/etc/otb-version')
+                ]);
+        },
+
+        render: function (data) {
+                console.log(uci.sections('overthebox', 'config', 'me'));
+                let box = E('div', { 'class': 'cbi-section' }, [
+                        E('h1', this.title)
+                ]);
+
+                console.log('data '+JSON.stringify(data))
+
+                // We check if a service exist in config
+                const serviceID = uci.get('overthebox', 'me', 'service');
+
+                // Service need registration
+                // step1 will ask user to login to OVHcloud API
+                // step2 will ask user to select a service for association
+                // A service has already been associated, we skip first two step
+                if (serviceID) {
+                    // We check if service is activated
+                    const needsActivation = uci.get('overthebox', 'me', 'needs_activation');
+                    if (needsActivation === 'true') {
+                        // User need to activate his service
+                        this.step = { name: 'activate', value: { serviceID: serviceID }};
+                    } else {
+                        // All good user can enjoy his service
+                        const deviceID = uci.get('overthebox', 'me', 'device_id');
+                        this.step = { name: 'enjoy', value: { serviceID: serviceID, deviceID: deviceID}}
+                    }
+                }
+
+                // We append dynamic content based on registration status
+                box.appendChild(this.dispatch())
+                return box
+        },
+
+        dispatch: function() {
+            console.log('step '+JSON.stringify(this.step));
+
+            // Dispatch to the correct renderer
+            switch (this.step.name) {
+                case 'login':
+                    // No service found, user need to logged in to OVHcloud API to retrieve his available services
+                    return this.renderLogin()
+
+                case 'associate':
+                    // No service found, user is logged in and need to select a service to associate his device with
+                    return this.renderAssociate()
+
+                case 'activate':
+                    // Service found, but is deactivated, user need to confirm activation with OTB ovhapis
+                    return this.renderActivate()
+
+                case 'enjoy':
+                    // Service found and activated, user can just enjoy his service
+                    return this.renderEnjoy()
+            }
+        },
+
+        // No service found, user need to logged in to OVHcloud API to retrieve his available services
+        renderLogin: function(step) {
+            let loginBtn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Login'}, 'Login');
+
+            loginBtn.onclick = () => {
+                console.log('click');
+                ovhapi.connect()
+                .then(data => {
+                    console.log('data '+JSON.stringify(data));
+                    ovhapi.consumer = data.consumerKey
+                    console.log('url: '+data.validationUrl)
+                    if (!data.validationUrl) {
+                        ui.addNotification(null, E('p',  'Error: No validation URL is invalid'));
+                    } else {
+                        const d = new Date();
+                        d.setTime(d.getTime() + (24*60*60*1000));
+                        let expires = "expires="+ d.toUTCString();
+                        document.cookie ='consumerKey='+data.consumerKey+' ;'+expires+' ;SameSite=Lax;';
+                        window.location.href=data.validationUrl;
+                    }
+                })
+                .catch(err => {
+                    console.log('error : '+err);
+                    ui.addNotification(null, E('p', 'Error while connecting to OVHcloud API : ' + err.status + ' ' + err.statusText) );
+            });
+        };
+
+        return E('div', [
+            E('h2', _('Install easily your OverTheBox Service')),
+            E('h3', _('')),
+            E('p', _('You need to register this device with your subscription by signing-in to your OVHcloud account')),
+            E('p', {'class': 'cbi-value-description'}, [
+                _('You will be redirected to a page named') +' ',
+                E('strong', _('Permission to access your account')),
+                E('br'),
+                _('Please click on the button') + ' ',
+                E('strong', _('Authorize Access')),
+                ' '+_('to login')
+            ]),
+            loginBtn
+        ]);
+
+        },
+
+        renderAssociate:function() {
             // let services = ovhapi.services()
             //     .then(response => response.json())
             //     .then(data => {
@@ -50,7 +214,7 @@ function activate (step) {
             //     E('p', _('Select the service you wish to associate with this device'))
             // ]);
 
-            step.value.forEach(s => {
+            this.step.value.forEach(s => {
                 choices[s.details.serviceName] = s.details.customerDescription
 
                 let lastSeen = '';
@@ -140,7 +304,9 @@ function activate (step) {
             ])
             choiceDetails.forEach(table => box.appendChild(table));
             return box;
-        case 'step3':
+        },
+
+        renderActivate:function() {
             let activateBtn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Activate'}, 'Activate');
 
             activateBtn.onclick = () => {
@@ -166,169 +332,6 @@ function activate (step) {
                 E('p', _('You device has been correctly registered, you need to activate your service')),
                 activateBtn
             ]);
-    }
-}
-
-return view.extend({
-        title: _('Register'),
-        step: {},
-
-        load: function () {
-            let auth = ovhapi.authentication()
-                .then(response => {
-                    if (!response.ok) {
-                        return 'login'
-                    }
-
-                    return 'associate'
-                })
-                .then(name => {
-                    this.step.name = name;
-                    switch (name) {
-                        case 'associate':
-                            this.step.value = [];
-                            return ovhapi.services()
-                                .then(response => response.json())
-                                .then(data => {
-                                    let call = [];
-                                    data.forEach(id => {
-                                        this.step.value.push({ name: id, details: {}, device:{} });
-
-                                        let serviceDetails = ovhapi.service(id)
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                let service = this.step.value.find(({name}) => name === data.serviceName);
-                                                service.details = data;
-                                            });
-
-                                        call.push(serviceDetails);
-
-                                        let deviceDetails = ovhapi.device(id)
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                let service = this.step.value.find(({name}) => name === id);
-                                                service.device = data;
-                                            });
-
-                                        call.push(deviceDetails);
-
-                                    });
-                                    return Promise.all(call)
-                                })
-                        default:
-                            return Promise.resolve(null);
-                    };
-                })
-
-                return Promise.all([
-                        L.resolveDefault(uci.load('overthebox')),
-                        auth
-                        // L.resolveDefault(callSystemInfo(), {}),
-                        // fs.lines('/etc/otb-version')
-                ]);
-        },
-
-        render: function (data) {
-                console.log(uci.sections('overthebox', 'config', 'me'));
-                let box = E('div', { 'class': 'cbi-section' }, [
-                        E('h1', this.title)
-                ]);
-
-                console.log('data '+JSON.stringify(data))
-
-                // We check if a service exist in config
-                const serviceID = uci.get('overthebox', 'me', 'service');
-
-                // Service need registration
-                // step1 will ask user to login to OVHcloud API
-                // step2 will ask user to select a service for association
-                // A service has already been associated, we skip first two step
-                if (!serviceID) {
-                    // We check if service is activated
-                    const needsActivation = uci.get('overthebox', 'me', 'needs_activation');
-                    if (needsActivation === 'true') {
-                        // User need to activate his service
-                        this.step = { name: 'activate', value: { serviceID: serviceID }};
-                    } else {
-                        // All good user can enjoy his service
-                        const deviceID = uci.get('overthebox', 'me', 'device_id');
-                        this.step = { name: 'enjoy', value: { serviceID: serviceID, deviceID: deviceID}}
-                    }
-                }
-
-                // We append dynamic content based on registration status
-                box.appendChild(this.dispatch)
-                return box
-
-
-                return box;
-        },
-
-        dispatch: function() {
-            console.log('step '+JSON.stringify(this.step));
-
-            // Dispatch to the correct renderer
-            switch (this.step.name) {
-                case 'login':
-                    // No service found, user need to logged in to OVHcloud API to retrieve his available services
-                    return this.renderLogin()
-
-                case 'associate':
-                    // No service found, user is logged in and need to select a service to associate his device with
-                    return renderAssociate()
-
-                case 'activate':
-                    // Service found, but is deactivated, user need to confirm activation with OTB ovhapis
-                    return renderActivate()
-
-                case 'enjoy':
-                    // Service found and activated, user can just enjoy his service
-                    return renderEnjoy()
-            }
-        },
-
-        // No service found, user need to logged in to OVHcloud API to retrieve his available services
-        renderLogin: function(step) {
-            let loginBtn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Login'}, 'Login');
-
-            loginBtn.onclick = () => {
-                console.log('click');
-                ovhapi.connect()
-                .then(data => {
-                    console.log('data '+JSON.stringify(data));
-                    ovhapi.consumer = data.consumerKey
-                    console.log('url: '+data.validationUrl)
-                    if (!data.validationUrl) {
-                        ui.addNotification(null, E('p',  'Error: No validation URL is invalid'));
-                    } else {
-                        const d = new Date();
-                        d.setTime(d.getTime() + (24*60*60*1000));
-                        let expires = "expires="+ d.toUTCString();
-                        document.cookie ='consumerKey='+data.consumerKey+' ;'+expires+' ;SameSite=Lax;';
-                        window.location.href=data.validationUrl;
-                    }
-                })
-                .catch(err => {
-                    console.log('error : '+err);
-                    ui.addNotification(null, E('p', 'Error while connecting to OVHcloud API : ' + err.status + ' ' + err.statusText) );
-            });
-        };
-
-        return E('div', [
-            E('h2', _('Install easily your OverTheBox Service')),
-            E('h3', _('')),
-            E('p', _('You need to register this device with your subscription by signing-in to your OVHcloud account')),
-            E('p', {'class': 'cbi-value-description'}, [
-                _('You will be redirected to a page named') +' ',
-                E('strong', _('Permission to access your account')),
-                E('br'),
-                _('Please click on the button') + ' ',
-                E('strong', _('Authorize Access')),
-                ' '+_('to login')
-            ]),
-            loginBtn
-        ]);
-
         },
 
         // Service registration is complete

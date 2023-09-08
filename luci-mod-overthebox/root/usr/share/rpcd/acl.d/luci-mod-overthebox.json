@@ -49,6 +49,12 @@
         ],
         "/bin/rm": [
           "exec"
+        ],
+        "/bin/otb-confirm-service": [
+          "exec"
+        ],
+        "/usr/bin/pgrep": [
+          "exec"
         ]
       },
       "uci": [

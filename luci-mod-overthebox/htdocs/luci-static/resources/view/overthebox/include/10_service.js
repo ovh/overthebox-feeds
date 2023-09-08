@@ -24,7 +24,7 @@ return baseclass.extend({
 
                 // Format System data table
                 var fields = [
-                        _('Service ID'), otb[0].service_id,
+                        _('Service ID'), otb[0].service,
                         _('Device ID'),  otb[0].device_id,
                         _('GloryTun'), data[1] ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
                         _('GloryTun UDP'), data[2] ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
@@ -34,7 +34,7 @@ return baseclass.extend({
                 let table = otbui.createTabularElem(fields);
 
                 // Service need activation
-                if (!otb.serviceID) {
+                if (!otb[0].service) {
                     let btn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Register'}, 'Register');
 
                     btn.onclick = () => {
