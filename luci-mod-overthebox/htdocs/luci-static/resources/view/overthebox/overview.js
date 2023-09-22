@@ -4,6 +4,7 @@
 'require poll';
 'require fs';
 'require network';
+'require tools.overthebox.include as include';
 
 document.querySelector('head').appendChild(E('link', {
 	'rel': 'stylesheet',
@@ -85,6 +86,8 @@ return view.extend({
 
 	render: function (includes) {
 		var rv = E([]), containers = [];
+
+		include.script(L.resource("seedrandom.js"));
 
 		for (var i = 0; i < includes.length; i++) {
 			var title = null;

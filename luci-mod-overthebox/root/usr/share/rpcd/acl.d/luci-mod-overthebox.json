@@ -20,10 +20,17 @@
         ],
         "uci": [
           "get"
+        ],
+        "luci": [
+          "getRealtimeStats"
+        ],
+        "network.device": [
+          "status"
         ]
       },
       "uci": [
-        "overthebox", "dscp"
+        "overthebox",
+        "dscp"
       ]
     },
     "write": {
@@ -34,11 +41,19 @@
         ]
       },
       "file": {
-          "/bin/otb-dscp-reset" : [ "exec" ],
-          "/usr/bin/awk" : [ "exec" ]
+        "/bin/otb-dscp-reset": [
+          "exec"
+        ],
+        "/usr/bin/awk": [
+          "exec"
+        ],
+        "/bin/rm": [
+          "exec"
+        ]
       },
       "uci": [
-        "overthebox", "dscp"
+        "overthebox",
+        "dscp"
       ]
     }
   }
