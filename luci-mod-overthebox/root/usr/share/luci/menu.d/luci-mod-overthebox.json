@@ -58,15 +58,30 @@
       "path": "overthebox/switch"
     },
     "depends": {
-			"acl": [
+      "acl": [
         "luci-mod-overthebox-overview"
       ],
-			"fs": {
+      "fs": {
         "/sbin/swconfig-v2b": "executable"
       },
-			"uci": {
-        "network": { "@switch": true }
+      "uci": {
+        "network": {
+          "@switch": true
+        }
       }
-		}
+    }
+  },
+  "admin/overthebox/tunnels": {
+    "title": "TUN graphs",
+    "order": 4,
+    "action": {
+      "type": "view",
+      "path": "overthebox/tunnels"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
   }
 }

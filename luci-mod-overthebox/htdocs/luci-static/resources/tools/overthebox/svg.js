@@ -12,6 +12,15 @@ return L.Class.extend({
         return line
     },
 
+    // Create a polyline element and set style
+    createPolyLineElemByStyle: function(id, style) {
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        line.setAttributeNS(null, 'id', id);
+        line.setAttributeNS(null, 'style', style);
+
+        return line;
+    },
+
     // Create a SVG text element
     createTextElem: function (x_pos, y_pos, label) {
         let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
