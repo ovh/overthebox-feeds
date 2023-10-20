@@ -3,6 +3,7 @@
 // Some utils to format data for luci-mod-overthebox
 
 return L.Class.extend({
+    // Format Local Time
     formatLocalTime: function (localtime) {
         let date = new Date(localtime * 1000);
 
@@ -16,6 +17,7 @@ return L.Class.extend({
         );
     },
 
+    // Format CPU Load
     formatLoad: function (load) {
         return Array.isArray(load) ? '%.2f, %.2f, %.2f'.format(
             load[0] / 65535.0,
@@ -24,6 +26,7 @@ return L.Class.extend({
         ) : null
     },
 
+    // Format ethernet speed
     formatEthSpeed: function (speed, duplex) {
         if (speed && duplex) {
             let d = (duplex == 'half') ? '\u202f(H)' : '',
@@ -47,6 +50,7 @@ return L.Class.extend({
         return _('No link');
     },
 
+    // Create tabular data
     // We are expecting an array like [name1, value1, name2, value2]
     createTabularElem: function (fields) {
         let table = E('table', { 'class': 'table' });
@@ -61,7 +65,7 @@ return L.Class.extend({
         return table;
     },
 
-    // This create a collapsible element using html details markup
+    // Create a collapsible element using html details markup
     createDetailsElem: function (name, summary, body, color) {
         // Manage collapse state
         if (!window.sessionStorage.getItem('otbCollapse')) {
@@ -85,7 +89,7 @@ return L.Class.extend({
         return collapse;
     },
 
-    // This create a luci ifacebox elements
+    // Create a luci ifacebox elements
     // Head and body should be array
     createIfaceElem: function (head, body) {
         let box = E('div', { 'class': 'ifacebox', 'style': 'margin:.35em;min-width:125px;max-width:450px' });
@@ -94,36 +98,5 @@ return L.Class.extend({
         box.appendChild(E('div', { 'class': 'ifacebox-body' }, body))
 
         return box
-    },
-
-    // This create a polyline element
-    createPolyLineElem: function(id, color, opacity) {
-        var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        line.setAttributeNS(null, 'id', id);
-        line.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:' + opacity + ';');
-
-        return line;
-    },
-
-    // This create a text element
-    createTextElem: function(x_pos, y_pos) {
-        var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x_pos);
-        text.setAttribute('y', y_pos);
-        text.setAttribute('style', 'fill:#999999; font-size:9pt; font-family:sans-serif; text-shadow:1px 1px 1px #000');
-
-        return text;
-    },
-
-    // This create a line element
-    createLineElem: function(x1_pos, y1_pos, x2_pos, y2_pos) {
-        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', x1_pos);
-        line.setAttribute('y1', y1_pos);
-        line.setAttribute('x2', x2_pos);
-        line.setAttribute('y2', y2_pos);
-        line.setAttribute('style', 'stroke:black;stroke-width:0.1');
-
-        return line;
     }
 });

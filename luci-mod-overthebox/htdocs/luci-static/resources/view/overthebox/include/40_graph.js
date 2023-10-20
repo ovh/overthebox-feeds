@@ -9,361 +9,433 @@
 'require uci';
 'require rpc';
 'require fs';
-'require tools.overthebox.graph as graph';
-'require tools.overthebox.ui as otbui';
+'require tools.overthebox.graph as otbgraph';
+'require tools.overthebox.svg as otbsvg';
 
 var callLuciRealtimeStats = rpc.declare({
-	object: 'luci',
-	method: 'getRealtimeStats',
-	params: ['mode', 'device'],
-	expect: { result: [] }
+    object: 'luci',
+    method: 'getRealtimeStats',
+    params: ['mode', 'device'],
+    expect: { result: [] }
 });
 
 var callLuciDeviceStatus = rpc.declare({
-	object: 'network.device',
-	method: 'status',
-	params: ['name'],
-	expect: { '': {} }
+    object: 'network.device',
+    method: 'status',
+    params: ['name'],
+    expect: { '': {} }
 });
 
-var graphPolls = [],
-	pollInterval = 1, pollIsActive = 0;
-
-Math.log2 = Math.log2 || function (x) { return Math.log(x) * Math.LOG2E; };
-
 function rate(n, br) {
-	n = (n || 0).toFixed(2);
-	return ['%1024.2mbit/s'.format(n * 8), br ? E('br') : ' ', '(%1024.2mB/s)'.format(n)]
+    n = (n || 0).toFixed(2);
+    return ['%1024.2mbit/s'.format(n * 8), br ? E('br') : ' ', '(%1024.2mB/s)'.format(n)]
 }
 
 return baseclass.extend({
-	title: _('Realtime Traffic'),
+    title: _('Realtime Traffic'),
+    pollIsActive: false,
+    graph: {},
 
-	load: function () {
-		return Promise.all([
-			network.getNetworks(),
-			uci.load('network'),
-			this.loadSVG(L.resource('svg/bandwidth.svg'))
-		]);
-	},
+    load: function () {
+        return Promise.all([
+            uci.load('network'),
+            this.loadSVG(L.resource('svg/bandwidth.svg'))
+        ]);
+    },
 
-	createGraph: function (svgs, network, cb) {
-		var width = 500 - 2;
-		var height = 300 - 2;
-		var step = 5;
-		var data_wanted = Math.floor(width / step);
-		var Gdn = svgs[0],
-			Gup = svgs[1];
-		var ifnames = [];
-		var info = {
-			line_peak: [],
-		};
-		var dndata = {};
-		var updata = {};
-		var timestamp = [];
+    createGraph: function (svgRX, svgTX, network, legendFn) {
+        this.graph = {
+            // Graph scale
+            // 500 - 2
+            width: 498,
+            // 300 - 2
+            height: 298,
+            step: 5,
+            // Number of points in graph
+            // Math.floor(width / step)
+            points: 99,
+            // smooth by 5%
+            smoother: 99 * 0.05,
+            // Graph infos
+            infos: {
+                // Highest data point
+                peak: {
+                    rx: 1,
+                    tx: 1,
+                },
+                // poll interval in seconds
+                interval: 2,
+                // time between each data point
+                // points / 60
+                timeframe: 99 / 60,
+                hscale: {
+                    rx: 149,
+                    tx: 149,
+                },
+                hlabels: {
+                    rx: {
+                        l25: 149 * 0.25,
+                        l50: 149 * 0.5,
+                        l75: 149 * 0.75
+                    },
+                    tx: {
+                        l25: 149 * 0.25,
+                        l50: 149 * 0.5,
+                        l75: 149 * 0.75
+                    }
+                }
+            },
+            // Network devices values
+            devices: [],
+            // SVG Data
+            svgRX: svgRX,
+            svgTX: svgTX,
+            // Legend
+            legend: legendFn
+        }
 
-		var interfaces = uci.sections('network', 'interface');
+        // Introduce some responsiveness
+        let view = document.querySelector('#view');
+        this.graph.width = (view.offsetWidth / 2) - 2;
+        this.graph.points = Math.floor(this.graph.width / this.graph.step);
+        this.graph.smoother = this.graph.points * 0.05
+        this.graph.infos.timeframe = this.graph.points / 60;
 
-		// Search for interfaces which use multipath
-		for (var j = 0; j < interfaces.length; j++) {
-			if (interfaces[j].multipath == "on" ||
-				interfaces[j].multipath == "master" ||
-				interfaces[j].multipath == "backup" ||
-				interfaces[j].multipath == "handover") {
-				var itf = interfaces[j].device;
-				ifnames.push(itf)
-				var color = graph.stringToColour(itf);
+        const interfaces = uci.sections('network', 'interface');
 
-				// Create a new polygon to draw the bandwith
-				var dnline = otbui.createPolyLineElem('rx_' + itf, color, 0.6);
-				Gdn.appendChild(dnline);
+        // Search for interfaces which use multipath
+        for (const itf of interfaces) {
+            if (!itf.multipath || itf.multipath === "off") {
+                continue
+            }
 
-				// Prefill datasets
-				dndata[itf] = [];
-				for (var i = 0; i < data_wanted; i++) {
-					dndata[itf][i] = 0;
-				}
+            const dev = itf.device,
+                color = otbgraph.stringToColour(dev);
 
-				var upline = otbui.createPolyLineElem('tx_' + itf, color, 0.6);
-				Gup.appendChild(upline);
+            // Create a new polyline to draw the bandwith
+            this.graph.svgRX.firstElementChild.appendChild(
+                otbsvg.createPolyLineElem(
+                    'rx_' + dev,
+                    color,
+                    0.6
+                )
+            );
 
-				// Prefill datasets
-				updata[itf] = [];
-				for (var i = 0; i < data_wanted; i++) {
-					updata[itf][i] = 0;
-				}
-				timestamp[itf] = 0;
-			}
-		}
+            this.graph.svgTX.firstElementChild.appendChild(
+                otbsvg.createPolyLineElem(
+                    'tx_' + dev,
+                    color,
+                    0.6
+                )
+            );
 
-		// Plot horizontal time interval lines
-		for (var i = width % (step * 60); i < width; i += step * 60) {
-			// Create Line element for download
-			var linedn = otbui.createLineElem(i, 0, i, '100%');
+            // Prefill device data
+            this.graph.devices.push({
+                name: dev,
+                points: new Array(this.graph.points).fill({ rx: 0, tx: 0 }),
+                peak: { rx: 1, tx: 1 },
+                // JS date are in ms, but we use s
+                updateTime: (Math.floor(Date.now() / 1000) - 120)
+            });
+        }
 
-			// Create Text element for download
-			var textdn = otbui.createTextElem(i + 5, 15);
-			textdn.appendChild(document.createTextNode(Math.round((width - i) / step / 60) + 'm'));
+        // Plot horizontal time interval lines
+        // With a width of 498 and a step of 5 we are just looping once here
+        const intv = this.graph.step * 60;
+        for (let i = this.graph.width % intv; i < this.graph.width; i += intv) {
+            // Create Text element for download
+            // With a width of 498 and a step of 5 that's 1
+            let label = Math.round((this.graph.width - i) / this.graph.step / 60) + 'm';
 
-			// Append download line and text to download plot
-			Gdn.appendChild(linedn);
-			Gdn.appendChild(textdn);
+            // Append download line and text to download plot
+            this.graph.svgRX.firstElementChild.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
+            this.graph.svgRX.firstElementChild.appendChild(otbsvg.createTextElem(i + 5, 15, label));
 
-			// Create Line element for upload
-			var lineup = otbui.createLineElem(i, 0, i, '100%');
+            // Append upload line and text to upload plot
+            this.graph.svgTX.firstElementChild.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
+            this.graph.svgTX.firstElementChild.appendChild(otbsvg.createTextElem(i + 5, 15, label));
+        }
+    },
 
-			// Create Text element for upload
-			var textup = otbui.createTextElem(i + 5, 15);
-			textup.appendChild(document.createTextNode(Math.round((width - i) / step / 60) + 'm'));
+    pollData: function () {
+        poll.add(L.bind(function () {
+            let tasks = [];
+            this.graph.devices.forEach(
+                device => {
+                    tasks.push(L.resolveDefault(callLuciRealtimeStats('interface', device.name), []));
+                    tasks.push(L.resolveDefault(callLuciDeviceStatus(device.name, {})));
+                }
+            );
 
-			// Append upload line and text to upload plot
-			Gup.appendChild(lineup);
-			Gup.appendChild(textup);
-		}
+            return Promise.all(tasks).then(
+                L.bind(function (data) {
+                    // To get correct index from data
+                    let i = 0;
 
-		info.interval = pollInterval;
-		info.timeframe = data_wanted / 60;
+                    let devIndex = 0;
+                    let changeGlobalPeak = false;
+                    for (const device of this.graph.devices) {
+                        const deviceStats = data[i],
+                            // Check if device is still connected
+                            deviceStatus = data[i + 1];
 
-		graphPolls.push({
-			ifnames: ifnames,
-			svgs: svgs,
-			cb: cb,
-			info: info,
-			width: width,
-			height: height,
-			step: step,
-			dnvalues: dndata,
-			upvalues: updata,
-			timestamp: timestamp,
-		});
-	},
+                        // 2 promises per device
+                        i += 2;
 
-	pollData: function () {
-		poll.add(L.bind(function () {
-			var tasks = [];
-			for (var i = 0; i < graphPolls.length; i++) {
-				var ctx = graphPolls[i];
-				ctx.ifnames.forEach((ifname) => {
-					tasks.push(L.resolveDefault(callLuciRealtimeStats('interface', ifname), []));
-					tasks.push(L.resolveDefault(callLuciDeviceStatus(ifname, {})));
-				})
-			}
-			return Promise.all(tasks).then(L.bind(function (datasets) {
-				for (var gi = 0; gi < graphPolls.length; gi += ctx.ifnames.length) {
+                        let changeDevicePeak = false;
 
-					var ctx = graphPolls[gi],
-						data = {
-							timestat: {},
-							status: {},
-						},
-						dnvalues = ctx.dnvalues,
-						upvalues = ctx.upvalues,
-						info = ctx.info;
+                        // Iterate for each seconds we are missing
+                        for (var j = 0; j < device.points.length; j++) {
+                            // We are trying to get data that are out of bound
+                            // If Device is not present (can happens with LTE Key) we need to fill the array
+                            if (j >= deviceStats.length && deviceStatus.present) {
+                                break;
+                            }
 
-					var data_scale_dn = 0;
-					var data_scale_up = 0;
-					var data_wanted = Math.floor(ctx.width / ctx.step);
-					var dnsma = {};
-					var upsma = {};
+                            // Retrieve new data point
+                            let currentStat = deviceStats[j];
+                            if (typeof currentStat !== 'undefined') {
+                                // Skip overlapping entries
+                                if (currentStat[0] <= device.updateTime) {
+                                    continue;
+                                }
 
-					// Store timestat result
-					for (var i = 0; i < ctx.ifnames.length; i++) {
-						data.timestat[ctx.ifnames[i]] = datasets[2 * i];
-						data.status[ctx.ifnames[i]] = datasets[((2 * i) + 1)];
-					}
-					data.list = datasets[datasets.length - 1];
+                                device.updateTime = currentStat[0];
+                            } else {
+                                device.updateTime = device.updateTime + j
+                                // Let's stop here if we are setting point in the future
+                                if (device.updateTime > Math.floor(Date.now() / 1000)) {
+                                    break;
+                                }
+                            }
 
-					info.line_peak['tx'] = NaN;
-					info.line_peak['rx'] = NaN;
+                            if (j === 0) {
+                                // First iteration we are just updating timestamp
+                                continue
+                            }
 
-					ctx.ifnames.forEach((ifname) => {
-						// Check if interface is not present, eg 4G key
-						if (!data.status[ifname].present) {
-							dnvalues[ifname].push(0);
-							upvalues[ifname].push(0);
-						} else {
-							if (!dnsma[ifname]) {
-								dnsma[ifname] = graph.simple_moving_averager('down_' + ifname, 15);
-							} else if (!upsma[ifname]) {
-								upsma[ifname] = graph.simple_moving_averager('up_' + ifname, 15);
-							}
+                            // Remove oldest data point
+                            const oldestPoint = device.points.shift();
 
-							for (var j = ctx.timestamp[ifname] ? 0 : 1; j < data.timestat[ifname].length; j++) {
-								var last_timestamp = NaN;
+                            // Check if we will need to recalculate graph peak
+                            if (oldestPoint.rx >= this.graph.infos.peak.rx || oldestPoint.tx >= this.graph.infos.peak.tx) {
+                                changeGlobalPeak = true
+                                changeDevicePeak = true
+                                device.peak.rx = 1;
+                                device.peak.tx = 1;
+                            } else if (oldestPoint.rx >= device.peak.rx || oldestPoint.tx >= device.peak.tx) {
+                                changeDevicePeak = true
+                                device.peak.rx = 1;
+                                device.peak.tx = 1;
+                            }
 
-								// Skip overlapping entries
-								if (data.timestat[ifname][j][0] <= ctx.timestamp[ifname]) {
-									continue;
-								}
+                            let rx = 0,
+                                tx = 0;
 
-								isNaN(last_timestamp) ? last_timestamp = data.timestat[ifname][j][0] : last_timestamp = Math.max(last_timestamp, data[ifname][j][0]);
+                            // Normalize difference against time interval
+                            if (typeof currentStat !== 'undefined') {
+                                const previousStat = deviceStats[j - 1],
+                                    delta = currentStat[0] - previousStat[0];
 
-								// Normalize difference against time interval
-								if (j > 0) {
-									var time_delta = data.timestat[ifname][j][0] - data.timestat[ifname][j - 1][0];
-									if (time_delta) {
-										dnvalues[ifname].push(dnsma[ifname]((data.timestat[ifname][j][1] - data.timestat[ifname][j - 1][1]) / time_delta));
-										upvalues[ifname].push(upsma[ifname]((data.timestat[ifname][j][3] - data.timestat[ifname][j - 1][3]) / time_delta));
-									}
-								}
-							}
-						}
+                                // Get rx/tx diff
+                                if (delta) {
+                                    rx = (currentStat[1] - previousStat[1]) / delta;
+                                    tx = (currentStat[3] - previousStat[3]) / delta;
+                                }
+                            }
 
-						// Cut off outdated entries
-						dnvalues[ifname] = dnvalues[ifname].slice(dnvalues[ifname].length - data_wanted, dnvalues[ifname].length);
-						upvalues[ifname] = upvalues[ifname].slice(upvalues[ifname].length - data_wanted, upvalues[ifname].length);
+                            // Calculate exponentially moving average
+                            const lastPoint = device.points[device.points.length - 1],
+                                newPoint = {
+                                    rx: lastPoint.rx + (rx - lastPoint.rx) / this.graph.smoother,
+                                    tx: lastPoint.tx + (tx - lastPoint.tx) / this.graph.smoother
+                                };
 
-						// Find peaks
-						for (var index = 0; index < dnvalues[ifname].length; index++) {
-							info.line_peak['tx'] = isNaN(info.line_peak['tx']) ? upvalues[ifname][index] : Math.max(info.line_peak['tx'], upvalues[ifname][index]);
-							info.line_peak['rx'] = isNaN(info.line_peak['rx']) ? dnvalues[ifname][index] : Math.max(info.line_peak['rx'], dnvalues[ifname][index]);
-						}
+                            device.points.push(newPoint);
 
-						// Remember current timestamp, calculate horizontal scale
-						if (!isNaN(last_timestamp)) {
-							ctx.timestamp[ifname] = last_timestamp;
-						}
-					})
+                            // Change peak value if needed
+                            device.peak.rx = newPoint.rx > device.peak.rx ? newPoint.rx : device.peak.rx;
+                            device.peak.tx = newPoint.tx > device.peak.tx ? newPoint.tx : device.peak.tx;
 
-					for (var direction in info.line_peak) {
-						var size = Math.floor(Math.log2(info.line_peak[direction])),
-							div = Math.pow(2, size - (size % 10)),
-							mult = info.line_peak[direction] / div,
-							mult = (mult < 5) ? 2 : ((mult < 50) ? 10 : ((mult < 500) ? 100 : 1000));
+                            if (newPoint.rx > this.graph.infos.peak.rx || newPoint.tx > this.graph.infos.peak.tx) {
+                                changeGlobalPeak = true
+                            }
+                        }
 
-						info.line_peak[direction] = info.line_peak[direction] + (mult * div) - (info.line_peak[direction] % (mult * div));
+                        // Plot data
+                        // If we are not looking for a new peak and we need to redraw everything
+                        // We can skip this
+                        let rxCurve = '0,' + this.graph.height,
+                            txCurve = '0,' + this.graph.height,
+                            pos = 0;
 
-						direction == 'rx' ? data_scale_dn = ctx.height / info.line_peak[direction] : data_scale_up = ctx.height / info.line_peak[direction];
-					}
+                        for (const p of device.points) {
+                            // We need to find the new current peak
+                            if (changeDevicePeak) {
+                                device.peak.rx = p.rx > device.peak.rx ? p.rx : device.peak.rx;
+                                device.peak.tx = p.tx > device.peak.tx ? p.tx : device.peak.tx;
+                            } else if (changeGlobalPeak) {
+                                // We don't need to be here
+                                // We are not looking for a new peak and we need to redraw everything
+                                break;
+                            }
 
-					// Plot data
-					ctx.ifnames.forEach((ifname) => {
-						// Plot download data
-						var dnel = ctx.svgs[0].getElementById('rx_' + ifname),
-							dnpt = '0,' + ctx.height,
-							dny = 0;
+                            // Redraw
+                            // If hscale is about to change, we skip it as we need to redraw everything
+                            if (!changeGlobalPeak) {
+                                let x = pos * this.graph.step,
+                                    yRX = otbgraph.computeHpoint(this.graph.height, this.graph.infos.hscale.rx, p.rx),
+                                    yTX = otbgraph.computeHpoint(this.graph.height, this.graph.infos.hscale.tx, p.tx);
 
-						if (dnel) {
-							for (var i = 0; i < dnvalues[ifname].length; i++) {
-								var x = i * ctx.step;
+                                rxCurve += ' ' + x + ',' + yRX;
+                                txCurve += ' ' + x + ',' + yTX;
 
-								dny = ctx.height - Math.floor(dnvalues[ifname][i] * data_scale_dn);
-								//y -= Math.floor(y % (1 / data_scale));
-								dny = isNaN(dny) ? ctx.height : dny;
-								dnpt += ' ' + x + ',' + dny;
-							}
+                                // Thats the last point
+                                if (pos === device.points.length - 1) {
+                                    rxCurve += ' ' + this.graph.width + ',' + yRX + ' ' + this.graph.width + ',' + this.graph.height;
+                                    txCurve += ' ' + this.graph.width + ',' + yTX + ' ' + this.graph.width + ',' + this.graph.height;
 
-							dnpt += ' ' + ctx.width + ',' + dny + ' ' + ctx.width + ',' + ctx.height;
-							dnel.setAttribute('points', dnpt);
-						}
+                                    // Save redraw
+                                    this.graph.svgRX.firstElementChild.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
+                                    this.graph.svgTX.firstElementChild.getElementById('tx_' + device.name).setAttribute('points', txCurve);
+                                }
+                            }
 
-						// Plot upload data
-						var upel = ctx.svgs[1].getElementById('tx_' + ifname),
-							uppt = '0,' + ctx.height,
-							upy = 0;
-						if (upel) {
-							for (var i = 0; i < upvalues[ifname].length; i++) {
-								var x = i * ctx.step;
+                            pos++;
+                        }
+                    }
 
-								upy = ctx.height - Math.floor(upvalues[ifname][i] * data_scale_up);
-								//y -= Math.floor(y % (1 / data_scale));
-								upy = isNaN(upy) ? ctx.height : upy;
-								uppt += ' ' + x + ',' + upy;
-							}
+                    if (changeGlobalPeak) {
+                        this.graph.infos.peak.rx = 1;
+                        this.graph.infos.peak.tx = 1;
 
-							uppt += ' ' + ctx.width + ',' + upy + ' ' + ctx.width + ',' + ctx.height;
-							upel.setAttribute('points', uppt);
-						}
-					})
+                        for (const device of this.graph.devices) {
+                            this.graph.infos.peak.rx = device.peak.rx > this.graph.infos.peak.rx ? device.peak.rx : this.graph.infos.peak.rx;
+                            this.graph.infos.peak.tx = device.peak.tx > this.graph.infos.peak.tx ? device.peak.tx : this.graph.infos.peak.tx;
+                        }
 
-					/* TO DO : now draw top line */
+                        this.graph.infos.hscale = {
+                            rx: otbgraph.computeHscale(this.graph.height, this.graph.infos.peak.rx),
+                            tx: otbgraph.computeHscale(this.graph.height, this.graph.infos.peak.tx),
+                        }
 
-					info.dn_label_25 = 0.25 * info.line_peak['rx'];
-					info.dn_label_50 = 0.50 * info.line_peak['rx'];
-					info.dn_label_75 = 0.75 * info.line_peak['rx'];
+                        // We got the new scale we need to redraw everything
+                        for (const device of this.graph.devices) {
+                            let rxCurve = '0,' + this.graph.height,
+                                txCurve = '0,' + this.graph.height,
+                                pos = 0;
 
-					info.up_label_25 = 0.25 * info.line_peak['tx'];
-					info.up_label_50 = 0.50 * info.line_peak['tx'];
-					info.up_label_75 = 0.75 * info.line_peak['tx'];
+                            for (const p of device.points) {
+                                let x = pos * this.graph.step,
+                                    yRX = otbgraph.computeHpoint(this.graph.height, this.graph.infos.hscale.rx, p.rx),
+                                    yTX = otbgraph.computeHpoint(this.graph.height, this.graph.infos.hscale.tx, p.tx);
 
-					if (typeof (ctx.cb) == 'function') {
-						ctx.cb(ctx.svgs, info);
-					}
-				}
-			}, this));
-		}, this), pollInterval);
-	},
+                                rxCurve += ' ' + x + ',' + yRX;
+                                txCurve += ' ' + x + ',' + yTX;
 
-	loadSVG: function (src) {
-		return request.get(src).then(function (response) {
-			if (!response.ok) {
-				throw new Error(response.statusText);
-			}
+                                // Thats the last point
+                                if (pos === device.points.length - 1) {
+                                    rxCurve += ' ' + this.graph.width + ',' + yRX + ' ' + this.graph.width + ',' + this.graph.height;
+                                    txCurve += ' ' + this.graph.width + ',' + yTX + ' ' + this.graph.width + ',' + this.graph.height;
 
-			return E(response.text());
-		});
-	},
+                                    // Save redraw
+                                    this.graph.svgRX.firstElementChild.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
+                                    this.graph.svgTX.firstElementChild.getElementById('tx_' + device.name).setAttribute('points', txCurve);
+                                }
+                                pos++;
+                            }
+                        }
 
-	render: function (data) {
-		// Check if this render is executed for the first time
-		if (!pollIsActive) {
-			var network = data[1];
-			var svg = data[2];
-			var csvgs = [];
-			csvgs.push(svg.cloneNode(true));
-			csvgs.push(svg.cloneNode(true));
+                        // We change labels
+                        this.graph.infos.hlabels = {
+                            rx: {
+                                l25: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.rx, 0.25),
+                                l50: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.rx, 0.50),
+                                l75: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.rx, 0.75),
+                            },
+                            tx: {
+                                l25: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.tx, 0.25),
+                                l50: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.tx, 0.50),
+                                l75: otbgraph.computeHlabel(this.graph.height, this.graph.infos.hscale.tx, 0.75),
+                            }
+                        }
+                    }
 
-			var body = E('fieldset', { class: 'cbi-section' }, [
-				E('div', { id: 'overthebox_graph' }, [
-					E('table', { 'width': "100%" }, [
-						E('tr', [
-							E('td', { 'style': 'border-style: none; width: 500px; padding-bottom: 0' }, E('strong', _('Download:'))),
-							E('td', { 'style': 'border-style: none; width: 500px; padding-bottom: 0' }, E('strong', _('Upload:'))),
-						]),
-						E('tr', [
-							E('td', { 'style': 'border-style: none;' }, [
-								E('div', {
-									'id': 'dnsvg',
-									'class': 'svg-graph',
-									'style': 'width:500px; height:300px;'
-								}, csvgs[0]),
-								E('div', { 'style': 'text-align:right' }, E('small', { 'id': 'dnscale' }, '-'))
-							]),
-							E('td', { 'style': 'border-style: none;' }, [
-								E('div', {
-									'id': 'upsvg',
-									'class': 'svg-graph',
-									'style': 'width:500px; height:300px;',
-								}, csvgs[1]),
-								E('div', { 'style': 'text-align:right' }, E('small', { 'id': 'upscale' }, '-'))
-							])
-						])
-					])
-				])
-			]);
+                    if (typeof (this.graph.legend) === 'function') {
+                        this.graph.legend(this.graph.svgRX, this.graph.svgTX, this.graph.infos);
+                    }
+                }, this));
+        }, this), this.graph.infos.interval);
+    },
 
-			function createGraphCB(svgs, info) {
-				var dnG = svgs[0], upG = svgs[1],
-					dntab = dnG.parentNode.parentNode,
-					uptab = upG.parentNode.parentNode;
 
-				dnG.getElementById('label_25').firstChild.data = rate(info.dn_label_25).join('');
-				dnG.getElementById('label_50').firstChild.data = rate(info.dn_label_50).join('');
-				dnG.getElementById('label_75').firstChild.data = rate(info.dn_label_75).join('');
+    loadSVG: function (src) {
+        return request.get(src).then(function (response) {
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
 
-				dntab.querySelector('#dnscale').firstChild.data = _('(%d minute window, %d second interval)').format(info.timeframe, info.interval);
+            return E('div', {
+                'style': 'width:100%;height:300px;border:1px solid #000;background:#fff'
+            }, E(response.text()));
+        });
+    },
 
-				upG.getElementById('label_25').firstChild.data = rate(info.up_label_25).join('');
-				upG.getElementById('label_50').firstChild.data = rate(info.up_label_50).join('');
-				upG.getElementById('label_75').firstChild.data = rate(info.up_label_75).join('');
+    render: function (data) {
+        // Check if this render is executed for the first time
+        if (!this.pollIsActive) {
+            let network = data[0],
+                svg = data[1],
+                svgRX = svg.cloneNode(true),
+                svgTX = svg.cloneNode(true);
 
-				uptab.querySelector('#upscale').firstChild.data = _('(%d minute window, %d second interval)').format(info.timeframe, info.interval);
-			}
+            var body = E('fieldset', { class: 'cbi-section' }, [
+                E('div', { id: 'overthebox_graph' }, [
+                    E('table', { 'width': "100%" }, [
+                        E('tr', [
+                            E('td', { 'style': 'border-style: none; width: 50%; padding-bottom: 0' }, E('strong', _('Download:'))),
+                            E('td', { 'style': 'border-style: none; width: 50%; padding-bottom: 0' }, E('strong', _('Upload:'))),
+                        ]),
+                        E('tr', [
+                            E('td', { 'style': 'border-style: none;' }, [
+                                E('div', {
+                                    'id': 'svgRX',
+                                    'class': 'svg-graph',
+                                    'style': 'width:100%; height:300px;'
+                                }, svgRX),
+                                E('div', { 'style': 'text-align:right' }, E('small', { 'id': 'dnscale' }, '-'))
+                            ]),
+                            E('td', { 'style': 'border-style: none;' }, [
+                                E('div', {
+                                    'id': 'svgTX',
+                                    'class': 'svg-graph',
+                                    'style': 'width:100%; height:300px;',
+                                }, svgTX),
+                                E('div', { 'style': 'text-align:right' }, E('small', { 'id': 'upscale' }, '-'))
+                            ])
+                        ])
+                    ])
+                ])
+            ]);
 
-			this.createGraph(csvgs, network, createGraphCB);
-			this.pollData();
-			pollIsActive = 1
-			return body;
-		}
-	}
+
+            this.createGraph(svgRX, svgTX, network, function (svgRX, svgTX, infos) {
+                svgRX.firstElementChild.getElementById('label_25').firstChild.data = rate(infos.hlabels.rx.l25).join('');
+                svgRX.firstElementChild.getElementById('label_50').firstChild.data = rate(infos.hlabels.rx.l50).join('');
+                svgRX.firstElementChild.getElementById('label_75').firstChild.data = rate(infos.hlabels.rx.l75).join('');
+
+                svgRX.parentNode.parentNode.querySelector('#dnscale').firstChild.data = _('(%d minute window, %d second interval)').format(infos.timeframe, infos.interval);
+
+                svgTX.firstElementChild.getElementById('label_25').firstChild.data = rate(infos.hlabels.tx.l25).join('');
+                svgTX.firstElementChild.getElementById('label_50').firstChild.data = rate(infos.hlabels.tx.l50).join('');
+                svgTX.firstElementChild.getElementById('label_75').firstChild.data = rate(infos.hlabels.tx.l75).join('');
+
+                svgTX.parentNode.parentNode.querySelector('#upscale').firstChild.data = _('(%d minute window, %d second interval)').format(infos.timeframe, infos.interval);
+            });
+
+            this.pollData();
+            this.pollIsActive = 1
+            return body;
+        }
+    }
 });

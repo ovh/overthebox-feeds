@@ -39,21 +39,25 @@ return L.Class.extend({
 		return color;
 	},
 
-	/* Smoother */
-	simple_moving_averager: function (name, period) {
-		var nums = {}
-		nums[name] = [];
-		return function (num) {
-			nums[name].push(num);
-			if (nums[name].length > period)
-				nums[name].splice(0, 1);  // remove the first element of the array
-			var sum = 0;
-			for (var i in nums[name])
-				sum += nums[name][i];
-			var n = period;
-			if (nums[name].length < period)
-				n = nums[name].length;
-			return (sum / n);
-		}
+	// Compute a horizontale scale based on peak data
+	computeHscale: function (height, peak) {
+		const s = Math.floor(Math.log2(peak)),
+			d = Math.pow(2, s - (s % 10)),
+			m = peak / d,
+			n = (m < 5) ? 2 : ((m < 50) ? 10 : ((m < 500) ? 100 : 1000)),
+			p = peak + (n * d) - (peak % (n * d));
+
+		return height / p;
+	},
+
+	// Compute hlabel
+	computeHlabel: function (height, hscale, factor) {
+		return (height / hscale) * factor
+	},
+
+	// Scale point base on Hscale
+	computeHpoint: function (height, hscale, point) {
+		let y = height - Math.floor(point * hscale);
+		return isNaN(y) ? height : y;
 	}
 });
