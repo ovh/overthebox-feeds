@@ -1,5 +1,7 @@
 'use strict';
 
+'require ui';
+
 // Some utils to format data for luci-mod-overthebox
 
 return L.Class.extend({
@@ -107,5 +109,22 @@ return L.Class.extend({
             select.appendChild(E('option', { 'value': key }, options[key]))
         }
         return select;
+    },
+
+    // Create a simple Luci modal
+    // This is a simple modal with a title, a message and a button OK
+    createSimpleModal: function (title, message) {
+        return ui.showModal(title, [
+            E('span', message),
+            E('div', { 'class': 'center' }, [
+                E('button', {
+                    'class': 'btn cbi-button',
+                    'click': () => {
+                        ui.hideModal();
+                        location.replace(location.href);
+                    }
+                }, 'Ok'),
+            ])
+        ]);
     }
 });
