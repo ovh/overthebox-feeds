@@ -11,8 +11,8 @@ return baseclass.extend({
         load: function () {
                 return Promise.all([
                         L.resolveDefault(uci.load('overthebox')),
-                        L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null)),
                         L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null)),
+                        L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null)),
                         L.resolveDefault(fs.exec('/usr/bin/pgrep', ['ss-redir'], null))
                 ]);
         },
@@ -20,21 +20,23 @@ return baseclass.extend({
         render: function (data) {
                 const otb = uci.sections('overthebox', 'config');
 
-                let box = E('div')
+                let box = E('div'),
+                    serviceID = Array.isArray(otb) ? otb[0].service : '',
+                    deviceID = Array.isArray(otb) ? otb[0].device_id : ''
 
                 // Format System data table
                 var fields = [
-                        _('Service ID'), otb[0].service,
-                        _('Device ID'),  otb[0].device_id,
-                        _('GloryTun'), data[1] ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
-                        _('GloryTun UDP'), data[2] ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
-                        _('ShadowSocks'), data[3] ? '\u2705 '+_('Running'): '\u274C '+_('Stopped')
+                        _('Service ID'), serviceID,
+                        _('Device ID'), deviceID,
+                        _('GloryTun'), data[1].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
+                        _('GloryTun UDP'), data[2].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
+                        _('ShadowSocks'), data[3].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped')
                 ];
 
                 let table = otbui.createTabularElem(fields);
 
                 // Service need activation
-                if (!otb[0].service) {
+                if (!serviceID) {
                     let btn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Register'}, 'Register');
 
                     btn.onclick = () => {
