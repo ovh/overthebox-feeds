@@ -3,6 +3,7 @@
 // Some utils to format data for luci-mod-overthebox
 
 return L.Class.extend({
+    // Format Local Time
     formatLocalTime: function (localtime) {
         let date = new Date(localtime * 1000);
 
@@ -16,6 +17,7 @@ return L.Class.extend({
         );
     },
 
+    // Format CPU Load
     formatLoad: function (load) {
         return Array.isArray(load) ? '%.2f, %.2f, %.2f'.format(
             load[0] / 65535.0,
@@ -24,6 +26,7 @@ return L.Class.extend({
         ) : null
     },
 
+    // Format ethernet speed
     formatEthSpeed: function (speed, duplex) {
         if (speed && duplex) {
             let d = (duplex == 'half') ? '\u202f(H)' : '',
@@ -47,6 +50,7 @@ return L.Class.extend({
         return _('No link');
     },
 
+    // Create tabular data
     // We are expecting an array like [name1, value1, name2, value2]
     createTabularElem: function (fields) {
         let table = E('table', { 'class': 'table' });
@@ -61,7 +65,7 @@ return L.Class.extend({
         return table;
     },
 
-    // This create a collapsible element using html details markup
+    // Create a collapsible element using html details markup
     createDetailsElem: function (name, summary, body, color) {
         // Manage collapse state
         if (!window.sessionStorage.getItem('otbCollapse')) {
@@ -85,7 +89,7 @@ return L.Class.extend({
         return collapse;
     },
 
-    // This create a luci ifacebox elements
+    // Create a luci ifacebox elements
     // Head and body should be array
     createIfaceElem: function (head, body) {
         let box = E('div', { 'class': 'ifacebox', 'style': 'margin:.35em;min-width:125px;max-width:450px' });
