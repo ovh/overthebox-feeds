@@ -112,7 +112,7 @@ return L.Class.extend({
     },
 
     // Create a simple Luci modal
-    // This is a simple modal with a title, a message and a button OK
+    // A simple modal with a title, a message and a button OK to close it
     createSimpleModal: function (title, message) {
         return ui.showModal(title, [
             E('span', message),
@@ -121,10 +121,18 @@ return L.Class.extend({
                     'class': 'btn cbi-button',
                     'click': () => {
                         ui.hideModal();
-                        location.replace(location.href);
+                        location.reload();
                     }
                 }, 'Ok'),
             ])
+        ]);
+    },
+
+    // Create a blocking Luci modal
+    // A modal with a title and a message which block page content
+    createBlockingModal: function (title, message) {
+        return ui.showModal(title, [
+            E('span', message),
         ]);
     }
 });

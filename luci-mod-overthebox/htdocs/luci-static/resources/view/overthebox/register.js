@@ -14,65 +14,19 @@ document.querySelector('head').appendChild(E('link', {
 
 return view.extend({
     title: _('Register'),
-    step: {},
 
     load: function () {
         let auth = ovhapi.authentication()
-            .then(
-                response => {
-                    if (!response.ok) {
-                        return 'login'
-                    }
-
-                    return 'associate'
+            .then(() => {
+                return {
+                    logged: 'true',
                 }
-            )
-            .then(
-                name => {
-                    this.step.name = name;
-
-                    switch (name) {
-                        case 'associate':
-                            this.step.value = [];
-                            return ovhapi.services()
-                                .then(response => response.json())
-                                .then(
-                                    data => {
-                                        let call = [];
-                                        data.forEach(
-                                            id => {
-                                                this.step.value.push({ name: id, details: {}, device: {} });
-
-                                                let serviceDetails = ovhapi.service(id)
-                                                    .then(response => response.json())
-                                                    .then(
-                                                        data => {
-                                                            let service = this.step.value.find(({ name }) => name === data.serviceName);
-                                                            service.details = data;
-                                                        }
-                                                    );
-
-                                                call.push(serviceDetails);
-
-                                                let deviceDetails = ovhapi.device(id)
-                                                    .then(response => response.json())
-                                                    .then(
-                                                        data => {
-                                                            let service = this.step.value.find(({ name }) => name === id);
-                                                            service.device = data;
-                                                        });
-
-                                                call.push(deviceDetails);
-                                            }
-                                        );
-                                        return Promise.all(call)
-                                    }
-                                );
-                        default:
-                            return Promise.resolve(null);
-                    };
+            })
+            .catch(() => {
+                return {
+                    logged: 'false'
                 }
-            );
+            });
 
         return Promise.all([
             L.resolveDefault(uci.load('overthebox')),
@@ -88,60 +42,38 @@ return view.extend({
         // We check if a service exist in config
         const serviceID = uci.get('overthebox', 'me', 'service');
 
-        // Service need registration
-        // step1 will ask user to login to OVHcloud API
-        // step2 will ask user to select a service for association
-        // A service has already been associated, we skip first two step
-        if (serviceID) {
-            // We check if service is activated
-            const needsActivation = uci.get('overthebox', 'me', 'needs_activation');
-
-            if (needsActivation === 'true') {
-                // User need to activate his service
-                this.step = {
-                    name: 'activate',
-                    value: {
-                        serviceID: serviceID
-                    }
-                };
-            } else {
-                // All good user can enjoy his service
-                const deviceID = uci.get('overthebox', 'me', 'device_id');
-                this.step = {
-                    name: 'enjoy',
-                    value: {
-                        serviceID: serviceID,
-                        deviceID: deviceID
-                    }
-                };
+        // There is no service associated with this device
+        // We need to associate it with OVHcloud API
+        if (!serviceID) {
+            // We are logged in on OVHcloud API
+            // We need to select a service to associate this device with
+            if (data[1].logged === 'true') {
+                box.appendChild(this.renderAssociate(data[1].values));
+                return box
             }
+
+            box.appendChild(this.renderLogin())
+            return box
         }
 
-        // We append dynamic content based on registration status
-        box.appendChild(this.dispatch())
+        // A service has already been associated, we don't need to interact with OVHcloud API
+        // We check if service is activated
+        const needsActivation = uci.get('overthebox', 'me', 'needs_activation');
+
+        // Service is deactivated, user need to confirm activation with OTB ovhapis
+        if (needsActivation === 'true') {
+            box.appendChild(this.renderActivate(serviceID));
+            return box
+        }
+
+        // Service found and activated, user can just enjoy his service
+        const deviceID = uci.get('overthebox', 'me', 'device_id');
+        box.appendChild(this.renderEnjoy(serviceID, deviceID))
         return box
     },
 
-    // Dispatch step to the correct renderer
-    dispatch: function () {
-        switch (this.step.name) {
-            case 'login':
-                // No service found, user need to log in to OVHcloud API to retrieve his available services
-                return this.renderLogin()
-            case 'associate':
-                // No service found, user is logged in and need to select a service to associate his device with
-                return this.renderAssociate()
-            case 'activate':
-                // Service found, but is deactivated, user need to confirm activation with OTB ovhapis
-                return this.renderActivate()
-            case 'enjoy':
-                // Service found and activated, user can just enjoy his service
-                return this.renderEnjoy()
-        }
-    },
-
     // No service found, user need to log in to OVHcloud API to retrieve his available services
-    renderLogin: function (step) {
+    renderLogin: function () {
         let loginBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Login' }, 'Login');
 
         loginBtn.onclick = () => {
@@ -151,10 +83,11 @@ return view.extend({
                         ovhapi.consumer = data.consumerKey
 
                         if (!data.validationUrl) {
-                            err => otbui.createSimpleModal(
-                                _('Failure'),
-                                _('Error validation URL is invalid')
-                            )
+                            return Promise.reject({
+                                'code': '406 Not Acceptable',
+                                'type': 'device_error',
+                                'message': 'Validation URL is invalid'
+                            })
                         } else {
                             const d = new Date();
                             d.setTime(d.getTime() + (24 * 60 * 60 * 1000));
@@ -165,10 +98,12 @@ return view.extend({
                     }
                 )
                 .catch(
-                    err => otbui.createSimpleModal(
-                        _('Failure'),
-                        _('Error while connecting to OVHcloud API: ') + err.status + ' ' + err.statusText
-                    )
+                    err => {
+                        otbui.createSimpleModal(
+                            _('Failure'),
+                            _('Error while connecting to OVHcloud API:\n %s').format(JSON.stringify(err, null, '\t'))
+                        );
+                    }
                 );
         };
 
@@ -190,112 +125,32 @@ return view.extend({
 
     // No service found, user is logged in and need to select a service to associate his device with
     renderAssociate: function () {
-        let associateBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Associate' }, 'Associate'),
-            choices = {
-                placeholder: 'Select a service'
-            },
-            choiceDetails = [];
+        let box = E('div', [E('h2', _('Service Activation'))]);
 
-        this.step.value.forEach(
-            s => {
-                choices[s.details.serviceName] = s.details.customerDescription;
-
-                let lastSeen = '',
-                    diff = 1000000;
-
-                if (s.device.lastSeen) {
-                    const date = new Date(s.device.lastSeen),
-                        now = new Date().getTime();
-
-                    lastSeen = date.toString();
-                    diff = now - date
-                }
-
-                let fields = [
-                    _('Service ID'), s.details.serviceName,
-                    _('Service Status'), s.details.status,
-                    _('Device ID'), s.device.deviceId,
-                    // Last 15 mn
-                    _('Device Status'), diff < 900000 ? '\u2705 ' + _('Connected') : '\u274C ' + _('Disconnected'),
-                    _('Device last connection'), lastSeen,
-                    _('Device last IP'), s.device.publicIp,
-                    _('Device Feeds version'), s.device.version,
-                    _('Device System version'), s.device.systemVersion,
-                ];
-
-                let table = otbui.createTabularElem(fields);
-                table.style.display = 'none';
-                table.id = s.details.serviceName;
-
-                choiceDetails.push(table);
-            }
+        otbui.createBlockingModal(
+            _('Loading'),
+            _('Retrieving services list from OVHcloud API...')
         );
 
-        let select = otbui.createSelectElem(choices);
-        select.id = 'serviceChoice';
+        this.loadServices(box);
 
-        select.addEventListener('change', function (ev) {
-            let tables = document.getElementsByClassName('table');
-
-            for (let i = 0; i < tables.length; i++) {
-                tables[i].style.display = tables[i].id === this.value ? 'block' : 'none'
-            }
-        });
-
-        associateBtn.onclick = () => {
-            let select = document.getElementById('serviceChoice');
-
-            if (!confirm(_('This will override previous device association, are you sure?'))) {
-                return;
-            }
-
-            let serviceID = select.value,
-                deviceID = uci.get('overthebox', 'me', 'device_id');
-
-            ovhapi.linkDevice(serviceID, deviceID)
-                .then(
-                    data => {
-                        uci.set('overthebox', 'me', 'service');
-                        return uci.save();
-                    }
-                )
-                .then(
-                    () => otbui.createSimpleModal(
-                        _('Success'),
-                        _('Service association has been successful')
-                    )
-                )
-                .catch(
-                    err => otbui.createSimpleModal(
-                        _('Failure'),
-                        _('Error during service association : ') + err.status + ' ' + err.statusText
-                    )
-                );
-        };
-
-        let box = E('div', [
-            E('h2', _('Service Activation')),
-            E('h3', _('Selection')),
-            E('p', _('Select the service you wish to associate with this device')),
-            select,
-            associateBtn,
-        ]);
-
-        choiceDetails.forEach(table => box.appendChild(table));
-        return box;
+        return box
     },
 
     // Service found, but is deactivated, user need to confirm activation with OTB ovhapis
-    renderActivate: function () {
+    renderActivate: function (serviceID) {
         let activateBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Activate' }, 'Activate');
 
         activateBtn.onclick = () => {
             fs.exec('/bin/otb-confirm-service', null, null)
                 .then(
-                    () => otbui.createSimpleModal(
-                        _('Success'),
-                        _('Service activation has been successful')
-                    )
+                    () => {
+                        uci.unload('overthebox');
+                        otbui.createSimpleModal(
+                            _('Success'),
+                            _('Service activation has been successful')
+                        );
+                    }
                 )
                 .catch(
                     err => otbui.createSimpleModal(
@@ -309,18 +164,331 @@ return view.extend({
             E('h2', _('Service Activation')),
             E('h3', _('Activation')),
             E('p', _('Your device has been correctly registered, you need to activate your service')),
+            E('p', _('service ID: %s').format(serviceID)),
             activateBtn
         ]);
     },
 
     // Service registration is complete
-    renderEnjoy: function () {
+    renderEnjoy: function (serviceID, deviceID) {
         return E('div', [
             E('h2', 'OverTheBox Status'),
-            E('p', 'deviceID: ' + this.step.value.deviceID),
+            E('p', 'deviceID: ' + deviceID),
             E('br'),
-            E('p', 'serviceID: ' + this.step.value.serviceID),
+            E('p', 'serviceID: ' + serviceID),
         ]);
+    },
+
+    loadServices: async function (box) {
+        // Retrieve services list
+        let call = await ovhapi.services()
+            .then(
+                data => {
+                    if (data.length == 0) {
+                        otbui.createSimpleModal(
+                            _('Failure'),
+                            _('This account does not have any OverTheBox services')
+                        );
+                        return { error: true, values: data }
+                    }
+
+                    ui.hideModal()
+                    return { error: false, values: data }
+                }
+            )
+            .catch(
+                err => {
+                    otbui.createSimpleModal(
+                        _('Failure'),
+                        _('Error while retrieving service names on OVHcloud API:\n %s').format(err)
+                    );
+                    return { error: true, values: err }
+                }
+            );
+
+        if (call.error) {
+            return box
+        }
+
+        let data = call.values;
+
+        // Create association button
+        let associateBtn = E('button', {
+            'class': 'cbi-button cbi-button-add',
+            'title': 'Associate',
+            'click': () => {
+                let select = document.getElementById('serviceChoice'),
+                    serviceID = select.value,
+                    deviceID = uci.get('overthebox', 'me', 'device_id');
+
+                if (!serviceID) {
+                    otbui.createSimpleModal(
+                        _('Failure'),
+                        _('Invalid ServiceID'),
+                    );
+                    return
+                } else if (!deviceID) {
+                    otbui.createSimpleModal(
+                        _('Failure'),
+                        _('Invalid deviceID'),
+                    );
+                    return
+                }
+
+                if (!confirm(_('This will override previous device association, are you sure?'))) {
+                    return;
+                }
+
+                otbui.createBlockingModal(
+                    _('Loading'),
+                    _('Performing device association...')
+                );
+
+                ovhapi.linkDevice(serviceID, deviceID)
+                    .then(
+                        data => {
+                            uci.set('overthebox', 'me', 'service');
+                            return uci.save();
+                        }
+                    )
+                    .then(
+                        () => {
+                            uci.unload('overthebox');
+
+                            otbui.createSimpleModal(
+                                _('Success'),
+                                _('Service association has been successful')
+                            );
+                        }
+                    )
+                    .catch(
+                        err => otbui.createSimpleModal(
+                            _('Failure'),
+                            _('Fail to associate service on OVHcloud API:\n %s').format(JSON.stringify(err, null, '\t'))
+                        )
+                    );
+            }
+        }, 'Associate');
+
+        // Create Select Element
+        let services = {},
+            serviceInfos = E('div', { 'id': 'serviceInfos' }, [E('p', {}, '')]);
+
+        let select = E('select', { 'class': 'cbi-input-select', 'style': 'width:32rem' }, [
+            E('option', { 'value': 'placeHolder' }, 'Select a service')
+        ]);
+
+        select.id = 'serviceChoice';
+
+        const handleInfos = this.loadServiceInfos();
+
+        select.addEventListener('change', function (ev) {
+            if (this.value === 'placeHolder') {
+                associateBtn.style.display = 'none';
+                serviceInfos.firstChild.replaceWith(E('p', ''));
+                return
+            }
+
+            if (!services[this.value]) {
+                associateBtn.style.display = 'none';
+                serviceInfos.style.display = 'block';
+                serviceInfos.firstChild.replaceWith(E('p', 'No informations found for this service'));
+                return
+            }
+
+            // We need to load data
+            if (services[this.value].state === 'pending') {
+                let id = this.value
+
+                // Load
+                async function load() {
+                    const infos = await handleInfos.get(id).then(
+                        data => {
+                            return data;
+                        }
+                    );
+
+                    const details = infos[0],
+                        device = infos[1];
+
+                    if (details.error || device.error) {
+                        services[id].state = 'error';
+                        return
+                    }
+
+                    let option = document.getElementById(id);
+                    option.textContent = details.values.customerDescription;
+
+                    services[id].infos = handleInfos.format(details, device)
+                    services[id].state = 'ok';
+                    ui.hideModal()
+                }
+
+                load().then(
+                    () => {
+                        if (services[id].state === 'error') {
+                            associateBtn.style.display = 'none';
+                            serviceInfos.style.display = 'block';
+                            serviceInfos.firstChild.replaceWith(E('p', 'Fail to retrieve informations for this service'));
+                            return
+                        }
+
+                        associateBtn.style.display = 'inline';
+                        serviceInfos.firstChild.replaceWith(otbui.createTabularElem(services[id].infos));
+                        serviceInfos.style.block = 'block';
+                    }
+                );
+
+                otbui.createBlockingModal(
+                    _('Loading'),
+                    _('Retrieving services informations from OVHcloud API...')
+                );
+            } else {
+                if (services[this.value].state === 'error') {
+                    associateBtn.style.display = 'none';
+                    serviceInfos.style.display = 'block';
+                    serviceInfos.firstChild.replaceWith(E('p', 'Fail to retrieve informations for this service'));
+                    return
+                }
+
+                associateBtn.style.display = 'inline';
+                serviceInfos.firstChild.replaceWith(otbui.createTabularElem(services[this.value].infos));
+                serviceInfos.style.block = 'block';
+            }
+        });
+
+        let count = data.length;
+
+        // Preload only if we have less than 25 services
+        if (count > 25) {
+            ui.addNotification(null, E('p', [
+                _('Fail to preload services informations, %d services found which is over preloading limit').format(data.length)
+            ]), 'warning');
+        }
+
+        for (let id of data) {
+            services[id] = {
+                'id': id,
+                'state': 'pending',
+            };
+
+            let option = E('option', { 'id': id, 'value': id }, id)
+            select.appendChild(option);
+
+            if (count > 25) {
+                continue
+            }
+
+            // Preload
+            async function preload() {
+                const infos = await handleInfos.get(id).then(
+                    data => {
+                        return data;
+                    }
+                );
+
+                const details = infos[0],
+                    device = infos[1];
+
+                if (details.error || device.error) {
+                    services[id].state = 'error';
+                    return
+                }
+
+                option.textContent = details.values.customerDescription;
+
+                services[id].infos = handleInfos.format(details, device)
+                services[id].state = 'ok';
+                count--;
+
+                otbui.createBlockingModal(
+                    _('Loading'),
+                    _('(%d/%d) Retrieving services informations from OVHcloud API...').format(count, data.length)
+                );
+
+                if (count === 0) {
+                    ui.hideModal()
+                }
+            }
+
+            otbui.createBlockingModal(
+                _('Loading'),
+                _('(%d/%d) Retrieving services informations from OVHcloud API...').format(count, data.length)
+            );
+
+            preload();
+        }
+
+        box.appendChild(E('p', _('Select the service you wish to associate with this device')))
+        box.appendChild(select);
+        box.appendChild(associateBtn);
+        box.appendChild(serviceInfos);
+    },
+
+    loadServiceInfos: function () {
+        return {
+            get: async function (id) {
+                return Promise.all([
+                    ovhapi.service(id)
+                        .then(
+                            data => {
+                                if (data.length == 0) {
+                                    return { error: true, values: data }
+                                }
+
+                                return { error: false, values: data }
+                            }
+                        )
+                        .catch(
+                            err => {
+                                return { error: true, values: err }
+                            }
+                        ),
+                    ovhapi.device(id)
+                        .then(
+                            data => {
+                                if (data.length == 0) {
+                                    return { error: true, values: data }
+                                }
+
+                                let diff = 1000000;
+
+                                if (data.lastSeen) {
+                                    const date = new Date(data.lastSeen),
+                                        now = new Date().getTime();
+
+                                    data.lastSeen = date.toString();
+                                    diff = now - date
+                                }
+
+                                // Last 15 mn
+                                data.state = diff < 900000 ? '\u2705 ' + _('Connected') : '\u274C ' + _('Disconnected')
+
+                                return { error: false, values: data }
+                            }
+                        )
+                        .catch(
+                            err => {
+                                return { error: true, values: err }
+                            }
+                        ),
+                ]);
+            },
+            format: function (details, device) {
+                return [
+                    _('Service Description'), details.values.customerDescription,
+                    _('Service ID'), details.values.serviceName,
+                    _('Service Status'), details.values.status,
+                    _('Device ID'), device.values.deviceId,
+                    // Last 15 mn
+                    _('Device Status'), device.values.state,
+                    _('Device last connection'), device.values.lastSeen,
+                    _('Device last IP'), device.values.publicIp,
+                    _('Device Feeds version'), device.values.version,
+                    _('Device System version'), device.values.systemVersion,
+                ]
+            }
+        }
     },
 
     handleSaveApply: null,

@@ -43,7 +43,31 @@ return L.Class.extend({
         return crypto.subtle.digest('SHA-1', d)
             .then(sha1 => Array.from(new Uint8Array(sha1)))
             // convert bytes to hex string
-            .then (array => array.map(b => b.toString(16).padStart(2, "0")).join(""));
+            .then(array => array.map(b => b.toString(16).padStart(2, "0")).join(""));
+    },
+
+    formatError: function (response) {
+        if (response.ok) {
+            return response.json()
+        }
+
+        return Promise.reject(
+            response.json()
+                .then(data => {
+                    return {
+                        'code': data.httpCode,
+                        'type': data.errorCode,
+                        'message': data.message,
+                    }
+                })
+                .catch(error => {
+                    return {
+                        'code': response.status + response.statusText,
+                        'type': 'api_error',
+                        'message': 'OVHcloud API call fail',
+                    }
+                })
+        );
     },
 
     call: function (method, path, body) {
@@ -61,11 +85,14 @@ return L.Class.extend({
             headers["X-Ovh-Consumer"] = this.consumer
             return this.sign(method, url, body, timestamp)
                 .then(hex => headers["X-Ovh-Signature"] = '$1$' + hex)
-                .then(() => fetch(url, { method, headers, body }));
+                .then(() => fetch(url, { method, headers, body }))
+                .then(response => this.formatError(response));
         }
 
-        return fetch(url, { method, headers, body });
+        return fetch(url, { method, headers, body })
+            .then(response => this.formatError(response));
     },
+
 
     get: function (path, body) {
         return this.call('GET', path, body);
@@ -80,7 +107,7 @@ return L.Class.extend({
     },
 
     delete: function (path, body) {
-        return this.call('DELETE', path, body)
+        return this.call('DELETE', path, body);
     },
 
     login: function (accessRules, redirection) {
@@ -135,9 +162,7 @@ return L.Class.extend({
                 }
             ],
             window.location.href
-        )
-        .then(response => response.json())
-        .catch(err => err);
+        );
     },
 
     services: function () {
@@ -145,18 +170,18 @@ return L.Class.extend({
     },
 
     service: function (serviceID) {
-        return this.get('/overTheBox/'+serviceID);
+        return this.get('/overTheBox/' + serviceID);
     },
 
     device: function (serviceID) {
-        return this.get('/overTheBox/'+serviceID+'/device');
+        return this.get('/overTheBox/' + serviceID + '/device');
     },
 
     linkDevice: function (serviceID, deviceID) {
-        return this.post('/overTheBox/'+serviceID+'/linkDevice', {deviceId: deviceID});
+        return this.post('/overTheBox/' + serviceID + '/linkDevice', { deviceId: deviceID });
     },
 
     unlinkDevice: function (serviceID) {
-        return this.delete('/overTheBox/'+serviceID+'/device');
+        return this.delete('/overTheBox/' + serviceID + '/device');
     }
 })

@@ -18,7 +18,6 @@ define Package/luci-mod-overthebox/postinst
 [ -n "$$IPKG_INSTROOT" ] || /etc/init.d/rpcd reload
 endef
 
-# sed -n 's/Strict/Lax/gp' /usr/lib/lua/luci/dispatcher.lua
 include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
