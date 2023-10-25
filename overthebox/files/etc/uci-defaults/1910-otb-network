@@ -141,6 +141,11 @@ _setup() {
 		}
 
 	case "$1" in
+	wan?6)
+		uci -q batch <<-EOF
+		delete network.$1
+		EOF
+		;;
 	wan?*)
 		uci -q batch <<-EOF
 		set network.$1.metric=${1#wan}
