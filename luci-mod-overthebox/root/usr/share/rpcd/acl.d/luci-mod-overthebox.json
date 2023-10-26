@@ -30,7 +30,8 @@
       },
       "uci": [
         "overthebox",
-        "dscp"
+        "dscp",
+        "network"
       ]
     },
     "write": {
@@ -55,11 +56,15 @@
         ],
         "/usr/bin/pgrep": [
           "exec"
+        ],
+        "/usr/bin/swconfig-v2b-reset-todo": [
+          "exec"
         ]
       },
       "uci": [
         "overthebox",
-        "dscp"
+        "dscp",
+        "network"
       ]
     }
   }

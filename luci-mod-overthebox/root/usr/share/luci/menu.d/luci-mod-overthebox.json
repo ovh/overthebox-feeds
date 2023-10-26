@@ -49,5 +49,24 @@
         "luci-mod-overthebox-overview"
       ]
     }
+  },
+  "admin/overthebox/switch": {
+    "title": "Switch Configuration",
+    "order": 4,
+    "action": {
+      "type": "view",
+      "path": "overthebox/switch"
+    },
+    "depends": {
+			"acl": [
+        "luci-mod-overthebox-overview"
+      ],
+			"fs": {
+        "/sbin/swconfig-v2b": "executable"
+      },
+			"uci": {
+        "network": { "@switch": true }
+      }
+		}
   }
 }
