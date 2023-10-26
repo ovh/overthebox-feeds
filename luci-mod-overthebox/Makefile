@@ -10,8 +10,13 @@ include $(TOPDIR)/rules.mk
 LUCI_TITLE:=LuCI OverTheBox - Global System settings
 LUCI_DEPENDS:=+bandwidth +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-bootstrap +otb-qos +luci +luci-lib-px5g +luci-lib-json +luci-proto-3g +luci-compat
 
-PKG_VERSION:=v0.0.6
+PKG_VERSION:=v0.0.7
 PKG_RELEASE:=1
+
+define Package/luci-mod-overthebox/postinst
+#!/bin/sh
+[ -n "$$IPKG_INSTROOT" ] || /etc/init.d/rpcd reload
+endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
 

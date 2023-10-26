@@ -24,6 +24,19 @@
       ]
     }
   },
+  "admin/overthebox/register": {
+    "title": "Register",
+    "order": 2,
+    "action": {
+      "type": "view",
+      "path": "overthebox/register"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
+  },
   "admin/overthebox/qos": {
     "title": "QoS Settings",
     "order": 3,
