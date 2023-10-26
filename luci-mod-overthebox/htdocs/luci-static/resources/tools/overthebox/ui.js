@@ -134,5 +134,43 @@ return L.Class.extend({
         return ui.showModal(title, [
             E('span', message),
         ]);
+    },
+
+    // create a status bar
+    // Don't forget to import relevant css
+    createStatusBar: function (steps) {
+        const bar = E('div', { 'class': 'statusDiv' }, [
+            E('div', { 'class': 'statusBar' })
+        ]),
+            progress = E('div', { 'class': 'progress' }),
+            points = E('div', { 'class': 'steps' });
+
+        if (!steps.length) {
+            return bar;
+        }
+
+        let valid = 0;
+
+        // Populate steps
+        for (let step of steps) {
+            let s = E('div', { 'class': 'point' }, [
+                E('div', { 'id': step.id, 'class': 'step ' + step.state }),
+                E('span', step.name)
+            ])
+
+            points.appendChild(s)
+
+            if (step.state) {
+                valid++;
+            }
+        }
+
+        // Calculate progress
+        let p = ((valid - 1) * (80 / (steps.length - 1)));
+        progress.appendChild(E('div', { 'class': 'percent', 'style': 'width:' + p + '%' }));
+
+        bar.appendChild(progress);
+        bar.appendChild(points);
+        return bar;
     }
 });
