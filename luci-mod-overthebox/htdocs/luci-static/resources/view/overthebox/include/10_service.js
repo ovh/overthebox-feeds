@@ -5,56 +5,108 @@
 'require ui';
 'require tools.overthebox.ui as otbui';
 
+document.querySelector('head').appendChild(E('link', {
+    'rel': 'stylesheet',
+    'type': 'text/css',
+    'href': L.resource('view/overthebox/css/status.css')
+}));
+
 return baseclass.extend({
-        title: _('Service'),
+    title: _('Service'),
 
-        load: function () {
-                return Promise.all([
-                        L.resolveDefault(uci.load('overthebox')),
-                        L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null)),
-                        L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null)),
-                        L.resolveDefault(fs.exec('/usr/bin/pgrep', ['ss-redir'], null))
-                ]);
-        },
+    load: function () {
+        return Promise.all([
+            L.resolveDefault(uci.load('overthebox')),
+            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null)),
+            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null)),
+            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['ss-redir'], null))
+        ]);
+    },
 
-        render: function (data) {
-                const otb = uci.sections('overthebox', 'config');
-
-                let box = E('div'),
-                    serviceID = Array.isArray(otb) ? otb[0].service : '',
-                    deviceID = Array.isArray(otb) ? otb[0].device_id : ''
-
-                // Format System data table
-                var fields = [
-                        _('Service ID'), serviceID,
-                        _('Device ID'), deviceID,
-                        _('GloryTun'), data[1].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
-                        _('GloryTun UDP'), data[2].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped'),
-                        _('ShadowSocks'), data[3].code === 0 ? '\u2705 '+_('Running'): '\u274C '+_('Stopped')
-                ];
-
-                let table = otbui.createTabularElem(fields);
-
-                // Service need activation
-                if (!serviceID) {
-                    let btn = E('button', {'class': 'cbi-button cbi-button-add', 'title': 'Register'}, 'Register');
-
-                    btn.onclick = () => {
-                        if (window.location.href.search('overview') > -1) {
-                            window.location.href=window.location.href.replace('overview', 'register')
-                        } else {
-                            window.location.href=window.location.href.concat('admin/overthebox/register')
-                        }
-                    }
-
-                    box.appendChild(E('div', {'class': 'alert-message warning'}, [
-                        E('h4', 'Service not registered'),
-                        E('p', 'You need to register this device with an active OverTheBox service'),
-                        btn
-                    ]))
+    actionRequired: function (action) {
+        let btn = E('button', {
+            'class': 'cbi-button cbi-button-add',
+            'title': action,
+            'click': () => {
+                if (window.location.href.search('overview') > -1) {
+                    window.location.href = window.location.href.replace('overview', 'register')
+                } else {
+                    window.location.href = window.location.href.concat('admin/overthebox/register')
                 }
+            }
+        }, action);
 
-                box.appendChild(table);
-                return [ box ]
+        switch (action) {
+            case 'Register':
+                return E('div', { 'class': 'alert-message warning' }, [
+                    E('h4', 'Service not registered'),
+                    E('p', 'You need to register this device with an active OverTheBox service'),
+                    btn
+                ]);
+                break;
+            case 'Activate':
+                return E('div', { 'class': 'alert-message warning' }, [
+                    E('h4', 'Service not activated'),
+                    E('p', 'You need to active your OverTheBox service on this device'),
+                    btn
+                ]);
+                break;
+            default:
+                return E('div');
         }
+    },
+
+    render: function (data) {
+        const serviceID = uci.get('overthebox', 'me', 'service'),
+            deviceID = uci.get('overthebox', 'me', 'device_id'),
+            needsActivation = uci.get('overthebox', 'me', 'needs_activation');
+
+
+        let box = E('div'),
+            steps = [
+                { id: 'register', name: 'Register', state: '' },
+                { id: 'activate', name: 'Activate', state: '' },
+                { id: 'glorytun', name: 'GloryTUN', state: '' },
+                { id: 'glorytunUDP', name: 'GloryTUN UDP', state: '' },
+                { id: 'shadowSocks', name: 'ShadowSocks', state: '' }
+            ];
+
+        // Service need registration
+        if (!serviceID) {
+            box.appendChild(this.actionRequired('Register'))
+            steps[0].state = 'nok'
+            box.appendChild(otbui.createStatusBar(steps));
+            return box;
+        }
+
+        steps[0].state = 'ok'
+
+        if (needsActivation) {
+            box.appendChild(this.actionRequired('Activate'))
+            steps[1].state = 'nok'
+            box.appendChild(otbui.createStatusBar(steps));
+            return box;
+        }
+
+        steps[1].state = 'ok'
+
+        // Shell return so 0 means ok
+        steps[2].state = data[1].code === 0 ? 'ok' : 'nok';
+        steps[3].state = data[2].code === 0 ? 'ok' : 'nok';
+        steps[4].state = data[3].code === 0 ? 'ok' : 'nok';
+
+        box.appendChild(otbui.createStatusBar(steps));
+        box.appendChild(E('div', { 'style': 'display:flex; justify-content:space-between;' }, [
+            E('span', [
+                E('strong', _('Service ID:') + ' '),
+                serviceID
+            ]),
+            E('span', [
+                E('strong', _('Device ID:') + ' '),
+                deviceID
+            ])
+        ]));
+
+        return [box]
+    }
 });
