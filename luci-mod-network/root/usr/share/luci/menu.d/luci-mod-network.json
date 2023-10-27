@@ -8,7 +8,7 @@
 		},
 		"depends": {
 			"acl": [ "luci-mod-network-config" ],
-			"fs": { "/sbin/swconfig": "executable" },
+			"fs": { "/sbin/swconfig-v2b": "executable" },
 			"uci": { "network": { "@switch": true } }
 		}
 	},
