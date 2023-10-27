@@ -6,376 +6,375 @@
 'require ui';
 'require rpc';
 'require network';
-'require tools.overthebox.ui as otbui';
-'require tools.overthebox.graph as graph';
-'require tools.overthebox.include as include';
-
-var callLuciRealtimeStats = rpc.declare({
-	object: 'luci',
-	method: 'getRealtimeStats',
-	params: [ 'mode', 'device' ],
-	expect: { result: [] }
-});
-
-document.querySelector('head').appendChild(E('link', {
-	'rel': 'stylesheet',
-	'type': 'text/css',
-	'href': L.resource('view/overthebox/css/custom.css')
-}));
-
-var graphPolls = [],
-	pollInterval = 3;
-
-Math.log2 = Math.log2 || function(x) { return Math.log(x) * Math.LOG2E; };
-
-function rate(n, br) {
-	n = (n || 0).toFixed(2);
-	return [ '%1024.2mbit/s'.format(n * 8), br ? E('br') : ' ', '(%1024.2mB/s)'.format(n) ]
-}
-
-return view.extend({
-	load: function() {
-		return Promise.all([
-			this.loadSVG(L.resource('svg/bandwidth.svg')),
-			network.getDevices()
-		]);
-	},
-
-	updateGraph: function(ifname, svg, lines, multIitf,cb) {
-		var G = svg.firstElementChild;
-
-		var view = document.querySelector('#view');
-
-		var width  = view.offsetWidth - 2;
-		var height = 300 - 2;
-		var step   = 5;
-
-		var data_wanted = Math.floor(width / step);
-
-		var data_values = [],
-			line_elements = [];
-
-		for (var i = 0; i < lines.length; i++)
-			if (lines[i] != null)
-				data_values.push([]);
-
-		var info = {
-			line_current: [],
-			line_average: [],
-			line_peak:    []
-		};
-
-		/* prefill datasets */
-		for (var i = 0; i < data_values.length; i++)
-			for (var j = 0; j < data_wanted; j++)
-					data_values[i][j] = 0;
-
-		/* plot horizontal time interval lines */
-		for (var i = width % (step * 60); i < width; i += step * 60) {
-			var line = otbui.createLineElem(i, 0, i, '100%');
-			var text = otbui.createTextElem(i + 5, 15);
-
-			G.appendChild(line);
-			G.appendChild(text);
-		}
-
-		info.interval = pollInterval;
-		info.timeframe = data_wanted / 60;
-
-		graphPolls.push({
-			ifname: ifname,
-			svg:    svg,
-			lines:  lines,
-			cb:     cb,
-			info:   info,
-			width:  width,
-			height: height,
-			step:   step,
-			values: data_values,
-			timestamp: 0,
-			fill: 1,
-			multiItf: multIitf
-		});
-	},
-
-	pollData: function() {
-		poll.add(L.bind(function() {
-			var tasks = [];
-
-			for (var i = 0; i < graphPolls.length; i++) {
-				var ctx = graphPolls[i];
-				tasks.push(L.resolveDefault(callLuciRealtimeStats('interface', ctx.ifname), []));
-			}
-
-			return Promise.all(tasks).then(L.bind(function(datasets) {
-				for (var gi = 0; gi < graphPolls.length; gi++) {
-					var ctx = graphPolls[gi],
-						values = ctx.values,
-						lines = ctx.lines,
-						info = ctx.info,
-						ismultiItf = ctx.multiItf;
-
-					var data = [ ];
-					var data_idx = 0;
-
-						if(ismultiItf.up) {
-							/* Graph show up direction of multi interfaces */
-							data_idx = 3;
-						} else if(ismultiItf.dn) {
-							/* Graph show down direction of multi interfaces */
-							data_idx = 1;
-						}
-						else {
-							data = datasets[gi];
-						}
-
-						if(!data.length) {
-							//console.log("multiple up: " + ismultiItf.up + 
-							//" multiple down: " + ismultiItf.dn +
-							//" interface number: " + ismultiItf.num);
-
-							var min_timestamp = NaN, max_timestamp = NaN;
-							/* Prefill data based on timestamp */
-							for(var tun_i =  0 ; tun_i < ismultiItf.num ; tun_i++) {
-	
-								//console.log("tun_i : " + tun_i);
-								//console.log("data: " + datasets[tun_i]);
-								//console.log("first TS: " + datasets[tun_i][0][0]);
-								//console.log("Last TS: " + datasets[tun_i][datasets[tun_i].length - 1][0]);
-
-								isNaN(min_timestamp) ? min_timestamp = datasets[tun_i][0][0] : min_timestamp = Math.min(min_timestamp, datasets[tun_i][0][0]);
-								isNaN(max_timestamp) ? max_timestamp = datasets[tun_i][datasets[tun_i].length - 1][0] : 
-														max_timestamp = Math.max(max_timestamp, datasets[tun_i][datasets[tun_i].length - 1][0]);
-							}
-
-							//console.log("min timestamp is : " + min_timestamp + 
-							//				" max timestamp is : " + max_timestamp);
-
-							for(var timestamp =  min_timestamp; timestamp <= max_timestamp; timestamp ++) {
-								/* Find min and max timestamp based on datasets */
-								data[timestamp - min_timestamp] = [ ];
-								data[timestamp - min_timestamp].push(timestamp);
-							}
-
-							/* fill data with tunnels bandwidth based on timestamp */
-							for (var band_i = 0; band_i < max_timestamp - min_timestamp; band_i ++) {
-								for(var tun_i = 0; tun_i < ismultiItf.num; tun_i++) {
-									for (var band_j = 0; band_j < datasets[tun_i].length; band_j++) {
-										if (data[band_i][0] == datasets[tun_i][band_j][0]) {
-											data[band_i].push(datasets[tun_i][band_j][data_idx]);
-                							data[band_i].push(datasets[tun_i][band_j][data_idx + 1]);
-											break;
-										}
-									}
-								}
-							}
-							
-							//console.log("data filled");
-							//console.log(data);
-							
-							/* Cut off invalid datas */
-							for(var band_i = 0 ; band_i < data.length; band_i++) {
-								if(data[band_i].length < ((2*ismultiItf.num) + 1)) {
-									data.splice(band_i , 1);
-									/* Restart loop index*/
-									band_i = -1;
-								}
-							}
-							//console.log("data after removing shifted elements");
-							//console.log(data);
-						}
-
-					var data_scale = 0;
-					var data_wanted = Math.floor(ctx.width / ctx.step);
-					var last_timestamp = NaN;
-
-					for (var i = 0, di = 0; di < lines.length; di++) {
-						if (lines[di] == null)
-							continue;
-
-						var multiply = (lines[di].multiply != null) ? lines[di].multiply : 1,
-							offset = (lines[di].offset != null) ? lines[di].offset : 0;
-
-						for (var j = ctx.timestamp ? 0 : 1; j < data.length; j++) {
-							/* skip overlapping entries */
-							if (data[j][0] <= ctx.timestamp)
-								continue;
-
-							if (i == 0) {
-								ctx.fill++;
-								last_timestamp = data[j][0];
-							}
-
-							if (lines[di].counter) {
-								/* normalize difference against time interval */
-								if (j > 0) {
-									var time_delta = data[j][0] - data[j - 1][0];
-									if (time_delta) {
-										info.line_current[i] = (data[j][di + 1] * multiply - data[j - 1][di + 1] * multiply) / time_delta;
-										info.line_current[i] -= Math.min(info.line_current[i], offset);
-										values[i].push(info.line_current[i]);
-									}
-								}
-							}
-							else {
-								info.line_current[i] = data[j][di + 1] * multiply;
-								info.line_current[i] -= Math.min(info.line_current[i], offset);
-								values[i].push(info.line_current[i]);
-							}
-						}
-						i++;
-					}
-
-					/* cut off outdated entries */
-					ctx.fill = Math.min(ctx.fill, data_wanted);
-
-					for (var i = 0; i < values.length; i++) {
-						var len = values[i].length;
-						values[i] = values[i].slice(len - data_wanted, len);
-
-						/* find peaks, averages */
-						info.line_peak[i] = NaN;
-						info.line_average[i] = 0;
-
-						for (var j = 0; j < values[i].length; j++) {
-							info.line_peak[i] = isNaN(info.line_peak[i]) ? values[i][j] : Math.max(info.line_peak[i], values[i][j]);
-							info.line_average[i] += values[i][j];
-						}
-
-						info.line_average[i] = info.line_average[i] / ctx.fill;
-					}
-
-					info.peak = Math.max.apply(Math, info.line_peak);
-
-					/* remember current timestamp, calculate horizontal scale */
-					if (!isNaN(last_timestamp))
-						ctx.timestamp = last_timestamp;
-
-					var size = Math.floor(Math.log2(info.peak)),
-						div = Math.pow(2, size - (size % 10)),
-						mult = info.peak / div,
-						mult = (mult < 5) ? 2 : ((mult < 50) ? 10 : ((mult < 500) ? 100 : 1000));
-
-					info.peak = info.peak + (mult * div) - (info.peak % (mult * div));
-
-					data_scale = ctx.height / info.peak;
-
-					/* plot data */
-					for (var i = 0, di = 0; di < lines.length; di++) {
-						if (lines[di] == null)
-							continue;
-
-						var el = ctx.svg.firstElementChild.getElementById(lines[di].line),
-							pt = '0,' + ctx.height,
-							y = 0;
-
-						if (!el)
-							continue;
-
-						for (var j = 0; j < values[i].length; j++) {
-							var x = j * ctx.step;
-
-							y = ctx.height - Math.floor(values[i][j] * data_scale);
-							//y -= Math.floor(y % (1 / data_scale));
-
-							y = isNaN(y) ? ctx.height : y;
-
-							pt += ' ' + x + ',' + y;
-						}
-
-						pt += ' ' + ctx.width + ',' + y + ' ' + ctx.width + ',' + ctx.height;
-						el.setAttribute('points', pt);
-						i++;
-					}
-
-					info.label_25 = 0.25 * info.peak;
-					info.label_50 = 0.50 * info.peak;
-					info.label_75 = 0.75 * info.peak;
-
-					if (typeof(ctx.cb) == 'function')
-						ctx.cb(ctx.svg, info);
-				}
-			}, this));
-		}, this), pollInterval);
-	},
-
-	loadSVG: function(src) {
-		return request.get(src).then(function(response) {
-			if (!response.ok)
-				throw new Error(response.statusText);
-
-			return E('div', {
-				'style': 'width:100%;height:300px;border:1px solid #000;background:#fff'
-			}, E(response.text()));
-		});
-	},
-
-	render: function (data) {
-		var svg = data[0]
-
-		var body = E([
-			E('h1', _('Tunnels traffic')),
-			E('div', {'class':'graph-section'}, E('div'))
-		]);
-
-		function CreateGraphBotton(name, color, id) {
-			return E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td right top' }, E('strong', { 'style': 'border-bottom:2px solid ' + color }, [_(name)])),
-				E('td', { 'class': 'td', 'id': id.bw_cur }, rate(0, true)),
-
-				E('td', { 'class': 'td right top' }, E('strong', {}, [_('Average:')])),
-				E('td', { 'class': 'td', 'id': id.bw_avg }, rate(0, true)),
-
-				E('td', { 'class': 'td right top' }, E('strong', {}, [_('Peak:')])),
-				E('td', { 'class': 'td', 'id': id.bw_peak }, rate(0, true))
-			])
-		}
-
-		function CreateGraph(csvg, ifname, id) {
-            return [
-				csvg,
-				E('div', { 'class': 'right' }, E('small', { 'id': id }, '-')),
-				E('br'),
-
-				E('table', { 'class': 'table', 'style': 'width:100%;table-layout:fixed' }, [
-					ifname != 'all'? CreateGraphBotton('Inbound:', 'blue', {
-						bw_cur:'rx_bw_cur',
-						bw_avg:'rx_bw_avg',
-						bw_peak:'rx_bw_peak',
-					}) : '',
-					ifname != 'all'? CreateGraphBotton('Outbound:', 'green', {
-						bw_cur:'tx_bw_cur',
-						bw_avg:'tx_bw_avg',
-						bw_peak:'tx_bw_peak',
-					}): '',
-				])
-			]
-        }
-
-		var devs = data[1];
-		var tunnels = [];
-		var lines = {};
-		lines[0]= [ ];
-		lines[1]= [ ];
-
-		include.script(L.resource("seedrandom.js"));
-
-		for (var dev_i = 0; dev_i < devs.length+1; dev_i++) {
-			
-			if (dev_i == devs.length) {
-
-				var csvgs = [
-							svg.cloneNode(true),
-							svg.cloneNode(true)
-				];
-				var upgraph= CreateGraph(csvgs[0], 'all', 'upscale');
-				var dngraph= CreateGraph(csvgs[1], 'all', 'dnscale');
-
-				for(var tun_i = 0; tun_i < tunnels.length; tun_i++) {
-					var color = graph.stringToColour(tunnels[tun_i]);
-
-					csvgs[0].firstElementChild.appendChild(otbui.createPolyLineElemByStyle('tx_' + tunnels[tun_i],'fill:' +color +';fill-opacity:0.4;stroke:'+color+';stroke-width:1'));
-					csvgs[1].firstElementChild.appendChild(otbui.createPolyLineElemByStyle('rx_' + tunnels[tun_i],'fill:' +color +';fill-opacity:0.4;stroke:'+color+';stroke-width:1'));
+    'require tools.overthebox.include as include';
+    'require tools.overthebox.graph as otbgraph';
+    'require tools.overthebox.svg as otbsvg';
+
+    var callLuciRealtimeStats = rpc.declare({
+            object: 'luci',
+            method: 'getRealtimeStats',
+            params: [ 'mode', 'device' ],
+            expect: { result: [] }
+    });
+
+    document.querySelector('head').appendChild(E('link', {
+            'rel': 'stylesheet',
+            'type': 'text/css',
+            'href': L.resource('view/overthebox/css/custom.css')
+    }));
+
+    var graphPolls = [],
+            pollInterval = 3;
+
+    Math.log2 = Math.log2 || function(x) { return Math.log(x) * Math.LOG2E; };
+
+    function rate(n, br) {
+            n = (n || 0).toFixed(2);
+            return [ '%1024.2mbit/s'.format(n * 8), br ? E('br') : ' ', '(%1024.2mB/s)'.format(n) ]
+    }
+
+    return view.extend({
+            load: function() {
+                    return Promise.all([
+                            network.getDevices()
+                    ]);
+            },
+
+            updateGraph: function(ifname, svg, lines, multIitf,cb) {
+
+                    var view = document.querySelector('#view');
+
+                    var width  = view.offsetWidth - 2;
+                    var height = 300 - 2;
+                    var step   = 5;
+
+                    var data_wanted = Math.floor(width / step);
+
+                    var data_values = [],
+                            line_elements = [];
+
+                    for (var i = 0; i < lines.length; i++)
+                            if (lines[i] != null)
+                                    data_values.push([]);
+
+                    var info = {
+                            line_current: [],
+                            line_average: [],
+                            line_peak:    []
+                    };
+
+                    /* prefill datasets */
+                    for (var i = 0; i < data_values.length; i++)
+                            for (var j = 0; j < data_wanted; j++)
+                                            data_values[i][j] = 0;
+
+                    /* plot horizontal time interval lines */
+                    for (var i = width % (step * 60); i < width; i += step * 60) {
+                            var line = otbsvg.createLineElem(i, 0, i, '100%');
+                            var text = otbsvg.createTextElem(i + 5, 15);
+
+                            svg.appendChild(line);
+                            svg.appendChild(text);
+                    }
+
+                    info.interval = pollInterval;
+                    info.timeframe = data_wanted / 60;
+
+                    graphPolls.push({
+                            ifname: ifname,
+                            svg:    svg,
+                            lines:  lines,
+                            cb:     cb,
+                            info:   info,
+                            width:  width,
+                            height: height,
+                            step:   step,
+                            values: data_values,
+                            timestamp: 0,
+                            fill: 1,
+                            multiItf: multIitf
+                    });
+            },
+
+            pollData: function() {
+                    poll.add(L.bind(function() {
+                            var tasks = [];
+
+                            for (var i = 0; i < graphPolls.length; i++) {
+                                    var ctx = graphPolls[i];
+                                    tasks.push(L.resolveDefault(callLuciRealtimeStats('interface', ctx.ifname), []));
+                            }
+
+                            return Promise.all(tasks).then(L.bind(function(datasets) {
+                                    for (var gi = 0; gi < graphPolls.length; gi++) {
+                                            var ctx = graphPolls[gi],
+                                                    values = ctx.values,
+                                                    lines = ctx.lines,
+                                                    info = ctx.info,
+                                                    ismultiItf = ctx.multiItf;
+
+                                            var data = [ ];
+                                            var data_idx = 0;
+
+                                                    if(ismultiItf.up) {
+                                                            /* Graph show up direction of multi interfaces */
+                                                            data_idx = 3;
+                                                    } else if(ismultiItf.dn) {
+                                                            /* Graph show down direction of multi interfaces */
+                                                            data_idx = 1;
+                                                    }
+                                                    else {
+                                                            data = datasets[gi];
+                                                    }
+
+                                                    if(!data.length) {
+                                                            //console.log("multiple up: " + ismultiItf.up + 
+                                                            //" multiple down: " + ismultiItf.dn +
+                                                            //" interface number: " + ismultiItf.num);
+
+                                                            var min_timestamp = NaN, max_timestamp = NaN;
+                                                            /* Prefill data based on timestamp */
+                                                            for(var tun_i =  0 ; tun_i < ismultiItf.num ; tun_i++) {
+            
+                                                                    //console.log("tun_i : " + tun_i);
+                                                                    //console.log("data: " + datasets[tun_i]);
+                                                                    //console.log("first TS: " + datasets[tun_i][0][0]);
+                                                                    //console.log("Last TS: " + datasets[tun_i][datasets[tun_i].length - 1][0]);
+
+                                                                    isNaN(min_timestamp) ? min_timestamp = datasets[tun_i][0][0] : min_timestamp = Math.min(min_timestamp, datasets[tun_i][0][0]);
+                                                                    isNaN(max_timestamp) ? max_timestamp = datasets[tun_i][datasets[tun_i].length - 1][0] : 
+                                                                                                                    max_timestamp = Math.max(max_timestamp, datasets[tun_i][datasets[tun_i].length - 1][0]);
+                                                            }
+
+                                                            //console.log("min timestamp is : " + min_timestamp + 
+                                                            //				" max timestamp is : " + max_timestamp);
+
+                                                            for(var timestamp =  min_timestamp; timestamp <= max_timestamp; timestamp ++) {
+                                                                    /* Find min and max timestamp based on datasets */
+                                                                    data[timestamp - min_timestamp] = [ ];
+                                                                    data[timestamp - min_timestamp].push(timestamp);
+                                                            }
+
+                                                            /* fill data with tunnels bandwidth based on timestamp */
+                                                            for (var band_i = 0; band_i < max_timestamp - min_timestamp; band_i ++) {
+                                                                    for(var tun_i = 0; tun_i < ismultiItf.num; tun_i++) {
+                                                                            for (var band_j = 0; band_j < datasets[tun_i].length; band_j++) {
+                                                                                    if (data[band_i][0] == datasets[tun_i][band_j][0]) {
+                                                                                            data[band_i].push(datasets[tun_i][band_j][data_idx]);
+                                                                            data[band_i].push(datasets[tun_i][band_j][data_idx + 1]);
+                                                                                            break;
+                                                                                    }
+                                                                            }
+                                                                    }
+                                                            }
+                                                            
+                                                            //console.log("data filled");
+                                                            //console.log(data);
+                                                            
+                                                            /* Cut off invalid datas */
+                                                            for(var band_i = 0 ; band_i < data.length; band_i++) {
+                                                                    if(data[band_i].length < ((2*ismultiItf.num) + 1)) {
+                                                                            data.splice(band_i , 1);
+                                                                            /* Restart loop index*/
+                                                                            band_i = -1;
+                                                                    }
+                                                            }
+                                                            //console.log("data after removing shifted elements");
+                                                            //console.log(data);
+                                                    }
+
+                                            var data_scale = 0;
+                                            var data_wanted = Math.floor(ctx.width / ctx.step);
+                                            var last_timestamp = NaN;
+
+                                            for (var i = 0, di = 0; di < lines.length; di++) {
+                                                    if (lines[di] == null)
+                                                            continue;
+
+                                                    var multiply = (lines[di].multiply != null) ? lines[di].multiply : 1,
+                                                            offset = (lines[di].offset != null) ? lines[di].offset : 0;
+
+                                                    for (var j = ctx.timestamp ? 0 : 1; j < data.length; j++) {
+                                                            /* skip overlapping entries */
+                                                            if (data[j][0] <= ctx.timestamp)
+                                                                    continue;
+
+                                                            if (i == 0) {
+                                                                    ctx.fill++;
+                                                                    last_timestamp = data[j][0];
+                                                            }
+
+                                                            if (lines[di].counter) {
+                                                                    /* normalize difference against time interval */
+                                                                    if (j > 0) {
+                                                                            var time_delta = data[j][0] - data[j - 1][0];
+                                                                            if (time_delta) {
+                                                                                    info.line_current[i] = (data[j][di + 1] * multiply - data[j - 1][di + 1] * multiply) / time_delta;
+                                                                                    info.line_current[i] -= Math.min(info.line_current[i], offset);
+                                                                                    values[i].push(info.line_current[i]);
+                                                                            }
+                                                                    }
+                                                            }
+                                                            else {
+                                                                    info.line_current[i] = data[j][di + 1] * multiply;
+                                                                    info.line_current[i] -= Math.min(info.line_current[i], offset);
+                                                                    values[i].push(info.line_current[i]);
+                                                            }
+                                                    }
+                                                    i++;
+                                            }
+
+                                            /* cut off outdated entries */
+                                            ctx.fill = Math.min(ctx.fill, data_wanted);
+
+                                            for (var i = 0; i < values.length; i++) {
+                                                    var len = values[i].length;
+                                                    values[i] = values[i].slice(len - data_wanted, len);
+
+                                                    /* find peaks, averages */
+                                                    info.line_peak[i] = NaN;
+                                                    info.line_average[i] = 0;
+
+                                                    for (var j = 0; j < values[i].length; j++) {
+                                                            info.line_peak[i] = isNaN(info.line_peak[i]) ? values[i][j] : Math.max(info.line_peak[i], values[i][j]);
+                                                            info.line_average[i] += values[i][j];
+                                                    }
+
+                                                    info.line_average[i] = info.line_average[i] / ctx.fill;
+                                            }
+
+                                            info.peak = Math.max.apply(Math, info.line_peak);
+
+                                            /* remember current timestamp, calculate horizontal scale */
+                                            if (!isNaN(last_timestamp))
+                                                    ctx.timestamp = last_timestamp;
+
+                                            var size = Math.floor(Math.log2(info.peak)),
+                                                    div = Math.pow(2, size - (size % 10)),
+                                                    mult = info.peak / div,
+                                                    mult = (mult < 5) ? 2 : ((mult < 50) ? 10 : ((mult < 500) ? 100 : 1000));
+
+                                            info.peak = info.peak + (mult * div) - (info.peak % (mult * div));
+
+                                            data_scale = ctx.height / info.peak;
+
+                                            /* plot data */
+                                            for (var i = 0, di = 0; di < lines.length; di++) {
+                                                    if (lines[di] == null)
+                                                            continue;
+
+                                                    var el = ctx.svg.getElementById(lines[di].line),
+                                                            pt = '0,' + ctx.height,
+                                                            y = 0;
+
+                                                    if (!el)
+                                                            continue;
+
+                                                    for (var j = 0; j < values[i].length; j++) {
+                                                            var x = j * ctx.step;
+
+                                                            y = ctx.height - Math.floor(values[i][j] * data_scale);
+                                                            //y -= Math.floor(y % (1 / data_scale));
+
+                                                            y = isNaN(y) ? ctx.height : y;
+
+                                                            pt += ' ' + x + ',' + y;
+                                                    }
+
+                                                    pt += ' ' + ctx.width + ',' + y + ' ' + ctx.width + ',' + ctx.height;
+                                                    el.setAttribute('points', pt);
+                                                    i++;
+                                            }
+
+                                            info.label_25 = 0.25 * info.peak;
+                                            info.label_50 = 0.50 * info.peak;
+                                            info.label_75 = 0.75 * info.peak;
+
+                                            if (typeof(ctx.cb) == 'function')
+                                                    ctx.cb(ctx.svg, info);
+                                    }
+                            }, this));
+                    }, this), pollInterval);
+            },
+
+            loadSVG: function(src) {
+                    return request.get(src).then(function(response) {
+                            if (!response.ok)
+                                    throw new Error(response.statusText);
+
+                            return E('div', {
+                                    'style': 'width:100%;height:300px;border:1px solid #000;background:#fff'
+                            }, E(response.text()));
+                    });
+            },
+
+            render: function (data) {
+
+                    var body = E([
+                            E('h1', _('Tunnels traffic')),
+                            E('div', {'class':'graph-section'}, E('div'))
+                    ]);
+
+                    function CreateGraphBotton(name, color, id) {
+                            return E('tr', { 'class': 'tr' }, [
+                                    E('td', { 'class': 'td right top' }, E('strong', { 'style': 'border-bottom:2px solid ' + color }, [_(name)])),
+                                    E('td', { 'class': 'td', 'id': id.bw_cur }, rate(0, true)),
+
+                                    E('td', { 'class': 'td right top' }, E('strong', {}, [_('Average:')])),
+                                    E('td', { 'class': 'td', 'id': id.bw_avg }, rate(0, true)),
+
+                                    E('td', { 'class': 'td right top' }, E('strong', {}, [_('Peak:')])),
+                                    E('td', { 'class': 'td', 'id': id.bw_peak }, rate(0, true))
+                            ])
+                    }
+
+                    function CreateGraph(csvg, ifname, id) {
+                return [
+                                    csvg,
+                                    E('div', { 'class': 'right' }, E('small', { 'id': id }, '-')),
+                                    E('br'),
+
+                                    E('table', { 'class': 'table', 'style': 'width:100%;table-layout:fixed' }, [
+                                            ifname != 'all'? CreateGraphBotton('Inbound:', 'blue', {
+                                                    bw_cur:'rx_bw_cur',
+                                                    bw_avg:'rx_bw_avg',
+                                                    bw_peak:'rx_bw_peak',
+                                            }) : '',
+                                            ifname != 'all'? CreateGraphBotton('Outbound:', 'green', {
+                                                    bw_cur:'tx_bw_cur',
+                                                    bw_avg:'tx_bw_avg',
+                                                    bw_peak:'tx_bw_peak',
+                                            }): '',
+                                    ])
+                            ]
+            }
+
+                    var devs = data[0];
+                    console.log(devs);
+                    var tunnels = [];
+                    var lines = {};
+                    lines[0]= [ ];
+                    lines[1]= [ ];
+
+                    include.script(L.resource("seedrandom.js"));
+
+                    for (var dev_i = 0; dev_i < devs.length+1; dev_i++) {
+
+                            if (dev_i == devs.length) {
+
+                                    var csvgs = [
+                                        otbsvg.createBackground(),
+                                        otbsvg.createBackground()
+                                    ];
+
+                                    var upgraph= CreateGraph(csvgs[0], 'all', 'upscale');
+                                    var dngraph= CreateGraph(csvgs[1], 'all', 'dnscale');
+
+                                    for(var tun_i = 0; tun_i < tunnels.length; tun_i++) {
+                                            var color = otbgraph.stringToColour(tunnels[tun_i]);
+
+                                            csvgs[0].appendChild(otbsvg.createPolyLineElemByStyle('tx_' + tunnels[tun_i],'fill:' +color +';fill-opacity:0.4;stroke:'+color+';stroke-width:1'));
+                                            csvgs[1].appendChild(otbsvg.createPolyLineElemByStyle('rx_' + tunnels[tun_i],'fill:' +color +';fill-opacity:0.4;stroke:'+color+';stroke-width:1'));
 
 					upgraph[3].appendChild(CreateGraphBotton(tunnels[tun_i], color, {
 						bw_cur:  tunnels[tun_i]+ '_tx_bw_cur',
@@ -454,7 +453,7 @@ return view.extend({
 
 				var ifname = devs[dev_i].getName();
 				tunnels.push(ifname);
-				var csvg = svg.cloneNode(true);
+				var csvg = otbsvg.createBackground();
 
 				body.lastElementChild.appendChild(E('div', { 
 					'data-tab': ifname,
@@ -464,7 +463,7 @@ return view.extend({
 				this.updateGraph(ifname, csvg, [{ line: 'rx', counter: true }, null, { line: 'tx', counter: true }], 
 							{up: 0, dn: 0, num: 0} ,
 				function (svg, info) {
-					var G = svg.firstElementChild, tab = svg.parentNode;
+					var G = svg, tab = svg.parentNode;
 
 					G.getElementById('label_25').firstChild.data = rate(info.label_25).join('');
 					G.getElementById('label_50').firstChild.data = rate(info.label_50).join('');

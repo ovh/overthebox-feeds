@@ -38,8 +38,7 @@ return baseclass.extend({
 
     load: function () {
         return Promise.all([
-            uci.load('network'),
-            this.loadSVG(L.resource('svg/bandwidth.svg'))
+            uci.load('network')
         ]);
     },
 
@@ -113,7 +112,7 @@ return baseclass.extend({
                 color = otbgraph.stringToColour(dev);
 
             // Create a new polyline to draw the bandwith
-            this.graph.svgRX.firstElementChild.appendChild(
+            this.graph.svgRX.appendChild(
                 otbsvg.createPolyLineElem(
                     'rx_' + dev,
                     color,
@@ -121,7 +120,7 @@ return baseclass.extend({
                 )
             );
 
-            this.graph.svgTX.firstElementChild.appendChild(
+            this.graph.svgTX.appendChild(
                 otbsvg.createPolyLineElem(
                     'tx_' + dev,
                     color,
@@ -148,12 +147,12 @@ return baseclass.extend({
             let label = Math.round((this.graph.width - i) / this.graph.step / 60) + 'm';
 
             // Append download line and text to download plot
-            this.graph.svgRX.firstElementChild.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
-            this.graph.svgRX.firstElementChild.appendChild(otbsvg.createTextElem(i + 5, 15, label));
+            this.graph.svgRX.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
+            this.graph.svgRX.appendChild(otbsvg.createTextElem(i + 5, 15, label));
 
             // Append upload line and text to upload plot
-            this.graph.svgTX.firstElementChild.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
-            this.graph.svgTX.firstElementChild.appendChild(otbsvg.createTextElem(i + 5, 15, label));
+            this.graph.svgTX.appendChild(otbsvg.createLineElem(i, 0, i, '100%'));
+            this.graph.svgTX.appendChild(otbsvg.createTextElem(i + 5, 15, label));
         }
     },
 
@@ -296,8 +295,8 @@ return baseclass.extend({
                                     txCurve += ' ' + this.graph.width + ',' + yTX + ' ' + this.graph.width + ',' + this.graph.height;
 
                                     // Save redraw
-                                    this.graph.svgRX.firstElementChild.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
-                                    this.graph.svgTX.firstElementChild.getElementById('tx_' + device.name).setAttribute('points', txCurve);
+                                    this.graph.svgRX.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
+                                    this.graph.svgTX.getElementById('tx_' + device.name).setAttribute('points', txCurve);
                                 }
                             }
 
@@ -339,8 +338,8 @@ return baseclass.extend({
                                     txCurve += ' ' + this.graph.width + ',' + yTX + ' ' + this.graph.width + ',' + this.graph.height;
 
                                     // Save redraw
-                                    this.graph.svgRX.firstElementChild.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
-                                    this.graph.svgTX.firstElementChild.getElementById('tx_' + device.name).setAttribute('points', txCurve);
+                                    this.graph.svgRX.getElementById('rx_' + device.name).setAttribute('points', rxCurve);
+                                    this.graph.svgTX.getElementById('tx_' + device.name).setAttribute('points', txCurve);
                                 }
                                 pos++;
                             }
@@ -368,26 +367,12 @@ return baseclass.extend({
         }, this), this.graph.infos.interval);
     },
 
-
-    loadSVG: function (src) {
-        return request.get(src).then(function (response) {
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-
-            return E('div', {
-                'style': 'width:100%;height:300px;border:1px solid #000;background:#fff'
-            }, E(response.text()));
-        });
-    },
-
     render: function (data) {
         // Check if this render is executed for the first time
         if (!this.pollIsActive) {
             let network = data[0],
-                svg = data[1],
-                svgRX = svg.cloneNode(true),
-                svgTX = svg.cloneNode(true);
+                svgRX = otbsvg.createBackground(),
+                svgTX = otbsvg.createBackground();
 
             var body = E('fieldset', { class: 'cbi-section' }, [
                 E('div', { id: 'overthebox_graph' }, [
@@ -420,15 +405,15 @@ return baseclass.extend({
 
 
             this.createGraph(svgRX, svgTX, network, function (svgRX, svgTX, infos) {
-                svgRX.firstElementChild.getElementById('label_25').firstChild.data = rate(infos.hlabels.rx.l25).join('');
-                svgRX.firstElementChild.getElementById('label_50').firstChild.data = rate(infos.hlabels.rx.l50).join('');
-                svgRX.firstElementChild.getElementById('label_75').firstChild.data = rate(infos.hlabels.rx.l75).join('');
+                svgRX.getElementById('label_25').firstChild.data = rate(infos.hlabels.rx.l25).join('');
+                svgRX.getElementById('label_50').firstChild.data = rate(infos.hlabels.rx.l50).join('');
+                svgRX.getElementById('label_75').firstChild.data = rate(infos.hlabels.rx.l75).join('');
 
                 svgRX.parentNode.parentNode.querySelector('#dnscale').firstChild.data = _('(%d minute window, %d second interval)').format(infos.timeframe, infos.interval);
 
-                svgTX.firstElementChild.getElementById('label_25').firstChild.data = rate(infos.hlabels.tx.l25).join('');
-                svgTX.firstElementChild.getElementById('label_50').firstChild.data = rate(infos.hlabels.tx.l50).join('');
-                svgTX.firstElementChild.getElementById('label_75').firstChild.data = rate(infos.hlabels.tx.l75).join('');
+                svgTX.getElementById('label_25').firstChild.data = rate(infos.hlabels.tx.l25).join('');
+                svgTX.getElementById('label_50').firstChild.data = rate(infos.hlabels.tx.l50).join('');
+                svgTX.getElementById('label_75').firstChild.data = rate(infos.hlabels.tx.l75).join('');
 
                 svgTX.parentNode.parentNode.querySelector('#upscale').firstChild.data = _('(%d minute window, %d second interval)').format(infos.timeframe, infos.interval);
             });
