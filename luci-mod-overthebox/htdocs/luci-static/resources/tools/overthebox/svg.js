@@ -66,7 +66,7 @@ return L.Class.extend({
         line.setAttribute('y1', y1_pos);
         line.setAttribute('x2', x2_pos);
         line.setAttribute('y2', y2_pos);
-        line.setAttribute('style', 'stroke:black;stroke-width:0.1');
+        line.setAttribute('style', 'stroke:#000;stroke-width:0.1');
 
         return line;
     }
