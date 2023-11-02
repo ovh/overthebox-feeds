@@ -129,7 +129,7 @@ return baseclass.extend({
             expires = net.getExpiry(),
             uptime = net.getUptime(),
             ipv4Addrs = net.getIPAddrs();
-        
+
         let color = net.isUp() ? 'green' : 'red';
 
         let ipFields = [
@@ -165,9 +165,9 @@ return baseclass.extend({
                 _('WHOIS'), this.otbData.get(name + 'WHOIS'),
                 _('Latency'), this.otbData.get(name + 'Latency'),
             );
-            if(this.otbData.get(name + 'Status') === 'OK') {
+            if (this.otbData.get(name + 'Status') === 'OK') {
                 color = 'green';
-                
+
             } else {
                 color = 'red';
                 ipFields[1] = E('em', _('Not connected'));
