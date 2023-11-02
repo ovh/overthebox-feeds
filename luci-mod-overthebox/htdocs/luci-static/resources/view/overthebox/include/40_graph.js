@@ -17,6 +17,7 @@ return baseclass.extend({
     title: _('Realtime Traffic'),
     pollIsActive: false,
     datapoints: [],
+    aggregates: [],
 
     load: function () {
         return Promise.all([
@@ -24,7 +25,7 @@ return baseclass.extend({
         ]);
     },
 
-    retrieveInterfaces: function(network) {
+    retrieveInterfaces: function (network) {
         const interfaces = uci.sections('network', 'interface');
 
         let devs = [];
@@ -47,13 +48,24 @@ return baseclass.extend({
         const graph = otbgraph.newGraph(device, type, view.offsetWidth);
         graph.svg = otbsvg.createBackground();
 
-        graph.svg.appendChild(
-            otbsvg.createPolyLineElem(
+        if (device === 'all') {
+            let line = otbsvg.createPolyLineElem(
                 device,
-                otbgraph.stringToColour(device),
-                0.6
-            )
-        );
+                'DimGray',
+                0
+            );
+            // Override style
+            line.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+            graph.svg.appendChild(line);
+        } else {
+            graph.svg.appendChild(
+                otbsvg.createPolyLineElem(
+                    device,
+                    otbgraph.stringToColour(device),
+                    0.6
+                )
+            );
+        }
 
         // Plot height time interval lines
         // With a width of 498 and a step of 5 we are just looping once here
@@ -71,14 +83,15 @@ return baseclass.extend({
         return graph;
     },
 
-    pollData: function() {
+    pollData: function () {
         poll.add(L.bind(function () {
-            const rpcStats = otbrpc.realtimeStats();
+            const rpcStats = otbrpc.realtimeStats(),
+                tasks = [];
 
-            for (const {name, sets, graphs} of this.datapoints) {
-                L.resolveDefault(rpcStats('interface', name), []).then(
+            for (const { name, sets, graphs } of this.datapoints) {
+                tasks.push(L.resolveDefault(rpcStats('interface', name), []).then(
                     rpc => {
-                        const deviceStats = rpc.map(st => [[st[0],st[1]], [st[0],st[3]]]);
+                        const deviceStats = rpc.map(st => [[st[0], st[1]], [st[0], st[3]]]);
 
                         for (const [index, stats] of deviceStats.entries()) {
                             for (const [i, data] of stats.entries()) {
@@ -86,9 +99,9 @@ return baseclass.extend({
                                 if (data[0] < sets[i].lastUpdate) {
                                     // We are at last stats index
                                     // it's mean we did not push any new data
-                                    if (index+1 === deviceStats.length) {
+                                    if (index + 1 === deviceStats.length) {
                                         // If there is no data in the set, there is nothing to do
-                                        if (Math.max(...set[i].points) === 0) {
+                                        if (Math.max(...sets[i].points) === 0) {
                                             continue;
                                         }
 
@@ -113,9 +126,9 @@ return baseclass.extend({
                                 let value = data[1];
 
                                 // Normalize diff against time interval
-                                const delta = data[0] - deviceStats[index-1][i][0];
+                                const delta = data[0] - deviceStats[index - 1][i][0];
                                 if (delta) {
-                                    value = (value - deviceStats[index-1][i][1]) / delta
+                                    value = (value - deviceStats[index - 1][i][1]) / delta
                                 }
 
                                 sets[i] = otbgraph.updateSet(sets[i], value, graphs[i].smoothRatio);
@@ -124,34 +137,70 @@ return baseclass.extend({
 
                         // Redraw
                         for (const [i, set] of sets.entries()) {
-                            graphs[i].hscale.ratio = otbgraph.computeHscale(graphs[i].height, set.peak);
-
-                            let curve = '0,' + graphs[i].height;
-
-                            for (const [pos, p] of set.points.entries()) {
-                                let x = pos*graphs[i].step,
-                                    y = otbgraph.computeHpoint(graphs[i].height, graphs[i].hscale.ratio, p)
-                                curve += ' ' + x + ',' + y;
-
-                                // Last point, curve cloture
-                                if (pos === (set.points.length - 1)) {
-                                    curve += ' ' + graphs[i].width + ',' + y + ' ' + graphs[i].width + ',' + graphs[i].height;
-                                }
-                            }
+                            graphs[i].hscale.ratio = otbgraph.computeHscale(graphs[i], set.peak);
 
                             // Save curve redraw
+                            const curve = otbgraph.drawCurve(graphs[i], set.points)
                             graphs[i].svg.getElementById(name).setAttribute('points', curve);
 
                             // Save labels
-                            graphs[i].hscale.hlabels = otbgraph.computeHlabels(graphs[i].height, graphs[i].hscale.ratio);
+                            graphs[i].hscale.hlabels = otbgraph.computeHlabels(graphs[i]);
 
                             // Set legends
-                            otbgraph.setLegends(graphs[i].svg, graphs[i].hscale.hlabels, graphs[i].wscale);
+                            otbgraph.setLegends(graphs[i]);
                         }
                     }
-                )
+                ));
             }
-        }, this), this.datapoints[0].graphs[0].wscale.interval);
+
+            Promise.all(tasks).then(
+                // Compute aggregate
+                () => {
+                    for (const [index, graph] of this.aggregates.entries()) {
+                        let names = [];
+                        let lines = [];
+                        let peak = 1;
+
+                        for (const { name, sets, graphs } of this.datapoints) {
+                            names.push(name);
+                            lines.push(sets[index].points);
+
+                            // First element we just push data
+                            if (lines.length === 1) {
+                                peak = sets[index].peak
+                                continue
+                            }
+
+                            // Aggregate lines
+                            for (let i = 0; i < sets[index].points.length; i++) {
+                                lines[lines.length - 1][i] += lines[lines.length - 2][i];
+                                peak = lines[lines.length - 1][i] > peak ? lines[lines.length - 1][i] : peak
+                            }
+                        }
+
+                        // Redraw
+                        graph.hscale.ratio = otbgraph.computeHscale(graph, peak);
+
+                        for (const [i, line] of lines.entries()) {
+                            // Save curve redraw
+                            const curve = otbgraph.drawCurve(graph, line)
+                            graph.svg.getElementById(names[i]).setAttribute('points', curve);
+
+                            // Thats the last line we should add global curve
+                            if (i === lines.length - 1) {
+                                graph.svg.getElementById('all').setAttribute('points', curve);
+                            }
+
+                            // Save labels
+                            graph.hscale.hlabels = otbgraph.computeHlabels(graph);
+
+                            // Set legends
+                            otbgraph.setLegends(graph);
+                        }
+                    }
+                }
+            )
+        }, this), this.aggregates[0].wscale.interval);
     },
 
     render: function (data) {
@@ -159,7 +208,20 @@ return baseclass.extend({
         if (!this.pollIsActive) {
             const devices = this.retrieveInterfaces(data[0]),
                 box = E('div'),
-                tabs = [E('div'),E('div')];
+                tabs = [E('div'), E('div')];
+
+            // Init aggregate graph
+            this.aggregates = [
+                this.createGraph('all', 'rx'),
+                this.createGraph('all', 'tx')
+            ];
+
+            for (const [i, g] of this.aggregates.entries()) {
+                tabs[i].appendChild(E('div', { 'data-tab': 'all', 'data-tab-title': 'all' }, [
+                    g.svg,
+                    E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.name }, '-'))
+                ]));
+            }
 
             // Init device graph
             for (const device of devices) {
@@ -175,10 +237,19 @@ return baseclass.extend({
                 for (const [i, g] of d.graphs.entries()) {
                     d.sets[i] = {
                         points: new Array(g.points).fill(0),
-                        peak:1,
+                        peak: 1,
                         // JS date are in ms, but we use s
-                        updateTime: (Math.floor(Date.now() / 1000) - 120)
+                        lastUpdate: (Math.floor(Date.now() / 1000) - 120)
                     };
+
+                    // Append line to aggregate
+                    this.aggregates[i].svg.appendChild(
+                        otbsvg.createPolyLineElem(
+                            device,
+                            otbgraph.stringToColour(device),
+                            0.6
+                        )
+                    );
 
                     tabs[i].appendChild(E('div', { 'data-tab': device, 'data-tab-title': device }, [
                         g.svg,

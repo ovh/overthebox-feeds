@@ -3,7 +3,7 @@
 
 
 return L.Class.extend({
-    realtimeStats: function() {
+    realtimeStats: function () {
         return rpc.declare({
             object: 'luci',
             method: 'getRealtimeStats',
@@ -12,7 +12,7 @@ return L.Class.extend({
         });
     },
 
-    deviceStatus: function() {
+    deviceStatus: function () {
         return rpc.declare({
             object: 'network.device',
             method: 'status',
