@@ -20,6 +20,10 @@ function getLatency(dir) {
     return fs.trimmed(dir + '/latency').then((r) => r || '-');
 }
 
+function getConnectivity(dir) {
+    return fs.trimmed(dir + '/connectivity').then((r) => r || 'ERROR');
+}
+
 function getOTBData(name) {
     let dir = '/tmp/otb-data/' + name;
 
@@ -27,6 +31,7 @@ function getOTBData(name) {
         getWANIP(dir),
         getASNName(dir),
         getLatency(dir),
+        getConnectivity(dir),
     ])
 }
 
@@ -123,8 +128,9 @@ return baseclass.extend({
             gateway = net.getGatewayAddr(),
             expires = net.getExpiry(),
             uptime = net.getUptime(),
-            ipv4Addrs = net.getIPAddrs(),
-            color = net.isUp() ? 'green' : 'red';
+            ipv4Addrs = net.getIPAddrs();
+        
+        let color = net.isUp() ? 'green' : 'red';
 
         let ipFields = [
             _('Protocol'), net.getI18n() || E('em', _('Not connected')),
@@ -150,6 +156,7 @@ return baseclass.extend({
                     this.otbData.set(name + 'WANIP', res[0]);
                     this.otbData.set(name + 'WHOIS', res[1]);
                     this.otbData.set(name + 'Latency', res[2] + ' ms');
+                    this.otbData.set(name + 'Status', res[3]);
                 });
 
             summary += ' ' + this.otbData.get(name + 'Latency');
@@ -158,6 +165,16 @@ return baseclass.extend({
                 _('WHOIS'), this.otbData.get(name + 'WHOIS'),
                 _('Latency'), this.otbData.get(name + 'Latency'),
             );
+            if(this.otbData.get(name + 'Status') === 'OK') {
+                color = 'green';
+                
+            } else {
+                color = 'red';
+                ipFields[1] = E('em', _('Not connected'));
+                ipFields[3] = null;
+                ipFields[5] = null;
+                ipFields[7] = null;
+            }
         }
 
         // Generate details body
