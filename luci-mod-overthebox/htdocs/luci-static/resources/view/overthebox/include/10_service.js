@@ -16,10 +16,10 @@ return baseclass.extend({
 
     load: function () {
         return Promise.all([
-            L.resolveDefault(uci.load('overthebox')),
-            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null)),
-            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null)),
-            L.resolveDefault(fs.exec('/usr/bin/pgrep', ['ss-redir'], null))
+            uci.load('overthebox'),
+            fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null),
+            fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null),
+            fs.exec('/usr/bin/pgrep', ['ss-redir'], null)
         ]);
     },
 
