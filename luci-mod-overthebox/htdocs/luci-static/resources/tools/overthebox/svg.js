@@ -4,7 +4,7 @@
 // Those are XML not HTML balises
 
 return L.Class.extend({
-    createBackground: function () {
+    createBackground: function (id) {
         let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttributeNS(null, 'width', '100%');
         svg.setAttributeNS(null, 'height', '100%');
@@ -12,11 +12,15 @@ return L.Class.extend({
 
         // Append labels lines
         svg.appendChild(this.createLineElem('0', '25%', '100%', '25%'))
-        svg.appendChild(this.createLabelElem('20', '24%', 'label_75'))
+        svg.appendChild(this.createLabelElem('20', '24%', id + '_label_75'))
         svg.appendChild(this.createLineElem('0', '50%', '100%', '50%'))
-        svg.appendChild(this.createLabelElem('20', '49%', 'label_50'))
+        svg.appendChild(this.createLabelElem('20', '49%', id + '_label_50'))
         svg.appendChild(this.createLineElem('0', '75%', '100%', '75%'))
-        svg.appendChild(this.createLabelElem('20', '74%', 'label_25'))
+        svg.appendChild(this.createLabelElem('20', '74%', id + '_label_25'))
+
+        // Add peak label
+        svg.appendChild(this.createLabelElem('20', '12%', id + '_label_peak'))
+        svg.appendChild(this.createLabelElem('20', '18%', id + '_label_avg'))
         return svg;
     },
 
@@ -36,15 +40,6 @@ return L.Class.extend({
         let line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         line.setAttributeNS(null, 'id', id);
         line.setAttributeNS(null, 'style', 'fill:' + color + ';fill-opacity:' + opacity + ';');
-        return line;
-    },
-
-    // Create a polyline element and set style
-    createPolyLineElemByStyle: function (id, style) {
-        var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        line.setAttributeNS(null, 'id', id);
-        line.setAttributeNS(null, 'style', style);
-
         return line;
     },
 

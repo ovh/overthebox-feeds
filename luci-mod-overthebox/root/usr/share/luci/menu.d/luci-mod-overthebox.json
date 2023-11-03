@@ -71,17 +71,25 @@
       }
     }
   },
-  "admin/overthebox/tunnels": {
-    "title": "TUN graphs",
-    "order": 4,
+  "admin/overthebox/realtime": {
+    "title": "Realtime Graphs",
+    "order": 5,
     "action": {
-      "type": "view",
-      "path": "overthebox/tunnels"
+      "type": "alias",
+      "path": "admin/overthebox/realtime/tunnels"
     },
     "depends": {
       "acl": [
         "luci-mod-overthebox-overview"
       ]
+    }
+  },
+  "admin/overthebox/realtime/tunnels": {
+    "title": "Tunnels",
+    "order": 1,
+    "action": {
+      "type": "view",
+      "path": "overthebox/graphs/tunnels"
     }
   }
 }

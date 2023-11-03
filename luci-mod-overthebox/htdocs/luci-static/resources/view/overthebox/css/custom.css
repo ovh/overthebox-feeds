@@ -61,17 +61,3 @@ table td {
     line-height: 18px;
     text-align: left;
 }
-
-.svg-graph {
-    border-left: 2px solid #000000;
-    border-bottom: 2px solid #000000;
-    background-color: #FFFFFF;
-}
-
-.graph-section .selection .title {
-    display: block;
-    font-size: 17px;
-    font-weight: 600;
-    color: black;
-    margin-bottom: 25px;
-}
