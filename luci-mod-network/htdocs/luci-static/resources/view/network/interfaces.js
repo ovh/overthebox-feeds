@@ -1533,6 +1533,11 @@ return view.extend({
 		o = s.option(form.Flag, 'packet_steering', _('Packet Steering'), _('Enable packet steering across all CPUs. May help or hinder network speed.'));
 		o.optional = true;
 
+		if (has_mptcp) {
+			o = s.option(form.ListValue, 'multipath', _('Multipath TCP'));
+			o.value('enable', _('enable'));
+			o.value('disable', _('disable'));
+		}
 
 		if (dslModemType != null) {
 			s = m.section(form.TypedSection, 'dsl', _('DSL'));
