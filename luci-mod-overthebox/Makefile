@@ -8,10 +8,11 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI OverTheBox - Global System settings
-LUCI_DEPENDS:=+bandwidth +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-bootstrap +otb-qos +luci +luci-lib-px5g +luci-lib-json +luci-proto-3g +luci-compat
+LUCI_DEPENDS:=+bandwidth +luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-bootstrap +otb-qos +luci +luci-lib-px5g +luci-lib-json +luci-proto-3g +luci-compat \
+	      +luci-app-sqm
 
 PKG_VERSION:=v0.0.11
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 define Package/luci-mod-overthebox/postinst
 #!/bin/sh
