@@ -1,0 +1,38 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2039,SC2140
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+
+# Migration from 0.8.x to 0.9.x
+_upgrade_network_config() {
+	
+	ifname="$(uci -q get network."$1".ifname)"
+
+	[ -z "$ifname" ] && return
+
+	if [ "$1" = "lan" ]; then
+		# Create bridge device
+		uci add network device
+		uci set network.@device[-1].name="br-$1"
+		uci set network.@device[-1].type="bridge"
+		# Add all bridged interfaces
+		for itf in $(uci get network."$1".ifname); do
+			uci add_list network.@device[-1].ports="$itf"
+		done
+		# Clean lan interface config
+		uci delete network."$1".ifname
+		uci delete network."$1".type
+		uci set network."$1".device="br-$1"
+		uci commit
+	else
+		uci -q batch <<-EOF
+			delete network.$1.ifname
+			set network.$1.device=$ifname
+		EOF
+	fi
+	
+}
+
+config_load network
+config_foreach _upgrade_network_config interface
