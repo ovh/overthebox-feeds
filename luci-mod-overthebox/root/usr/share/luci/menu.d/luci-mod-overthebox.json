@@ -58,15 +58,38 @@
       "path": "overthebox/switch"
     },
     "depends": {
-			"acl": [
+      "acl": [
         "luci-mod-overthebox-overview"
       ],
-			"fs": {
+      "fs": {
         "/sbin/swconfig-v2b": "executable"
       },
-			"uci": {
-        "network": { "@switch": true }
+      "uci": {
+        "network": {
+          "@switch": true
+        }
       }
-		}
+    }
+  },
+  "admin/overthebox/realtime": {
+    "title": "Realtime Graphs",
+    "order": 5,
+    "action": {
+      "type": "alias",
+      "path": "admin/overthebox/realtime/tunnels"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
+  },
+  "admin/overthebox/realtime/tunnels": {
+    "title": "Tunnels",
+    "order": 1,
+    "action": {
+      "type": "view",
+      "path": "overthebox/graphs/tunnels"
+    }
   }
 }

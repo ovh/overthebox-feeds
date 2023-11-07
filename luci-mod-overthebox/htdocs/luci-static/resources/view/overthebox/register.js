@@ -29,7 +29,7 @@ return view.extend({
             });
 
         return Promise.all([
-            L.resolveDefault(uci.load('overthebox')),
+            uci.load('overthebox'),
             auth
         ]);
     },

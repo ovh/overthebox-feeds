@@ -1,40 +1,41 @@
 'use strict';
-'require baseclass';
-'require network';
 'require view';
+'require dom';
 'require poll';
 'require request';
-'require dom';
 'require ui';
-'require uci';
-'require fs';
+'require rpc';
+'require network';
+'require tools.overthebox.include as include';
 'require tools.overthebox.graph as otbgraph';
 'require tools.overthebox.svg as otbsvg';
 'require tools.overthebox.rpc as otbrpc';
 
-return baseclass.extend({
-    title: _('Realtime Traffic'),
+document.querySelector('head').appendChild(E('link', {
+    'rel': 'stylesheet',
+    'type': 'text/css',
+    'href': L.resource('view/overthebox/css/custom.css')
+}));
+
+return view.extend({
     pollIsActive: false,
     datapoints: [],
     aggregates: [],
-
     load: function () {
         return Promise.all([
-            uci.load('network')
+            network.getDevices()
         ]);
     },
 
-    retrieveInterfaces: function (network) {
-        const interfaces = uci.sections('network', 'interface');
-
+    retrieveInterfaces: function (devices) {
         let devs = [];
-        // Search for interfaces which use multipath
-        for (const itf of interfaces) {
-            if (!itf.multipath || itf.multipath === "off") {
+        for (const device of devices) {
+            // Search for interfaces which are point-to-point
+            if (!device.dev.flags.pointtopoint) {
                 continue
             }
 
-            devs.push(itf.device);
+            devs.push(device.getName());
         }
 
         return devs;
@@ -129,6 +130,9 @@ return baseclass.extend({
                 box = E('div'),
                 tabs = [E('div'), E('div')];
 
+            // Include seedrandom
+            include.script(L.resource("seedrandom.js"))
+
             // Init aggregate graph
             this.aggregates = [
                 this.createGraph('all', 'rx'),
@@ -193,5 +197,9 @@ return baseclass.extend({
 
             return box;
         }
-    }
+    },
+
+    handleSaveApply: null,
+    handleSave: null,
+    handleReset: null
 });
