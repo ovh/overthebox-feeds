@@ -248,6 +248,7 @@ return view.extend({
                     .then(
                         data => {
                             uci.set('overthebox', 'me', 'service', serviceID);
+                            uci.set('overthebox', 'me', 'needs_activation', 'true');
                             return uci.save()
                                 .then(L.bind(ui.changes.init, ui.changes))
                                 .then(L.bind(ui.changes.apply, ui.changes));
