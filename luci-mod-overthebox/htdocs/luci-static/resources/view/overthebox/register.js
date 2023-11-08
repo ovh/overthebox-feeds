@@ -247,18 +247,10 @@ return view.extend({
                 ovhapi.linkDevice(serviceID, deviceID)
                     .then(
                         data => {
-                            uci.set('overthebox', 'me', 'service');
-                            return uci.save();
-                        }
-                    )
-                    .then(
-                        () => {
-                            uci.unload('overthebox');
-
-                            otbui.createSimpleModal(
-                                _('Success'),
-                                _('Service association has been successful')
-                            );
+                            uci.set('overthebox', 'me', 'service', serviceID);
+                            return uci.save()
+                                .then(L.bind(ui.changes.init, ui.changes))
+                                .then(L.bind(ui.changes.apply, ui.changes));
                         }
                     )
                     .catch(
