@@ -44,7 +44,9 @@ return baseclass.extend({
         // Introduce some responsiveness
         const view = document.querySelector('#view');
 
-        const id = device + '_' + type
+        // Remove . from vlan enable devices (eth0.3)
+        const regexp = /\./g;
+        const id = device.replace(regexp, '') + '_' + type
         const graph = otbgraph.newGraph(id, view.offsetWidth);
         graph.svg = otbsvg.createBackground(id);
 
