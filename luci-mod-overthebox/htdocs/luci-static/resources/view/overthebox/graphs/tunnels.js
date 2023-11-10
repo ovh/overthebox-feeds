@@ -31,7 +31,7 @@ return view.extend({
         let devs = [];
         for (const device of devices) {
             // Search for interfaces which are point-to-point
-            if (!device.dev.flags.pointtopoint) {
+            if (!device.dev || !device.dev.flags || !device.dev.flags.pointtopoint) {
                 continue
             }
 
