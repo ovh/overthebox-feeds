@@ -1,0 +1,71 @@
+.statusDiv {
+  display: block;
+  padding: 1rem;
+  border-radius: 7px;
+}
+
+.statusBar {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.steps {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.point {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  right: 0;
+  left: 0;
+  margin: auto;
+}
+
+.step {
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  border: 2px solid #ACACA6;
+  border-radius: 50%;
+  transition: background 1s;
+  margin: auto;
+  margin-bottom: 1rem;
+}
+
+.step.ok {
+  border: 2px solid linear-gradient(var(--primary-color-medium), var(--primary-color-low));
+  background: linear-gradient(var(--success-color-medium), var(--success-color-low));
+}
+
+.step.nok {
+  border: 2px solid linear-gradient(var(--primary-color-medium), var(--primary-color-low));
+  background: linear-gradient(var(--error-color-medium), var(--error-color-low));
+}
+
+.progress {
+  top: 1rem;
+  right: 0;
+  left: 0;
+  position: relative;
+  width: 80%;
+  margin: auto;
+  border-bottom: 2px solid #ACACA6;
+  z-index: -1;
+}
+
+.percent {
+  top: 1rem;
+  right: 0;
+  left: 0;
+  position: relative;
+  width: 0;
+  height: 100%;
+  margin: auto;
+  border-bottom: 2px solid linear-gradient(var(--primary-color-medium), var(--primary-color-low));
+  z-index: -1;
+  transition: width 1s;
+}

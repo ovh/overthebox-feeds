@@ -1,0 +1,71 @@
+{
+  "luci-mod-overthebox-overview": {
+    "description": "Grant UCI access to OverTheBox configuration",
+    "read": {
+      "file": {
+        "/etc/otb-version": [
+          "read"
+        ],
+        "/tmp/otb-data/*/*": [
+          "read"
+        ]
+      },
+      "ubus": {
+        "file": [
+          "read"
+        ],
+        "system": [
+          "board",
+          "info"
+        ],
+        "uci": [
+          "get"
+        ],
+        "luci": [
+          "getRealtimeStats"
+        ],
+        "network.device": [
+          "status"
+        ]
+      },
+      "uci": [
+        "overthebox",
+        "dscp",
+        "network"
+      ]
+    },
+    "write": {
+      "ubus": {
+        "uci": [
+          "set",
+          "commit"
+        ]
+      },
+      "file": {
+        "/bin/otb-dscp-reset": [
+          "exec"
+        ],
+        "/usr/bin/awk": [
+          "exec"
+        ],
+        "/bin/rm": [
+          "exec"
+        ],
+        "/bin/otb-confirm-service": [
+          "exec"
+        ],
+        "/usr/bin/pgrep": [
+          "exec"
+        ],
+        "/usr/bin/swconfig-v2b-reset-todo": [
+          "exec"
+        ]
+      },
+      "uci": [
+        "overthebox",
+        "dscp",
+        "network"
+      ]
+    }
+  }
+}

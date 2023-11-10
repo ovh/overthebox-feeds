@@ -139,8 +139,17 @@ _setup() {
 			uci -q set "network.$1.ipv6=0"
 			uci commit 
 		}
+	[ "$1" = "loopback" ] && {
+		uci -q set "network.$1.ipv6=1"
+		uci commit 
+	}
 
 	case "$1" in
+	wan?6)
+		uci -q batch <<-EOF
+		delete network.$1
+		EOF
+		;;
 	wan?*)
 		uci -q batch <<-EOF
 		set network.$1.metric=${1#wan}
