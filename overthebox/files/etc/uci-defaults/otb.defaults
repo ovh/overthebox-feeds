@@ -21,3 +21,6 @@ fi
 
 # Disable mini snmpd
 [ -f "/etc/config/mini_snmpd" ] && uci -q set "mini_snmpd.default.enabled=0"
+
+# Add dmesg link
+[ ! -f "/bin/dmesg" ] && ln -s /usr/bin/dmesg /bin/dmesg
