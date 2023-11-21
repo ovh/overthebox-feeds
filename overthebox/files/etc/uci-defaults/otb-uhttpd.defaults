@@ -2,5 +2,4 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # We force redirect to https, a lot of modern security feature related doesn't works on HTTP
-
-uci -q set "uhttpd.main.redirect_https='1'"
+uci -q set uhttpd.main.redirect_https='1'
