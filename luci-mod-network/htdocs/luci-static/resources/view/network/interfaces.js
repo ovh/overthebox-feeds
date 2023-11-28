@@ -584,6 +584,11 @@ return view.extend({
                 o.modalonly = true;
                 o.default = o.enabled;
 
+                o = s.taboption('general', form.Value, 'label', _('Label'));
+                o.placeholder = _('Interface label');
+                o.rmempty = true;
+                o.modalonly = true;
+
                 aushape = s.taboption('trafficcontrol', form.ListValue, 'trafficcontrol', _('Traffic Control'));
                 aushape.value('off', _('Disabled'));
                 aushape.value('static', _('Static'));
@@ -1239,15 +1244,21 @@ return view.extend({
             var net = this.section.networks.filter(function (n) { return n.getName() == section_id })[0],
                 zone = net ? this.section.zones.filter(function (z) { return !!z.getNetworks().filter(function (n) { return n == section_id })[0] })[0] : null;
 
-            if (!net)
+            if (!net) {
                 return;
+            }
+
+            let name = uci.get('network', section_id, 'label');
+            if (!name) {
+                name = net.getName().toUpperCase();
+            }
 
             var node = E('div', { 'class': 'ifacebox' }, [
                 E('div', {
                     'class': 'ifacebox-head',
                     'style': firewall.getZoneColorStyle(zone),
                     'title': zone ? _('Part of zone %q').format(zone.getName()) : _('No zone assigned')
-                }, E('strong', net.getName().toUpperCase())),
+                }, E('strong', name)),
                 E('div', {
                     'class': 'ifacebox-body',
                     'id': '%s-ifc-devices'.format(section_id),
