@@ -140,7 +140,11 @@ return baseclass.extend({
         ];
 
         // Generate details summary
-        let summary = name;
+        let summary = uci.get('network', name, 'label');
+        if (!summary) {
+            summary = name;
+        }
+
         if (gateway) {
             summary += ' (' + gateway + ')';
 
