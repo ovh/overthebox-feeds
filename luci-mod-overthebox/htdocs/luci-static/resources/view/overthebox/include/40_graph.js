@@ -42,12 +42,11 @@ return baseclass.extend({
 
     createGraph: function (device, type) {
         // Introduce some responsiveness
-        const view = document.querySelector('#view');
+        const view = document.querySelector('#view'),
+            regexp = /\.|\-/g,
+            id = device.replace(regexp, '') + '_' + type,
+            graph = otbgraph.newGraph(id, view.offsetWidth);
 
-        // Remove . from vlan enable devices (eth0.3)
-        const regexp = /\./g;
-        const id = device.replace(regexp, '') + '_' + type
-        const graph = otbgraph.newGraph(id, view.offsetWidth);
         graph.svg = otbsvg.createBackground(id);
 
         if (device === 'all') {

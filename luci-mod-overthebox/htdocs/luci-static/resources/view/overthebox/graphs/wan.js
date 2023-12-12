@@ -49,10 +49,11 @@ return view.extend({
 
     createGraph: function (device, type) {
         // Introduce some responsiveness
-        const view = document.querySelector('#view');
+        const view = document.querySelector('#view'),
+            regexp = /\.|\-/g,
+            id = device.replace(regexp, '') + '_' + type,
+            graph = otbgraph.newGraph(id, view.offsetWidth);
 
-        const id = device + '_' + type
-        const graph = otbgraph.newGraph(id, view.offsetWidth);
         graph.svg = otbsvg.createBackground(id);
 
         if (device === 'all') {
