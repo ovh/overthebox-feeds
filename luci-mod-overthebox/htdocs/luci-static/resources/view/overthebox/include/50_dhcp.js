@@ -4,14 +4,9 @@
 'require uci';
 'require network';
 'require validation';
+'require tools.overthebox.rpc as otbrpc';
 
 // Copied from luci-mod-status view/status/include/40_dhcp.js
-
-var callLuciDHCPLeases = rpc.declare({
-	object: 'luci-rpc',
-	method: 'getDHCPLeases',
-	expect: { '': {} }
-});
 
 return baseclass.extend({
 	title: _('DHCP Leases'),
@@ -20,8 +15,9 @@ return baseclass.extend({
 	isDUIDStatic: {},
 
 	load: function () {
+		const rpcDHCP = otbrpc.callLuciDHCPLeases();
 		return Promise.all([
-			callLuciDHCPLeases(),
+			rpcDHCP(),
 			network.getHostHints(),
 			L.resolveDefault(uci.load('dhcp'))
 		]);
