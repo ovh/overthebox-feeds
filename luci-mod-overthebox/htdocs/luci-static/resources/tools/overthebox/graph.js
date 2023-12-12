@@ -27,7 +27,7 @@ return L.Class.extend({
             },
             // Width Scale
             wscale: {
-                id: id+'_scale',
+                id: id + '_scale',
                 // poll interval in seconds
                 interval: 3,
                 // time between each data point
@@ -99,7 +99,7 @@ return L.Class.extend({
         const v = (graph.height / graph.hscale.ratio);
 
         for (let i = 25; i < 100; i += 25) {
-            graph.hscale.hlabels['l' + i] = v * (i/100)
+            graph.hscale.hlabels['l' + i] = v * (i / 100)
         }
     },
 
@@ -115,8 +115,8 @@ return L.Class.extend({
             graph.svg.getElementById(graph.id + '_label_' + i).firstChild.data = this.rate(graph.hscale.hlabels['l' + i]).join('');
         }
 
-        graph.svg.getElementById(graph.id + '_label_peak').firstChild.data = 'peak: '+this.rate(peak).join('');
-        graph.svg.getElementById(graph.id + '_label_avg').firstChild.data = 'avg: '+this.rate(avg/graph.points).join('');
+        graph.svg.getElementById(graph.id + '_label_peak').firstChild.data = 'peak: ' + this.rate(peak).join('');
+        graph.svg.getElementById(graph.id + '_label_avg').firstChild.data = 'avg: ' + this.rate(avg / graph.points).join('');
 
         graph.svg.parentNode.parentNode.querySelector('#' + graph.wscale.id).firstChild.data = _('(%d minute window, %d second interval)').format(graph.wscale.timeframe, graph.wscale.interval);
     },
@@ -152,7 +152,7 @@ return L.Class.extend({
     },
 
     // Update a set with new entries from a rpc call
-    updateSets: function(graphs, sets, deviceStats) {
+    updateSets: function (graphs, sets, deviceStats) {
         for (const [index, stats] of deviceStats.entries()) {
             for (const [i, data] of stats.entries()) {
                 // Skip overlapping entries
@@ -161,7 +161,7 @@ return L.Class.extend({
                     // it's mean we did not push any new data
                     if (index + 1 === deviceStats.length) {
                         // last point was set less than 5 seconds ago
-                        if ((data[0]+5) - sets[i].lastUpdate >= 0) {
+                        if ((data[0] + 5) - sets[i].lastUpdate >= 0) {
                             continue;
                         }
 
@@ -193,7 +193,10 @@ return L.Class.extend({
                 // Normalize diff against time interval
                 const delta = data[0] - deviceStats[index - 1][i][0];
                 if (delta) {
-                    value = (value - deviceStats[index - 1][i][1]) / delta
+                    let v = (value - deviceStats[index - 1][i][1]) / delta
+                    if (v >= 0) {
+                        value = v
+                    }
                 }
 
                 this.insertValue(sets[i], value, graphs[i].smoothRatio);
@@ -220,7 +223,7 @@ return L.Class.extend({
     },
 
     // Draw a simple graph from a set of points
-    drawSimple: function(graph, set) {
+    drawSimple: function (graph, set) {
         this.computeHscale(graph, set.peak);
 
         // Save curve redraw
@@ -235,15 +238,15 @@ return L.Class.extend({
     },
 
     // Draw an aggregates graph
-    drawAggregate: function(graph, names, lines) {
+    drawAggregate: function (graph, names, lines) {
         let peak = 1;
         let avg = 1;
 
         for (let [i, line] of lines.entries()) {
             // Aggregate lines
             // To have a correct stack, the highest line should be the first one
-            lines[i] = line = line.map((x,y) => {
-                const l = lines.slice(i+1);
+            lines[i] = line = line.map((x, y) => {
+                const l = lines.slice(i + 1);
                 for (let j = 0; j < l.length; j++) {
                     x += l[j][y];
                 }

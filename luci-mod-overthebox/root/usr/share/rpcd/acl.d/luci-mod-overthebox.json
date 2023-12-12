@@ -45,6 +45,9 @@
         "/bin/otb-dscp-reset": [
           "exec"
         ],
+        "/bin/bandwidth": [
+          "exec"
+        ],
         "/usr/bin/awk": [
           "exec"
         ],

@@ -15,7 +15,7 @@ return baseclass.extend({
 	isDUIDStatic: {},
 
 	load: function () {
-		const rpcDHCP = otbrpc.callLuciDHCPLeases();
+		const rpcDHCP = otbrpc.dhcpLeases();
 		return Promise.all([
 			rpcDHCP(),
 			network.getHostHints(),

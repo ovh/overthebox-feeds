@@ -20,7 +20,7 @@ return L.Class.extend({
         });
     },
 
-    callLuciDHCPLeases: function () {
+    dhcpLeases: function () {
         return rpc.declare({
             object: 'luci-rpc',
             method: 'getDHCPLeases',
