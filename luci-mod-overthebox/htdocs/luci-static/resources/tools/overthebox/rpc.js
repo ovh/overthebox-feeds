@@ -26,5 +26,19 @@ return L.Class.extend({
             method: 'getDHCPLeases',
             expect: { '': {} }
         });
+    },
+
+    callSystemBoard: function () {
+        return rpc.declare({
+            object: 'system',
+            method: 'board'
+        });
+    },
+
+    callSystemInfo: function () {
+        return rpc.declare({
+            object: 'system',
+            method: 'info'
+        });
     }
 });
