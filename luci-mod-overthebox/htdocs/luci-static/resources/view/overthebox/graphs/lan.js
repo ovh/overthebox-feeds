@@ -18,6 +18,12 @@ document.querySelector('head').appendChild(E('link', {
     'href': L.resource('view/overthebox/css/custom.css')
 }));
 
+document.querySelector('head').appendChild(E('link', {
+    'rel': 'stylesheet',
+    'type': 'text/css',
+    'href': L.resource('view/overthebox/css/graph.css')
+}));
+
 return view.extend({
     pollIsActive: false,
     datapoints: [],
@@ -51,7 +57,8 @@ return view.extend({
                 0
             );
             // Override style
-            line.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+            line.removeAttributeNS(null, 'style');
+            line.setAttributeNS(null, 'class', 'otb-graph-mline');
             graph.svg.appendChild(line);
         } else {
             graph.svg.appendChild(
@@ -174,7 +181,7 @@ return view.extend({
 
         for (const [i, g] of this.aggregates.entries()) {
             tabs[i].appendChild(E('div', { 'data-tab': 'all', 'data-tab-title': 'all', }, [
-                E('div', { 'style': 'width:100%;height:300px;border:1px solid #000;background:#fff' }, [g.svg]),
+                E('div', { 'class': 'otb-graph' }, [g.svg]),
                 E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
             ]));
         }
@@ -213,7 +220,7 @@ return view.extend({
                 );
 
                 tabs[i].appendChild(E('div', { 'data-tab': name, 'data-tab-title': name }, [
-                    E('div', { 'style': 'width:100%;height:300px;border:1px solid #000;background:#fff' }, [g.svg]),
+                    E('div', { 'class': 'otb-graph' }, [g.svg]),
                     E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
                 ]));
             }
