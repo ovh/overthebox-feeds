@@ -67,12 +67,9 @@ return baseclass.extend({
     renderOTB: function (board, system, version) {
         const time = system.localtime ? otbui.formatLocalTime(system.localtime) : null,
             uptime = system.uptime ? '%t'.format(system.uptime) : null,
-            load = otbui.formatLoad(system.load);
+            load = otbui.formatLoad(system.load),
+            model = otbui.formatModel(board.model);
 
-        let model = board.model;
-        if (board.model === "PC Engines PC Engines apu4") {
-            model = "OTB v2c";
-        }
 
         return E('div', { 'class': 'network-otb' }, [
             E('div', { 'class': 'network-infos' }, [
