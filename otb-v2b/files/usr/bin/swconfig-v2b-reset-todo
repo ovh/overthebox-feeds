@@ -1,9 +1,11 @@
 #!/bin/sh
 
+# shellcheck disable=SC1091
 . /lib/functions.sh
 
 LAN=
 WAN=
+JSON=$(jq -n '{}')
 
 for port in $(seq 18); do
 	[ "$port" = 15 ] && continue
@@ -28,49 +30,73 @@ config_foreach _delete_vlan switch_vlan
 
 _delete_interface() {
 	case "$1" in
-		wan?*) uci -q delete "network.$1" ;;
+		wan?*)
+                    label=
+                    config_get label "$1" label
+
+                    if [ -n "$label" ]; then
+                        J=$(jq -n --arg k "$1" --arg v "$label" '{($k): $v}')
+                        JSON=$(echo "$JSON" "$J" | jq -s add)
+                    fi
+
+                    uci -q delete "network.$1" ;;
 	esac
 }
 
 config_foreach _delete_interface interface
 
 uci -q batch >/dev/null <<-EOF
-add network switch_vlan
-set network.@switch_vlan[-1].device='otbv2sw'
-set network.@switch_vlan[-1].vlan='1'
-set network.@switch_vlan[-1].ports='16 15t'
+    add network switch_vlan
+    set network.@switch_vlan[-1].device='otbv2sw'
+    set network.@switch_vlan[-1].vlan='1'
+    set network.@switch_vlan[-1].ports='16 15t'
 
-add network switch_vlan
-set network.@switch_vlan[-1].device='otbv2sw'
-set network.@switch_vlan[-1].vlan='2'
-set network.@switch_vlan[-1].ports='$LAN 15t'
+    add network switch_vlan
+    set network.@switch_vlan[-1].device='otbv2sw'
+    set network.@switch_vlan[-1].vlan='2'
+    set network.@switch_vlan[-1].ports='$LAN 15t'
 
-set network.lan.device='eth0.2'
+    set network.lan.device='eth0.2'
 EOF
 
-vlan=3
+# Reserve vlan 3,4 for port 13,14
+vlan=4
 
 for port in $WAN; do
-	echo "Setup interface wan$port with vlan $vlan"
+        v=
+        if [ "$port" -eq 13 ]; then
+            v=3
+        elif [ "$port" -eq 14 ]; then
+            v=4
+        else
+            vlan=$((vlan+1))
+            v=$vlan
+        fi
+
+	echo "Setup interface wan$port with vlan $v"
 
 	uci -q batch >/dev/null <<-EOF
-	add network switch_vlan
-	set network.@switch_vlan[-1].device='otbv2sw'
-	set network.@switch_vlan[-1].vlan='$vlan'
-	set network.@switch_vlan[-1].ports='$port 15t'
+            add network switch_vlan
+            set network.@switch_vlan[-1].device='otbv2sw'
+            set network.@switch_vlan[-1].vlan='$v'
+            set network.@switch_vlan[-1].ports='$port 15t'
 
-	set network.wan$port=interface
-	set network.wan$port.device='eth0.$vlan'
-	set network.wan$port.multipath='on'
-	set network.wan$port.proto='dhcp'
-	set network.wan$port.metric='$port'
-	set network.wan$port.ip4table='$((200+port))'
-	set network.wan$port.ipv6='0'
+            set network.wan$port=interface
+            set network.wan$port.device='eth0.$v'
+            set network.wan$port.multipath='on'
+            set network.wan$port.proto='dhcp'
+            set network.wan$port.metric='$port'
+            set network.wan$port.ip4table='$((200+port))'
+            set network.wan$port.ipv6='0'
 
-	del_list firewall.wan.network='wan$port'
-	add_list firewall.wan.network='wan$port'
+            del_list firewall.wan.network='wan$port'
+            add_list firewall.wan.network='wan$port'
 	EOF
-	vlan=$((vlan+1))
+
+        label=$(echo "$JSON" |jq --arg w "wan$port" '.[$w]' |tr -d '"')
+        if [ -n "$label" ] && [ "$label" != "null" ]; then
+            uci -q set "network.wan$port.label=$label"
+        fi
 done
 
 uci -q commit
