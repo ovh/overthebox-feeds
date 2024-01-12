@@ -1,15 +1,18 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-remote
-PKG_VERSION:=0.6.0
+PKG_VERSION:=0.7.0
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
+MY_DEPENDS := \
+	dropbear overthebox
+
 define Package/$(PKG_NAME)
 SECTION:=OVH
 CATEGORY:=OverTheBox
-DEPENDS:=+dropbear +overthebox
+DEPENDS:=$(foreach p,$(MY_DEPENDS),+$(p))
 TITLE:=OverTheBox remote
 PKGARCH:=all
 endef
@@ -26,10 +29,7 @@ define Package/$(PKG_NAME)/conffiles
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) otb-* $(1)/bin
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
+	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/etc/config
 	touch $(1)/etc/config/$(PKG_NAME)
 endef
