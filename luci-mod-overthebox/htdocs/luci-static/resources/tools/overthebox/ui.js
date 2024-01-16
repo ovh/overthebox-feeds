@@ -52,6 +52,23 @@ return L.Class.extend({
         return _('No link');
     },
 
+    // Format model
+    // Return a shorter model version
+    formatModel: function (model) {
+        switch (model) {
+            case "OVH SAS OverTheBox V2B":
+                return "OTB v2b"
+            case "PC Engines PC Engines apu4":
+                return "OTB v2c";
+            default:
+                if (/qemu/ig.test(model)) {
+                    return "QEMU"
+                }
+
+                return model
+        }
+    },
+
     // Create tabular data
     // We are expecting an array like [name1, value1, name2, value2]
     createTabularElem: function (fields) {
