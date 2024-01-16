@@ -12,6 +12,12 @@
 'require tools.overthebox.svg as otbsvg';
 'require tools.overthebox.rpc as otbrpc';
 
+document.querySelector('head').appendChild(E('link', {
+    'rel': 'stylesheet',
+    'type': 'text/css',
+    'href': L.resource('view/overthebox/css/graph.css')
+}));
+
 return baseclass.extend({
     title: _('Realtime Traffic'),
     pollIsActive: false,
@@ -42,12 +48,11 @@ return baseclass.extend({
 
     createGraph: function (device, type) {
         // Introduce some responsiveness
-        const view = document.querySelector('#view');
+        const view = document.querySelector('#view'),
+            regexp = /\.|\-/g,
+            id = device.replace(regexp, '') + '_' + type,
+            graph = otbgraph.newGraph(id, view.offsetWidth);
 
-        // Remove . from vlan enable devices (eth0.3)
-        const regexp = /\./g;
-        const id = device.replace(regexp, '') + '_' + type
-        const graph = otbgraph.newGraph(id, view.offsetWidth);
         graph.svg = otbsvg.createBackground(id);
 
         if (device === 'all') {
@@ -57,7 +62,8 @@ return baseclass.extend({
                 0
             );
             // Override style
-            line.setAttributeNS(null, 'style', 'stroke:DimGray;stroke-width:3;stroke-linecap="round";fill:;fill-opacity:0;');
+            line.removeAttributeNS(null, 'style');
+            line.setAttributeNS(null, 'class', 'otb-graph-mline');
             graph.svg.appendChild(line);
         } else {
             graph.svg.appendChild(
@@ -139,7 +145,7 @@ return baseclass.extend({
 
             for (const [i, g] of this.aggregates.entries()) {
                 tabs[i].appendChild(E('div', { 'data-tab': 'all', 'data-tab-title': 'all', }, [
-                    E('div', { 'style': 'width:100%;height:300px;border:1px solid #000;background:#fff' }, [g.svg]),
+                    E('div', { 'class': 'otb-graph' }, [g.svg]),
                     E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
                 ]));
             }
@@ -174,7 +180,7 @@ return baseclass.extend({
                     );
 
                     tabs[i].appendChild(E('div', { 'data-tab': device, 'data-tab-title': device }, [
-                        E('div', { 'style': 'width:100%;height:300px;border:1px solid #000;background:#fff' }, [g.svg]),
+                        E('div', { 'class': 'otb-graph' }, [g.svg]),
                         E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
                     ]));
                 }

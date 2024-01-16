@@ -13,11 +13,21 @@ uci_id=$(echo "$remote_access_id" | tr - _)
 	sed -i "/$uci_id/d" /etc/dropbear/authorized_keys
 
 luci_user=$(uci -q get otb-remote."${uci_id}".luci_user) || true
-[ -n "$luci_user" ] && deluser "$luci_user"
 
-uci -q batch <<EOF
-delete otb-remote.${uci_id}
-commit otb-remote
+if [ -n "$luci_user" ]; then
+	deluser "$luci_user"
+
+	uci -q batch <<-EOF
+		delete rpcd.${uci_id}
+		commit rpcd
+	EOF
+
+	/etc/init.d/rpcd restart
+fi
+
+uci -q batch <<-EOF
+	delete otb-remote.${uci_id}
+	commit otb-remote
 EOF
 
 /etc/init.d/otb-remote restart

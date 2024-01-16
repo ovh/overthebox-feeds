@@ -76,7 +76,7 @@
     "order": 5,
     "action": {
       "type": "alias",
-      "path": "admin/overthebox/realtime/tunnels"
+      "path": "admin/overthebox/realtime/wan"
     },
     "depends": {
       "acl": [
@@ -84,12 +84,28 @@
       ]
     }
   },
-  "admin/overthebox/realtime/tunnels": {
-    "title": "Tunnels",
+  "admin/overthebox/realtime/wan": {
+    "title": "WAN",
     "order": 1,
     "action": {
       "type": "view",
+      "path": "overthebox/graphs/wan"
+    }
+  },
+  "admin/overthebox/realtime/tunnels": {
+    "title": "Tunnels",
+    "order": 2,
+    "action": {
+      "type": "view",
       "path": "overthebox/graphs/tunnels"
+    }
+  },
+  "admin/overthebox/realtime/lan": {
+    "title": "LAN",
+    "order": 3,
+    "action": {
+      "type": "view",
+      "path": "overthebox/graphs/lan"
     }
   }
 }

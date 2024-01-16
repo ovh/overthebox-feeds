@@ -3,6 +3,7 @@
 'require dom';
 'require poll';
 'require request';
+'require uci';
 'require ui';
 'require rpc';
 'require network';
@@ -28,20 +29,25 @@ return view.extend({
     datapoints: [],
     aggregates: [],
     load: function () {
+        // Include seedrandom
+        include.script(L.resource("seedrandom.js"))
+
         return Promise.all([
             network.getDevices()
         ]);
     },
 
-    retrieveInterfaces: function (devices) {
+    retrieveInterfaces: function (network) {
+        const interfaces = uci.sections('network', 'interface');
+
         let devs = [];
-        for (const device of devices) {
-            // Search for interfaces which are point-to-point
-            if (!device.dev || !device.dev.flags || !device.dev.flags.pointtopoint) {
+        // Search for interfaces which use multipath
+        for (const itf of interfaces) {
+            if (!itf.multipath || itf.multipath === "off") {
                 continue
             }
 
-            devs.push(device.getName());
+            devs.push(itf.device);
         }
 
         return devs;
@@ -49,10 +55,11 @@ return view.extend({
 
     createGraph: function (device, type) {
         // Introduce some responsiveness
-        const view = document.querySelector('#view');
+        const view = document.querySelector('#view'),
+            regexp = /\.|\-/g,
+            id = device.replace(regexp, '') + '_' + type,
+            graph = otbgraph.newGraph(id, view.offsetWidth);
 
-        const id = device + '_' + type
-        const graph = otbgraph.newGraph(id, view.offsetWidth);
         graph.svg = otbsvg.createBackground(id);
 
         if (device === 'all') {
@@ -136,9 +143,6 @@ return view.extend({
             const devices = this.retrieveInterfaces(data[0]),
                 box = E('div'),
                 tabs = [E('div'), E('div')];
-
-            // Include seedrandom
-            include.script(L.resource("seedrandom.js"))
 
             // Init aggregate graph
             this.aggregates = [

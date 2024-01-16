@@ -29,7 +29,7 @@ return L.Class.extend({
         text.setAttribute('id', id);
         text.setAttribute('x', x_pos);
         text.setAttribute('y', y_pos);
-        text.setAttribute('style', 'fill:#eee; font-size:9pt; font-family:sans-serif; text-shadow: 1px 1px 1px #000');
+        text.setAttribute('class', 'otb-graph-label');
         text.appendChild(document.createTextNode(''));
 
         return text;
@@ -48,7 +48,7 @@ return L.Class.extend({
         let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x_pos);
         text.setAttribute('y', y_pos);
-        text.setAttribute('style', 'fill:#999999; font-size:9pt; font-family:sans-serif; text-shadow: 1px 1px 1px #000');
+        text.setAttribute('class', 'otb-graph-text');
         text.appendChild(document.createTextNode(label));
 
         return text;
@@ -61,7 +61,7 @@ return L.Class.extend({
         line.setAttribute('y1', y1_pos);
         line.setAttribute('x2', x2_pos);
         line.setAttribute('y2', y2_pos);
-        line.setAttribute('style', 'stroke:#000;stroke-width:0.1');
+        line.setAttribute('class', 'otb-graph-line');
 
         return line;
     }

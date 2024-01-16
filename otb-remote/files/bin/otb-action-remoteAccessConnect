@@ -26,14 +26,14 @@ remote_public_key="$(_get remote_public_key)"
 
 otb_debug "Connecting remote access $remote_access_id to ${ip}:${port} forwarding $forwarded_port"
 
-uci -q batch <<EOF
-set otb-remote.${uci_id}=remote
-set otb-remote.${uci_id}.host='${ip}'
-set otb-remote.${uci_id}.port='${port}'
-set otb-remote.${uci_id}.forwarded_port='${forwarded_port}'
-set otb-remote.${uci_id}.server_public_key='${server_public_key}'
-set otb-remote.${uci_id}.remote_public_key='${remote_public_key}'
-commit otb-remote
+uci -q batch <<-EOF
+	set otb-remote.${uci_id}=remote
+	set otb-remote.${uci_id}.host='${ip}'
+	set otb-remote.${uci_id}.port='${port}'
+	set otb-remote.${uci_id}.forwarded_port='${forwarded_port}'
+	set otb-remote.${uci_id}.server_public_key='${server_public_key}'
+	set otb-remote.${uci_id}.remote_public_key='${remote_public_key}'
+	commit otb-remote
 EOF
 
 /etc/init.d/otb-remote restart

@@ -12,6 +12,12 @@ document.querySelector('head').appendChild(E('link', {
     'href': L.resource('view/overthebox/css/custom.css')
 }));
 
+document.querySelector('head').appendChild(E('link', {
+    'rel': 'stylesheet',
+    'type': 'text/css',
+    'href': L.resource('view/overthebox/css/status.css')
+}));
+
 return view.extend({
     title: _('Register'),
 
@@ -35,9 +41,13 @@ return view.extend({
     },
 
     render: function (data) {
-        let box = E('div', { 'class': 'cbi-section' }, [
-            E('h1', this.title)
-        ]);
+        let box = E('div', { 'class': 'cbi-section' }, [ E('h1', this.title) ]),
+            bar = [
+                { id: 'login', name: 'Login', state: '' },
+                { id: 'register', name: 'Register', state: '' },
+                { id: 'activate', name: 'Activate', state: '' },
+                { id: 'ready', name: 'Ready', state: '' },
+            ];
 
         // We check if a service exist in config
         const serviceID = uci.get('overthebox', 'me', 'service');
@@ -48,13 +58,20 @@ return view.extend({
             // We are logged in on OVHcloud API
             // We need to select a service to associate this device with
             if (data[1].logged === 'true') {
+                bar[0].state = 'ok';
+                bar[1].state = 'nok';
+                box.appendChild(otbui.createStatusBar(bar));
                 box.appendChild(this.renderAssociate(data[1].values));
-                return box
+                return box;
             }
 
-            box.appendChild(this.renderLogin())
-            return box
+            bar[0].state = 'nok';
+            box.appendChild(otbui.createStatusBar(bar));
+            box.appendChild(this.renderLogin());
+            return box;
         }
+        bar[0].state = 'ok';
+        bar[1].state = 'ok';
 
         // A service has already been associated, we don't need to interact with OVHcloud API
         // We check if service is activated
@@ -62,14 +79,20 @@ return view.extend({
 
         // Service is deactivated, user need to confirm activation with OTB ovhapis
         if (needsActivation === 'true') {
+            bar[2].state = 'nok';
+            box.appendChild(otbui.createStatusBar(bar));
             box.appendChild(this.renderActivate(serviceID));
-            return box
+            return box;
         }
+
+        bar[2].state = 'ok';
+        bar[3].state = 'ok';
 
         // Service found and activated, user can just enjoy his service
         const deviceID = uci.get('overthebox', 'me', 'device_id');
-        box.appendChild(this.renderEnjoy(serviceID, deviceID))
-        return box
+        box.appendChild(otbui.createStatusBar(bar));
+        box.appendChild(this.renderEnjoy(serviceID, deviceID));
+        return box;
     },
 
     // No service found, user need to log in to OVHcloud API to retrieve his available services
@@ -171,11 +194,15 @@ return view.extend({
 
     // Service registration is complete
     renderEnjoy: function (serviceID, deviceID) {
+        let fields = [
+                _('service ID'), serviceID,
+                _('device ID'), deviceID,
+            ],
+            table = otbui.createTabularElem(fields);
+
         return E('div', [
             E('h2', 'OverTheBox Status'),
-            E('p', 'deviceID: ' + deviceID),
-            E('br'),
-            E('p', 'serviceID: ' + serviceID),
+            table
         ]);
     },
 

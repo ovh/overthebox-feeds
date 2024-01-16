@@ -52,6 +52,23 @@ return L.Class.extend({
         return _('No link');
     },
 
+    // Format model
+    // Return a shorter model version
+    formatModel: function (model) {
+        switch (model) {
+            case "OVH SAS OverTheBox V2B":
+                return "OTB v2b"
+            case "PC Engines PC Engines apu4":
+                return "OTB v2c";
+            default:
+                if (/qemu/ig.test(model)) {
+                    return "QEMU"
+                }
+
+                return model
+        }
+    },
+
     // Create tabular data
     // We are expecting an array like [name1, value1, name2, value2]
     createTabularElem: function (fields) {
@@ -68,24 +85,26 @@ return L.Class.extend({
     },
 
     // Create a collapsible element using html details markup
-    createDetailsElem: function (name, summary, body, color) {
+    createNetDetailsElem: function (name, details) {
+        const store = 'netmapDetails';
+
         // Manage collapse state
-        if (!window.sessionStorage.getItem('otbCollapse')) {
-            window.sessionStorage.setItem('otbCollapse', JSON.stringify({ [name]: false }));
+        if (!window.sessionStorage.getItem(store)) {
+            window.sessionStorage.setItem(store, JSON.stringify({ [name]: false }));
         }
 
-        let collapse = E('details', { 'class': 'otb-details', 'id': name }, [
-            E('summary', { 'class': 'otb-summary', 'style': 'background-color:' + color }, summary),
-            body
+        let collapse = E('details', { 'class': 'network-content-details' }, [
+            E('summary', '\u2716'),
+            E('div', details)
         ]);
 
-        let cState = JSON.parse(window.sessionStorage.getItem('otbCollapse'));
+        let cState = JSON.parse(window.sessionStorage.getItem(store));
         collapse.open = cState[name];
 
         collapse.addEventListener('click', function () {
-            let cState = JSON.parse(window.sessionStorage.getItem('otbCollapse'));
+            let cState = JSON.parse(window.sessionStorage.getItem(store));
             cState[name] = !cState[name];
-            window.sessionStorage.setItem('otbCollapse', JSON.stringify(cState));
+            window.sessionStorage.setItem(store, JSON.stringify(cState));
         });
 
         return collapse;

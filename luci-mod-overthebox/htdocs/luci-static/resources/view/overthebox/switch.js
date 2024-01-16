@@ -64,8 +64,6 @@ return view.extend({
     render: function () {
 
         var body = E([
-            E('pre', { 'id': 'msg-danger', 'style': 'display:none', 'class': 'alert-danger' }),
-            E('pre', { 'id': 'msg-success', 'style': 'display:none', 'class': 'alert-success' }),
             E('div', { 'id': 'switchConfig', 'class': 'switch' }, [
                 E('h1', _('Configure your switch')),
                 E('p', _('This section helps you reset the switch ports to a new configuration by selecting the WAN and LAN ports.')),
@@ -74,7 +72,7 @@ return view.extend({
                     E('a', { 'href': '/cgi-bin/luci/admin/network/switch' }, _('go to expert mode')),
                 ]),
                 E('div', { 'class': 'switches' }, [
-                    E('div', { 'class': 'switch' }, E('h2', _('Reset my switch'))),
+                    E('div', { 'class': 'switch' }, E('h2', _('My switch'))),
                     E('div', { 'class': 'portGroup', 'id': 'group1' }, [
                         E('div', { 'class': 'portLine', 'id': 'line1' }),
                         E('div', { 'class': 'portLine', 'id': 'line2' }),
@@ -88,7 +86,10 @@ return view.extend({
                         E('div', { 'class': 'portLine', 'id': 'line2' }),
                     ])
                 ]),
-                E('button', { 'id': 'validateButton', 'class': 'btn btn-primary', 'click': this.handleValidateButton }, _('Apply the new configuration'))
+                E('div', { 'class': 'cbi-page-actions control-group'}, [
+                    E('button', {'class': 'cbi-button cbi-button-apply', 'click': this.handleValidateButton}, _('Save & Apply')),
+                    E('button', {'class': 'cbi-button cbi-button-reset', 'click': this.handleResetButton}, _('Reset')),
+                ])
             ])
         ]);
 
@@ -139,7 +140,18 @@ return view.extend({
                 }
             }
         });
-        // Set configuration on configuration file than restart service
+        // Update configuration file than restart service
+        fs.exec("/usr/bin/swconfig-v2b-reset-todo", [wans]).then(function () {
+            // Script execution is OK so refresh page
+            location.reload();
+        }).catch(function (err) {
+            ui.addNotification(null, E('p', err.message));
+        });
+    },
+
+    handleResetButton: function(ev) {
+        var wans = "13 14";
+        // Update configuration file than restart service
         fs.exec("/usr/bin/swconfig-v2b-reset-todo", [wans]).then(function () {
             // Script execution is OK so refresh page
             location.reload();
