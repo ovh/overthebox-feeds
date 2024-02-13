@@ -17,7 +17,7 @@ document.querySelector('head').appendChild(E('link', {
 }));
 
 function getASNName(dir) {
-    return fs.read_direct(dir + '/asn', 'json').then((r) => r.as_description || 'Unknown');
+    return fs.read_direct(dir + '/asn', 'json').then((r) => r.as_description || _('Unknown'));
 }
 
 function getWANIP(dir) {
@@ -29,7 +29,7 @@ function getLatency(dir) {
 }
 
 function getConnectivity(dir) {
-    return fs.trimmed(dir + '/connectivity').then((r) => r || 'ERROR');
+    return fs.trimmed(dir + '/connectivity').then((r) => r || _('ERROR'));
 }
 
 function getOTBData(name) {
@@ -98,7 +98,7 @@ return baseclass.extend({
     renderNet: function (zone, net) {
         const name = net.getName(),
             device = net.getL3Device(),
-            itf = device ? device.getName() : "None",
+            itf = device ? device.getName() : _('None'),
             gateway = net.getGatewayAddr(),
             expiry = net.getExpiry(),
             uptime = net.getUptime(),
@@ -108,10 +108,12 @@ return baseclass.extend({
             connected = (uptime > 0) ? '%t'.format(uptime) : null,
             expires = (expiry != null && expiry > -1) ? '%t'.format(expiry) : null;
 
-        let up = net.isUp() ? _('Online') : _('Offline'),
+        let up = net.isUp() ? 'Online' : 'Offline',
+            // translatable var
+            up_t = net.isUp() ? _('Online') : _('Offline'),
             summary = uci.get('network', name, 'label'),
             content = [
-                E('span', { 'class': 'nowrap' }, [_('Status') + " : " + up]),
+                E('span', { 'class': 'nowrap' }, [_('Status') + " : " + up_t]),
                 E('br'),
                 E('span', { 'class': 'nowrap' }, [_('Interface') + " : " + itf]),
             ],
@@ -178,7 +180,7 @@ return baseclass.extend({
                     )
                     .catch(
                         err => {
-                            console.log('Fail to get otb data');
+                            console.log(_('Fail to get otb data'));
                             otbdata = false;
                         }
                     );
@@ -191,9 +193,11 @@ return baseclass.extend({
             // Interface is not truely connected
             // Could happens with OTB v2B and our VLAN usage
             if (this.otbData.get(name + 'Status') != 'OK') {
-                up = _('Offline');
+                up = 'Offline';
+                up_t = _('Offline');
+
                 content = [
-                    E('span', { 'class': 'nowrap' }, [_('Status') + " : " + up]),
+                    E('span', { 'class': 'nowrap' }, [_('Status') + " : " + up_t]),
                     E('br'),
                     E('span', { 'class': 'nowrap' }, [_('Interface') + " : " + itf]),
                 ];

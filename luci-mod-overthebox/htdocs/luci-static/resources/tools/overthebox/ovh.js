@@ -64,7 +64,7 @@ return L.Class.extend({
                     return {
                         'code': response.status + response.statusText,
                         'type': 'api_error',
-                        'message': 'OVHcloud API call fail',
+                        'message': _('OVHcloud API call fail'),
                     }
                 })
         );

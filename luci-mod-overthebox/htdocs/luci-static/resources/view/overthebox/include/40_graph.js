@@ -188,12 +188,12 @@ return baseclass.extend({
                 this.datapoints.push(d)
             }
 
-            let title = 'Download';
+            let title = _('Download');
             for (const tab of tabs) {
                 box.appendChild(E('h2', title));
                 box.appendChild(tab);
                 ui.tabs.initTabGroup(box.lastElementChild.childNodes);
-                title = 'Upload';
+                title = _('Upload');
             }
 
             this.pollIsActive = 1;

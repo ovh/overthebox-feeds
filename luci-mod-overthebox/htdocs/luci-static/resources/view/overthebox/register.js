@@ -43,10 +43,10 @@ return view.extend({
     render: function (data) {
         let box = E('div', { 'class': 'cbi-section' }, [ E('h1', this.title) ]),
             bar = [
-                { id: 'login', name: 'Login', state: '' },
-                { id: 'register', name: 'Register', state: '' },
-                { id: 'activate', name: 'Activate', state: '' },
-                { id: 'ready', name: 'Ready', state: '' },
+                { id: 'login', name: _('Login'), state: '' },
+                { id: 'register', name: _('Register'), state: '' },
+                { id: 'activate', name: _('Activate'), state: '' },
+                { id: 'ready', name: _('Ready'), state: '' },
             ];
 
         // We check if a service exist in config
@@ -97,7 +97,7 @@ return view.extend({
 
     // No service found, user need to log in to OVHcloud API to retrieve his available services
     renderLogin: function () {
-        let loginBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Login' }, 'Login');
+        let loginBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Login' }, _('Login'));
 
         loginBtn.onclick = () => {
             ovhapi.connect()
@@ -109,7 +109,7 @@ return view.extend({
                             return Promise.reject({
                                 'code': '406 Not Acceptable',
                                 'type': 'device_error',
-                                'message': 'Validation URL is invalid'
+                                'message': _('Validation URL is invalid')
                             })
                         } else {
                             const d = new Date();
@@ -162,7 +162,7 @@ return view.extend({
 
     // Service found, but is deactivated, user need to confirm activation with OTB ovhapis
     renderActivate: function (serviceID) {
-        let activateBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Activate' }, 'Activate');
+        let activateBtn = E('button', { 'class': 'cbi-button cbi-button-add', 'title': 'Activate' }, _('Activate'));
 
         activateBtn.onclick = () => {
             fs.exec('/bin/otb-confirm-service', null, null)
@@ -187,7 +187,7 @@ return view.extend({
             E('h2', _('Service Activation')),
             E('h3', _('Activation')),
             E('p', _('Your device has been correctly registered, you need to activate your service')),
-            E('p', _('service ID: %s').format(serviceID)),
+            E('p', _('serviceID: %s').format(serviceID)),
             activateBtn
         ]);
     },
@@ -195,8 +195,8 @@ return view.extend({
     // Service registration is complete
     renderEnjoy: function (serviceID, deviceID) {
         let fields = [
-                _('service ID'), serviceID,
-                _('device ID'), deviceID,
+                _('serviceID'), serviceID,
+                _('deviceID'), deviceID,
             ],
             table = otbui.createTabularElem(fields);
 
@@ -288,14 +288,14 @@ return view.extend({
                         )
                     );
             }
-        }, 'Associate');
+        }, _('Associate'));
 
         // Create Select Element
         let services = {},
             serviceInfos = E('div', { 'id': 'serviceInfos' }, [E('p', {}, '')]);
 
         let select = E('select', { 'class': 'cbi-input-select', 'style': 'width:32rem' }, [
-            E('option', { 'value': 'placeHolder' }, 'Select a service')
+            E('option', { 'value': 'placeHolder' }, _('Select a service'))
         ]);
 
         select.id = 'serviceChoice';
@@ -312,7 +312,7 @@ return view.extend({
             if (!services[this.value]) {
                 associateBtn.style.display = 'none';
                 serviceInfos.style.display = 'block';
-                serviceInfos.firstChild.replaceWith(E('p', 'No informations found for this service'));
+                serviceInfos.firstChild.replaceWith(E('p', _('No informations found for this service')));
                 return
             }
 
@@ -349,7 +349,7 @@ return view.extend({
                         if (services[id].state === 'error') {
                             associateBtn.style.display = 'none';
                             serviceInfos.style.display = 'block';
-                            serviceInfos.firstChild.replaceWith(E('p', 'Fail to retrieve informations for this service'));
+                            serviceInfos.firstChild.replaceWith(E('p', _('Fail to retrieve informations for this service')));
                             return
                         }
 
@@ -367,7 +367,7 @@ return view.extend({
                 if (services[this.value].state === 'error') {
                     associateBtn.style.display = 'none';
                     serviceInfos.style.display = 'block';
-                    serviceInfos.firstChild.replaceWith(E('p', 'Fail to retrieve informations for this service'));
+                    serviceInfos.firstChild.replaceWith(E('p', _('Fail to retrieve informations for this service')));
                     return
                 }
 
@@ -496,16 +496,16 @@ return view.extend({
             },
             format: function (details, device) {
                 return [
-                    _('Service Description'), details.values.customerDescription,
-                    _('Service ID'), details.values.serviceName,
-                    _('Service Status'), details.values.status,
-                    _('Device ID'), device.values.deviceId,
+                    _('Service description'), details.values.customerDescription,
+                    _('ServiceID'), details.values.serviceName,
+                    _('Service status'), details.values.status,
+                    _('DeviceID'), device.values.deviceId,
                     // Last 15 mn
-                    _('Device Status'), device.values.state,
+                    _('Device status'), device.values.state,
                     _('Device last connection'), device.values.lastSeen,
                     _('Device last IP'), device.values.publicIp,
-                    _('Device Feeds version'), device.values.version,
-                    _('Device System version'), device.values.systemVersion,
+                    _('Device feeds version'), device.values.version,
+                    _('Device system version'), device.values.systemVersion,
                 ]
             }
         }

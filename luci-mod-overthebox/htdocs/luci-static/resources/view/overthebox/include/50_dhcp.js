@@ -84,7 +84,7 @@ return baseclass.extend({
 
 		var table = E('table', { 'class': 'table lases' }, [
 			E('tr', { 'class': 'tr table-titles' }, [
-				E('th', { 'class': 'th' }, _('Hostname')),
+				E('th', { 'class': 'th' }, _('Host')),
 				E('th', { 'class': 'th' }, _('IPv4 address')),
 				E('th', { 'class': 'th' }, _('MAC address')),
 				E('th', { 'class': 'th' }, _('Lease time remaining')),
@@ -193,7 +193,7 @@ return baseclass.extend({
 		if (L.hasSystemFeature('dnsmasq') || L.hasSystemFeature('odhcpd')) {
 			wrap.appendChild(this.renderLeases(data));
 		} else {
-			wrap.appendChild(E('p', 'No dhcp server detected'));
+			wrap.appendChild(E('p', _('No dhcp server detected')));
 		}
 
 		return wrap;

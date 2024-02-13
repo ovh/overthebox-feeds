@@ -23,7 +23,7 @@ return baseclass.extend({
         ]);
     },
 
-    actionRequired: function (action) {
+    actionRequired: function (action, action_t) {
         let btn = E('button', {
             'class': 'cbi-button cbi-button-add',
             'title': action,
@@ -34,20 +34,20 @@ return baseclass.extend({
                     window.location.href = window.location.href.concat('admin/overthebox/register')
                 }
             }
-        }, action);
+        }, action_t);
 
         switch (action) {
             case 'Register':
                 return E('div', { 'class': 'alert-message warning' }, [
-                    E('h4', 'Service not registered'),
-                    E('p', 'You need to register this device with an active OverTheBox service'),
+                    E('h4', _('Service not registered')),
+                    E('p', _('You need to register this device with an active OverTheBox service')),
                     btn
                 ]);
                 break;
             case 'Activate':
                 return E('div', { 'class': 'alert-message warning' }, [
-                    E('h4', 'Service not activated'),
-                    E('p', 'You need to active your OverTheBox service on this device'),
+                    E('h4', _('Service not activated')),
+                    E('p', _('You need to active your OverTheBox service on this device')),
                     btn
                 ]);
                 break;
@@ -64,16 +64,16 @@ return baseclass.extend({
 
         let box = E('div'),
             steps = [
-                { id: 'register', name: 'Register', state: '' },
-                { id: 'activate', name: 'Activate', state: '' },
-                { id: 'glorytun', name: 'GloryTUN', state: '' },
-                { id: 'glorytunUDP', name: 'GloryTUN UDP', state: '' },
-                { id: 'shadowSocks', name: 'ShadowSocks', state: '' }
+                { id: 'register', name: _('Register'), state: '' },
+                { id: 'activate', name: _('Activate'), state: '' },
+                { id: 'glorytun', name: _('GloryTUN'), state: '' },
+                { id: 'glorytunUDP', name: _('GloryTUN UDP'), state: '' },
+                { id: 'shadowSocks', name: _('ShadowSocks'), state: '' }
             ];
 
         // Service need registration
         if (!serviceID) {
-            box.appendChild(this.actionRequired('Register'))
+            box.appendChild(this.actionRequired('Register', _('Register')))
             steps[0].state = 'nok'
             box.appendChild(otbui.createStatusBar(steps));
             return box;
@@ -82,7 +82,7 @@ return baseclass.extend({
         steps[0].state = 'ok'
 
         if (needsActivation) {
-            box.appendChild(this.actionRequired('Activate'))
+            box.appendChild(this.actionRequired('Activate', _('Activate')))
             steps[1].state = 'nok'
             box.appendChild(otbui.createStatusBar(steps));
             return box;
@@ -98,11 +98,11 @@ return baseclass.extend({
         box.appendChild(otbui.createStatusBar(steps));
         box.appendChild(E('div', { 'style': 'display:flex; justify-content:space-between;' }, [
             E('span', [
-                E('strong', _('Service ID:') + ' '),
+                E('strong', _('serviceID') + ': '),
                 serviceID
             ]),
             E('span', [
-                E('strong', _('Device ID:') + ' '),
+                E('strong', _('deviceID') + ': '),
                 deviceID
             ])
         ]));

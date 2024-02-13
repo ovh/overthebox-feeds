@@ -65,7 +65,7 @@ return view.extend({
 
         var body = E([
             E('div', { 'id': 'switchConfig', 'class': 'switch' }, [
-                E('h1', _('Configure your switch')),
+                E('h1', _('Switch Configuration')),
                 E('p', _('This section helps you reset the switch ports to a new configuration by selecting the WAN and LAN ports.')),
                 E('p', [
                     _('If you need more control, '),
@@ -120,13 +120,12 @@ return view.extend({
     },
 
     handleValidateButton: function (ev) {
-        console.log('clicked on Validate');
         var groups = ['group1', 'group2', 'group3'],
             el_group,
             el_lines,
             wans = null;
 
-        // Search for wans 
+        // Search for wans
         groups.forEach(function (group) {
             el_group = document.getElementById(group);
             for (var child_i = 0; child_i < el_group.children.length; child_i++) {
@@ -161,7 +160,6 @@ return view.extend({
     },
 
     handleSwitchButton: function (ev) {
-        console.log('clicked on Port');
         var sb = ev.currentTarget
         if (sb.className == 'switch-button lan') {
             sb.className = 'switch-button wan';

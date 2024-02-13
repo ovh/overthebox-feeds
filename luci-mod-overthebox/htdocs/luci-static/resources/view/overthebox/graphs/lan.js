@@ -228,12 +228,12 @@ return view.extend({
             this.datapoints.push(d)
         }
 
-        let title = 'Download';
+        let title = _('Download');
         for (const tab of tabs) {
             gdiv.appendChild(E('h2', title));
             gdiv.appendChild(tab);
             ui.tabs.initTabGroup(gdiv.lastElementChild.childNodes);
-            title = 'Upload';
+            title = _('Upload');
         }
 
         const box = E([], [
@@ -242,7 +242,7 @@ return view.extend({
             E('div', { 'class': 'cbi-section-node' }, [
                 E('table', { 'class': 'table', 'id': 'lanTraffic' }, [
                     E('tr', { 'class': 'tr table-titles' }, [
-                        E('th', { 'class': 'th' }, [_('Hostname')]),
+                        E('th', { 'class': 'th' }, [_('Host')]),
                         E('th', { 'class': 'th' }, [_('IPv4')]),
                         E('th', { 'class': 'th' }, [_('MAC')]),
                         E('th', { 'class': 'th' }, [_('Download')]),

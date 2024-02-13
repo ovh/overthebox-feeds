@@ -37,7 +37,7 @@ return view.extend({
 			protocols = data[0].stdout.split('\n').sort(),
 			ipknownAddresses = this.cbi_get_knownips(data[1]);
 
-		m = new form.Map('dscp', _('QoS settings'),
+		m = new form.Map('dscp', _('QoS Settings'),
 			_("Traffic may be classified by many different parameters, such as source address, destination address or traffic type and assigned to a specific traffic class."));
 
 		s = m.section(form.GridSection, 'classify', _('Classification Rules'));
@@ -46,15 +46,15 @@ return view.extend({
 		s.sortable = true;
 
 		o = s.option(form.ListValue, 'direction', _('Direction'));
-		o.default = 'upload';
+		o.default = _('upload');
 		o.rmempty = false;
-		o.value('upload');
-		o.value('download');
+		o.value(_('upload'));
+		o.value(_('download'));
 
 		o = s.option(form.Value, 'proto', _('Protocol'));
-		o.default = 'all';
+		o.default = _('all');
 		o.rmempty = false;
-		o.value('all');
+		o.value(_('all'));
 		protocols.forEach(function (protocol) {
 			if (protocol) {
 				o.value(protocol);
