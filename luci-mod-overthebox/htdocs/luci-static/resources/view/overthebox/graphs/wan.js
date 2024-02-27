@@ -47,7 +47,8 @@ return view.extend({
                 continue
             }
 
-            devs.push(itf.device);
+            const name = itf.device === '/dev/cdc-wdm0' ? 'wwan0': itf.device;
+            devs.push(name);
         }
 
         return devs;
@@ -180,13 +181,13 @@ return view.extend({
                     // Append line to aggregate
                     this.aggregates[i].svg.appendChild(
                         otbsvg.createPolyLineElem(
-                            this.aggregates[i].id + '_' + device,
-                            otbgraph.stringToColour(device),
+                            this.aggregates[i].id + '_' + d.name,
+                            otbgraph.stringToColour(d.name),
                             0.6
                         )
                     );
 
-                    tabs[i].appendChild(E('div', { 'data-tab': device, 'data-tab-title': device }, [
+                    tabs[i].appendChild(E('div', { 'data-tab': d.name, 'data-tab-title': d.name }, [
                         E('div', { 'class': 'otb-graph' }, [g.svg]),
                         E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
                     ]));
