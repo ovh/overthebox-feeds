@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-# shellcheck disable=SC2039
+# shellcheck disable=SC2039,SC3043
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # shellcheck disable=SC2034
@@ -10,8 +10,8 @@
 }
 
 _validate_section() {
-	local tmp_hosts=$hosts tmp_timeout=$timeout tmp_tries=$tries
-	local tmp_interval=$interval tmp_options=$options
+	local tmp_hosts="$hosts" tmp_timeout="$timeout" tmp_tries="$tries"
+	local tmp_interval="$interval" tmp_options="$options"
 
 	uci_validate_section otb-tracker "$1" "$2" \
 		'hosts:list(host)' \

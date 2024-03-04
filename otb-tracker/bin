@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=1091
+# shellcheck disable=1091,1090,2317
 
 [ -n "$1" ] || exit
 

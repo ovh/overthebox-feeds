@@ -10,6 +10,9 @@
 # Setup unknown devices
 for p in /sys/class/net/*; do
 	[ -d "$p/device" ] || continue
+	case $(basename "$p") in
+		*wwan*) continue ;;
+	esac
 
 	device="$(basename "$p")"
 	iface="${device}_dhcp"

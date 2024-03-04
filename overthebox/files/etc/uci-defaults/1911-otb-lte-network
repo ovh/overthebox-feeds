@@ -1,0 +1,29 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+. /lib/functions.sh
+
+# Make sure LTE modem is plugged
+lte_device="$(ls /dev/cdc-wdm0)"
+[ -n "$lte_device" ] || exit
+
+# Check if LTE interface already exists
+if [ -z "$(uci get network.lte)" ]; then
+    uci batch <<EOF
+        set network.lte=interface
+        set network.lte.proto='qmi'
+        set network.lte.multipath='on'
+        set network.lte.device='/dev/cdc-wdm0'
+        set network.lte.apn='datapro'
+        set network.lte.auth='none'
+        set network.lte.pdptype='ipv4'
+
+        del_list firewall.wan.network="lte"
+	    add_list firewall.wan.network="lte"
+EOF
+
+    /etc/init.d/network restart
+fi
+
+exit 0

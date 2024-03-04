@@ -145,6 +145,8 @@ _setup() {
 	}
 
 	case "$1" in
+	wwan?)
+		;;
 	wan?6)
 		uci -q batch <<-EOF
 		delete network.$1
