@@ -20,6 +20,12 @@
                 ],
                 "/usr/lib/opkg/info/netifd.control": [
                     "read"
+                ],
+                "/proc/sys/net/ipv[46]/conf/*": [
+                    "read"
+                ],
+                "/sys/class/net/*/brport/*": [
+                    "read"
                 ]
             },
             "ubus": {
@@ -84,7 +90,8 @@
             "ubus": {
                 "luci-rpc": [
                     "getDHCPLeases",
-                    "getDUIDHints"
+                    "getDUIDHints",
+                    "getHostHints"
                 ]
             },
             "uci": [
@@ -129,6 +136,10 @@
                     "exec"
                 ],
                 "/usr/bin/traceroute6": [
+                    "exec",
+                    "list"
+                ],
+                "/usr/bin/arp-scan": [
                     "exec",
                     "list"
                 ]

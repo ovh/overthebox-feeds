@@ -11,7 +11,7 @@
                 "luci-mod-network-config"
             ],
             "fs": {
-                "/sbin/swconfig-v2b": "executable"
+                "/sbin/swconfig": "executable"
             },
             "uci": {
                 "network": {
@@ -58,9 +58,22 @@
             ]
         }
     },
+    "admin/network/routes": {
+        "title": "Routing",
+        "order": 30,
+        "action": {
+            "type": "view",
+            "path": "network/routes"
+        },
+        "depends": {
+            "acl": [
+                "luci-mod-network-config"
+            ]
+        }
+    },
     "admin/network/dhcp": {
         "title": "DHCP and DNS",
-        "order": 30,
+        "order": 40,
         "action": {
             "type": "view",
             "path": "network/dhcp"
@@ -77,38 +90,9 @@
             }
         }
     },
-    "admin/network/hosts": {
-        "title": "Hostnames",
-        "order": 40,
-        "action": {
-            "type": "view",
-            "path": "network/hosts"
-        },
-        "depends": {
-            "acl": [
-                "luci-mod-network-dhcp"
-            ],
-            "uci": {
-                "dhcp": true
-            }
-        }
-    },
-    "admin/network/routes": {
-        "title": "Static Routes",
-        "order": 50,
-        "action": {
-            "type": "view",
-            "path": "network/routes"
-        },
-        "depends": {
-            "acl": [
-                "luci-mod-network-config"
-            ]
-        }
-    },
     "admin/network/diagnostics": {
         "title": "Diagnostics",
-        "order": 60,
+        "order": 50,
         "action": {
             "type": "view",
             "path": "network/diagnostics"
