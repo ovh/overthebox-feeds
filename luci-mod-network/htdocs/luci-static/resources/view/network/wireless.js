@@ -314,23 +314,15 @@ var CBIWifiFrequencyValue = form.Value.extend({
             this.channels = {
                 '2g': L.hasSystemFeature('hostapd', 'acs') ? ['auto', 'auto', true] : [],
                 '5g': L.hasSystemFeature('hostapd', 'acs') ? ['auto', 'auto', true] : [],
-                '6g': [],
+                '6g': L.hasSystemFeature('hostapd', 'acs') ? ['auto', 'auto', true] : [],
                 '60g': []
             };
 
             for (var i = 0; i < data[1].length; i++) {
-                var band;
-
-                if (data[1][i].mhz >= 2412 && data[1][i].mhz <= 2484)
-                    band = '2g';
-                else if (data[1][i].mhz >= 5160 && data[1][i].mhz <= 5885)
-                    band = '5g';
-                else if (data[1][i].mhz >= 5925 && data[1][i].mhz <= 7125)
-                    band = '6g';
-                else if (data[1][i].mhz >= 58320 && data[1][i].mhz <= 69120)
-                    band = '60g';
-                else
+                if (!data[1][i].band)
                     continue;
+
+                var band = '%dg'.format(data[1][i].band);
 
                 this.channels[band].push(
                     data[1][i].channel,
@@ -343,10 +335,10 @@ var CBIWifiFrequencyValue = form.Value.extend({
                 .reduce(function (o, v) { o[v] = true; return o }, {});
 
             this.modes = [
-                '', 'Legacy', true,
+                '', 'Legacy', hwmodelist.a || hwmodelist.b || hwmodelist.g,
                 'n', 'N', hwmodelist.n,
-                'ac', 'AC', hwmodelist.ac,
-                'ax', 'AX', hwmodelist.ax
+                'ac', 'AC', L.hasSystemFeature('hostapd', '11ac') && hwmodelist.ac,
+                'ax', 'AX', L.hasSystemFeature('hostapd', '11ax') && hwmodelist.ax
             ];
 
             var htmodelist = L.toArray(data[0] ? data[0].getHTModes() : null)
@@ -387,7 +379,8 @@ var CBIWifiFrequencyValue = form.Value.extend({
                 ],
                 'ax': [
                     '2g', '2.4 GHz', this.channels['2g'].length > 3,
-                    '5g', '5 GHz', this.channels['5g'].length > 3
+                    '5g', '5 GHz', this.channels['5g'].length > 3,
+                    '6g', '6 GHz', this.channels['6g'].length > 3
                 ]
             };
         }, this));
@@ -1150,7 +1143,7 @@ return view.extend({
 
                     /* https://w1.fi/cgit/hostap/commit/?id=34f7c699a6bcb5c45f82ceb6743354ad79296078  */
                     /* multicast_to_unicast https://github.com/openwrt/openwrt/commit/7babb978ad9d7fc29acb1ff86afb1eb343af303a */
-                    o = ss.taboption('advanced', form.Flag, 'multicast_to_unicast', _('Multi To Unicast'), _('ARP, IPv4 and IPv6 (even 802.1Q) with multicast destination MACs are unicast to the STA MAC address. Note: This is not Directed Multicast Service (DMS) in 802.11v. Note: might break receiver STA multicast expectations.'));
+                    o = ss.taboption('advanced', form.Flag, 'multicast_to_unicast_all', _('Multi To Unicast'), _('ARP, IPv4 and IPv6 (even 802.1Q) with multicast destination MACs are unicast to the STA MAC address. Note: This is not Directed Multicast Service (DMS) in 802.11v. Note: might break receiver STA multicast expectations.'));
                     o.rmempty = true;
 
                     o = ss.taboption('advanced', form.Flag, 'isolate', _('Isolate Clients'), _('Prevents client-to-client communication'));
@@ -1164,10 +1157,11 @@ return view.extend({
                     if (/^radio\d+\.network/.test(o.placeholder))
                         o.placeholder = '';
 
+                    var macaddr = uci.get('wireless', radioNet.getName(), 'macaddr');
                     o = ss.taboption('advanced', form.Value, 'macaddr', _('MAC address'), _('Override default MAC address - the range of usable addresses might be limited by the driver'));
-                    o.optional = true;
-                    o.placeholder = radioNet.getActiveBSSID();
-                    o.datatype = 'macaddr';
+                    o.value('', _('driver default (%s)').format(!macaddr ? radioNet.getActiveBSSID() : _('no override')));
+                    o.value('random', _('randomly generated'));
+                    o.datatype = "or('random',macaddr)";
 
                     o = ss.taboption('advanced', form.Flag, 'short_preamble', _('Short Preamble'));
                     o.default = o.enabled;
@@ -1490,7 +1484,6 @@ return view.extend({
                 o.rmempty = true;
                 o.multiple = false;
                 o.noaliases = true;
-                o.nobridges = true;
                 o.nocreate = true;
                 o.noinactive = true;
 
@@ -1515,6 +1508,10 @@ return view.extend({
                 add_dependency_permutations(o, { mode: ['ap', 'ap-wds'], encryption: ['wpa', 'wpa2', 'wpa3', 'wpa3-mixed'] });
                 o.rmempty = true;
                 o.password = true;
+
+                //WPA(1) has only WPA IE. Only >= WPA2 has RSN IE Preauth frames.
+                o = ss.taboption('encryption', form.Flag, 'rsn_preauth', _('RSN Preauth'), _('Robust Security Network (RSN): Allow roaming preauth for WPA2-EAP networks (and advertise it in WLAN beacons). Only works if the specified network interface is a bridge. Shortens the time-critical reassociation process.'));
+                add_dependency_permutations(o, { mode: ['ap', 'ap-wds'], encryption: ['wpa2', 'wpa3', 'wpa3-mixed'] });
 
 
                 o = ss.taboption('encryption', form.Value, '_wpa_key', _('Key'));
@@ -2132,7 +2129,9 @@ return view.extend({
 
             replace = s2.option(form.Flag, 'replace', _('Replace wireless configuration'), _('Check this option to delete the existing networks from this radio.'));
 
-            name = s2.option(form.Value, 'name', _('Name of the new network'), _('The allowed characters are: <code>A-Z</code>, <code>a-z</code>, <code>0-9</code> and <code>_</code>'));
+            name = s2.option(form.Value, 'name', _('Name of the new network'),
+                _('Name for OpenWrt network configuration. (No relation to wireless network name/SSID)') + '<br />' +
+                _('The allowed characters are: <code>A-Z</code>, <code>a-z</code>, <code>0-9</code> and <code>_</code>'));
             name.datatype = 'uciname';
             name.default = 'wwan';
             name.rmempty = false;
@@ -2296,5 +2295,7 @@ return view.extend({
 
             return E([nodes, E('h3', _('Associated Stations')), table]);
         }, this, m));
-    }
+    },
+
+    handleReset: null
 });

@@ -41,6 +41,7 @@ return view.extend({
             o = s.taboption('general', widgets.NetworkSelect, 'interface', _('Interface'), _('Specifies the logical interface name of the parent (or master) interface this route belongs to'));
             o.loopback = true;
             o.nocreate = true;
+            o.rmempty = false;
 
             o = s.taboption('general', form.ListValue, 'type', _('Route type'), _('Specifies the route type to be created'));
             o.modalonly = true;
@@ -52,6 +53,7 @@ return view.extend({
             o.value('prohibit');
             o.value('blackhole');
             o.value('anycast');
+            o.value('throw');
 
             o = s.taboption('general', form.Value, 'target', _('Target'), _('Network address'));
             o.rmempty = false;
