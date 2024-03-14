@@ -27,8 +27,7 @@ if [ "$config_error" ]; then
 	exit 1
 fi
 
-# delete last conf
-
+# Delete last conf
 for conf in glorytun shadowsocks graph otb-graph; do
 	true > /etc/config/"$conf"
 	uci -q revert "$conf"
