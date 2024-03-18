@@ -1,11 +1,8 @@
+#!/bin/sh
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-# Get device name of tracker device
-device=$(uci -q get network.OTB_TRACKER_DEVICE.device)
-[ -z "$device" ] &&  exit 0
-
 _add_mptcp_endpoint() {
-	ip mptcp endpoint add "$1" dev "$2" "$@"
+	ip mptcp endpoint add "$@"
 }
 
 _delete_mptcp_endpoint() {
@@ -13,43 +10,48 @@ _delete_mptcp_endpoint() {
 	id=$(ip mptcp endpoint | grep "$1" | awk '{print $3}')
 	[ -z "$id" ] && return 1
 
-	ip mptcp enpoint delete id "$id"
+	ip mptcp endpoint delete id "$id"
 }
+
+# No need to execute script if MPTCP is disabled
+multipath_global_config=$(uci -q get "network.globals.multipath" || echo "disable")
+[ "$multipath_global_config" != "enable" ] && exit 0
+
 # Get the current multipath status
 multipath_status="off"
-case $(ip mptcp endpoint show | grep "$device") in
+case $(ip mptcp endpoint show | grep "$OTB_TRACKER_DEVICE") in
 	*subflow*)      multipath_status="on"       ;;
 	*backup*)       multipath_status="backup"   ;;
-	*) _log "Invalid multipath configuration"  exit 1 ;; 
 esac
 
 # An interface in error will never be used in MPTCP
 if [ "$OTB_TRACKER_STATUS" = "ERROR" ]; then
 	[ "$multipath_status" = "off" ] && exit 0
-	_log "$OTB_TRACKER_DEVICE switched off"
-	_delete_mptcp_endpoint "$device"
+	_log "$OTB_TRACKER_INTERFACE switched off"
+	_delete_mptcp_endpoint "$OTB_TRACKER_DEVICE"
 	exit 0
 fi
 
 multipath_config=$(uci -q get "network.$OTB_TRACKER_INTERFACE.multipath" || echo "off")
-[ "$multipath_config" = "master" ] && multipath_config="on"
+[ "$multipath_config" = "master" ] || [ "$multipath_config" = "handover" ] && multipath_config="on"
 [ "$multipath_status" = "$multipath_config" ] && exit 0
 
 # Delete old endpoint
-_delete_mptcp_endpoint "$device"
+[ $multipath_status != "off" ] && {
+	_delete_mptcp_endpoint "$OTB_TRACKER_DEVICE"
+}
 
 # Get ipv4 address
-ipv4=$(ifstatus "$OTB_TRACKER_DEVICE" | jq '.["ipv4-address"][0]["address"]' | sed 's/"//g')
+ipv4=$(ifstatus "$OTB_TRACKER_INTERFACE" | jq '.["ipv4-address"][0]["address"]' | sed 's/"//g')
 [ -z "$ipv4" ] && {
-	_log "failed to retreive ip address of $OTB_TRACKER_DEVICE"
+	_log "failed to retreive ip address of $OTB_TRACKER_INTERFACE"
 	exit 0
 }
 
-_log "$OTB_TRACKER_DEVICE switched to $multipath_config"
+_log "$OTB_TRACKER_INTERFACE switched to $multipath_config"
 
 # shellcheck disable=SC2086
 case $multipath_config in
-	on) _add_mptcp_endpoint $ipv4 $device subflow signal;; 
-	backup) _add_mptcp_endpoint $ipv4 $device backup;;
+	on) _add_mptcp_endpoint $ipv4 dev $OTB_TRACKER_DEVICE subflow signal ;;
+	backup) _add_mptcp_endpoint $ipv4 dev $OTB_TRACKER_DEVICE backup ;;
 esac
-

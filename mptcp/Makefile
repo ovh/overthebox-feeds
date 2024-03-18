@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mptcp
-PKG_VERSION:=3.0.0
+PKG_VERSION:=3.0.1
 PKG_RELEASE:=0
 
 PKG_MAINTAINER:=Mario Krueger <openwrt@xedp3x.de>

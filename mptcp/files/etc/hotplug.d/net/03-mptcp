@@ -20,29 +20,3 @@ ip mptcp endpoint flush
 
 # Set mptcp limits to max
 ip mptcp limits set add_addr_accepted 8 subflows 8
-
-# Configuration by interface
-_setup_interface() {
-	device=
-	config_get device "$1" device
-	[ -z "$device" ] && return 0
-
-	if_multipath=
-	config_get if_multipath "$1" multipath "off"
-	
-	# MPTCP is already flushed so return
-	[ "$if_multipath" = "off" ] && return 0
-
-	# Get ipv4 address of the interface 
-	ipv4=$(ifstatus "$1" | jq '.["ipv4-address"][0]["address"]' | sed 's/"//g')
-	# Check if interface is down
-	[ "$ipv4" = "null" ] && return 0
-
-	# shellcheck disable=SC2086
-	case $if_multipath in
-		master|on) ip mptcp endpoint add $ipv4 dev $device subflow signal;; 
-		backup) ip mptcp endpoint add $ipv4 dev $device backup;;
-	esac
-}
-
-config_foreach _setup_interface interface
