@@ -15,31 +15,35 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 # nftable architecture used in this script for ss-redir:
 # PREROUTING/nat
 #   - delegate_prerouting (for OpenWRT and user DNAT)
-#   - socks_hook (This is the main "cable" when we want to enable routing through shadowsocks)
-#       - socks_decision (one for each interface of the lan zone)
-#           - ipset socks_bypass lookup (if dst addr match, ACCEPT: exit PREROUTING/nat altogether)
-#           - socks_redir
-#               - REDIRECT rule, one for each DSCP (CS1 to CS7), and the last rule is default DSCP
+#   - socks_hook (This is the main "cable" when we want to enable LAN routing through shadowsocks)
+#       - socks_decision decides while bypass, accept or go to shadowsocks
+#       - ipset socks_bypass lookup (if dst addr match, ACCEPT: exit PREROUTING/nat altogether)
+# OUTPUT/nat
+# 	- socks_tracker_and_api: outgoing packets for shadowsocks-tracker & service's api shall be routed through shadowsocks
+#	- socks_emitted_by_myself: either @socks_bypass or routed through shadowsocks
+#
 
 # When reloading:
 # nftable global skeleton doesn't change.
-# Only socks_hook and socks_redir **content** change
+# Only socks_hook **content** change
 # There is also an ipset swap between socks_staging <-> socks_bypass
 # PREROUTING only changes upon ifup/ifdown
 
 _log() {
-	# 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
+	# 1.alert
+	# 2.crit
+	# 3.err
+	# 4.warn
+	# 5.notice
+	# 6.info
+	# 7.debug
 	logger -t $PROG_NAME-initd -p "$@"
 }
 
-CHAINS="socks_hook socks_decision socks_redir socks_emitted_by_myself socks_tracker_and_api"
+CHAINS="socks_hook socks_decision socks_emitted_by_myself socks_tracker_and_api"
 
 # List of destinations ports in tcp that will bypassed shadowsocks
 BYPASSED_PORTS="1723"
-
-MAX_DSCP_CS=7
-# The monitoring requests will go through the CS2 ss-redir listener
-TRACKER_CS=7
 
 # Nets that should always bypass shadowsocks
 LOCALNETS="
@@ -107,7 +111,7 @@ _shadow_cable() {
 		nft add rule ip nat OUTPUT ip protocol tcp counter jump socks_emitted_by_myself
 	elif [ "$1" = "unplug" ] && [ "$already" -gt 1 ]; then
 		_log 6 "Unplugging shadowsocks cable..."
-		
+
 		# These rules will unplug the cable
 		nft flush chain ip nat PREROUTING
 		handle=$(nft -a list table ip nat | grep "jump socks_emitted_by_myself" | cut -d ' ' -f 13)
@@ -135,7 +139,7 @@ _shadow_init_once() {
 
 	# Launch shadowsocks first to minimize the time during which traffic is routed to a non-listening-yet-process
 	_launch_shadow "$1"
-	_nft_init_skeleton
+	_nft_init_skeleton "$1"
 	_update_conf_and_nft "$1"
 	_launch_tracker "$1"
 }
@@ -216,6 +220,10 @@ _launch_shadow() {
 # This sets up the common nft skeleton that doesn't change across reloads
 # Don't call me upon reload. Call me only when starting the service
 _nft_init_skeleton() {
+
+	# Retrieve shadowsocks local port from config
+	config_get lport "$1" lport ""
+
 	# First, make sure we start from a known state.
 	# Maybe we crashed last time and no one called stop_service
 	_nft_clean_all
@@ -240,7 +248,7 @@ _nft_init_skeleton() {
 	done
 
     # Glue redirect
-    nft add rule ip nat socks_decision ip protocol tcp counter jump socks_redir
+    nft add rule ip nat socks_decision ip protocol tcp counter redirect to :"$lport"
 
 	# Create base chain OUTPUT
 	nft create chain ip nat OUTPUT '{ type nat hook output priority -100; policy accept; }' 2> /dev/null
@@ -253,10 +261,9 @@ _nft_init_skeleton() {
 # $1 is a ref to the shadowsocks uci section (type =client)
 _update_conf_and_nft() {
 	_generate_conf "$1"
-	_populate_nft_socks_redir "$1"
 	_populate_ipset_socks_bypass "$1"
 	_populate_nft_socks_hook
-	_populate_nft_socks_emitted_by_myself
+	_populate_nft_socks_emitted_by_myself "$1"
 	_update_nft_monitoring_ip_rule "$1"
 }
 
@@ -296,37 +303,9 @@ _generate_conf() {
 	  "reuse_port": $reuse_port,
 	  "fast_open": $fast_open,
 	  "disable_sni": true,
-	  "mptcp": true,
-	  "dscp": {$(_generate_dscp_conf "$lport")}
+	  "mptcp": true
 	}
 	EOF
-}
-
-_generate_dscp_conf() {
-	# The CS0 (default DSCP) listener is already handled by local_port in json
-	# So we purposely start at 1 here
-	# In the config, we specify a distinct listening port for each DSCP CS.
-	for i in $(seq 1 $MAX_DSCP_CS); do
-		[ "$i" -gt 1 ] && printf ","
-		printf '\n    "%d": "CS%d"' "$(( $1 + i ))" "$i"
-	done
-}
-
-# $1 is a ref to the shadowsocks uci section (type =client)
-_populate_nft_socks_redir() {
-	local lport
-	config_get lport "$1" lport
-
-	# First, flush the chain
-	nft flush chain ip nat socks_redir
-
-	# Let's add one rule per CS DSCP
-	for i in $(seq 1 $MAX_DSCP_CS); do
-		nft add rule ip nat socks_redir ip protocol tcp ip dscp "cs$i" counter redirect to :"$((lport + i))" comment "\"CS$i\""
-	done
-
-	# Let's add the default rule at the bottom
-	nft add rule ip nat socks_redir ip protocol tcp counter redirect to :"$lport"
 }
 
 # Here is the update of the ipset "socks_bypass"
@@ -454,14 +433,14 @@ _update_socks_hook_one_if() {
 	nft add rule ip nat socks_hook iifname "$device" counter jump socks_decision
 }
 
-# Add an nft rule to nat/OUTPUT for both monitoring_ip and api_ip 
+# Add an nft rule to nat/OUTPUT for both monitoring_ip and api_ip
 # $1 is a ref to the shadowsocks uci section (type =client)
 _update_nft_monitoring_ip_rule() {
 	local lport monitoring_ip
 
 	config_get lport "$1" lport ""
 	config_get monitoring_ip "$1" monitoring_ip ""
-	api_ip="169.254.254.1"
+	api_ip="169.254.254.1" # This shall also be retrieved from configuration
 
 	# First, let's empty the chain!
 	# Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
@@ -469,19 +448,25 @@ _update_nft_monitoring_ip_rule() {
 
 	# Only add the rule if monitoring_ip is set and the tracker binary is there
 	if [ -n "$monitoring_ip" ] && [ -x "$TRACKER" ]; then
+		# Add the special rule so that when we send packet to the provisioning API, it flows through ss-redir
 		# Add the special rule so that when we send a packet to the monitoring_ip, it flows through ss-redir
 		# Note that the whole traffic to the API config will also go through shadowsocks (IP is the same)
 		# If shadowsocks is manually stopped, mud will provide network access to API config
-		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$monitoring_ip/32" counter redirect to :$((lport + TRACKER_CS)) comment \"shadowsocks_tracker CS$TRACKER_CS \"
-		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$api_ip/32" counter redirect to :8388 comment \"api \"
+		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$api_ip/32" counter redirect to :8388 comment \" api \"
+		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$monitoring_ip/32" counter redirect to :8388 comment \"shadowsocks_tracker \"
 	else
 		# When there is no monitoring, don't wait for a tracker to enable routing through shadowsocks
+		# First add provisioning API rule &
 		# Let's plug the cable in! :p
+		nft add rule ip nat socks_tracker_and_api ip protocol tcp ip daddr "$api_ip/32" counter redirect to :8388 comment \" api \"
 		_shadow_cable plug
 	fi
 }
 
 _populate_nft_socks_emitted_by_myself () {
+
+	# Retrieve shadowsocks local port from config
+	config_get lport "$1" lport ""
 
 	# First, let's empty the chain!
 	# Note that any running overthebox_test_download_proof will be pwned here :p This is fine.
@@ -489,7 +474,7 @@ _populate_nft_socks_emitted_by_myself () {
 
 	# Add necessary rules that redirects outcomming TCP packets to shadowsocks
 	nft add rule ip nat socks_emitted_by_myself ip protocol tcp ip daddr @socks_bypass counter return
-	nft add rule ip nat socks_emitted_by_myself ip protocol tcp counter redirect to :8388 comment \"TCP packets emitted by myself \"
+	nft add rule ip nat socks_emitted_by_myself ip protocol tcp counter redirect to :"$lport" comment \"TCP packets emitted by myself \"
 }
 
 # This function launches the shadowsocks tracker
