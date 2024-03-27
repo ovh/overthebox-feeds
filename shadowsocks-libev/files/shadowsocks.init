@@ -21,6 +21,7 @@ EXTRA_HELP="        ifup    Enable the hook to route traffic through ss-redir
 # OUTPUT/nat
 # 	- socks_tracker: outgoing packets for shadowsocks-tracker shall be routed through shadowsocks
 #	- socks_emitted_by_myself: either @socks_bypass or routed through shadowsocks
+#	- socks_iperf: this chain ensures speedtest to go through shadowsocks for more reliability
 #
 
 # When reloading:
@@ -40,7 +41,7 @@ _log() {
 	logger -t $PROG_NAME-initd -p "$@"
 }
 
-CHAINS="socks_hook socks_decision socks_emitted_by_myself socks_tracker"
+CHAINS="socks_hook socks_decision socks_emitted_by_myself socks_tracker socks_iperf"
 
 # List of destinations ports in tcp that will bypassed shadowsocks
 BYPASSED_PORTS="1723"
@@ -54,6 +55,8 @@ LOCALNETS="
 172.16.0.0/12
 192.168.0.0/16
 224.0.0.0/4"
+
+IPERF_PORT="5008"
 
 # When following config files change and reload_config is called, we trigger a reload here
 service_triggers() {
@@ -253,6 +256,7 @@ _nft_init_skeleton() {
 	# Create base chain OUTPUT
 	nft create chain ip nat OUTPUT '{ type nat hook output priority -100; policy accept; }' 2> /dev/null
 	nft add rule ip nat OUTPUT ip protocol tcp counter jump socks_tracker
+	nft add rule ip nat OUTPUT ip protocol tcp counter jump socks_iperf
 
 	# Now, everything is glued together except socks_hook which is not connected to socks_decision yet.
 	# PREROUTING isn't linked to socks_hook either, traffic doesn't flow through ss-redir for now.
@@ -264,6 +268,7 @@ _update_conf_and_nft() {
 	_populate_ipset_socks_bypass "$1"
 	_populate_nft_socks_hook
 	_populate_nft_socks_emitted_by_myself
+	_populate_nft_socks_iperf "$1"
 	_update_nft_monitoring_ip_rule "$1"
 }
 
@@ -468,6 +473,18 @@ _populate_nft_socks_emitted_by_myself () {
 
 	# Add necessary rules that redirects outcomming TCP packets to shadowsocks
 	nft add rule ip nat socks_emitted_by_myself ip protocol tcp ip daddr @socks_bypass counter return
+}
+
+_populate_nft_socks_iperf () {
+
+	config_get lport "$1" lport ""
+
+	# First, let's empty the chain!
+	# Note that any running overthebox speed test will be pwned here :p This is fine.
+	nft flush chain ip nat socks_iperf
+
+	# Add necessary rules that redirects iperf outcomming TCP packets to shadowsocks
+	nft add rule ip nat socks_iperf tcp dport "$IPERF_PORT" counter redirect to :"$lport" comment \"speedTests\"
 }
 
 # This function launches the shadowsocks tracker
