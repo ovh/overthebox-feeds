@@ -20,52 +20,7 @@ _get() {
 	otb_json_get "$config" "$1"
 }
 
-config_error=$(_get "error // empty")
-
-if [ "$config_error" ]; then
-	echo "$config_error" >&2
-	exit 1
-fi
-
-# Delete last conf
-for conf in glorytun shadowsocks graph otb-graph; do
-	true > /etc/config/"$conf"
-	uci -q revert "$conf"
-done
-
-uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
-
 _setup_glorytun() {
-	jq -r '@text "
-	set glorytun.\(.dev)=tunnel
-	set glorytun.\(.dev).enable=1
-	set glorytun.\(.dev).dev=\(.dev)
-	set glorytun.\(.dev).server=\(.server)
-	set glorytun.\(.dev).port=\(.port)
-	set glorytun.\(.dev).key=\(.key)
-
-	delete network.\(.dev)
-	set network.\(.dev)=interface
-	set network.\(.dev).device=\(.dev)
-	set network.\(.dev).proto=static
-	set network.\(.dev).ipaddr=\(.ip_local)
-	set network.\(.dev).netmask=255.255.255.0
-	set network.\(.dev).gateway=\(.ip_peer)
-	set network.\(.dev).metric=\(.metric)
-	set network.\(.dev).txqueuelen=1000
-	set network.\(.dev).mtu=\(.mtu)
-	set network.\(.dev).ip4table=\(.table)
-	set network.\(.dev).type=tunnel
-	set network.\(.dev).multipath=off
-	set network.\(.dev).ipv6=0
-	set network.\(.dev).generatedby='"$ME"'
-	del_list firewall.wan.network=\(.dev)
-	del_list firewall.tun.network=\(.dev)
-	add_list firewall.tun.network=\(.dev)
-	"'
-}
-
-_setup_glorytun_mud() {
 	jq -r '@text "
 	set glorytun.\(.dev)=mud
 	set glorytun.\(.dev).enable=1
@@ -96,56 +51,64 @@ _setup_glorytun_mud() {
 	"'
 }
 
-tun_app=$(_get tun_conf.app)
-case "$tun_app" in
-	glorytun)
-		_get glorytun_conf | _setup_glorytun
-		echo "$config" | jq ".glorytun_conf+.glorytun_conf.additional_interfaces[0]" | _setup_glorytun
-		;;
-	glorytun_hybrid)
-		_get glorytun_conf | _setup_glorytun
-		echo "$config" | jq ".glorytun_mud_conf+{
-				dev:.glorytun_conf.additional_interfaces[0].dev,
-				table:.glorytun_conf.additional_interfaces[0].table,
-				metric:.glorytun_conf.additional_interfaces[0].metric,
-			}" | _setup_glorytun_mud
-		;;
-	glorytun_mud)
-		_get glorytun_mud_conf | _setup_glorytun_mud
-		;;
-esac | uci -q batch
+_setup_shadowsocks() {
+	jq -r '@text "
+	set shadowsocks.proxy=client
+	set shadowsocks.proxy.server=\(.server)
+	set shadowsocks.proxy.port=\(.port)
+	set shadowsocks.proxy.lport=\(.lport)
+	set shadowsocks.proxy.method=\(.method)
+	set shadowsocks.proxy.timeout=\(.timeout)
+	set shadowsocks.proxy.reuse_port=\(.reuse_port)
+	set shadowsocks.proxy.fast_open=\(.fast_open)
+	set shadowsocks.proxy.disable_sni=\(.disable_sni)
+	set shadowsocks.proxy.monitoring_ip=\(.monitoring_ip)
+	set shadowsocks.proxy.track_interval=\(.track_interval)
+	set shadowsocks.proxy.track_timeout=\(.track_timeout)
+	set shadowsocks.proxy.track_retry=\(.track_retry)
+	set shadowsocks.proxy.password=\(.password)
+	set shadowsocks.proxy.disabled=\(.disabled)
+	"'
+}
 
-uci -q batch <<EOF
-set glorytun.app=mode
-set glorytun.app.mode=$tun_app
+_setup_log() {
+	jq -r '@text "
+	set system.@system[0].log_ip=\(.host)
+	set system.@system[0].log_port=\(.port)
+	set system.@system[0].log_proto=\(.protocol)
+	set system.@system[0].log_prefix=\(.key)
+	"'
+}
 
-set shadowsocks.proxy=client
-set shadowsocks.proxy.server=$(_get shadow_conf.server)
-set shadowsocks.proxy.port=$(_get shadow_conf.port)
-set shadowsocks.proxy.lport=$(_get shadow_conf.lport)
-set shadowsocks.proxy.method=$(_get shadow_conf.method)
-set shadowsocks.proxy.timeout=$(_get shadow_conf.timeout)
-set shadowsocks.proxy.reuse_port=$(_get shadow_conf.reuse_port)
-set shadowsocks.proxy.fast_open=$(_get shadow_conf.fast_open)
-set shadowsocks.proxy.disable_sni=$(_get shadow_conf.disable_sni)
-set shadowsocks.proxy.monitoring_ip=$(_get shadow_conf.monitoring_ip)
-set shadowsocks.proxy.track_interval=$(_get shadow_conf.track_interval)
-set shadowsocks.proxy.track_timeout=$(_get shadow_conf.track_timeout)
-set shadowsocks.proxy.track_retry=$(_get shadow_conf.track_retry)
-set shadowsocks.proxy.password=$(_get shadow_conf.password)
-set shadowsocks.proxy.disabled=$(_get shadow_conf.disabled)
+_setup_graph() {
+	jq -r '@text "
+	set graph.opentsdb=opentsdb
+	set graph.opentsdb.url=\(.host)
+	set graph.opentsdb.freq=\(.write_frequency)
 
-set system.@system[0].log_ip=$(_get log_conf.host)
-set system.@system[0].log_port=$(_get log_conf.port)
-set system.@system[0].log_proto=$(_get log_conf.protocol)
-set system.@system[0].log_prefix=$(_get log_conf.key)
+	set graph.provisioning=provisioning
+	set graph.provisioning.freq=\(.write_frequency)
+	"'
+}
 
-set graph.opentsdb=opentsdb
-set graph.opentsdb.url=$(_get graph_conf.host)
-set graph.opentsdb.freq=$(_get graph_conf.write_frequency)
+config_error=$(_get "error // empty")
 
-set graph.provisioning=provisioning
-set graph.provisioning.freq=$(_get graph_conf.write_frequency)
+if [ "$config_error" ]; then
+	echo "$config_error" >&2
+	exit 1
+fi
 
-commit
-EOF
+# Delete last conf
+for conf in glorytun shadowsocks graph otb-graph; do
+	true > /etc/config/"$conf"
+	uci -q revert "$conf"
+done
+
+uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
+
+
+_get glorytun_mud_conf | _setup_glorytun | uci -q batch
+_get shadow_conf | _setup_shadowsocks | uci -q batch
+_get log_conf | _setup_log | uci -q batch
+_get graph_conf | _setup_graph | uci -q batch
+uci -q commit
