@@ -50,7 +50,10 @@ _get_file_stat() {
 }
 
 id=$(otb_json_get "$1" id)
-
+[ -z "$id" ] && {
+	otb_err "Backup id should not be empty !!"
+	exit 1
+}
 # shellcheck disable=SC2016
 create_backup_data=$(jq -n -c --arg id "$id" '{ device_action_id: $id }')
 
