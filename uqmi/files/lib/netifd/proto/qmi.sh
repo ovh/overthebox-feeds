@@ -85,6 +85,7 @@ proto_qmi_setup() {
 	local uninitialized_timeout=0
 	# timeout 3s for first call to avoid hanging uqmi
 	uqmi -d "$device" --get-pin-status -t 3000 > /dev/null 2>&1
+	killall uqmi || echo "UQMI works fine!"
 	while uqmi -s -d "$device" --get-pin-status | grep '"UIM uninitialized"' > /dev/null; do
 		[ -e "$device" ] || return 1
 		if [ "$uninitialized_timeout" -lt "$timeout" -o "$timeout" = "0" ]; then
