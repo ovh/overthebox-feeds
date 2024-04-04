@@ -5,18 +5,17 @@
 _manage_gt_path() {
     # get ip and mp
     multipath=$(uci -q get "network.${1}.multipath" || echo "off")
-	network_get_ipaddr ipaddr "${1}"
 
     # Verify it has a valid IP
-	[ -n "$ipaddr" ] || return 
+	[ -n "$OTB_TRACKER_DEVICE_IP" ] || return
 
     # WAN interface can be added as a path
 	case "$multipath" in
 	    on|master|backup)
             if [ "${OTB_TRACKER_STATUS}" = "OK" ]; then
-	            _add_gt_path "${ipaddr}"
+	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}"
             else
-                _remove_gt_path "${ipaddr}"
+                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}"
             fi
 	    ;;
 	esac
@@ -25,7 +24,7 @@ _manage_gt_path() {
 
 _remove_gt_path() {
     # Check presence before removing
-    _is_path_already_down  "${1}" && return 
+    _is_path_already_down  "${1}" && return
     # Remove path
     _log "removing ${1} from glorytun-udp paths"
     /usr/sbin/glorytun-udp path down "${1}"
@@ -34,9 +33,9 @@ _remove_gt_path() {
 
 _add_gt_path() {
     # Check presence before adding
-    _is_path_already_up  "${1}" && return 
+    _is_path_already_up  "${1}" && return
     # Add path
-    _log "Adding ${1} as a path for glorytun-udp" 
+    _log "Adding ${1} as a path for glorytun-udp"
     /usr/sbin/glorytun-udp path up "${1}" rate rx 300mbit tx 300mbit # temporary default value will be perf relevant SOON
     _log "${1} path is UP"
 }

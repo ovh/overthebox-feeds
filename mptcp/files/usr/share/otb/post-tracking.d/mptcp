@@ -42,9 +42,8 @@ multipath_config=$(uci -q get "network.$OTB_TRACKER_INTERFACE.multipath" || echo
 }
 
 # Get ipv4 address
-ipv4=$(ifstatus "$OTB_TRACKER_INTERFACE" | jq '.["ipv4-address"][0]["address"]' | sed 's/"//g')
-[ -z "$ipv4" ] && {
-	_log "failed to retreive ip address of $OTB_TRACKER_INTERFACE"
+[ -z "$OTB_TRACKER_DEVICE_IP" ] && {
+	_log "failed to retrieve ip address of $OTB_TRACKER_INTERFACE"
 	exit 0
 }
 
@@ -52,6 +51,6 @@ _log "$OTB_TRACKER_INTERFACE switched to $multipath_config"
 
 # shellcheck disable=SC2086
 case $multipath_config in
-	on) _add_mptcp_endpoint $ipv4 dev $OTB_TRACKER_DEVICE subflow signal ;;
-	backup) _add_mptcp_endpoint $ipv4 dev $OTB_TRACKER_DEVICE backup ;;
+	on) _add_mptcp_endpoint $OTB_TRACKER_DEVICE_IP dev $OTB_TRACKER_DEVICE subflow signal ;;
+	backup) _add_mptcp_endpoint $OTB_TRACKER_DEVICE_IP dev $OTB_TRACKER_DEVICE backup ;;
 esac

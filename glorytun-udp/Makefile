@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=glorytun
 PKG_VERSION:=0.3.4
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/angt/$(PKG_NAME)/releases/download/v$(PKG_VERSION)
 PKG_HASH:=137d9c525a05bb605163df0465367d36e943715ca773ce43d5ea66f0597600a3

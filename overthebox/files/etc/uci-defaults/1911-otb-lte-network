@@ -18,6 +18,7 @@ if [ -z "$(uci get network.lte)" ]; then
         set network.lte.apn='datapro'
         set network.lte.auth='none'
         set network.lte.pdptype='ipv4'
+        set network.lte.auto='1'
 
         del_list firewall.wan.network="lte"
 	    add_list firewall.wan.network="lte"

@@ -37,7 +37,13 @@ while true; do
 
 	# Flush network cache to avoid obsolete IP addresses
 	network_flush_cache
-	network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit
+	case "$OTB_TRACKER_INTERFACE" in
+		lte)
+			network_get_ipaddr OTB_TRACKER_DEVICE_IP "lte_4" || exit ;
+			OTB_TRACKER_DEVICE="wwan0" ;;
+		*)
+			network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit ;;
+	esac
 
 	OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
 
