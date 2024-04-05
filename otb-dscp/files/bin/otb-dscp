@@ -31,13 +31,18 @@ _create_mangle_table() {
 
 _add_dscp_rule() {
 	nft add rule ip mangle dscp_prerouting \
-		meta l4proto "$proto" ip saddr "$src_ip" \
-		ip daddr "$dest_ip" ip dscp set  "$class"\
+		ip saddr "$src_ip" \
+		ip daddr "$dest_ip" \
+		"$@" \
+		counter \
+		ip dscp set  "$class" \
 		comment "\"$comment\""
 
     nft add rule ip mangle dscp_prerouting \
-		meta l4proto "$proto" ip saddr "$src_ip" \
+		ip saddr "$src_ip" \
 		ip daddr "$dest_ip" \
+		"$@" \
+		counter \
 		return \
 		comment "\"$comment\""
 }
@@ -45,9 +50,9 @@ _add_dscp_rule() {
 _add_dscp_rules() {
 	proto=""     ; config_get proto "$1" proto all
 	src_ip=""    ; config_get src_ip "$1" src_ip 0.0.0.0/0
-	src_port=""  ; config_get src_port "$1" src_port 0:65535
+	src_port=""  ; config_get src_port "$1" src_port 0-65535
 	dest_ip=""   ; config_get dest_ip "$1" dest_ip 0.0.0.0/0
-	dest_port="" ; config_get dest_port "$1" dest_port 0:65535
+	dest_port="" ; config_get dest_port "$1" dest_port 0-65535
 	class=""     ; config_get class "$1" class
 	direction="" ; config_get direction "$1" direction "upload"
 	comment=""   ; config_get comment "$1" comment "-"
@@ -57,10 +62,13 @@ _add_dscp_rules() {
 			# Apply the rule locally
 			case "$proto" in
 				tcp|udp)
-					_add_dscp_rule -m multiport --sports "$src_port" -m multiport --dports "$dest_port"
+					_add_dscp_rule "$proto" sport "$src_port" "$proto" dport "$dest_port"
+					;;
+				all)
+					_add_dscp_rule
 					;;
 				*)
-					_add_dscp_rule
+					_add_dscp_rule meta l4proto "$proto"
 					;;
 			esac
 			;;
