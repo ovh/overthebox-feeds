@@ -14,11 +14,11 @@ if [ -z "$backup_url" ]; then
     exit 1
 else
     case "$backup_url" in
-        http*.tar.gz) url=$backup_url ;;
+         http*) url=$backup_url ;;
         *) otb_err "Invalid backup URL !"; exit 1 ;;
     esac
 fi
 
 curl "$url" | sysupgrade --restore-backup -
 
-otb_debug "Done restoring backup $backup_id" 
+otb_debug "Done restoring backup $backup_id"

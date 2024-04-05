@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-backup
-PKG_VERSION:=0.2.0
+PKG_VERSION:=0.2.1
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -22,8 +22,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) otb-action-* $(1)/bin
+	$(CP) ./files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
