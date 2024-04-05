@@ -57,6 +57,12 @@ _run() {
 
 	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
 	otb_debug "Got status '$status' for action '$action'"
+
+	[ "$action" = "restore" ] && {
+		otb_info "Should renew JWT before sending status for action $action"
+		otb-renew-jwt
+	}
+
 	[ -z "$id" ] || [ "$id" = "null" ] || [ "$action" = "wait" ] && return
 
 	# shellcheck disable=SC2016
