@@ -1,0 +1,58 @@
+#!/bin/sh /etc/rc.common
+# shellcheck disable=SC2034
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# Copyright (C) 2024 ovhcloud.com
+
+START=90
+STOP=10
+USE_PROCD=1
+
+SCRIPT_NAME=uqmid
+PROG="/usr/bin/${SCRIPT_NAME}"
+
+_log() {
+    logger -p daemon.info -t "${SCRIPT_NAME}" "$@"
+}
+
+_err() {
+    logger -p daemon.err -t "${SCRIPT_NAME}" "$@"
+}
+
+_launch_daemon() {
+    local interface="$1"
+    local up_status
+
+    [ "$interface" = "lte" ] || return
+
+    # Make sure LTE interface is up
+    if ! ifconfig | grep -q "lte"; then
+        _log "Bringing up LTE interface"
+        ifup "$interface" || {
+            _err "Failed to bring up LTE interface"
+            return 1
+        }
+    fi
+
+    # Launch daemon script in bg
+    _log "Starting ${SCRIPT_NAME}"
+    procd_open_instance
+    procd_set_param command sh "$PROG"
+    procd_set_param respawn
+    procd_set_param respawn_timeout 5
+    procd_set_param stderr 1
+    procd_close_instance
+}
+
+start_service() {
+    config_load network
+    config_foreach _launch_daemon interface
+}
+
+service_triggers() {
+    procd_add_reload_trigger network
+}
+
+reload_service() {
+    stop
+    start
+}
