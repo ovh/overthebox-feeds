@@ -60,6 +60,8 @@ return L.Class.extend({
                 return "OTB v2b"
             case "PC Engines PC Engines apu4":
                 return "OTB v2c";
+            case "MZ10 MZ10":
+                return "OTB v3";
             default:
                 if (/qemu/ig.test(model)) {
                     return "QEMU"
