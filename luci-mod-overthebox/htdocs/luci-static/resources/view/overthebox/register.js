@@ -3,6 +3,7 @@
 'require uci';
 'require ui';
 'require fs';
+'require poll';
 'require tools.overthebox.ovh as ovhapi';
 'require tools.overthebox.ui as otbui';
 
@@ -41,7 +42,7 @@ return view.extend({
     },
 
     render: function (data) {
-        let box = E('div', { 'class': 'cbi-section' }, [ E('h1', this.title) ]),
+        let box = E('div', { 'class': 'cbi-section' }, [E('h1', this.title)]),
             bar = [
                 { id: 'login', name: _('Login'), state: '' },
                 { id: 'register', name: _('Register'), state: '' },
@@ -195,9 +196,9 @@ return view.extend({
     // Service registration is complete
     renderEnjoy: function (serviceID, deviceID) {
         let fields = [
-                _('serviceID'), serviceID,
-                _('deviceID'), deviceID,
-            ],
+            _('serviceID'), serviceID,
+            _('deviceID'), deviceID,
+        ],
             table = otbui.createTabularElem(fields);
 
         return E('div', [
@@ -266,19 +267,36 @@ return view.extend({
                     return;
                 }
 
-                otbui.createBlockingModal(
-                    _('Loading'),
-                    _('Performing device association...')
-                );
+                ui.showModal(_('Association…'), [
+                    E('p', { 'class': 'spinning' }, _('Performing device association...'))
+                ]);
 
                 ovhapi.linkDevice(serviceID, deviceID)
                     .then(
                         data => {
-                            uci.set('overthebox', 'me', 'service', serviceID);
-                            uci.set('overthebox', 'me', 'needs_activation', 'true');
-                            return uci.save()
-                                .then(L.bind(ui.changes.init, ui.changes))
-                                .then(L.bind(ui.changes.apply, ui.changes));
+                            window.setTimeout(function () {
+                                ui.showModal(_('Association…'), [
+                                    E('p', { 'class': 'spinning alert-message warning' },
+                                        _('Still waiting for associatoin, please reload the page...'))
+                                ]);
+                            }, 150000);
+
+                            window.setTimeout(
+                                L.bind(function () {
+                                    poll.add(L.bind(function () {
+                                        uci.unload('overthebox');
+
+                                        return Promise.all([uci.load('overthebox')])
+                                        .then(() => {
+                                            const serviceID = uci.get('overthebox', 'me', 'service');
+
+                                            if (serviceID) {
+                                                poll.stop();
+                                                location.reload();
+                                            }
+                                        });
+                                    }, this));
+                                }, this), 5000);
                         }
                     )
                     .catch(
