@@ -3,9 +3,6 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 # Copyright (C) 2024 ovhcloud.com
 
-# LTE device
-device="/dev/cdc-wdm0"
-
 _log() {
     logger -p daemon.info -t "LTE-Manager" "$@"
 }
@@ -16,7 +13,9 @@ _err() {
 
 # Function to start LTE interface
 start_lte_interface() {
-    if ifconfig | grep -q "wwan0"; then
+    # Get network interface name
+    interface=$(qmicli --device=/dev/cdc-wdm0 --device-open-proxy --get-wwan-iface)
+    if ifconfig | grep -q "${interface}"; then
         _log "LTE interface is already up."
         return 0
     fi
@@ -28,10 +27,12 @@ start_lte_interface() {
     }
 }
 
-# Ensure LTE interface is up
-if ! ifconfig | grep -q "wwan0"; then
-    start_lte_interface || exit 1
-fi
+# LTE device
+device=$(ls /dev/* | grep -o '/dev/cdc-wdm[0-9]*' | uniq)
+[ "${device}" ] || {
+    _err "failed to retrieve LTE device"
+    exit 1
+}
 
 # Main loop
 while true; do
@@ -40,9 +41,14 @@ while true; do
     if [ "$?" -ne 0 ] || [ "${status}" != "connected" ]; then
         _log "LTE connection is down. Attempting to reconnect..."
         start_lte_interface || continue
-        # Wait a moment before attempting to reconnect
-        sleep 5
-        continue
+        # Attempt to reconnect using uqmi
+        start=$(timeout 10 uqmi -d "$device" --start-network| tr -d '"')
+        if [ "$?" -ne 0 ]; then
+            _err "Failed to reconnect using uqmi"
+            # If reconnection fails, retry after a short delay
+            sleep 5
+            continue
+        fi
     fi
 
     _log "LTE connection is up."
