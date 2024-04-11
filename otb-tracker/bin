@@ -39,7 +39,7 @@ while true; do
 	network_flush_cache
 	case "$OTB_TRACKER_INTERFACE" in
 		lte)
-			network_get_ipaddr OTB_TRACKER_DEVICE_IP "lte_4" || exit ;
+			network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit ;
 			OTB_TRACKER_DEVICE="wwan0" ;;
 		*)
 			network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit ;;

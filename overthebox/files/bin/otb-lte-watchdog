@@ -1,0 +1,11 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+while true; do
+	# Make sure lte inteface is always up
+	up_status=$(ifstatus lte | jq -r '.up')
+	[ "${up_status}" = "true" ] || ifup lte
+
+	# See you next check (every minute)
+	sleep 60
+done
