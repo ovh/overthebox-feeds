@@ -4,6 +4,7 @@
 
 set -e
 
+. /lib/functions.sh
 . /lib/overthebox
 . /lib/upgrade/common.sh
 
@@ -20,7 +21,7 @@ if [ -z "$1" ]; then
 	case "$prov_url" in
 		http*.img.gz|ftp*.img.gz) url=$prov_url ;;
 		*) otb_err "No valid image URL found !" ; exit 1 ;;
-	esac 
+	esac
 else
 	case "$1" in
 		http*.img.gz|ftp*.img.gz) url=$1 ;;
