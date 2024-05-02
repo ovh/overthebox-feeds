@@ -1,0 +1,27 @@
+#!/bin/sh
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+# Activate CAKE on WAN interfaces where mptcp is activated
+
+_log() {
+	logger -p daemon.info -t "$(basename "${0}")" "$@"
+}
+
+_err() {
+	logger -p daemon.err -t "$(basename "${0}")" "$@"
+}
+
+[ "$OTB_TRACKER_STATUS" = "OK" ] || exit 0 # Interface shall be in status OK
+[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && exit 0 # Only physical interfaces
+[ "$(uci -q get "network.${OTB_TRACKER_INTERFACE}.multipath")" = "on" ] || exit 0 # Only WAN with mptcp on
+
+# Retrieve interface's device
+if [ "$OTB_TRACKER_INTERFACE" = "lte" ];
+then
+    dev="wwan0" # LTE virtual device
+else
+    dev="$(uci -q get "network.${OTB_TRACKER_INTERFACE}.device")"
+fi
+
+# Activate cake on WAN interface
+_log Activating CAKE for interface "${OTB_TRACKER_INTERFACE}"
+tc qdisc replace root dev "${dev}" cake diffserv4

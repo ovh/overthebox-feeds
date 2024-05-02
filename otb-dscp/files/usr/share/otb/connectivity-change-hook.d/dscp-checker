@@ -1,7 +1,0 @@
-#!/bin/sh
-# Need to check that the DSCP are setup correctly after tun is detected up
-
-[ "$OTB_TRACKER_INTERFACE" = "tun0" ] || exit 0
-[ "$OTB_TRACKER_STATUS" = "OK" ] || exit 0
-
-otb-dscp check

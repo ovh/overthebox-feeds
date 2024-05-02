@@ -51,7 +51,3 @@ else
 fi
 
 [ "$pub_ip" = "$pub_ip_old" ] && exit 0
-
-_log "Setup QoS on new public ip interface $OTB_TRACKER_INTERFACE"
-# Setup the QoS on the interface when it gets a new public IP
-otb-qos setup "$OTB_TRACKER_INTERFACE"
