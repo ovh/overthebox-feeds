@@ -73,7 +73,7 @@ fetch_bytes()
 		-v txfile="$tx_tmp" \
 		-v rxfile="$rx_tmp" \
 		-v json="$1" \
-		"$neigh_tmp" "$leasefile" "$tx_tmp $rx_tmp"
+		"$neigh_tmp" "$leasefile" "$tx_tmp" "$rx_tmp"
 
 	rm -f $tx_tmp $rx_tmp
 }
