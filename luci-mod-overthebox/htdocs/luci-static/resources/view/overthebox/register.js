@@ -287,14 +287,14 @@ return view.extend({
                                         uci.unload('overthebox');
 
                                         return Promise.all([uci.load('overthebox')])
-                                        .then(() => {
-                                            const serviceID = uci.get('overthebox', 'me', 'service');
+                                            .then(() => {
+                                                const serviceID = uci.get('overthebox', 'me', 'service');
 
-                                            if (serviceID) {
-                                                poll.stop();
-                                                location.reload();
-                                            }
-                                        });
+                                                if (serviceID) {
+                                                    poll.stop();
+                                                    location.reload();
+                                                }
+                                            });
                                     }, this));
                                 }, this), 5000);
                         }
@@ -349,7 +349,7 @@ return view.extend({
                     const details = infos[0],
                         device = infos[1];
 
-                    if (details.error || device.error) {
+                    if (details.error) {
                         services[id].state = 'error';
                         return
                     }
@@ -428,8 +428,9 @@ return view.extend({
                 const details = infos[0],
                     device = infos[1];
 
-                if (details.error || device.error) {
+                if (details.error) {
                     services[id].state = 'error';
+                    count--;
                     return
                 }
 
@@ -513,18 +514,25 @@ return view.extend({
                 ]);
             },
             format: function (details, device) {
-                return [
+
+                let infos = [
                     _('Service description'), details.values.customerDescription,
                     _('ServiceID'), details.values.serviceName,
                     _('Service status'), details.values.status,
-                    _('DeviceID'), device.values.deviceId,
-                    // Last 15 mn
-                    _('Device status'), device.values.state,
-                    _('Device last connection'), device.values.lastSeen,
-                    _('Device last IP'), device.values.publicIp,
-                    _('Device feeds version'), device.values.version,
-                    _('Device system version'), device.values.systemVersion,
-                ]
+                    _('DeviceID'), device?.values?.deviceId ?? "None",
+                ];
+
+                if (!device.error) {
+                    infos.push(
+                        // Last 15 mn
+                        _('Device status'), device.values.state,
+                        _('Device last connection'), device.values.lastSeen,
+                        _('Device last IP'), device.values.publicIp,
+                        _('Device version'), device.values.systemVersion
+                    );
+                }
+
+                return infos;
             }
         }
     },
