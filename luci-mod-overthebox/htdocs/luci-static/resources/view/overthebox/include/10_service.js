@@ -17,7 +17,6 @@ return baseclass.extend({
     load: function () {
         return Promise.all([
             uci.load('overthebox'),
-            fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun'], null),
             fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null),
             fs.exec('/usr/bin/pgrep', ['ss-redir'], null)
         ]);
@@ -66,7 +65,6 @@ return baseclass.extend({
             steps = [
                 { id: 'register', name: _('Register'), state: '' },
                 { id: 'activate', name: _('Activate'), state: '' },
-                { id: 'glorytun', name: _('GloryTUN'), state: '' },
                 { id: 'glorytunUDP', name: _('GloryTUN UDP'), state: '' },
                 { id: 'shadowSocks', name: _('ShadowSocks'), state: '' }
             ];
@@ -93,7 +91,6 @@ return baseclass.extend({
         // Shell return so 0 means ok
         steps[2].state = data[1].code === 0 ? 'ok' : 'nok';
         steps[3].state = data[2].code === 0 ? 'ok' : 'nok';
-        steps[4].state = data[3].code === 0 ? 'ok' : 'nok';
 
         box.appendChild(otbui.createStatusBar(steps));
         box.appendChild(E('div', { 'style': 'display:flex; justify-content:space-between;' }, [
