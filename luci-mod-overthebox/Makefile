@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI OverTheBox - Global System settings
 LUCI_DEPENDS:=+luci-mod-admin-full +luci-app-firewall +luci-lib-nixio +luci-theme-bootstrap +luci +luci-lib-px5g +luci-lib-json +luci-proto-3g +luci-compat \
-	      +luci-app-sqm +luci-app-statistics
+	      +luci-app-sqm +luci-app-statistics +luci-app-nlbwmon
 
 PKG_VERSION:=v1.0.3
 PKG_RELEASE:=1
