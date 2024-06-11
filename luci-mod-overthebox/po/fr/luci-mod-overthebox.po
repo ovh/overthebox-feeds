@@ -46,18 +46,6 @@ msgstr "Autoriser l'accès"
 msgid "Begin"
 msgstr "Début"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:91
-msgid "Class"
-msgstr "Classe"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:43
-msgid "Classification Rules"
-msgstr "Règles de classifications"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:97
-msgid "Comment"
-msgstr "Commentaire"
-
 #: htdocs/luci-static/resources/view/overthebox/register.js:485
 msgid "Connected"
 msgstr "Connecté"
@@ -81,14 +69,6 @@ msgstr "Baux DHCPv6"
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:136
 msgid "DUID"
 msgstr "DUID"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:77
-msgid "Destination host"
-msgstr "Hôte de destinatoin"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:85
-msgid "Destination ports"
-msgstr "Ports de destination"
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:507
 msgid "Device feeds version"
@@ -114,16 +94,10 @@ msgstr "Version système"
 msgid "DeviceID"
 msgstr "DeviceID"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:48
-msgid "Direction"
-msgstr "Sens"
-
 #: htdocs/luci-static/resources/view/overthebox/register.js:485
 msgid "Disconnected"
 msgstr "Déconnecté"
 
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:231
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:248
 #: htdocs/luci-static/resources/view/overthebox/graphs/tunnels.js:194
 #: htdocs/luci-static/resources/view/overthebox/graphs/wan.js:198
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:191
@@ -197,19 +171,11 @@ msgstr "GloryTUN"
 msgid "GloryTUN UDP"
 msgstr "GloryTUN UDP"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:94
-msgid "High priority"
-msgstr "Priorité haute"
 
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:245
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:87
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:134
 msgid "Host"
 msgstr "Hôte"
-
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:246
-msgid "IPv4"
-msgstr "IPv4"
 
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:88
 msgid "IPv4 address"
@@ -248,10 +214,6 @@ msgstr "Noyau"
 msgid "Latency"
 msgstr "Latence"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:95
-msgid "Latency - VoIP"
-msgstr "Latence - VoIP"
-
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:163
 msgid "Lease Time"
 msgstr "Durée d'allocation"
@@ -278,14 +240,6 @@ msgstr "Chargement"
 msgid "Login"
 msgstr "Connexion"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:93
-msgid "Low priority"
-msgstr "Priorité faible"
-
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:247
-msgid "MAC"
-msgstr "MAC"
-
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:89
 msgid "MAC address"
 msgstr "Adresse MAC"
@@ -310,10 +264,6 @@ msgstr "Réseau"
 msgid "No dhcp server detected"
 msgstr "Pas de serveur DHCP détecté"
 
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:105
-msgid "No information available"
-msgstr "Pas d'informations disponible"
-
 #: htdocs/luci-static/resources/view/overthebox/register.js:315
 msgid "No informations found for this service"
 msgstr "Pas d'informations disponible pour ce service"
@@ -329,10 +279,6 @@ msgstr "Pas de réseau trouvé..."
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:101
 msgid "None"
 msgstr "Aucun"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:92
-msgid "Normal"
-msgstr "Normal"
 
 #: htdocs/luci-static/resources/tools/overthebox/ovh.js:67
 msgid "OVHcloud API call fail"
@@ -360,13 +306,8 @@ msgid "Please click on the button"
 msgstr "Merci de cliquer sur le bouton"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:138
-#: htdocs/luci-static/resources/view/overthebox/qos.js:54
 msgid "Protocol"
 msgstr "Protocole"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:40
-msgid "QoS Settings"
-msgstr "Configurations QoS"
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:49
 msgid "Ready"
@@ -449,14 +390,6 @@ msgstr "Mettre en statique"
 msgid "ShadowSocks"
 msgstr "ShadowSocks"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:64
-msgid "Source host"
-msgstr "Hôte source"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:71
-msgid "Source ports"
-msgstr "Ports source"
-
 #: htdocs/luci-static/resources/tools/overthebox/ui.js:35
 msgid "Speed: %d Mibit/s, Duplex: %s"
 msgstr "Vitesse: %d Mibit/s, Duplex: %s"
@@ -502,21 +435,10 @@ msgstr "Celà va écraser l'association précedente, êtes-vous sûr?"
 msgid "Time"
 msgstr "Temps"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:41
-msgid ""
-"Traffic may be classified by many different parameters, such as source "
-"address, destination address or traffic type and assigned to a specific "
-"traffic class."
-msgstr ""
-"Le trafic peut être classé en fonction de différents paramètres, comme une "
-"adresse IP ou un type de trafic"
-
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:20
 msgid "Unknown"
 msgstr "Inconnu"
 
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:236
-#: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:249
 #: htdocs/luci-static/resources/view/overthebox/graphs/tunnels.js:199
 #: htdocs/luci-static/resources/view/overthebox/graphs/wan.js:203
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:196
@@ -567,22 +489,10 @@ msgstr ""
 "Votre matériel a été correctement enregistré, vous devez activer votre "
 "service"
 
-#: htdocs/luci-static/resources/view/overthebox/qos.js:55
-#: htdocs/luci-static/resources/view/overthebox/qos.js:57
-#: htdocs/luci-static/resources/view/overthebox/qos.js:66
-#: htdocs/luci-static/resources/view/overthebox/qos.js:79
-#: htdocs/luci-static/resources/view/overthebox/qos.js:87
-msgid "all"
-msgstr "tous"
-
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:105
 #: htdocs/luci-static/resources/view/overthebox/register.js:199
 msgid "deviceID"
 msgstr "deviceID"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:52
-msgid "download"
-msgstr "descendant"
 
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:101
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:148
@@ -610,8 +520,3 @@ msgstr "pour se connecter"
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:146
 msgid "unlimited"
 msgstr "illimité"
-
-#: htdocs/luci-static/resources/view/overthebox/qos.js:49
-#: htdocs/luci-static/resources/view/overthebox/qos.js:51
-msgid "upload"
-msgstr "montant"
