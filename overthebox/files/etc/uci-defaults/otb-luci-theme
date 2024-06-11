@@ -1,0 +1,11 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+uci -q batch <<EOF
+set luci.main.mediaurlbase='/luci-static/bootstrap'
+delete luci.themes
+set luci.themes=internal
+set luci.themes.Bootstrap='/luci-static/bootstrap'
+set luci.themes.BootstrapDark='/luci-static/bootstrap-dark'
+set luci.themes.BootstrapLight='/luci-static/bootstrap-light'
+EOF
