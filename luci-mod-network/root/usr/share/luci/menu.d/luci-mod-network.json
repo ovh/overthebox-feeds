@@ -11,7 +11,7 @@
                 "luci-mod-network-config"
             ],
             "fs": {
-                "/sbin/swconfig": "executable"
+                "/sbin/swconfig-v2b": "executable"
             },
             "uci": {
                 "network": {
