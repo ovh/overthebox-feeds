@@ -30,7 +30,6 @@
       },
       "uci": [
         "overthebox",
-        "dscp",
         "network"
       ]
     },
@@ -42,12 +41,6 @@
         ]
       },
       "file": {
-        "/bin/otb-dscp-reset": [
-          "exec"
-        ],
-        "/bin/bandwidth": [
-          "exec"
-        ],
         "/usr/bin/awk": [
           "exec"
         ],
@@ -66,7 +59,6 @@
       },
       "uci": [
         "overthebox",
-        "dscp",
         "network"
       ]
     }
