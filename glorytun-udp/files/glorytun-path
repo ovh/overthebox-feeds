@@ -60,6 +60,7 @@ _is_path_already_up() {
 _is_path_already_down() {
     # Get actual DOWN paths
     gt_path_output=$(glorytun-udp path)
+    echo "${gt_path_output}" | grep -q "${1}" || return 0
     gt_paths=$(echo "${gt_path_output}" | awk '$2 == "DOWN" {print $4}')
 
     # Check on path otherwise keep going
