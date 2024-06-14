@@ -9,6 +9,7 @@ USE_PROCD=1
 boot() {
     . /lib/overthebox
     otb_save_event boot
+    otb_init
     start "$@"
 }
 

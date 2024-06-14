@@ -1,6 +1,9 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
+lte_device="/sys/devices/pci0000:00/0000:00:14.0/usb2/2-2"
+[ -d "$lte_device" ] || exit 1
+
 while true; do
 	# Make sure lte inteface is always up
 	up_status=$(ifstatus lte | jq -r '.up')
