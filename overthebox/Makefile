@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
-PKG_VERSION:=0.77.0
+PKG_VERSION:=0.78.0
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -35,15 +35,6 @@ define Package/$(PKG_NAME)/install
 	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/etc/config
 	touch $(1)/etc/config/$(PKG_NAME)
-endef
-
-define Package/$(PKG_NAME)/postinst
-#!/bin/sh
-if [ -z $${IPKG_INSTROOT} ] ; then
-	# update /etc/rc.local
-	(. /etc/uci-defaults/rc.local.user) && rm -rf /etc/uci-defaults/rc.local.user
-	exit 0
-fi
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
