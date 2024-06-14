@@ -20,6 +20,16 @@ otb_reload() {
 
 otb_reload
 
+otb_init() {
+	# force usb switch in order to switch 4G key from CD-ROM to usb-cdc
+	/sbin/usbmode -l
+	/bin/sleep 2
+	/sbin/usbmode -s
+
+	# Launch lte interface watchdog in bg
+	/bin/otb-lte-watchdog &
+}
+
 otb_alert() {
 	logger -t otb -p 1 "$*" || true
 }
