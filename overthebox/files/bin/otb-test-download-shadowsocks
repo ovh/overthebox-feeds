@@ -1,15 +1,15 @@
 #!/bin/sh
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-HOST="proof.ovh.net"
+HOST="rbx.proof.ovh.net"
 
 _rule_create(){
-    nft add rule ip nat socks_emitted_by_myself ip daddr "$HOST" jump socks_redir comment \" Test download proof \"
+    nft add rule ip nat socks_emitted_by_myself ip daddr "$HOST" jump socks_decision comment \" Test download proof \"
 }
 
 _rule_delete(){
     # get handle of test rule
-    rule_handle=$(nft -a list chain ip nat socks_emitted_by_myself | grep "socks_redir" | awk '{print $NF}')
+    rule_handle=$(nft -a list chain ip nat socks_emitted_by_myself | grep "socks_decision" | awk '{print $NF}')
 
     # delete rule with handle value
     nft delete rule ip nat socks_emitted_by_myself handle "$rule_handle"
@@ -19,13 +19,13 @@ _chain_exists() {
 	nft list chain ip nat "$1" 1>/dev/null 2>/dev/null
 }
 
-if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_redir"; then
-	echo "Couldn't find the iptables chain to plug myself into. Is ss-redir running?"
+if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_decision"; then
+	echo "Couldn't find the nftables chain to plug myself into.. Please check netfilter."
 	return 1
 fi
 
 trap : HUP INT TERM
 
 _rule_create
-curl http://$HOST/files/10Gio.dat >/dev/null || echo
+curl https://$HOST/files/1Gb.dat >/dev/null || echo
 _rule_delete
