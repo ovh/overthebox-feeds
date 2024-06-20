@@ -244,9 +244,9 @@ return view.extend({
         let associateBtn = E('button', {
             'class': 'cbi-button cbi-button-add',
             'title': 'Associate',
+            'style': 'display:none',
             'click': () => {
-                let select = document.getElementById('serviceChoice'),
-                    serviceID = select.value,
+                    const serviceID = widget.getValue(),
                     deviceID = uci.get('overthebox', 'me', 'device_id');
 
                 if (!serviceID) {
@@ -312,16 +312,29 @@ return view.extend({
         let services = {},
             serviceInfos = E('div', { 'id': 'serviceInfos' }, [E('p', {}, '')]);
 
-        let select = E('select', { 'class': 'cbi-input-select', 'style': 'width:32rem' }, [
-            E('option', { 'value': 'placeHolder' }, _('Select a service'))
-        ]);
+        let widget = new ui.Dropdown(null, {}, {
+            id:"serviceChoice",
+            multiple:false,
+            select_placeholder:"Select a service",
+            custom_placeholder:"Insert a service",
+            create:true,
+            validate: function(value) {
+                const regex= /^overthebox\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                if (!regex.test(value)) {
+                    return _('Invalid format of service_name, it should begin with "overthebox." and followed by uuid')
+                }
+                return true;
+            }
+        })
+        let dropdown = widget.render();
+        dropdown.style.width='32rem';
 
-        select.id = 'serviceChoice';
 
         const handleInfos = this.loadServiceInfos();
 
-        select.addEventListener('change', function (ev) {
-            if (this.value === 'placeHolder') {
+        dropdown.addEventListener('cbi-dropdown-change', function (ev) {
+            dropdown.style.width='32rem';
+            if (widget.getValue() === undefined) {
                 associateBtn.style.display = 'none';
                 serviceInfos.firstChild.replaceWith(E('p', ''));
                 return
@@ -354,8 +367,13 @@ return view.extend({
                         return
                     }
 
-                    let option = document.getElementById(id);
-                    option.textContent = details.values.customerDescription;
+                    // Show customer description instead of service_name
+                    let label = {};
+                    label[id] = details.values.customerDescription;
+
+                    widget.clearChoices(true)
+                    widget.addChoices(id, label)
+                    widget.setValue(id)
 
                     services[id].infos = handleInfos.format(details, device)
                     services[id].state = 'ok';
@@ -410,9 +428,6 @@ return view.extend({
                 'state': 'pending',
             };
 
-            let option = E('option', { 'id': id, 'value': id }, id)
-            select.appendChild(option);
-
             if (count > 25) {
                 continue
             }
@@ -434,7 +449,9 @@ return view.extend({
                     return
                 }
 
-                option.textContent = details.values.customerDescription;
+                let label = [];
+                label[id] = details.values.customerDescription;
+                widget.addChoices(id, label)
 
                 services[id].infos = handleInfos.format(details, device)
                 services[id].state = 'ok';
@@ -459,7 +476,7 @@ return view.extend({
         }
 
         box.appendChild(E('p', _('Select the service you wish to associate with this device')))
-        box.appendChild(select);
+        box.appendChild(dropdown);
         box.appendChild(associateBtn);
         box.appendChild(serviceInfos);
     },
