@@ -1,0 +1,23 @@
+#!/bin/sh
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+set -e
+
+# Create overthebox configuration entry for QoS
+if [ -z "$(uci get overthebox.qos)" ]; then
+    uci set overthebox.qos=config
+    uci set overthebox.qos.autosqm='true'
+    uci commit overthebox
+else
+    uci set overthebox.qos.autosqm='true'
+    uci commit overthebox
+fi
+
+# Set WAN interfaces to ERROR
+# This is one way to launch scripts under connectivity-change-hook
+for itf_dir in /tmp/otb-data/*/; do
+    if [ "$itf_dir" != "/tmp/otb-data/tun0/" ]; then
+        echo "ERROR" > "${itf_dir}connectivity"
+    fi
+done
