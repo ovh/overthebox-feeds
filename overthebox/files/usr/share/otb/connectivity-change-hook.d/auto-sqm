@@ -7,6 +7,7 @@ MAX_SPEED=300
 CONFIG_FILE="/etc/config/sqm"
 
 . /lib/functions/network.sh
+. /lib/overthebox
 
 _log() {
 	logger -p daemon.info -t "$(basename "${0}")" "$@"
@@ -40,7 +41,10 @@ network_get_ipaddr SOURCE_IP "${OTB_TRACKER_INTERFACE}"
 
 # Run the speedtest
 _log Running Speedtest for interface "${OTB_TRACKER_INTERFACE}"
-SPEEDTEST=$(librespeed-cli --json --source "${SOURCE_IP}" --local-json /tmp/speedtest.json)
+
+speedtest "${SOURCE_IP}"
+_log Speedtest : "${SPEEDTEST}"
+
 if [ $? -ne 0 ]; then
     _err Speedtest failed. Aborting SQM setting for "${OTB_TRACKER_INTERFACE}"
     exit 1
@@ -69,17 +73,19 @@ if [ "$(uci -q get sqm."${DEVICE}".enabled)" = "1" ]; then
     OLD_DOWNLOAD_KBPS=$(uci -q get sqm."${DEVICE}".download)
     OLD_UPLOAD_KBPS=$(uci -q get sqm."${DEVICE}".upload)
 
-    # Calculate absolute difference value
-    DOWNLOAD_DIFF=$(( (DOWNLOAD_KBPS - OLD_DOWNLOAD_KBPS) * 100 / OLD_DOWNLOAD_KBPS ))
-    UPLOAD_DIFF=$(( (UPLOAD_KBPS - OLD_UPLOAD_KBPS) * 100 / OLD_UPLOAD_KBPS ))
-    [ "$DOWNLOAD_DIFF" -lt 0 ] && DOWNLOAD_DIFF=$(( -DOWNLOAD_DIFF ))
-    [ "$UPLOAD_DIFF" -lt 0 ] && UPLOAD_DIFF=$(( -UPLOAD_DIFF ))
+	if [ "$OLD_DOWNLOAD_KBPS" -gt 0 ] && [ "$OLD_UPLOAD_KBPS" -gt 0 ]; then
+		# Calculate absolute difference value
+		DOWNLOAD_DIFF=$(( (DOWNLOAD_KBPS - OLD_DOWNLOAD_KBPS) * 100 / OLD_DOWNLOAD_KBPS ))
+		UPLOAD_DIFF=$(( (UPLOAD_KBPS - OLD_UPLOAD_KBPS) * 100 / OLD_UPLOAD_KBPS ))
+		[ "$DOWNLOAD_DIFF" -lt 0 ] && DOWNLOAD_DIFF=$(( -DOWNLOAD_DIFF ))
+		[ "$UPLOAD_DIFF" -lt 0 ] && UPLOAD_DIFF=$(( -UPLOAD_DIFF ))
 
-    # Make sure difference is greater than 10% or abort
-    if [ "$DOWNLOAD_DIFF" -le 10 ] && [ "$UPLOAD_DIFF" -le 10 ]; then
-        echo "Old and new speeds are within 10% difference. Exiting auto-sqm setting."
-        exit
-    fi
+		# Make sure difference is greater than 10% or abort
+		if [ "$DOWNLOAD_DIFF" -le 10 ] && [ "$UPLOAD_DIFF" -le 10 ]; then
+			echo "Old and new speeds are within 10% difference. Exiting auto-sqm setting."
+			exit
+		fi
+	fi
 fi
 
 # Make sure config file exists
