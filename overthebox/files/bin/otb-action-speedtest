@@ -1,12 +1,14 @@
 #!/bin/sh
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC2039,SC2034
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 HOST="gra.perf.overthebox.net"
 
-. /lib/functions/network.sh
 . /lib/overthebox
+. /lib/functions.sh
+. /lib/functions/network.sh
 
+trap : HUP INT TERM
 
 _rule_create(){
     nft add rule ip nat socks_emitted_by_myself ip daddr "$HOST" jump socks_decision comment \" Test download proof \"
@@ -20,24 +22,29 @@ _rule_delete(){
     nft delete rule ip nat socks_emitted_by_myself handle "$rule_handle"
 }
 
-_chain_exists() {
-	nft list chain ip nat "$1" 1>/dev/null 2>/dev/null
-}
-
 _speedtest() {
-	network_get_ipaddr SOURCE_IP "lan"
-	echo "Launching shadowsocks speedtest : $SOURCE_IP"
-	speedtest "${SOURCE_IP}"
+	if [ "$1" = "loopback" ]; then
+		return 0
+	fi
+
+	network_get_ipaddr SOURCE_IP "$1"
+
+	if [ "$1" = "lan" ]; then
+		_rule_create
+		echo "Launching shadowsocks speedtest : $SOURCE_IP"
+		speedtest "${SOURCE_IP}"
+		_rule_delete
+	else
+		echo "Launching speedtest on $1 : $SOURCE_IP"
+		speedtest "${SOURCE_IP}"
+	fi
+
 	echo "${SPEEDTEST}" | jq .
 }
 
-if ! _chain_exists "socks_emitted_by_myself" || ! _chain_exists "socks_decision"; then
-	echo "Couldn't find the nftables chain to plug myself into.. Please check netfilter."
-	return 1
+if [ "$(uci -q get "network.$1")" = interface ]; then
+	speedtest "$1"
+else
+	config_load network
+	config_foreach _speedtest interface
 fi
-
-trap : HUP INT TERM
-
-_rule_create
-_speedtest
-_rule_delete
