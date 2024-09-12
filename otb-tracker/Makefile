@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-tracker
-PKG_VERSION:=2.2.0
+PKG_VERSION:=2.3.0
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -26,15 +26,7 @@ define Package/$(PKG_NAME)/conffiles
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) bin $(1)/bin/otb-tracker
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) init $(1)/etc/init.d/$(PKG_NAME)
-	$(INSTALL_DIR) $(1)/usr/share/otb/post-tracking.d
-	$(INSTALL_BIN) files/* $(1)/usr/share/otb/post-tracking.d
-	$(INSTALL_DIR) $(1)/usr/share/otb/connectivity-change-hook.d
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DATA) config $(1)/etc/config/$(PKG_NAME)
+	$(CP) ./files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
