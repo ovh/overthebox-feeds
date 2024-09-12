@@ -35,6 +35,13 @@ done
 for iface in $(uci -q get firewall.wan.network); do
 	[ "$iface" = if0 ] && continue
 
+	# LTE interface should have higher metric than other interfaces
+	[ "$iface" = "lte" ] && {
+		uci -q set "network.lte.ip4table=300"
+		uci -q set "network.lte.metric=40"
+		continue
+	}
+
 	device="$(uci -q get "network.$iface.device")"
 	[ "$device" ] || continue
 
