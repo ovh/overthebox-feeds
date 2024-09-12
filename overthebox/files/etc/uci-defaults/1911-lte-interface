@@ -2,34 +2,20 @@
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-. /lib/functions.sh
-
-# LTE device (dynamically at boot this is not doing it's job for now)
-# modemindex="$(/usr/bin/mmcli -L -K  | grep -Eo '/org/freedesktop/.*' | tr -d "'")"
-# lte_device="$(mmcli -m $modemindex | grep "device: " | grep -Eo "/sys/devices/.*" | tr -d "'")"
-# default_apn="$(mmcli -m $modemindex | grep "apn" | tr -d "'" | awk '{print $NF}')"  #TODO maybe detect default apn value (datapro)
-
-# LTE device
-lte_device="/sys/devices/pci0000:00/0000:00:14.0/usb2/2-2"
-[ -d "$lte_device" ] || exit 1
-
 # Check if LTE interface already exists
 if [ -z "$(uci get network.lte)" ]; then
-	uci -q batch <<EOF
+	uci -q batch <<-EOF
 		set network.lte=interface
 		set network.lte.proto='modemmanager'
 		set network.lte.multipath='on'
-		set network.lte.device='${lte_device}'
-		set network.lte.apn='fnetnrj'
+		set network.lte.device='/sys/devices/pci0000:00/0000:00:14.0/usb2/2-2'
 		set network.lte.auth='none'
 		set network.lte.iptype='ipv4'
 		set network.lte.loglevel='ERR'
+		set network.lte.ip4table=205
+		set network.lte.metric=35
 
 		del_list firewall.wan.network="lte"
 		add_list firewall.wan.network="lte"
-EOF
-
-	/etc/init.d/network restart
+	EOF
 fi
-
-exit 0
