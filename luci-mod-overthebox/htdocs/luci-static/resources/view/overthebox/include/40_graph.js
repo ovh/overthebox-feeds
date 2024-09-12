@@ -26,25 +26,36 @@ return baseclass.extend({
 
     load: function () {
         return Promise.all([
+            network.getNetworks(),
             uci.load('network')
         ]);
     },
 
-    retrieveInterfaces: function (network) {
-        const interfaces = uci.sections('network', 'interface');
+    retrieveInterfaces: function (nets) {
+        let itfs = [];
 
-        let devs = [];
-        // Search for interfaces which use multipath
-        for (const itf of interfaces) {
-            if (!itf.multipath || itf.multipath === "off") {
-                continue
+        for (const net of nets) {
+            const device = net.getL3Device();
+            const itf = {
+                name: net.getName(),
+                device: device.device,
+            };
+
+            if (!net.isUp() || itf.device === "lo") {
+                continue;
             }
 
-            const name = itf.device === '/dev/cdc-wdm0' ? 'wwan0': itf.device;
-            devs.push(name);
+            const label = uci.get('network', itf.name, 'label');
+            if (label) {
+                itf.name = label;
+            }
+
+            itf.multipath = uci.get('network', itf.name, 'multipath');
+
+            itfs.push(itf)
         }
 
-        return devs;
+        return itfs;
     },
 
     createGraph: function (device, type) {
@@ -56,7 +67,7 @@ return baseclass.extend({
 
         graph.svg = otbsvg.createBackground(id);
 
-        if (device === 'all') {
+        if (device === 'multipath') {
             let line = otbsvg.createPolyLineElem(
                 id,
                 'DimGray',
@@ -97,8 +108,8 @@ return baseclass.extend({
             const rpcStats = otbrpc.realtimeStats(),
                 tasks = [];
 
-            for (const { name, sets, graphs } of this.datapoints) {
-                tasks.push(L.resolveDefault(rpcStats('interface', name), []).then(
+            for (const { name, device, sets, graphs } of this.datapoints) {
+                tasks.push(L.resolveDefault(rpcStats('interface', device), []).then(
                     rpc => {
                         const deviceStats = rpc.map(st => [[st[0], st[1]], [st[0], st[3]]]);
                         otbgraph.updateSets(graphs, sets, deviceStats);
@@ -118,7 +129,11 @@ return baseclass.extend({
                         let names = [];
                         let lines = [];
 
-                        for (const { name, sets, graphs } of this.datapoints) {
+                        for (const { name, device, multipath, sets, graphs } of this.datapoints) {
+                            if (!multipath) {
+                                continue;
+                            }
+
                             names.push(graph.id + '_' + name);
                             lines.push(sets[index].points.slice());
                         }
@@ -134,31 +149,33 @@ return baseclass.extend({
     render: function (data) {
         // Check if this render is executed for the first time
         if (!this.pollIsActive) {
-            const devices = this.retrieveInterfaces(data[0]),
+            const itfs = this.retrieveInterfaces(data[0]),
                 box = E('div'),
                 tabs = [E('div'), E('div')];
 
             // Init aggregate graph
             this.aggregates = [
-                this.createGraph('all', 'rx'),
-                this.createGraph('all', 'tx')
+                this.createGraph('multipath', 'rx'),
+                this.createGraph('multipath', 'tx')
             ];
 
             for (const [i, g] of this.aggregates.entries()) {
-                tabs[i].appendChild(E('div', { 'data-tab': 'all', 'data-tab-title': 'all', }, [
+                tabs[i].appendChild(E('div', { 'data-tab': 'multipath', 'data-tab-title': 'multipath', }, [
                     E('div', { 'class': 'otb-graph' }, [g.svg]),
                     E('div', { 'class': 'right' }, E('small', { 'id': g.wscale.id }, '-'))
                 ]));
             }
 
             // Init device graph
-            for (const device of devices) {
+            for (const itf of itfs) {
                 const d = {
-                    name: device,
+                    name: itf.name,
+                    device: itf.device,
+                    multipath: false,
                     sets: new Array(2),
                     graphs: [
-                        this.createGraph(device, 'rx'),
-                        this.createGraph(device, 'tx')
+                        this.createGraph(itf.name, 'rx'),
+                        this.createGraph(itf.name, 'tx')
                     ]
                 };
 
@@ -171,14 +188,17 @@ return baseclass.extend({
                         lastUpdate: (Math.floor(Date.now() / 1000) - 120)
                     };
 
-                    // Append line to aggregate
-                    this.aggregates[i].svg.appendChild(
-                        otbsvg.createPolyLineElem(
-                            this.aggregates[i].id + '_' + d.name,
-                            otbgraph.stringToColour(d.name),
-                            0.6
-                        )
-                    );
+                    if (itf.multipath && itf.multipath !== "off") {
+                        // Append line to aggregate
+                        this.aggregates[i].svg.appendChild(
+                            otbsvg.createPolyLineElem(
+                                this.aggregates[i].id + '_' + d.name,
+                                otbgraph.stringToColour(d.name),
+                                0.6
+                            )
+                        );
+                        d.multipath = true;
+                    }
 
                     tabs[i].appendChild(E('div', { 'data-tab': d.name, 'data-tab-title': d.name }, [
                         E('div', { 'class': 'otb-graph' }, [g.svg]),

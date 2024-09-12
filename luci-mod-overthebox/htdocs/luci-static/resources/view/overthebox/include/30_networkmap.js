@@ -119,7 +119,8 @@ return baseclass.extend({
             ],
             otbdata = false,
             details = [],
-            img = '/luci-static/resources/ovh/images/disconnected.svg';
+            img = '/luci-static/resources/ovh/images/disconnected.svg',
+            mptcp = uci.get('network', name, 'multipath');
 
         if (!summary) {
             summary = name;
@@ -134,6 +135,8 @@ return baseclass.extend({
                 E('span', { 'class': 'nowrap' }, [_('Address') + " : " + address]),
                 E('br'),
                 E('span', { 'class': 'nowrap' }, [_('Uptime') + " : " + connected]),
+                E('br'),
+                E('span', { 'class': 'nowrap' }, [_('MPTCP') + " : " + mptcp]),
                 E('br'),
                 E('span', { 'class': 'nowrap' }, [_('Protocol') + " : " + protocol]),
             );
