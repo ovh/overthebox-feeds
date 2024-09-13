@@ -57,34 +57,5 @@
         }
       }
     }
-  },
-  "admin/overthebox/realtime": {
-    "title": "Realtime Graphs",
-    "order": 5,
-    "action": {
-      "type": "alias",
-      "path": "admin/overthebox/realtime/wan"
-    },
-    "depends": {
-      "acl": [
-        "luci-mod-overthebox-overview"
-      ]
-    }
-  },
-  "admin/overthebox/realtime/wan": {
-    "title": "WAN",
-    "order": 1,
-    "action": {
-      "type": "view",
-      "path": "overthebox/graphs/wan"
-    }
-  },
-  "admin/overthebox/realtime/tunnels": {
-    "title": "Tunnels",
-    "order": 2,
-    "action": {
-      "type": "view",
-      "path": "overthebox/graphs/tunnels"
-    }
   }
 }
