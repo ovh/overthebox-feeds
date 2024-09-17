@@ -36,6 +36,11 @@ return baseclass.extend({
 
         for (const net of nets) {
             const device = net.getL3Device();
+
+            if (!device) {
+                continue;
+            }
+
             const itf = {
                 name: net.getName(),
                 device: device.device,
