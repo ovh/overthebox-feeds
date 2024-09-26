@@ -25,9 +25,6 @@ otb_init() {
 	/sbin/usbmode -l
 	/bin/sleep 2
 	/sbin/usbmode -s
-
-	# Launch lte interface watchdog in bg
-	/bin/otb-lte-watchdog &
 }
 
 otb_alert() {

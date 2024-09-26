@@ -1,14 +1,50 @@
 #!/bin/sh
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
-lte_device="/sys/devices/pci0000:00/0000:00:14.0/usb2/2-2"
-[ -d "$lte_device" ] || exit 1
+. /lib/overthebox
 
-while true; do
+# Let's wait a little that system start
+sleep 60
+otb_info "Starting otb-lte-watchdog"
+
+lte_device="$(mmcli -m 0 -J | jq '.modem.generic.device' | tr -d '"')"
+# No LTE remove device and exit
+if [ ! "$lte_device" ]; then
+		otb_info "No lte device found"
+		if [ -n "$(uci -q get network.lte)" ]; then
+				otb_info "Deleting lte interface"
+				uci delete network.lte
+				uci -q commit network
+				/etc/init.d/network reload
+		fi
+		exit 0
+fi
+
+_run() {
+	otb_debug "Starting lte watchdog"
+	lte_device="$(mmcli -m 0 -J | jq '.modem.generic.device' | tr -d '"')"
+	if [ ! "$lte_device" ]; then
+		otb_info "No lte device found"
+		return
+	fi
+
+	otb_debug "Found lte device $lte_device"
+
+	# Get interface name
+	itf="$(uci show network |grep "$lte_device" | cut -d '.' -f 2)"
+	otb_debug "Found interface $itf"
+
 	# Make sure lte inteface is always up
-	up_status=$(ifstatus lte | jq -r '.up')
-	[ "${up_status}" = "true" ] || ifup lte
+	up_status=$(ifstatus "$itf" | jq -r '.up')
+	otb_debug "LTE Status: $up_status"
+	[ "${up_status}" = "true" ] || ifup "$itf"
+}
 
-	# See you next check (every minute)
+RUNNING=1
+trap 'RUNNING=' INT QUIT TERM
+
+while [ "$RUNNING" ]; do
 	sleep 60
+	_run
 done
