@@ -46,7 +46,7 @@ _setup_glorytun() {
 	set network.\(.dev).ipv6=0
 	set network.\(.dev).generatedby='"$ME"'
 	del_list firewall.wan.network=\(.dev)
-	del_list firewall.tun.network=\(.dev)
+	delete firewall.tun.network
 	add_list firewall.tun.network=\(.dev)
 	"'
 }
