@@ -21,3 +21,13 @@ table td {
     line-height: 18px;
     text-align: left;
 }
+
+ul.help {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    list-style-type: square;
+}
+
+li.help::marker {
+    color: var(--primary-color-high);
+}
