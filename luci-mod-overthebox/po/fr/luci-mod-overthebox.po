@@ -9,40 +9,49 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: htdocs/luci-static/resources/tools/overthebox/graph.js:121
+#: htdocs/luci-static/resources/tools/overthebox/graph.js:99
 msgid "(%d minute window, %d second interval)"
 msgstr "(fenêtre de %d minutes, intervalle de %d secondes)"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:426
-#: htdocs/luci-static/resources/view/overthebox/register.js:436
+#: htdocs/luci-static/resources/view/overthebox/register.js:462
+#: htdocs/luci-static/resources/view/overthebox/register.js:472
 msgid "(%d/%d) Retrieving services informations from OVHcloud API..."
 msgstr ""
-"(%d/%d) Recupération des informations de service dupuis l'API OVHcloud..."
+"(%d/%d) Recupération des informations de service depuis l'API OVHcloud..."
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:68
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:85
-#: htdocs/luci-static/resources/view/overthebox/register.js:48
-#: htdocs/luci-static/resources/view/overthebox/register.js:165
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:67
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:83
+#: htdocs/luci-static/resources/view/overthebox/register.js:49
+#: htdocs/luci-static/resources/view/overthebox/register.js:166
 msgid "Activate"
 msgstr "Activation"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:188
+#: htdocs/luci-static/resources/view/overthebox/register.js:189
 msgid "Activation"
 msgstr "Activation"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:134
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:135
 msgid "Address"
 msgstr "Adresse"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:291
+#: htdocs/luci-static/resources/view/overthebox/help.js:32
+msgid "Ask your questions to our"
+msgstr "Posez vos questions à notre"
+
+#: htdocs/luci-static/resources/view/overthebox/register.js:309
 msgid "Associate"
 msgstr "Association"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:142
+#: htdocs/luci-static/resources/view/overthebox/register.js:270
+#: htdocs/luci-static/resources/view/overthebox/register.js:278
+msgid "Association…"
+msgstr "Association…"
+
+#: htdocs/luci-static/resources/view/overthebox/register.js:143
 msgid "Authorize Access"
 msgstr "Autoriser l'accès"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:160
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:163
 msgid "Begin"
 msgstr "Début"
 
@@ -62,7 +71,7 @@ msgstr "Commentaire"
 msgid "Connected"
 msgstr "Connecté"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:158
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:161
 msgid "DHCP"
 msgstr "DHCP"
 
@@ -98,19 +107,19 @@ msgstr "Version logicielle"
 msgid "Device last IP"
 msgstr "Dernière IP"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:505
+#: htdocs/luci-static/resources/view/overthebox/register.js:546
 msgid "Device last connection"
 msgstr "Dernière connexion"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:504
+#: htdocs/luci-static/resources/view/overthebox/register.js:545
 msgid "Device status"
 msgstr "Status du matériel"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:508
-msgid "Device system version"
-msgstr "Version système"
+#: htdocs/luci-static/resources/view/overthebox/register.js:548
+msgid "Device version"
+msgstr "Version logicielle"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:502
+#: htdocs/luci-static/resources/view/overthebox/register.js:539
 msgid "DeviceID"
 msgstr "DeviceID"
 
@@ -118,15 +127,25 @@ msgstr "DeviceID"
 msgid "Direction"
 msgstr "Sens"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:485
-msgid "Disconnected"
-msgstr "Déconnecté"
-
 #: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:231
 #: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:248
 #: htdocs/luci-static/resources/view/overthebox/graphs/tunnels.js:194
 #: htdocs/luci-static/resources/view/overthebox/graphs/wan.js:198
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:191
+#: htdocs/luci-static/resources/view/overthebox/register.js:521
+msgid "Disconnected"
+msgstr "Déconnecté"
+
+#: htdocs/luci-static/resources/view/overthebox/help.js:28
+msgid "Discover more informations about OpenWRT and general usage on"
+msgstr ""
+"Découvez plus d'informations sur OpenWRT et les usages généraux sur la"
+
+#: htdocs/luci-static/resources/view/overthebox/help.js:24
+msgid "Discover more informations about OverTheBox on"
+msgstr "Découvez plus d'informations sur OverTheBox sur la"
+
+#: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:217
 msgid "Download"
 msgstr "Descendant"
 
@@ -134,35 +153,35 @@ msgstr "Descendant"
 msgid "ERROR"
 msgstr "Erreur"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:161
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:164
 msgid "End"
 msgstr "Fin"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:127
+#: htdocs/luci-static/resources/view/overthebox/register.js:128
 msgid "Error while connecting to OVHcloud API: %s"
 msgstr "Erreur lors de la connexion à l'API OVHcloud: %s"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:230
+#: htdocs/luci-static/resources/view/overthebox/register.js:231
 msgid "Error while retrieving service names on OVHcloud API: %s"
 msgstr "Erreur lors de la récupération des services depuis l'API OVHcloud: %s"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:145
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:148
 msgid "Expires"
 msgstr "Expire"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:181
+#: htdocs/luci-static/resources/view/overthebox/register.js:182
 msgid "Fail to activate service: %s"
 msgstr "L'activation du service a échoué: %s"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:287
+#: htdocs/luci-static/resources/view/overthebox/register.js:305
 msgid "Fail to associate service on OVHcloud API: %s"
 msgstr "L'association du service sur l'API OVHcloud a échoué: %s"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:183
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:186
 msgid "Fail to get otb data"
 msgstr "Impossible de récupérer les données otb"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:385
+#: htdocs/luci-static/resources/view/overthebox/register.js:421
 msgid ""
 "Fail to preload services informations, %d services found which is over "
 "preloading limit"
@@ -170,18 +189,18 @@ msgstr ""
 "Impossible de précharger les informations, %d services trouvés ce qui est au "
 "dessus de la limite de préchargement"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:352
-#: htdocs/luci-static/resources/view/overthebox/register.js:370
+#: htdocs/luci-static/resources/view/overthebox/register.js:388
+#: htdocs/luci-static/resources/view/overthebox/register.js:406
 msgid "Fail to retrieve informations for this service"
 msgstr "Impossible de récupérer les informations de ce service"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:126
-#: htdocs/luci-static/resources/view/overthebox/register.js:180
-#: htdocs/luci-static/resources/view/overthebox/register.js:216
-#: htdocs/luci-static/resources/view/overthebox/register.js:229
-#: htdocs/luci-static/resources/view/overthebox/register.js:253
-#: htdocs/luci-static/resources/view/overthebox/register.js:259
-#: htdocs/luci-static/resources/view/overthebox/register.js:286
+#: htdocs/luci-static/resources/view/overthebox/register.js:127
+#: htdocs/luci-static/resources/view/overthebox/register.js:181
+#: htdocs/luci-static/resources/view/overthebox/register.js:217
+#: htdocs/luci-static/resources/view/overthebox/register.js:230
+#: htdocs/luci-static/resources/view/overthebox/register.js:254
+#: htdocs/luci-static/resources/view/overthebox/register.js:260
+#: htdocs/luci-static/resources/view/overthebox/register.js:304
 msgid "Failure"
 msgstr "Echec"
 
@@ -189,17 +208,17 @@ msgstr "Echec"
 msgid "Firmware"
 msgstr "Logiciel"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:69
-msgid "GloryTUN"
-msgstr "GloryTUN"
-
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:70
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:68
 msgid "GloryTUN UDP"
 msgstr "GloryTUN UDP"
 
 #: htdocs/luci-static/resources/view/overthebox/qos.js:94
 msgid "High priority"
 msgstr "Priorité haute"
+
+#: htdocs/luci-static/resources/view/overthebox/help.js:11
+msgid "Help"
+msgstr "Aide"
 
 #: htdocs/luci-static/resources/view/overthebox/graphs/lan.js:245
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:87
@@ -223,28 +242,36 @@ msgstr "Addresse IPv6"
 msgid "If you need more control,"
 msgstr "Si vous avez besoin de plus de contrôle,"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:134
+#: htdocs/luci-static/resources/view/overthebox/register.js:135
 msgid "Install easily your OverTheBox Service"
 msgstr "Installez facilement votre service OverTheBox"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:118
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:202
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:205
 msgid "Interface"
 msgstr "Interface"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:254
+#: htdocs/luci-static/resources/view/overthebox/register.js:255
 msgid "Invalid ServiceID"
 msgstr "ServiceID invalide"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:260
+#: htdocs/luci-static/resources/view/overthebox/register.js:261
 msgid "Invalid deviceID"
 msgstr "DeviceID invalide"
+
+#: htdocs/luci-static/resources/view/overthebox/register.js:324
+msgid ""
+"Invalid format of service_name, it should begin with \"overthebox.\" and "
+"followed by uuid"
+msgstr ""
+"Format du nom de service invalide, il doit commencer par \"overthebox.\" "
+"suivi par un uuid"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:86
 msgid "Kernel"
 msgstr "Noyau"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:213
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:216
 msgid "Latency"
 msgstr "Latence"
 
@@ -253,6 +280,7 @@ msgid "Latency - VoIP"
 msgstr "Latence - VoIP"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:163
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:166
 msgid "Lease Time"
 msgstr "Durée d'allocation"
 
@@ -265,16 +293,15 @@ msgstr "Durée d'allocation restante"
 msgid "Load"
 msgstr "Charge"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:154
-#: htdocs/luci-static/resources/view/overthebox/register.js:270
-#: htdocs/luci-static/resources/view/overthebox/register.js:363
-#: htdocs/luci-static/resources/view/overthebox/register.js:425
-#: htdocs/luci-static/resources/view/overthebox/register.js:435
+#: htdocs/luci-static/resources/view/overthebox/register.js:155
+#: htdocs/luci-static/resources/view/overthebox/register.js:399
+#: htdocs/luci-static/resources/view/overthebox/register.js:461
+#: htdocs/luci-static/resources/view/overthebox/register.js:471
 msgid "Loading"
 msgstr "Chargement"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:46
-#: htdocs/luci-static/resources/view/overthebox/register.js:100
+#: htdocs/luci-static/resources/view/overthebox/register.js:47
+#: htdocs/luci-static/resources/view/overthebox/register.js:101
 msgid "Login"
 msgstr "Connexion"
 
@@ -290,6 +317,10 @@ msgstr "MAC"
 msgid "MAC address"
 msgstr "Adresse MAC"
 
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:139
+msgid "MPTCP"
+msgstr "MPTCP"
+
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:82
 msgid "Model"
 msgstr "Modèle"
@@ -298,7 +329,11 @@ msgstr "Modèle"
 msgid "My switch"
 msgstr "Mon switch"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:162
+#: htdocs/luci-static/resources/view/overthebox/help.js:21
+msgid "Need help using your OverTheBox ?"
+msgstr "Besoin d'aide dans l'utilisation d'OverTheBox ?"
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:165
 msgid "Netmask"
 msgstr "Masque de sous-réseau"
 
@@ -315,6 +350,7 @@ msgid "No information available"
 msgstr "Pas d'informations disponible"
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:315
+#: htdocs/luci-static/resources/view/overthebox/register.js:346
 msgid "No informations found for this service"
 msgstr "Pas d'informations disponible pour ce service"
 
@@ -322,7 +358,7 @@ msgstr "Pas d'informations disponible pour ce service"
 msgid "No link"
 msgstr "Pas de lien"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:269
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:272
 msgid "No network found..."
 msgstr "Pas de réseau trouvé..."
 
@@ -338,8 +374,16 @@ msgstr "Normal"
 msgid "OVHcloud API call fail"
 msgstr "L'appel à l'API OVHcloud a échoué"
 
+#: htdocs/luci-static/resources/view/overthebox/help.js:33
+msgid "OVHcloud community"
+msgstr "OVHcloud community"
+
+#: htdocs/luci-static/resources/view/overthebox/help.js:25
+msgid "OVHcloud documentation"
+msgstr "documentation OVHcloud"
+
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:113
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:197
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:200
 msgid "Offline"
 msgstr "Hors ligne"
 
@@ -347,15 +391,19 @@ msgstr "Hors ligne"
 msgid "Online"
 msgstr "En ligne"
 
+#: htdocs/luci-static/resources/view/overthebox/help.js:29
+msgid "OpenWRT documentation"
+msgstr "documentation OpenWRT"
+
 #: htdocs/luci-static/resources/view/overthebox/register.js:271
 msgid "Performing device association..."
 msgstr "Association en cours..."
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:139
+#: htdocs/luci-static/resources/view/overthebox/register.js:140
 msgid "Permission to access your account"
 msgstr "Permission d'accès à votre compte"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:141
+#: htdocs/luci-static/resources/view/overthebox/register.js:142
 msgid "Please click on the button"
 msgstr "Merci de cliquer sur le bouton"
 
@@ -368,7 +416,7 @@ msgstr "Protocole"
 msgid "QoS Settings"
 msgstr "Configurations QoS"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:49
+#: htdocs/luci-static/resources/view/overthebox/register.js:50
 msgid "Ready"
 msgstr "Prêt"
 
@@ -376,10 +424,10 @@ msgstr "Prêt"
 msgid "Realtime Traffic"
 msgstr "Trafic en temps réel"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:67
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:76
-#: htdocs/luci-static/resources/view/overthebox/register.js:22
-#: htdocs/luci-static/resources/view/overthebox/register.js:47
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:66
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:74
+#: htdocs/luci-static/resources/view/overthebox/register.js:23
+#: htdocs/luci-static/resources/view/overthebox/register.js:48
 msgid "Register"
 msgstr "Enregistrement"
 
@@ -387,11 +435,11 @@ msgstr "Enregistrement"
 msgid "Reset"
 msgstr "Réinitialisation"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:364
+#: htdocs/luci-static/resources/view/overthebox/register.js:400
 msgid "Retrieving services informations from OVHcloud API..."
 msgstr "Récupération des informations du service depuis l'API OVHcloud..."
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:155
+#: htdocs/luci-static/resources/view/overthebox/register.js:156
 msgid "Retrieving services list from OVHcloud API..."
 msgstr "Récupération de la liste des services depuis l'API OVHcloud..."
 
@@ -399,11 +447,7 @@ msgstr "Récupération de la liste des services depuis l'API OVHcloud..."
 msgid "Save & Apply"
 msgstr "Sauvegarder et appliquer"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:298
-msgid "Select a service"
-msgstr "Sélectionnez un service"
-
-#: htdocs/luci-static/resources/view/overthebox/register.js:442
+#: htdocs/luci-static/resources/view/overthebox/register.js:478
 msgid "Select the service you wish to associate with this device"
 msgstr "Sélectionnez le service que vous souhaitez associer à ce matériel"
 
@@ -411,32 +455,32 @@ msgstr "Sélectionnez le service que vous souhaitez associer à ce matériel"
 msgid "Service"
 msgstr "Service"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:151
-#: htdocs/luci-static/resources/view/overthebox/register.js:187
+#: htdocs/luci-static/resources/view/overthebox/register.js:152
+#: htdocs/luci-static/resources/view/overthebox/register.js:188
 msgid "Service Activation"
 msgstr "Activation du service"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:174
+#: htdocs/luci-static/resources/view/overthebox/register.js:175
 msgid "Service activation has been successful"
 msgstr "L'activation du service à réussi"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:499
+#: htdocs/luci-static/resources/view/overthebox/register.js:536
 msgid "Service description"
 msgstr "Description du service"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:49
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:48
 msgid "Service not activated"
 msgstr "Le service n'est pas activé"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:42
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:41
 msgid "Service not registered"
 msgstr "Le service n'est pas enregistré"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:501
+#: htdocs/luci-static/resources/view/overthebox/register.js:538
 msgid "Service status"
 msgstr "Status du service"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:500
+#: htdocs/luci-static/resources/view/overthebox/register.js:537
 msgid "ServiceID"
 msgstr "ServiceID"
 
@@ -445,7 +489,7 @@ msgstr "ServiceID"
 msgid "Set Static"
 msgstr "Mettre en statique"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:71
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:69
 msgid "ShadowSocks"
 msgstr "ShadowSocks"
 
@@ -467,11 +511,15 @@ msgid "Static Lease"
 msgstr "Baux statique"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:116
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:200
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:203
 msgid "Status"
 msgstr "Status"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:173
+#: htdocs/luci-static/resources/view/overthebox/register.js:280
+msgid "Still waiting for association, please reload the page..."
+msgstr "Toujours en attente d'association, merci de recharcher la page..."
+
+#: htdocs/luci-static/resources/view/overthebox/register.js:174
 msgid "Success"
 msgstr "Succès"
 
@@ -484,7 +532,7 @@ msgstr "Configuration du switch"
 msgid "There are no active leases"
 msgstr "Il n'y a pas de baux actif"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:217
+#: htdocs/luci-static/resources/view/overthebox/register.js:218
 msgid "This account does not have any OverTheBox services"
 msgstr "Ce compte ne possède pas de service OverTheBox"
 
@@ -494,7 +542,7 @@ msgid ""
 "selecting the WAN and LAN ports."
 msgstr "Cette section vous permet de modifier la configuration du switch"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:265
+#: htdocs/luci-static/resources/view/overthebox/register.js:266
 msgid "This will override previous device association, are you sure?"
 msgstr "Celà va écraser l'association précedente, êtes-vous sûr?"
 
@@ -520,35 +568,36 @@ msgstr "Inconnu"
 #: htdocs/luci-static/resources/view/overthebox/graphs/tunnels.js:199
 #: htdocs/luci-static/resources/view/overthebox/graphs/wan.js:203
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:196
+#: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:222
 msgid "Upload"
 msgstr "Montant"
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:90
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:136
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:137
 msgid "Uptime"
 msgstr "Durée de fonctionnement"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:112
+#: htdocs/luci-static/resources/view/overthebox/register.js:113
 msgid "Validation URL is invalid"
 msgstr "L'URL de validation est invalide"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:209
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:212
 msgid "WAN IP"
 msgstr "WAN IP"
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:211
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:214
 msgid "WHOIS"
 msgstr "WHOIS"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:50
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:49
 msgid "You need to active your OverTheBox service on this device"
 msgstr "Vous devez activer le service OverTheBox sur ce matériel"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:43
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:42
 msgid "You need to register this device with an active OverTheBox service"
 msgstr "Vous devez enregistrer un service OverTheBox actif sur ce matériel"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:136
+#: htdocs/luci-static/resources/view/overthebox/register.js:137
 msgid ""
 "You need to register this device with your subscription by signing-in to "
 "your OVHcloud account"
@@ -556,11 +605,11 @@ msgstr ""
 "Vous devez enregistrer ce matériel avec votre abonnement en vous connectant "
 "à votre compte OVHcloud"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:138
+#: htdocs/luci-static/resources/view/overthebox/register.js:139
 msgid "You will be redirected to a page named"
 msgstr "Vous serez redirigé vers une page nommée"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:189
+#: htdocs/luci-static/resources/view/overthebox/register.js:190
 msgid ""
 "Your device has been correctly registered, you need to activate your service"
 msgstr ""
@@ -577,6 +626,8 @@ msgstr "tous"
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:105
 #: htdocs/luci-static/resources/view/overthebox/register.js:199
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:102
+#: htdocs/luci-static/resources/view/overthebox/register.js:200
 msgid "deviceID"
 msgstr "deviceID"
 
@@ -593,16 +644,16 @@ msgstr "expiré"
 msgid "go to expert mode"
 msgstr "Allez au mode expert"
 
-#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:101
-#: htdocs/luci-static/resources/view/overthebox/register.js:198
+#: htdocs/luci-static/resources/view/overthebox/include/10_service.js:98
+#: htdocs/luci-static/resources/view/overthebox/register.js:199
 msgid "serviceID"
 msgstr "serviceID"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:190
+#: htdocs/luci-static/resources/view/overthebox/register.js:191
 msgid "serviceID: %s"
 msgstr "serviceID: %s"
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:143
+#: htdocs/luci-static/resources/view/overthebox/register.js:144
 msgid "to log in"
 msgstr "pour se connecter"
 

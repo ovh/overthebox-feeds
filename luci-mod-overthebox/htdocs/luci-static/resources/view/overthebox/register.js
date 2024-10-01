@@ -277,7 +277,7 @@ return view.extend({
                             window.setTimeout(function () {
                                 ui.showModal(_('Association…'), [
                                     E('p', { 'class': 'spinning alert-message warning' },
-                                        _('Still waiting for associatoin, please reload the page...'))
+                                        _('Still waiting for association, please reload the page...'))
                                 ]);
                             }, 150000);
 

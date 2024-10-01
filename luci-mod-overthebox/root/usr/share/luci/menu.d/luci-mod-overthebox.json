@@ -107,5 +107,18 @@
       "type": "view",
       "path": "overthebox/graphs/lan"
     }
+  },
+  "admin/overthebox/help": {
+    "title": "Help",
+    "order": 6,
+    "action": {
+      "type": "view",
+      "path": "overthebox/help"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
   }
 }
