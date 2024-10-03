@@ -329,7 +329,6 @@ return view.extend({
         let dropdown = widget.render();
         dropdown.style.width='32rem';
 
-
         const handleInfos = this.loadServiceInfos();
 
         dropdown.addEventListener('cbi-dropdown-change', function (ev) {
@@ -415,22 +414,11 @@ return view.extend({
 
         let count = data.length;
 
-        // Preload only if we have less than 25 services
-        if (count > 25) {
-            ui.addNotification(null, E('p', [
-                _('Fail to preload services informations, %d services found which is over preloading limit').format(data.length)
-            ]), 'warning');
-        }
-
         for (let id of data) {
             services[id] = {
                 'id': id,
                 'state': 'pending',
             };
-
-            if (count > 25) {
-                continue
-            }
 
             // Preload
             async function preload() {
