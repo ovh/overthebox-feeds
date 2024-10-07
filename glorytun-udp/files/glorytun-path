@@ -11,13 +11,21 @@ _manage_gt_path() {
 
     # WAN interface can be added as a path
 	case "$multipath" in
-	    on|master|backup)
+	    on|master)
             if [ "${OTB_TRACKER_STATUS}" = "OK" ]; then
-	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}"
+	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "UP"
             else
                 _remove_gt_path "${OTB_TRACKER_DEVICE_IP}"
             fi
-	    ;;
+        ;;
+        backup)
+            # Let's use backup interface only if no other interface has status OK
+            if [ "${OTB_TRACKER_STATUS}" = "OK" ]; then
+	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "BACKUP"
+            else
+                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}"
+            fi
+        ;;
 	esac
 
 }
@@ -33,18 +41,18 @@ _remove_gt_path() {
 
 _add_gt_path() {
     # Check presence before adding
-    _is_path_already_up  "${1}" && return
+    _is_path_already_present  "${1}" "${2}" && return
     # Add path
-    _log "Adding ${1} as a path for glorytun-udp"
-    /usr/sbin/glorytun-udp path up "${1}" rate rx 300mbit tx 300mbit # temporary default value will be perf relevant SOON
-    _log "${1} path is UP"
+    _log "Adding ${1} as a path ${2} for glorytun-udp"
+    lowercase_state=$(echo "${2}" | awk '{print tolower($0)}')
+    /usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 300mbit tx 300mbit # temporary default value will be perf relevant SOON
+    _log "${1} path is ${2}"
 }
 
-
-_is_path_already_up() {
-    # Get actual OK paths
+_is_path_already_present() {
+    # Get current path status
     gt_path_output=$(glorytun-udp path)
-    gt_paths=$(echo "${gt_path_output}" | awk '$2 == "UP" {print $4}')
+    gt_paths=$(echo "${gt_path_output}" | awk -v status="${2}" '$2 == status {print $4}')
 
     # Check on path otherwise keep going
     [ -n "${gt_paths}" ] || return 1
@@ -73,6 +81,5 @@ _is_path_already_down() {
 
     return 1
 }
-
 
 _manage_gt_path "${OTB_TRACKER_INTERFACE}"
