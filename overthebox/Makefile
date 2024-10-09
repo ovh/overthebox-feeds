@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=overthebox
-PKG_VERSION:=1.3.12
+PKG_VERSION:=1.3.13
 PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk

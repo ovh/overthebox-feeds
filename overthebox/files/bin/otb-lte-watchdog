@@ -8,7 +8,7 @@
 sleep 60
 otb_info "Starting otb-lte-watchdog"
 
-lte_device="$(mmcli -m 0 -J | jq '.modem.generic.device' | tr -d '"')"
+lte_device="$(mmcli -m 0 -J 2>/dev/null| jq '.modem.generic.device' | tr -d '"')"
 # No LTE remove device and exit
 if [ ! "$lte_device" ]; then
 		otb_info "No lte device found"
