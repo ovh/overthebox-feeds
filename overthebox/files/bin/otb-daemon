@@ -55,19 +55,30 @@ _run() {
 	otb_debug "Got action '$action' with id '$id'"
 	[ -z "$action" ] || [ "$action" = "null" ] && return
 
-	details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
-	otb_debug "Got status '$status' for action '$action'"
+	# Output in json
+	if [ "$action" = "speedtest" ]; then
+		details=$(otb-action-"$action" -j 2>&1) && status="done" || status="error"
+		otb_debug "Got status '$status' for action '$action'"
+		[ -z "$id" ] || [ "$id" = "null" ] || [ "$action" = "wait" ] && return
 
-	[ "$action" = "restore" ] && {
-		otb_info "Should renew JWT before sending status for action $action"
-		otb-renew-jwt
-	}
+		# shellcheck disable=SC2016
+		jq -c -n --arg status "$status" --arg details "$details" \
+			'{status: $status, details: $details}' | otb_device_put "actions/$id" -d@-
+	else
+		details=$(otb-action-"$action" "$ret" 2>&1) && status="done" || status="error"
+		otb_debug "Got status '$status' for action '$action'"
 
-	[ -z "$id" ] || [ "$id" = "null" ] || [ "$action" = "wait" ] && return
+		[ "$action" = "restore" ] && {
+			otb_info "Should renew JWT before sending status for action $action"
+			otb-renew-jwt
+		}
 
-	# shellcheck disable=SC2016
-	jq -c -n --arg status "$status" --arg details "$details" \
-		'{status: $status, details: $details}' | otb_device_put "actions/$id" -d@-
+		[ -z "$id" ] || [ "$id" = "null" ] || [ "$action" = "wait" ] && return
+
+		# shellcheck disable=SC2016
+		jq -c -n --arg status "$status" --arg details "$details" \
+			'{status: $status, details: $details}' | otb_device_put "actions/$id" -d@-
+	fi
 }
 
 RUNNING=1

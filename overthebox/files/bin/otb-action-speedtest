@@ -22,29 +22,101 @@ _rule_delete(){
     nft delete rule ip nat socks_emitted_by_myself handle "$rule_handle"
 }
 
-_speedtest() {
-	if [ "$1" = "loopback" ]; then
+_speedtest_json() {
+	itf="$1"
+
+	if [ "$itf" = "loopback" ]; then
 		return 0
 	fi
 
-	network_get_ipaddr SOURCE_IP "$1"
+	network_get_ipaddr SOURCE_IP "$itf"
 
-	if [ "$1" = "lan" ]; then
+	if [ "$itf" = "lan" ]; then
+		itf="shadowsocks"
 		_rule_create
-		echo "Launching shadowsocks speedtest : $SOURCE_IP"
+		speedtest_json "${SOURCE_IP}"
+		_rule_delete
+	else
+		speedtest_json "${SOURCE_IP}"
+	fi
+
+	JSON=$(echo {} | jq --arg itf "${itf}" --argjson array "${SPEEDTEST}" '.[$itf] += $array')
+}
+
+_speedtest() {
+	itf="$1"
+
+	if [ "$itf" = "loopback" ]; then
+		return 0
+	elif [ "$itf" = "shadowsocks" ]; then
+		itf="lan"
+	fi
+
+	network_get_ipaddr SOURCE_IP "$itf"
+
+	if [ "$itf" = "lan" ]; then
+		itf="shadowsocks"
+		_rule_create
+		echo "==="
+		echo "Launching $itf speedtest : $SOURCE_IP"
+		echo "==="
 		speedtest "${SOURCE_IP}"
 		_rule_delete
 	else
-		echo "Launching speedtest on $1 : $SOURCE_IP"
+		echo "==="
+		echo "Launching speedtest on $itf : $SOURCE_IP"
+		echo "==="
 		speedtest "${SOURCE_IP}"
 	fi
-
-	echo "${SPEEDTEST}" | jq .
 }
 
-if [ "$(uci -q get "network.$1")" = interface ]; then
-	speedtest "$1"
+_usage() {
+	echo "otb-action-speedtest, measure bandwidth with librespeed"
+	echo
+	echo "Syntax: otb-action-speedtest [-i <>|h|j]"
+	echo "options:"
+	echo "-i     Run speedtest on the selected interface, if not defined run speedtest on every interface"
+	echo "-h     Print this help"
+	echo "-j     Output in json format"
+	echo
+	exit
+}
+
+while getopts :i:jh flag; do
+    case "${flag}" in
+        i) itf=${OPTARG};;
+        j) mode="json";;
+		h) _usage;;
+		*) exit;;
+    esac
+done
+
+if [ ! $mode ]; then
+	if [ "$(uci -q get "network.$itf")" = interface ]; then
+		_speedtest "$itf"
+	else
+		config_load network
+		config_foreach _speedtest interface
+	fi
+
 else
-	config_load network
-	config_foreach _speedtest interface
+	if [ "$(uci -q get "network.$itf")" = interface ]; then
+		_speedtest_json "$itf"
+		echo "$JSON" |jq .
+	else
+		config_load network
+		J="{}"
+		for section in ${CONFIG_SECTIONS}; do
+			if [ "$(uci -q get "network.$section")" = interface ]; then
+				_speedtest_json "$section"
+
+				if [ -n "$JSON" ]; then
+					R=$(echo $J | jq --argjson result "${JSON}" '. += $result')
+					J=$R
+				fi
+			fi
+		done
+
+		echo "$J" | jq .
+	fi
 fi
