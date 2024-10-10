@@ -42,7 +42,7 @@ network_get_ipaddr SOURCE_IP "${OTB_TRACKER_INTERFACE}"
 # Run the speedtest
 _log Running Speedtest for interface "${OTB_TRACKER_INTERFACE}"
 
-speedtest "${SOURCE_IP}"
+speedtest_json "${SOURCE_IP}"
 _log Speedtest : "${SPEEDTEST}"
 
 if [ $? -ne 0 ]; then

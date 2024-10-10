@@ -166,10 +166,22 @@ otb_save_action_id() {
 
 speedtest() {
 	LIBRESPEED=$(jq -n \
-    '[{"id": 1,"name": "otb-gra","server": "https://gra.perf.overthebox.net/","dlURL": "garbage","ulURL": "empty","pingURL": "empty","getIpURL": "getIP"}]'
-)
+	    '[{"id": 1,"name": "otb-gra","server": "https://gra.perf.overthebox.net/","dlURL": "garbage","ulURL": "empty","pingURL": "empty","getIpURL": "getIP"}]'
+	)
 
-SPEEDTEST=$(echo "${LIBRESPEED}" | librespeed-cli --json --source "$1" --duration 5 --local-json -)
+	if [ "$2" = "json" ]; then
+		SPEEDTEST=$(echo "${LIBRESPEED}" | librespeed-cli --json --source "$1" --duration 5 --local-json -)
+	else
+		echo "${LIBRESPEED}" | librespeed-cli --source "$1" --duration 5 --local-json -
+	fi
+}
+
+speedtest_json() {
+	LIBRESPEED=$(jq -n \
+	    '[{"id": 1,"name": "otb-gra","server": "https://gra.perf.overthebox.net/","dlURL": "garbage","ulURL": "empty","pingURL": "empty","getIpURL": "getIP"}]'
+	)
+
+	SPEEDTEST=$(echo "${LIBRESPEED}" | librespeed-cli --json --source "$1" --duration 5 --local-json -)
 }
 
 otb_led() {
