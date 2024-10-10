@@ -38,7 +38,7 @@ for iface in $(uci -q get firewall.wan.network); do
 	device="$(uci -q get "network.$iface.device")"
 	[ "$device" ] || continue
 
-	lte_device="$(mmcli -m 0 -J | jq '.modem.generic.device' | tr -d '"')"
+	lte_device="$(mmcli -m 0 -J 2>/dev/null | jq '.modem.generic.device' | tr -d '"')"
 
 	# LTE interface should have higher metric than other interfaces
 	if [ "$device" = "$lte_device" ]; then

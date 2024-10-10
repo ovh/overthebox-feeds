@@ -518,7 +518,6 @@ return view.extend({
         s.tab('general', _('General Settings'));
         s.tab('advanced', _('Advanced Settings'));
         s.tab('physical', _('Physical Settings'));
-        s.tab('trafficcontrol', _('Traffic Control'));
         s.tab('brport', _('Bridge port specific options'));
         s.tab('bridgevlan', _('Bridge VLAN filtering'));
         s.tab('firewall', _('Firewall Settings'));
@@ -530,7 +529,7 @@ return view.extend({
         };
 
         s.modaltitle = function (section_id) {
-            return _('Interfaces') + ' » ' + section_id.toUpperCase();
+            return _('Interfaces') + ' » ' + section_id;
         };
 
         s.renderRowActions = function (section_id) {
@@ -562,14 +561,18 @@ return view.extend({
                 tdEl.lastChild.childNodes[3].disabled = true;
             }
 
+            if (dynamic) {
+                //disable the 'Edit' button on dynamic interfaces
+                tdEl.lastChild.childNodes[2].disabled = true;
+            }
+
             return tdEl;
         };
 
         s.addModalOptions = function (s) {
             var protoval = uci.get('network', s.section, 'proto'),
                 protoclass = protoval ? network.getProtocol(protoval) : null,
-                o, proto_select, proto_switch, type, stp, igmp, ss, so,
-                aushape, download, upload, pingdeleta, mindownload, minupload, qostimeout, ratefactor;
+                o, proto_select, proto_switch, type, stp, igmp, ss, so;
 
             if (!protoval)
                 return;
@@ -616,6 +619,9 @@ return view.extend({
                 o.network = ifc.getName();
                 o.exclude = '@' + ifc.getName();
 
+                o = s.taboption('general', form.Flag, 'disabled', _('Disable this interface'));
+                o.modalonly = true;
+
                 o = s.taboption('general', form.Flag, 'auto', _('Bring up on boot'));
                 o.modalonly = true;
                 o.default = o.enabled;
@@ -624,56 +630,6 @@ return view.extend({
                 o.placeholder = _('Interface label');
                 o.rmempty = true;
                 o.modalonly = true;
-
-                aushape = s.taboption('trafficcontrol', form.ListValue, 'trafficcontrol', _('Traffic Control'));
-                aushape.value('off', _('Disabled'));
-                aushape.value('static', _('Static'));
-                // @TODO: aushape.value('discover', _('Run speedtest at startup and apply value'))
-                // @TODO: aushape.value('adaptive', _('Detect congestion and apply a QoS based on bandwith values'))
-                aushape.default = 'off';
-                aushape.depends('multipath', 'on');
-                aushape.depends('multipath', 'master');
-                aushape.depends('multipath', 'backup');
-                aushape.depends('multipath', 'handover');
-
-                download = s.taboption('trafficcontrol', form.Value, 'download', _('Download bandwidth in kbit/s'));
-                download.rmempty = true;
-                download.depends('trafficcontrol', 'static');
-
-                upload = s.taboption('trafficcontrol', form.Value, 'upload', _('Upload bandwidth in kbit/s'));
-                upload.rmempty = true;
-                upload.depends('trafficcontrol', 'static');
-                upload.depends('trafficcontrol', 'auto');
-
-                pingdeleta = s.taboption('trafficcontrol', form.Value, 'pingdelta', _('Max ping increase in ms before consdering link as congested'));
-                pingdeleta.default = '100';
-                pingdeleta.rmempty = true;
-                pingdeleta.depends('trafficcontrol', 'auto');
-
-                mindownload = s.taboption('trafficcontrol', form.Value, 'mindownload', _('Minimal download speed in kbit/s'));
-                mindownload.default = '512';
-                mindownload.rmempty = true;
-                mindownload.depends('trafficcontrol', 'auto');
-
-                minupload = s.taboption('trafficcontrol', form.Value, 'minupload', _('Minimal upload speed in kbit/s'));
-                minupload.default = '128';
-                minupload.rmempty = true;
-                minupload.depends('trafficcontrol', 'auto');
-
-                // bandwidthdelta = s.taboption('trafficcontrol', Value, 'bandwidthdelta', _('Minimum rate delta in kbit/s between mesures before reloading QoS'))
-                // bandwidthdelta.default = '100'
-                // bandwidthdelta.rmempty = true
-                // bandwidthdelta.depends('trafficcontrol', 'auto')
-
-                qostimeout = s.taboption('trafficcontrol', form.Value, 'qostimeout', _('Time in min to keep detected rate'));
-                qostimeout.default = '30';
-                qostimeout.rmempty = true;
-                qostimeout.depends('trafficcontrol', 'auto');
-
-                ratefactor = s.taboption('trafficcontrol', form.Value, 'ratefactor', _('Factor to apply on mesured rate'));
-                ratefactor.default = '1';
-                ratefactor.rmempty = true;
-                ratefactor.depends('trafficcontrol', 'auto');
 
                 if (L.hasSystemFeature('firewall')) {
                     o = s.taboption('firewall', widgets.ZoneSelect, '_zone', _('Create / Assign firewall-zone'), _('Choose the firewall zone you want to assign to this interface. Select <em>unspecified</em> to remove the interface from the associated zone or fill out the <em>custom</em> field to define a new zone and attach the interface to it.'));
@@ -1260,7 +1216,10 @@ return view.extend({
             };
 
             proto = s2.option(form.ListValue, 'proto', _('Protocol'));
-            proto.validate = name.validate;
+            proto.onchange = function (ev, section_id, value) {
+                var elem = name.getUIElement(section_id);
+                elem.triggerValidation();
+            };
 
             device = s2.option(widgets.DeviceSelect, 'device', _('Device'));
             device.noaliases = false;
@@ -1382,8 +1341,7 @@ return view.extend({
 
         // Add MPTCP
         if (has_mptcp) {
-            var mptcp;
-            mptcp = s.taboption('advanced', form.ListValue, 'multipath', _('Multipath TCP'));
+            let mptcp = s.taboption('advanced', form.ListValue, 'multipath', _('Multipath TCP'));
             mptcp.value('on', _('enabled'));
             mptcp.value('off', _('disabled'));
             mptcp.value('master', _('master'));
