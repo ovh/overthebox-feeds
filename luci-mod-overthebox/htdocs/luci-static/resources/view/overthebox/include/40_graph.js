@@ -50,12 +50,12 @@ return baseclass.extend({
                 continue;
             }
 
+            itf.multipath = uci.get('network', itf.name, 'multipath');
+
             const label = uci.get('network', itf.name, 'label');
             if (label) {
                 itf.name = label;
             }
-
-            itf.multipath = uci.get('network', itf.name, 'multipath');
 
             itfs.push(itf)
         }
@@ -66,8 +66,7 @@ return baseclass.extend({
     createGraph: function (device, type) {
         // Introduce some responsiveness
         const view = document.querySelector('#view'),
-            regexp = /\.|\-/g,
-            id = device.replace(regexp, '') + '_' + type,
+            id = device.replace(/[\W_]+/g, '') + '_' + type,
             graph = otbgraph.newGraph(id, view.offsetWidth);
 
         graph.svg = otbsvg.createBackground(id);
