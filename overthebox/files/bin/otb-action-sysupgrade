@@ -20,7 +20,7 @@ if [ -z "$1" ]; then
 	case "$prov_url" in
 		http*.img.gz|ftp*.img.gz) url=$prov_url ;;
 		*) otb_err "No valid image URL found !" ; exit 1 ;;
-	esac 
+	esac
 else
 	case "$1" in
 		http*.img.gz|ftp*.img.gz) url=$1 ;;
@@ -31,8 +31,8 @@ fi
 cd /tmp
 
 otb_info "Downloading image from '$url'..."
-curl -sS --connect-timeout 5 "$url.sig" -o img.gz.sig
-curl -sS --connect-timeout 5 "$url"     -o img.gz
+curl -sS --connect-timeout 30 "$url.sig" -o img.gz.sig
+curl -sS --connect-timeout 30 "$url"     -o img.gz
 
 usign -V -m img.gz -P /etc/opkg/keys
 
