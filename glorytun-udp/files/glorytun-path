@@ -27,7 +27,6 @@ _manage_gt_path() {
             fi
         ;;
 	esac
-
 }
 
 _remove_gt_path() {
@@ -45,7 +44,7 @@ _add_gt_path() {
     # Add path
     _log "Adding ${1} as a path ${2} for glorytun-udp"
     lowercase_state=$(echo "${2}" | awk '{print tolower($0)}')
-    /usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 300mbit tx 300mbit # temporary default value will be perf relevant SOON
+    /usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 1000mbit tx 1000mbit
     _log "${1} path is ${2}"
 }
 
