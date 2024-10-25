@@ -23,9 +23,9 @@ fi
 
 _run() {
 	otb_debug "Starting lte watchdog"
-	lte_device="$(mmcli -m 0 -J | jq '.modem.generic.device' | tr -d '"')"
+	lte_device="$(mmcli -m 0 -J 2>/dev/null| jq '.modem.generic.device' | tr -d '"')"
 	if [ ! "$lte_device" ]; then
-		otb_info "No lte device found"
+		otb_debug "No lte device found"
 		return
 	fi
 
