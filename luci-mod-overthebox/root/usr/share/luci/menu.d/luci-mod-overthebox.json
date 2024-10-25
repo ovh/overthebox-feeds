@@ -37,9 +37,22 @@
       ]
     }
   },
+  "admin/overthebox/speedtest": {
+    "title": "Speedtest",
+    "order": 3,
+    "action": {
+      "type": "view",
+      "path": "overthebox/speedtest"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
+    }
+  },
   "admin/overthebox/help": {
     "title": "Help",
-    "order": 3,
+    "order": 4,
     "action": {
       "type": "view",
       "path": "overthebox/help"
