@@ -1,0 +1,111 @@
+#!/bin/sh
+# shellcheck disable=SC1091,SC2181
+# vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+# Constants
+MAX_SPEED=300
+CONFIG_FILE="/etc/config/sqm"
+OTB_DATA_DIR="/var/otb-data"
+
+. /lib/functions/network.sh
+. /lib/overthebox
+
+_log() {
+	logger -p daemon.info -t "$(basename "${0}")" "$@"
+}
+
+_err() {
+	logger -p daemon.err -t "$(basename "${0}")" "$@"
+}
+
+_run_speed_test() {
+	local interface="$1"
+
+	# Run speed-test and capture output
+	network_get_ipaddr SOURCE_IP "$interface"
+	speedtest_json "$SOURCE_IP"
+	download=$(echo "$SPEEDTEST" | jq -r ".[0].download")
+	upload=$(echo "$SPEEDTEST" | jq -r ".[0].upload")
+
+	# Check if speeds are well captured
+	if [ -z "$download" ] || [ -z "$upload" ]; then
+		_err "Failed to retrieve speeds for interface: $interface"
+		return 1
+	fi
+
+	# Return speeds
+	echo "$download $upload"
+}
+
+update_sqm_config() {
+	local interface="$1"
+	local download="$2"
+	local upload="$3"
+
+	# Do not set SQM if WAN is fiber (high speed)
+	download=$(printf "%.0f" "$download")
+	upload=$(printf "%.0f" "$upload")
+	if [ "$download" -ge $MAX_SPEED ] || [ "$upload" -ge $MAX_SPEED ]; then
+		_log "Interface speed exceeds ${MAX_SPEED}Mbps, no SQM needed on $interface"
+		return
+	fi
+
+	# Calculate 90% of speed in kbps
+	download_kbps=$((download * 900))
+	upload_kbps=$((upload * 900))
+
+	# Retrieve interface's device name
+	proto=$(uci -q get "network.${interface}.proto")
+	if [ "$proto" = "modemmanager" ];
+	then
+		device="wwan0" # LTE virtual device
+	else
+		device=$(uci -q get "network.${interface}.device")
+	fi
+
+	# Configure SQM
+	uci add sqm queue
+	uci rename sqm.@queue[-1]="$interface"
+	uci set sqm."${interface}".enabled=1
+	uci set sqm."${interface}".interface="$device"
+	uci set sqm."${interface}".qdisc='cake'
+	uci set sqm."${interface}".download="$download_kbps"
+	uci set sqm."${interface}".upload="$upload_kbps"
+	uci set sqm."${interface}".script='piece_of_cake.qos'
+	uci commit
+
+	_log "Updated SQM configuration for $interface"
+}
+
+# Stop SQM before main loop
+/etc/init.d/sqm stop
+
+# Recreate SQM config file for clean setup
+[ -f "$CONFIG_FILE" ] && {
+	rm -rf "$CONFIG_FILE"
+	touch "$CONFIG_FILE"
+}
+
+# Main loop
+for interface in "$@"; do
+	# Interface must be OK
+	connectivity_file="$OTB_DATA_DIR/$interface/connectivity"
+	[ -f "$connectivity_file" ] || continue
+	[ "$(cat "$connectivity_file")" = "OK" ] || continue
+
+	# Retrieve interface speeds
+	# Write SQM configuration if speed-test was OK
+	speeds=$(_run_speed_test "$interface")
+	if [ $? -eq 0 ]; then
+		download=$(echo "$speeds" | awk '{print $1}')
+		upload=$(echo "$speeds" | awk '{print $2}')
+
+		_log "Speeds for $interface - Download: $download, Upload: $upload"
+		update_sqm_config "$interface" "$download" "$upload"
+	else
+		_err "Speed-test failed for $interface"
+	fi
+done
+
+# Restart SQM service to apply changes
+/etc/init.d/sqm start
