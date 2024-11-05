@@ -48,6 +48,7 @@ return baseclass.extend({
 
     otbData: new Map(),
     DHCP: {},
+    SQM: {},
 
     load: function () {
         const rpcBoard = otbrpc.callSystemBoard(),
@@ -60,7 +61,8 @@ return baseclass.extend({
             network.getNetworks(),
             firewall.getZones(),
             uci.load('network'),
-            uci.load('dhcp')
+            uci.load('dhcp'),
+            uci.load('sqm')
         ]);
     },
 
@@ -146,6 +148,16 @@ return baseclass.extend({
                 details.push(
                     E('br'),
                     E('span', { 'class': 'nowrap' }, [_('Expires') + " : " + expires]),
+                );
+            }
+
+            // Render SQM
+            if (this.SQM[itf]) {
+                details.push(
+                    E('br'),
+                    E('span', { 'class': 'nowrap' }, [
+                        _('SQM') + " : " + this.SQM[itf].upload + ' \u{21C5} ' + this.SQM[itf].download,
+                    ]),
                 );
             }
 
@@ -251,6 +263,9 @@ return baseclass.extend({
 
         // Index DHCP
         mapping.mapDHCP(this.DHCP);
+
+        // Index SQM
+        mapping.mapSQM(this.SQM);
 
         // Iterate over firewall zone
         for (const z of zones) {
