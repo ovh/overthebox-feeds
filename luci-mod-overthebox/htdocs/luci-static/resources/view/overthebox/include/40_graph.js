@@ -66,7 +66,8 @@ return baseclass.extend({
     createGraph: function (device, type) {
         // Introduce some responsiveness
         const view = document.querySelector('#view'),
-            id = device.replace(/[\W_]+/g, '') + '_' + type,
+            // Adding 'a' in front to avoid starting with a number
+            id = 'a' + device.replace(/[\W_]+/g, '') + '_' + type,
             graph = otbgraph.newGraph(id, view.offsetWidth);
 
         graph.svg = otbsvg.createBackground(id);
