@@ -412,7 +412,8 @@ return view.extend({
             }
         });
 
-        let count = data.length;
+        let count = data.length,
+            labels = [];
 
         for (let id of data) {
             services[id] = {
@@ -437,9 +438,7 @@ return view.extend({
                     return
                 }
 
-                let label = [];
-                label[id] = details.values.customerDescription;
-                widget.addChoices(id, label)
+                labels.push({id: id, label: details.values.customerDescription});
 
                 services[id].infos = handleInfos.format(details, device)
                 services[id].state = 'ok';
@@ -451,6 +450,14 @@ return view.extend({
                 );
 
                 if (count === 0) {
+                    labels.sort((a, b) => a.label.localeCompare(b.label));
+
+                    for (let l of labels) {
+                        let choices = {};
+                        choices[l.id] = l.label;
+                        widget.addChoices(l.id, choices)
+                    }
+
                     ui.hideModal()
                 }
             }
