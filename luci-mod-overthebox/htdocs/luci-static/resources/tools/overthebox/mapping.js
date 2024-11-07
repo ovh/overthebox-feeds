@@ -109,5 +109,25 @@ return L.Class.extend({
                 'leasetime': leasetime
             }
         }
+    },
+
+    mapSQM: function (mapping) {
+        const sqm = uci.sections('sqm', 'queue');
+
+        for (const queue of sqm) {
+            let enabled = queue.enabled,
+                itf = queue.interface,
+                download = queue.download,
+                upload = queue.upload;
+
+            if (enabled == '0' || !itf) {
+                continue;
+            }
+
+            mapping[itf] = {
+                'download': download,
+                'upload': upload,
+            }
+        }
     }
 });
