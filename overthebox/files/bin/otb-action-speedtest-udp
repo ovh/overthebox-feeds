@@ -1,0 +1,47 @@
+#!/bin/sh
+# shellcheck shell=dash
+# shellcheck disable=SC1091
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+_usage() {
+    echo "otb-action-speedtest-udp, measure UDP bandwidth with iperf3"
+    echo
+    echo "Syntax: otb-action-speedtest [-c <>| -p <> | -t <> |-h]"
+    echo "options:"
+    echo "-c     Use specified server, default proof.ovh.net"
+    echo "-p     Use specified port, default 5204"
+    echo "-t     Set transmission time, default 10s"
+    echo "-h     Print this help"
+    echo
+    exit
+}
+
+host="gra.perf.overthebox.net"
+port="5200"
+time=10
+
+while getopts :c:p:t:h flag; do
+    case "${flag}" in
+        c) host=${OPTARG};;
+        p) port=${OPTARG};;
+        t) time=${OPTARG};;
+        h) _usage;;
+        *) exit;;
+    esac
+done
+
+echo "==="
+echo "Launching download UDP speedtest"
+echo "server: $host, port: $port, time: $time"
+echo "==="
+
+iperf3 -u -b 250M -c "$host" -p "$port" -t "$time" -P "$(nproc)" -R
+
+sleep 3
+
+echo "==="
+echo "Launching upload UDP speedtest"
+echo "server: $host, port: $port, time: $time"
+echo "==="
+
+iperf3 -u -b 250M -c "$host" -p "$port" -t "$time" -P "$(nproc)"
