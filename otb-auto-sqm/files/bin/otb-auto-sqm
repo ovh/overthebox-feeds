@@ -1,5 +1,6 @@
 #!/bin/sh
-# shellcheck disable=SC1091,SC2181
+# shellcheck shell=dash
+# shellcheck disable=SC1091
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 # Constants
@@ -18,23 +19,63 @@ _err() {
 	logger -p daemon.err -t "$(basename "${0}")" "$@"
 }
 
-_run_speed_test() {
+update_itf_physicalLayer() {
 	local interface="$1"
+	local download="$2"
+	local upload="$3"
+	local jitter="$4"
 
-	# Run speed-test and capture output
-	network_get_ipaddr SOURCE_IP "$interface"
-	speedtest_json "$SOURCE_IP"
-	download=$(echo "$SPEEDTEST" | jq -r ".[0].download")
-	upload=$(echo "$SPEEDTEST" | jq -r ".[0].upload")
+	download=$(printf "%.0f" "$download")
+	upload=$(printf "%.0f" "$upload")
+	jitter=$(printf "%.0f" "$jitter")
 
-	# Check if speeds are well captured
-	if [ -z "$download" ] || [ -z "$upload" ]; then
-		_err "Failed to retrieve speeds for interface: $interface"
-		return 1
+	proto=$(uci -q get "network.${interface}.proto")
+
+	l1layer=$(uci -q get "network.${interface}.physicallayer")
+
+	# physical layer already set skipping
+	if [ -n "$l1layer" ]; then
+		_log "Interface $interface physical layer already set to $l1layer, skipping"
+		return
 	fi
 
-	# Return speeds
-	echo "$download $upload"
+	# Proto is modemmanager layer is 4G
+	if [ "$proto" = "modemmanager" ]; then
+		uci set network."${interface}".physicallayer='4g'
+		uci commit
+		_log "Interface $interface use proto modemmanager, physical layer set to 4g"
+		return
+	fi
+
+	# With high jitter assuming 4G
+	# Maybe we need a pattern to auto-detect satelite connexion
+	if [ "$jitter" -ge 2 ]; then
+		uci set network."${interface}".physicallayer='4g'
+		uci commit
+		_log "Interface $interface has high jitter, physical layer set to 4g"
+		return
+	fi
+
+	# Low jitter speed inferior to 20Mbps, layer is ADSL
+	if [ "$download" -lt 20 ]; then
+		uci set network."${interface}".physicallayer='adsl'
+		uci commit
+		_log "Interface $interface, physical layer set to adsl"
+		return
+	fi
+
+	# Low jitter speed inferior to 100Mbps, layer is VDSL
+	if [ "$download" -lt 100 ]; then
+		uci set network."${interface}".physicallayer='vdsl'
+		uci commit
+		_log "Interface $interface, physical layer set to vdsl"
+		return
+	fi
+
+	# Low jitter High speed, layer is ethernet
+	uci set network."${interface}".physicallayer='ethernet'
+	uci commit
+	_log "Interface $interface, physical layer set to ethernet"
 }
 
 update_sqm_config() {
@@ -63,6 +104,9 @@ update_sqm_config() {
 		device=$(uci -q get "network.${interface}.device")
 	fi
 
+	# Get physical layer
+	l1layer=$(uci -q get "network.${interface}.physicallayer")
+
 	# Configure SQM
 	uci add sqm queue
 	uci rename sqm.@queue[-1]="$interface"
@@ -72,6 +116,15 @@ update_sqm_config() {
 	uci set sqm."${interface}".download="$download_kbps"
 	uci set sqm."${interface}".upload="$upload_kbps"
 	uci set sqm."${interface}".script='piece_of_cake.qos'
+
+	if [ "$l1layer" = "vdsl" ]; then
+		uci set sqm."${interface}".linklayer='ethernet'
+		uci set sqm."${interface}".overhead='34'
+	elif [ "$l1layer" = "adsl" ]; then
+		uci set sqm."${interface}".linklayer='atm'
+		uci set sqm."${interface}".overhead='44'
+	fi
+
 	uci commit
 
 	_log "Updated SQM configuration for $interface"
@@ -94,16 +147,21 @@ for interface in "$@"; do
 	[ "$(cat "$connectivity_file")" = "OK" ] || continue
 
 	# Retrieve interface speeds
-	# Write SQM configuration if speed-test was OK
-	speeds=$(_run_speed_test "$interface")
-	if [ $? -eq 0 ]; then
-		download=$(echo "$speeds" | awk '{print $1}')
-		upload=$(echo "$speeds" | awk '{print $2}')
+	network_get_ipaddr SOURCE_IP "$interface"
+	speedtest_json "$SOURCE_IP"
 
-		_log "Speeds for $interface - Download: $download, Upload: $upload"
-		update_sqm_config "$interface" "$download" "$upload"
+	download=$(echo "$SPEEDTEST" | jq -r ".[0].download")
+	upload=$(echo "$SPEEDTEST" | jq -r ".[0].upload")
+	jitter=$(echo "$SPEEDTEST" | jq -r ".[0].jitter")
+
+	# Check if speeds are well captured
+	if [ -z "$download" ] || [ -z "$upload" ] || [ -z "$jitter" ]; then
+		_err "Speedtest for $interface failed"
 	else
-		_err "Speed-test failed for $interface"
+		_log "Speedtest for $interface - Download: $download, Upload: $upload, Jitter: $jitter"
+
+		update_itf_physicalLayer "$interface" "$download" "$upload" "$jitter"
+		update_sqm_config "$interface" "$download" "$upload"
 	fi
 done
 
