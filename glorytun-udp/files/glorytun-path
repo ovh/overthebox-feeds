@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=dash
 # shellcheck disable=SC1091
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
@@ -44,7 +45,26 @@ _add_gt_path() {
     # Add path
     _log "Adding ${1} as a path ${2} for glorytun-udp"
     lowercase_state=$(echo "${2}" | awk '{print tolower($0)}')
-    /usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 1000mbit tx 1000mbit
+
+    l1layer=$(uci -q get "network.${1}.physicallayer" || echo "ethernet")
+
+	if [ "$l1layer" = "4g" ]; then
+		# On 4G we do not enable rate auto as it may leads to tunnel instability
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 300mbit tx 100mbit
+	elif [ "$l1layer" = "5g" ]; then
+		# On 5G we do not enable rate auto as it may leads to tunnel instability
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 600mbit tx 200mbit
+	elif [ "$l1layer" = "adsl" ]; then
+		# Max ADSL speed is 24 / 3 (with annex M)
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 25mbit tx 4mbit
+	elif [ "$l1layer" = "vdsl" ]; then
+		# Max VDSL speed is 100 / 8
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 100mbit tx 10mbit
+	else
+		# No limit on other kind of link, we assume 1000Mbps
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 1000mbit tx 1000mbit
+	fi
+
     _log "${1} path is ${2}"
 }
 
