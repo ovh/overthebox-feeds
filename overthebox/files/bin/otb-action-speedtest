@@ -1,5 +1,6 @@
 #!/bin/sh
-# shellcheck disable=SC1091,SC2039,SC2034
+# shellcheck shell=dash
+# shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 HOST="gra.perf.overthebox.net"
@@ -25,7 +26,13 @@ _rule_delete(){
 _speedtest_json() {
 	itf="$1"
 
-	if [ "$itf" = "loopback" ]; then
+	if [ "$itf" = "loopback" ] || [ "$itf" = "tun0" ] ; then
+		return 0
+	elif [ "$itf" = "shadowsocks" ]; then
+		itf="lan"
+	fi
+
+	if ! network_is_up "$itf"; then
 		return 0
 	fi
 
@@ -46,10 +53,14 @@ _speedtest_json() {
 _speedtest() {
 	itf="$1"
 
-	if [ "$itf" = "loopback" ]; then
+	if [ "$itf" = "loopback" ] || [ "$itf" = "tun0" ] ; then
 		return 0
 	elif [ "$itf" = "shadowsocks" ]; then
 		itf="lan"
+	fi
+
+	if ! network_is_up "$itf"; then
+		return 0
 	fi
 
 	network_get_ipaddr SOURCE_IP "$itf"
@@ -71,7 +82,7 @@ _speedtest() {
 }
 
 _usage() {
-	echo "otb-action-speedtest, measure bandwidth with librespeed"
+	echo "otb-action-speedtest, measure TCP bandwidth with librespeed"
 	echo
 	echo "Syntax: otb-action-speedtest [-i <>|h|j]"
 	echo "options:"
