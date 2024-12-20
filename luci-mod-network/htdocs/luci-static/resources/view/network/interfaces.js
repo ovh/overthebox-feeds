@@ -103,6 +103,8 @@ function render_status(node, ifc, with_device) {
         _('IPv6'), ip6addrs[8],
         _('IPv6'), ip6addrs[9],
         _('IPv6-PD'), changecount ? null : ifc.getIP6Prefix(),
+        _('Physical layer'), ifc.get('physicallayer') ? ifc.get('physicallayer').toUpperCase() : null,
+        _('MPTCP'), ifc.get('multipath'),
         _('Information'), with_device ? null : (ifc.get('auto') != '0' ? null : _('Not started on boot')),
         _('Error'), errors ? errors[0] : null,
         _('Error'), errors ? errors[1] : null,
@@ -625,6 +627,15 @@ return view.extend({
                 o = s.taboption('general', form.Flag, 'auto', _('Bring up on boot'));
                 o.modalonly = true;
                 o.default = o.enabled;
+
+                o = s.taboption('general', form.ListValue, 'physicallayer', _('Physical layer'));
+                o.value('ethernet', _('Ethernet'));
+                o.value('adsl', _('ADSL'));
+                o.value('vdsl', _('VDSL'));
+                o.value('4g', _('4G'));
+                o.value('5g', _('5G'));
+                o.value('satellite', _('Satellite'));
+                o.modalonly = true;
 
                 o = s.taboption('general', form.Value, 'label', _('Label'));
                 o.placeholder = _('Interface label');
