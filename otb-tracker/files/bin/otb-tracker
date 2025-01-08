@@ -25,6 +25,7 @@ export OTB_TRACKER_LATENCY=0
 export OTB_TRACKER_STATUS=OK
 export OTB_TRACKER_DEVICE
 export OTB_TRACKER_DEVICE_GATEWAY
+export OTB_TRACKER_DEVICE_GATEWAY_V6
 export OTB_TRACKER_DEVICE_IP
 
 hosts="$(uci get otb-tracker.defaults.hosts)"
@@ -46,6 +47,9 @@ while true; do
         network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit
 
 	OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
+	[ -n "$OTB_TRACKER_TABLE_V6" ] && {
+		OTB_TRACKER_DEVICE_GATEWAY_V6=$(ip -6 -o route show table "$OTB_TRACKER_TABLE_V6" | awk '{if($1 == "default") print $3}')
+	}
 
 	while [ "$host_index" -le "$host_length" ]; do
 		host="$(echo "$hosts" | awk '{print $'$host_index';}')"
