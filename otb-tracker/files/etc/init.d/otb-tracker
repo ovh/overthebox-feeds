@@ -40,9 +40,10 @@ _launch_tracker() {
 	_validate_section "rule_type" "$interface_type"
 	_validate_section "interface" "$1"
 
-	local device ip4table
+	local device ip4table ip6table
 	config_get device "$1" device
 	config_get ip4table "$1" ip4table
+	config_get ip6table "$1" ip6table ""
 
 	[ -z "$device" ] || [ -z "$ip4table" ] && return
 
@@ -54,6 +55,7 @@ _launch_tracker() {
 	procd_append_param env "OTB_TRACKER_TRIES=$tries"
 	procd_append_param env "OTB_TRACKER_INTERVAL=$interval"
 	procd_append_param env "OTB_TRACKER_TABLE=$ip4table"
+	procd_append_param env "OTB_TRACKER_TABLE_V6=$ip6table"
 	procd_append_param env "OTB_TRACKER_DEVICE=$device"
 	procd_set_param respawn 0 10 0
 	procd_set_param stderr 1
