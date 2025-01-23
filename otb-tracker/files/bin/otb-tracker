@@ -47,8 +47,14 @@ while true; do
         network_get_ipaddr OTB_TRACKER_DEVICE_IP "$OTB_TRACKER_INTERFACE" || exit
 
 	OTB_TRACKER_DEVICE_GATEWAY=$(ip -4 -o route show table "$OTB_TRACKER_TABLE" | awk 'NR==1 {if($1 == "default") print $3}')
-	[ -n "$OTB_TRACKER_TABLE_V6" ] && {
-		OTB_TRACKER_DEVICE_GATEWAY_V6=$(ip -6 -o route show table "$OTB_TRACKER_TABLE_V6" | awk '{if($1 == "default") print $3}')
+
+	# Get IPv6 gateway of tun0 interface
+	[ "$OTB_TRACKER_INTERFACE" = "tun0" ] && {
+		ip6table=$(uci -q get network.tun0.ip6table)
+
+		[ -n "$ip6table" ] && {
+		OTB_TRACKER_DEVICE_GATEWAY_V6=$(ip -6 -o route show table "$ip6table" | awk '{if($1 == "default") print $3}')
+		}
 	}
 
 	while [ "$host_index" -le "$host_length" ]; do

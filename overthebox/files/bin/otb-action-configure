@@ -100,8 +100,8 @@ enable_lan_ipv6() {
 		set network.lan.ip4table=lan
 		set network.lan.ip6table=lan
 		set network.lan.physicallayer=ethernet
-		set network.lan.ip6addr=\(.ip6_addr)
-		set network.lan.ip6assign=\(.ip6_range)
+		set network.lan.ip6addr=\(.ipv6_prefix)1/\(.ipv6_range)
+		set network.lan.ip6assign=\(.ipv6_range)
 		set network.lan.ipv6=1
 		set network.lan.generatedby='"$ME"'
 
@@ -207,6 +207,3 @@ _get shadow_conf | _setup_shadowsocks | uci -q batch
 _get log_conf | _setup_log | uci -q batch
 _get graph_conf | _setup_graph | uci -q batch
 uci -q commit
-
-# Restart otb-tracker in order to apply IPv6 configuration
-/etc/init.d/otb-tracker restart
