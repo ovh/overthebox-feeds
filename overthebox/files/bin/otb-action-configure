@@ -127,10 +127,10 @@ disable_lan_ipv6() {
 		set network.lan.physicallayer=ethernet
 		set network.lan.generatedby='"$ME"'
 
-		del network.@device[0].ipv6
+		set network.@device[0].ipv6=0
 
-		del dhcp.lan.ra
-		del dhcp.lan.dhcpv6
+		set dhcp.lan.ra=disabled
+		set dhcp.lan.dhcpv6=disabled
 
 		set dhcp.dnsmasq[0].filter_aaaa=1
 	EOF
