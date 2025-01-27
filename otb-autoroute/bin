@@ -38,6 +38,7 @@ if [ "$OTB_TRACKER_INTERFACE" = "tun0" ] ;then
 	otb_host=
 	# Default route
 	otb_metric=0
+	otb_metric_6=1
 fi
 
 # Add IPv4 default route
@@ -51,7 +52,7 @@ _setup_route "$action" default "$OTB_TRACKER_DEVICE_GATEWAY" "$OTB_TRACKER_DEVIC
 
 # Add IPv6 default route
 [ -n "$OTB_TRACKER_DEVICE_GATEWAY_V6" ] && {
-	_setup_route6 "$action" default "$OTB_TRACKER_DEVICE_GATEWAY_V6" "$OTB_TRACKER_DEVICE" "$otb_metric"
+	_setup_route6 "$action" default "$OTB_TRACKER_DEVICE_GATEWAY_V6" "$OTB_TRACKER_DEVICE" "$otb_metric_6"
 }
 
 dns_servers=$(ubus call "network.interface.$OTB_TRACKER_INTERFACE" status | \

@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-autoroute
-PKG_VERSION:=1.7.1
+PKG_VERSION:=1.7.2
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
