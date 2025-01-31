@@ -18,9 +18,6 @@
                 "/usr/libexec/luci-peeraddr": [
                     "exec"
                 ],
-                "/usr/lib/opkg/info/netifd.control": [
-                    "read"
-                ],
                 "/proc/sys/net/ipv[46]/conf/*": [
                     "read"
                 ],
@@ -47,7 +44,8 @@
                 "dhcp",
                 "firewall",
                 "network",
-                "wireless"
+                "wireless",
+                "system"
             ]
         },
         "write": {
