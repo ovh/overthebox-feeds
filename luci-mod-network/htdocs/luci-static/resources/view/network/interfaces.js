@@ -430,7 +430,7 @@ return view.extend({
     },
 
     render: function (data) {
-        const has_mptcp = data[5].path;
+        const has_mptcp = data[4].path;
 
 
         if (this.interfaceBridgeWithIfnameSections().length)
