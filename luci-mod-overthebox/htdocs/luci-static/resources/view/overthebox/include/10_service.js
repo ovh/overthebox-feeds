@@ -18,7 +18,7 @@ return baseclass.extend({
         return Promise.all([
             uci.load('overthebox'),
             fs.exec('/usr/bin/pgrep', ['/usr/sbin/glorytun-udp'], null),
-            fs.exec('/usr/bin/pgrep', ['ss-redir'], null)
+            fs.exec('/usr/bin/pgrep', ['/usr/bin/sslocal'], null)
         ]);
     },
 
