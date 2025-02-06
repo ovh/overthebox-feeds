@@ -189,34 +189,14 @@ _validate_conf() {
 # This function launches one shadowsocks per CPU
 # $1 is a ref to the shadowsocks uci section (type =client)
 _launch_shadow() {
-	local cpu_count
-
-	# Determine the number of CPU cores
-	if [ -f /proc/cpuinfo ] && command -v awk > /dev/null 2>&1; then
-		# This is a hacky way to get the number of cores (we don't want the
-		# number of threads), maybe we should use nproc instead..
-		cpu_count=$(awk '{ if ($0~/^physical id/) { p=$NF }; if ($0~/^core id/) { cores[p$NF]=p$NF }; if ($0~/processor/) { cpu++ } }
-			END { for (key in cores) { n++ } } END { if (n) {print n} else {print cpu} }' /proc/cpuinfo)
-
-		# If the value we got here is strange, let's cap the value to one
-		if [ -z "$cpu_count" ] || [ "$cpu_count" -lt 1 ]; then
-			_log 3 "Couldn't determine CPU number. Falling back to 1 CPU."
-			cpu_count=1
-		fi
-	else
-		_log 3 "Couldn't determine CPU number because of missing /proc/cpuinfo or awk. Falling back to 1 CPU."
-		cpu_count=1
-	fi
-
-	for i in $(seq 1 $cpu_count); do
-		procd_open_instance
-		procd_set_param command "$PROG" -c "$PROG_CONF" -b 0.0.0.0
-		procd_set_param file "$PROG_CONF"
-		procd_set_param limits nofile="51200 51200"
-		procd_set_param respawn 0 10 0
-		procd_set_param stderr 1
-		procd_close_instance
-	done
+	# ss-rust Tokio runtime manages well multi-threading (one instance per cpu) 
+	procd_open_instance
+	procd_set_param command "$PROG" -c "$PROG_CONF"
+	procd_set_param file "$PROG_CONF"
+	procd_set_param limits nofile="51200 51200"
+	procd_set_param respawn 0 10 0
+	procd_set_param stderr 1
+	procd_close_instance
 }
 
 # This sets up the common nft skeleton that doesn't change across reloads
@@ -300,11 +280,11 @@ _generate_conf() {
 	{
 	  "server": "$server",
 	  "server_port": $port,
+	  "local_address": "0.0.0.0",
 	  "local_port": $lport,
 	  "password": "$password",
 	  "timeout": $timeout,
 	  "method": "$method",
-	  "reuse_port": $reuse_port,
 	  "fast_open": $fast_open,
 	  "disable_sni": true,
 	  "mptcp": true
