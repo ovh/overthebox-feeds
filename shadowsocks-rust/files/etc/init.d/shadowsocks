@@ -287,7 +287,9 @@ _generate_conf() {
 	  "method": "$method",
 	  "fast_open": $fast_open,
 	  "disable_sni": true,
-	  "mptcp": true
+	  "mptcp": true,
+	  "protocol": "redir",
+      "tcp-redir": "redirect"
 	}
 	EOF
 }
@@ -366,6 +368,12 @@ _populate_ipset_socks_bypass_wan_one() {
 	eval "$(ipcalc.sh "$subnet")"
 	if [ "$NETWORK" = "0.0.0.0" ] || [ "$PREFIX" = "0" ]; then
 		_log 4 "Skipping WAN IP ($subnet) that I don't understand..."
+		return 0
+	fi
+
+	# Skip bypassing tun0 as it was already taken into account with the LOCALNETS
+	if [ "$NETWORK" = "10.166.179.0" ]; then
+		_log 7 "skipping tunnel adress: $NETWORK as it is already skipped"
 		return 0
 	fi
 
