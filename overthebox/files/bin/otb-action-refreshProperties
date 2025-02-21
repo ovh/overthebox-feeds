@@ -28,7 +28,7 @@ _get_interface_json() {
 	[ "$asn" ] || asn="null"
 
 	# Retrieve the netmask from the subnet
-	eval "$(ipcalc.sh "$subnet" | grep NETMASK)"
+	[ "$subnet" ] && eval "$(ipcalc.sh "$subnet" | grep NETMASK)"
 
 	local device label multipath
 	config_get device "$1" device
