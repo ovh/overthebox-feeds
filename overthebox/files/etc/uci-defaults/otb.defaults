@@ -45,3 +45,10 @@ fi
 
 # netifd may fail to reload the network if the file is not present
 [ ! -f "/etc/config/wireless" ] && touch "/etc/config/wireless"
+
+# Enable temperature graph
+uci -q batch <<EOF
+del luci_statistics.collectd_thermal.IgnoreSelected
+set luci_statistics.collectd_mqtt=statistics
+set luci_statistics.collectd_thermal.enable='1'
+EOF
