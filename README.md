@@ -1,6 +1,6 @@
 # OpenWrt OverTheBox feed
 
-Version : v1.0.4
+Version : v1.1.0
 
 This is the OpenWrt OverTheBox feed containing all modified and necessary packages to build the OverTheBox image.
 
