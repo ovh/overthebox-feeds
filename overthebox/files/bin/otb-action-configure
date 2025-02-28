@@ -45,10 +45,95 @@ _setup_glorytun() {
 	set network.\(.dev).multipath=off
 	set network.\(.dev).ipv6=0
 	set network.\(.dev).generatedby='"$ME"'
+
 	del_list firewall.wan.network=\(.dev)
 	delete firewall.tun.network
 	add_list firewall.tun.network=\(.dev)
 	"'
+}
+
+_setup_glorytun_dual_stack() {
+	jq -r '@text "
+	set glorytun.\(.dev)=mud
+	set glorytun.\(.dev).enable=1
+	set glorytun.\(.dev).dev=\(.dev)
+	set glorytun.\(.dev).server=\(.server)
+	set glorytun.\(.dev).port=\(.port)
+	set glorytun.\(.dev).key=\(.key)
+	set glorytun.\(.dev).mtu=\(.mtu)
+	set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
+
+	delete network.\(.dev)
+	set network.\(.dev)=interface
+	set network.\(.dev).device=\(.dev)
+	set network.\(.dev).proto=static
+	set network.\(.dev).ipaddr=\(.ip_local)
+	set network.\(.dev).netmask=255.255.255.0
+	set network.\(.dev).gateway=\(.ip_peer)
+	set network.\(.dev).metric=\(.metric)
+	set network.\(.dev).ip4table=\(.table)
+	set network.\(.dev).ip6addr=\(.ipv6_local)'"/112"'
+	set network.\(.dev).ip6gw=\(.ipv6_peer)
+	set network.\(.dev).ip6table=\(.table)
+	set network.\(.dev).txqueuelen=1000
+	set network.\(.dev).type=tunnel
+	set network.\(.dev).multipath=off
+	set network.\(.dev).ipv6=1
+	set network.\(.dev).delegate=0
+	set network.\(.dev).generatedby='"$ME"'
+
+	del_list firewall.wan.network=\(.dev)
+	delete firewall.tun.network
+	add_list firewall.tun.network=\(.dev)
+	"'
+}
+
+enable_lan_ipv6() {
+	jq -r '@text "
+		delete network.lan
+		set network.lan=interface
+		set network.lan.device=br-lan
+		set network.lan.proto=static
+		set network.lan.ipaddr=192.168.100.1
+		set network.lan.netmask=255.255.255.0
+		set network.lan.multipath=off
+		set network.lan.ip4table=lan
+		set network.lan.ip6table=lan
+		set network.lan.physicallayer=ethernet
+		set network.lan.ip6addr=\(.ipv6_prefix)1/\(.ipv6_range)
+		set network.lan.ip6assign=\(.ipv6_range)
+		set network.lan.ipv6=1
+		set network.lan.generatedby='"$ME"'
+
+		set network.@device[0].ipv6=1
+
+		set dhcp.lan.ra=server
+		set dhcp.lan.dhcpv6=server
+
+		set dhcp.@dnsmasq[0].filter_aaaa=0
+	"'
+}
+
+disable_lan_ipv6() {
+	uci -q batch <<-EOF
+		delete network.lan
+		set network.lan=interface
+		set network.lan.device=br-lan
+		set network.lan.proto=static
+		set network.lan.ipaddr=192.168.100.1
+		set network.lan.netmask=255.255.255.0
+		set network.lan.multipath=off
+		set network.lan.ip4table=lan
+		set network.lan.physicallayer=ethernet
+		set network.lan.generatedby='"$ME"'
+
+		set network.@device[0].ipv6=0
+
+		set dhcp.lan.ra=disabled
+		set dhcp.lan.dhcpv6=disabled
+
+		set dhcp.dnsmasq[0].filter_aaaa=1
+	EOF
 }
 
 _setup_shadowsocks() {
@@ -106,8 +191,18 @@ done
 
 uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
 
+# Activate IPv6 on glorytun depending on configuration
+glorytun_mud_conf=$(_get "glorytun_mud_conf")
+ipv6_peer=$(echo "$glorytun_mud_conf" | jq '.ipv6_peer')
+ipv6_local=$(echo "$glorytun_mud_conf" | jq '.ipv6_local')
+if [ "$ipv6_peer" != "null" ] && [ "$ipv6_local"  != "null" ] ; then
+	echo "$glorytun_mud_conf" | _setup_glorytun_dual_stack | uci -q batch
+	_get ipv6_conf.lan_conf | enable_lan_ipv6 | uci -q batch
+else
+	echo "$glorytun_mud_conf" | _setup_glorytun | uci -q batch
+	disable_lan_ipv6
+fi
 
-_get glorytun_mud_conf | _setup_glorytun | uci -q batch
 _get shadow_conf | _setup_shadowsocks | uci -q batch
 _get log_conf | _setup_log | uci -q batch
 _get graph_conf | _setup_graph | uci -q batch

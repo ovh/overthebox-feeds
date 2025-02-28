@@ -40,7 +40,7 @@ _launch_tracker() {
 	_validate_section "rule_type" "$interface_type"
 	_validate_section "interface" "$1"
 
-	local device ip4table
+	local device ip4table ip6table
 	config_get device "$1" device
 	config_get ip4table "$1" ip4table
 
