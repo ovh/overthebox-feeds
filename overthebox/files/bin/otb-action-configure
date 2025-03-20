@@ -89,13 +89,17 @@ _setup_glorytun_dual_stack() {
 }
 
 enable_lan_ipv6() {
+	# Don't override current lan configuration
+	ip=$(uci -q get network.lan.ipaddr)
+	mask=$(uci -q get network.lan.netmask)
+
 	jq -r '@text "
 		delete network.lan
 		set network.lan=interface
 		set network.lan.device=br-lan
 		set network.lan.proto=static
-		set network.lan.ipaddr=192.168.100.1
-		set network.lan.netmask=255.255.255.0
+		set network.lan.ipaddr='"$ip"'
+		set network.lan.netmask='"$mask"'
 		set network.lan.multipath=off
 		set network.lan.ip4table=lan
 		set network.lan.ip6table=lan
@@ -115,13 +119,17 @@ enable_lan_ipv6() {
 }
 
 disable_lan_ipv6() {
+	# Don't override current lan configuration
+	ip=$(uci -q get network.lan.ipaddr)
+	mask=$(uci -q get network.lan.netmask)
+
 	uci -q batch <<-EOF
 		delete network.lan
 		set network.lan=interface
 		set network.lan.device=br-lan
 		set network.lan.proto=static
-		set network.lan.ipaddr=192.168.100.1
-		set network.lan.netmask=255.255.255.0
+		set network.lan.ipaddr=$ip
+		set network.lan.netmask=$mask
 		set network.lan.multipath=off
 		set network.lan.ip4table=lan
 		set network.lan.physicallayer=ethernet
