@@ -199,16 +199,26 @@ done
 
 uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
 
+# Get current IPv6 status
+lanV6=$(uci -q get network.lan.ipv6)
+brlanV6=$(uci -q get network.@device[0].ipv6)
+
 # Activate IPv6 on glorytun depending on configuration
 glorytun_mud_conf=$(_get "glorytun_mud_conf")
 ipv6_peer=$(echo "$glorytun_mud_conf" | jq '.ipv6_peer')
 ipv6_local=$(echo "$glorytun_mud_conf" | jq '.ipv6_local')
 if [ "$ipv6_peer" != "null" ] && [ "$ipv6_local"  != "null" ] ; then
 	echo "$glorytun_mud_conf" | _setup_glorytun_dual_stack | uci -q batch
-	_get ipv6_conf.lan_conf | enable_lan_ipv6 | uci -q batch
+
+	if  [ "$lanV6" != 1 ] || [ "$brlanV6" != 1 ]; then
+		_get ipv6_conf.lan_conf | enable_lan_ipv6 | uci -q batch
+	fi
 else
 	echo "$glorytun_mud_conf" | _setup_glorytun | uci -q batch
-	disable_lan_ipv6
+
+	if  [ "$lanV6" = 1 ] || [ "$brlanV6" = 1 ]; then
+		disable_lan_ipv6
+	fi
 fi
 
 _get shadow_conf | _setup_shadowsocks | uci -q batch
