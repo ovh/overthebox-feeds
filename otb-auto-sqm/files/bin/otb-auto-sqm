@@ -5,7 +5,6 @@
 
 # Constants
 MAX_SPEED=300
-CONFIG_FILE="/etc/config/sqm"
 OTB_DATA_DIR="/var/otb-data"
 
 . /lib/functions/network.sh
@@ -108,8 +107,7 @@ update_sqm_config() {
 	l1layer=$(uci -q get "network.${interface}.physicallayer")
 
 	# Configure SQM
-	uci add sqm queue
-	uci rename sqm.@queue[-1]="$interface"
+	uci set sqm."${interface}"='queue'
 	uci set sqm."${interface}".enabled=1
 	uci set sqm."${interface}".interface="$device"
 	uci set sqm."${interface}".qdisc='cake'
@@ -132,12 +130,6 @@ update_sqm_config() {
 
 # Stop SQM before main loop
 /etc/init.d/sqm stop
-
-# Recreate SQM config file for clean setup
-[ -f "$CONFIG_FILE" ] && {
-	rm -rf "$CONFIG_FILE"
-	touch "$CONFIG_FILE"
-}
 
 # Main loop
 for interface in "$@"; do
@@ -167,3 +159,4 @@ done
 
 # Restart SQM service to apply changes
 /etc/init.d/sqm start
+/etc/init.d/glorytun restart

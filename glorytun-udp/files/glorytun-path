@@ -4,6 +4,8 @@
 # vim: set ft=sh noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 _manage_gt_path() {
+	local itf="$1"
+
     # get ip and mp
     multipath=$(uci -q get "network.${1}.multipath" || echo "off")
 
@@ -14,69 +16,82 @@ _manage_gt_path() {
 	case "$multipath" in
 	    on|master)
             if [ "${OTB_TRACKER_STATUS}" = "OK" ]; then
-	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "UP"
+	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "UP" "${itf}"
             else
-                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}"
+                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}" "${itf}"
             fi
         ;;
         backup)
             # Let's use backup interface only if no other interface has status OK
             if [ "${OTB_TRACKER_STATUS}" = "OK" ]; then
-	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "BACKUP"
+	            _add_gt_path "${OTB_TRACKER_DEVICE_IP}" "BACKUP" "${itf}"
             else
-                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}"
+                _remove_gt_path "${OTB_TRACKER_DEVICE_IP}" "${itf}"
             fi
         ;;
 	esac
 }
 
 _remove_gt_path() {
+	local ip="${1}"
+	local itf="${2}"
+
     # Check presence before removing
-    _is_path_already_down  "${1}" && return
+    _is_path_already_down "${ip}" && return
     # Remove path
-    _log "removing ${1} from glorytun-udp paths"
-    /usr/sbin/glorytun-udp path down "${1}"
-    _log "${1} path is DOWN"
+    _log "removing ${ip} - ${itf} from glorytun-udp paths"
+    /usr/sbin/glorytun-udp path down "${ip}"
+    _log "${ip} - ${itf} path is DOWN"
 }
 
 _add_gt_path() {
-    # Check presence before adding
-    _is_path_already_present  "${1}" "${2}" && return
-    # Add path
-    _log "Adding ${1} as a path ${2} for glorytun-udp"
-    lowercase_state=$(echo "${2}" | awk '{print tolower($0)}')
+	local ip="${1}"
+	local state="${2}"
+	local itf="${3}"
 
-    l1layer=$(uci -q get "network.${1}.physicallayer" || echo "ethernet")
+    # Check presence before adding
+    _is_path_already_present  "${ip}" "${state}" && return
+    # Add path
+    lowercase_state=$(echo "${state}" | awk '{print tolower($0)}')
+    l1layer=$(uci -q get "network.${itf}.physicallayer" || echo "ethernet")
+
+    _log "Adding ${ip} as a path ${state} for glorytun-udp, preset $l1layer"
 
 	if [ "$l1layer" = "4g" ]; then
 		# On 4G we do not enable rate auto as it may leads to tunnel instability
-		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 300mbit tx 100mbit
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate rx 300mbit tx 100mbit
 	elif [ "$l1layer" = "5g" ]; then
 		# On 5G we do not enable rate auto as it may leads to tunnel instability
-		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate rx 600mbit tx 200mbit
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate rx 600mbit tx 200mbit
+	elif [ "$l1layer" = "satellite" ]; then
+		# On Satellite we do not enable rate auto as it may leads to tunnel instability
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate rx 100mbit tx 25mbit
 	elif [ "$l1layer" = "adsl" ]; then
 		# Max ADSL speed is 24 / 3 (with annex M)
-		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 25mbit tx 4mbit
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate auto rx 25mbit tx 4mbit
 	elif [ "$l1layer" = "vdsl" ]; then
 		# Max VDSL speed is 100 / 8
-		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 100mbit tx 10mbit
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate auto rx 100mbit tx 10mbit
 	else
 		# No limit on other kind of link, we assume 1000Mbps
-		/usr/sbin/glorytun-udp path "${lowercase_state}" "${1}" rate auto rx 1000mbit tx 1000mbit
+		/usr/sbin/glorytun-udp path "${lowercase_state}" "${ip}" rate auto rx 1000mbit tx 1000mbit
 	fi
 
-    _log "${1} path is ${2}"
+    _log "${ip} - ${itf} path is ${state}"
 }
 
 _is_path_already_present() {
+	local ip="${1}"
+	local state="${2}"
+
     # Get current path status
     gt_path_output=$(glorytun-udp path)
-    gt_paths=$(echo "${gt_path_output}" | awk -v status="${2}" '$2 == status {print $4}')
+    gt_paths=$(echo "${gt_path_output}" | awk -v status="${state}" '$2 == status {print $4}')
 
     # Check on path otherwise keep going
     [ -n "${gt_paths}" ] || return 1
     for path in ${gt_paths}; do
-        if [ "${1}" = "${path}" ]; then
+        if [ "${ip}" = "${path}" ]; then
             return 0
         fi
     done
@@ -85,15 +100,17 @@ _is_path_already_present() {
 }
 
 _is_path_already_down() {
+	local ip="${1}"
+
     # Get actual DOWN paths
     gt_path_output=$(glorytun-udp path)
-    echo "${gt_path_output}" | grep -q "${1}" || return 0
+    echo "${gt_path_output}" | grep -q "${ip}" || return 0
     gt_paths=$(echo "${gt_path_output}" | awk '$2 == "DOWN" {print $4}')
 
     # Check on path otherwise keep going
     [ -n "${gt_paths}" ] || return 1
     for path in ${gt_paths}; do
-        if [ "${1}" = "${path}" ]; then
+        if [ "${ip}" = "${path}" ]; then
             return 0
         fi
     done

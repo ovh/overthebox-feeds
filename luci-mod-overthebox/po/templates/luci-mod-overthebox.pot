@@ -5,9 +5,21 @@ msgstr "Content-Type: text/plain; charset=UTF-8"
 msgid "(%d minute window, %d second interval)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:462
-#: htdocs/luci-static/resources/view/overthebox/register.js:472
+#: htdocs/luci-static/resources/view/overthebox/register.js:449
+#: htdocs/luci-static/resources/view/overthebox/register.js:467
 msgid "(%d/%d) Retrieving services informations from OVHcloud API..."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:289
+msgid "4G"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:290
+msgid "5G"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:287
+msgid "ADSL"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:67
@@ -21,8 +33,16 @@ msgstr ""
 msgid "Activation"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:135
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:137
 msgid "Address"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:70
+msgid "Alias Interface"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:118
+msgid "Alias of \"%s\""
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/help.js:32
@@ -42,15 +62,57 @@ msgstr ""
 msgid "Authorize Access"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:163
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:268
+msgid "Auto configure QoS"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:140
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:164
+msgid "AutoQoS is running..."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:175
 msgid "Begin"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:521
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:68
+msgid "Bytes received:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:65
+msgid "Bytes sent:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:112
+msgid "City:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:102
+msgid "Client"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:283
+msgid "Configure Multipath"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:309
+msgid "Configure SQM"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:299
+msgid "Configure multipath mode"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:55
+#: htdocs/luci-static/resources/view/overthebox/register.js:516
 msgid "Connected"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:161
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:122
+msgid "Country:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:173
 msgid "DHCP"
 msgstr ""
 
@@ -70,27 +132,31 @@ msgstr ""
 msgid "DUID"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:547
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:54
+msgid "Device"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/register.js:542
 msgid "Device last IP"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:546
+#: htdocs/luci-static/resources/view/overthebox/register.js:541
 msgid "Device last connection"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:545
+#: htdocs/luci-static/resources/view/overthebox/register.js:540
 msgid "Device status"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:548
+#: htdocs/luci-static/resources/view/overthebox/register.js:543
 msgid "Device version"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:539
+#: htdocs/luci-static/resources/view/overthebox/register.js:534
 msgid "DeviceID"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:521
+#: htdocs/luci-static/resources/view/overthebox/register.js:516
 msgid "Disconnected"
 msgstr ""
 
@@ -103,14 +169,32 @@ msgid "Discover more informations about OverTheBox on"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:217
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:326
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:532
 msgid "Download"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:326
+msgid "Download (kbit/s)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:58
+msgid "Download:"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:32
 msgid "ERROR"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:164
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:260
+msgid "Edit"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:311
+msgid "Enabled"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:176
 msgid "End"
 msgstr ""
 
@@ -122,7 +206,11 @@ msgstr ""
 msgid "Error while retrieving service names on OVHcloud API: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:148
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:286
+msgid "Ethernet"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:150
 msgid "Expires"
 msgstr ""
 
@@ -134,18 +222,12 @@ msgstr ""
 msgid "Fail to associate service on OVHcloud API: %s"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:186
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:198
 msgid "Fail to get otb data"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:421
-msgid ""
-"Fail to preload services informations, %d services found which is over "
-"preloading limit"
-msgstr ""
-
-#: htdocs/luci-static/resources/view/overthebox/register.js:388
-#: htdocs/luci-static/resources/view/overthebox/register.js:406
+#: htdocs/luci-static/resources/view/overthebox/register.js:387
+#: htdocs/luci-static/resources/view/overthebox/register.js:405
 msgid "Fail to retrieve informations for this service"
 msgstr ""
 
@@ -159,12 +241,16 @@ msgstr ""
 msgid "Failure"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:84
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:86
 msgid "Firmware"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:68
 msgid "GloryTUN UDP"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:461
+msgid "Glorytun"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/help.js:11
@@ -176,12 +262,32 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:108
+msgid "Hostname:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:105
+msgid "IP:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:93
+msgid "IPv4"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:88
 msgid "IPv4 address"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:94
+msgid "IPv6"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:135
 msgid "IPv6 address"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:95
+msgid "IPv6-PD"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/switch.js:71
@@ -192,9 +298,29 @@ msgstr ""
 msgid "Install easily your OverTheBox Service"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:118
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:205
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:176
+msgid "Install protocol extensions..."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:120
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:217
 msgid "Interface"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:74
+msgid "Interface is marked for deletion"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:295
+msgid "Interface label"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:179
+msgid "Interface not present or not connected yet."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:256
+msgid "Interfaces"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:255
@@ -211,15 +337,31 @@ msgid ""
 "followed by uuid"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:86
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:75
+msgid "Jitter:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:88
 msgid "Kernel"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:216
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:294
+msgid "Label"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:294
+msgid "Label this interface"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:228
 msgid "Latency"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:166
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:155
+msgid "Launch speedtest"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:178
 msgid "Lease Time"
 msgstr ""
 
@@ -228,15 +370,27 @@ msgstr ""
 msgid "Lease time remaining"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:92
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:354
+msgid "Link layer"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:534
+msgid "Linklayer"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:94
 msgid "Load"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:155
-#: htdocs/luci-static/resources/view/overthebox/register.js:399
-#: htdocs/luci-static/resources/view/overthebox/register.js:461
-#: htdocs/luci-static/resources/view/overthebox/register.js:471
+#: htdocs/luci-static/resources/view/overthebox/register.js:398
+#: htdocs/luci-static/resources/view/overthebox/register.js:448
+#: htdocs/luci-static/resources/view/overthebox/register.js:466
 msgid "Loading"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:126
+msgid "Localization:"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:47
@@ -244,27 +398,54 @@ msgstr ""
 msgid "Login"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:56
+msgid "MAC"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:89
 msgid "MAC address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:139
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:141
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:97
 msgid "MPTCP"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:82
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:59
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:62
+msgid "Mbits/s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:84
 msgid "Model"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:229
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:445
+msgid "Multipath"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:283
+msgid "Multipath Settings"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:299
+msgid "Multipath TCP"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/switch.js:75
 msgid "My switch"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:92
+msgid "Name:"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/help.js:21
 msgid "Need help using your OverTheBox ?"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:165
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:177
 msgid "Netmask"
 msgstr ""
 
@@ -276,7 +457,7 @@ msgstr ""
 msgid "No dhcp server detected"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:346
+#: htdocs/luci-static/resources/view/overthebox/register.js:345
 msgid "No informations found for this service"
 msgstr ""
 
@@ -284,12 +465,27 @@ msgstr ""
 msgid "No link"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:272
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:287
 msgid "No network found..."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:101
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:125
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:424
+msgid "No zone assigned"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:103
 msgid "None"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:54
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:119
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:187
+msgid "Not present"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:311
+msgid "Not recommended for interface over 300Mbps"
 msgstr ""
 
 #: htdocs/luci-static/resources/tools/overthebox/ovh.js:67
@@ -304,17 +500,35 @@ msgstr ""
 msgid "OVHcloud documentation"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:113
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:200
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:115
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:212
 msgid "Offline"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:113
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:115
 msgid "Online"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/help.js:29
 msgid "OpenWRT documentation"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:133
+msgid "Organization:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:371
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:535
+msgid "Overhead"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:125
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:424
+msgid "Part of zone %q"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:371
+msgid "Per Packet Overhead (bytes)"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:271
@@ -325,12 +539,43 @@ msgstr ""
 msgid "Permission to access your account"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:96
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:285
+msgid "Physical layer"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:72
+msgid "Ping:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:57
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:58
+msgid "Pkts."
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/register.js:142
 msgid "Please click on the button"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:141
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:115
+msgid "Postal:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:143
 msgid "Protocol"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:309
+msgid "QoS Settings"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:57
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:503
+msgid "RX"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:502
+msgid "Rate mode"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:50
@@ -339,6 +584,10 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:22
 msgid "Realtime Traffic"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:119
+msgid "Region:"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:66
@@ -352,7 +601,7 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:400
+#: htdocs/luci-static/resources/view/overthebox/register.js:399
 msgid "Retrieving services informations from OVHcloud API..."
 msgstr ""
 
@@ -360,12 +609,29 @@ msgstr ""
 msgid "Retrieving services list from OVHcloud API..."
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:159
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:510
+msgid "SQM"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:522
+msgid "SQM disabled"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:291
+msgid "Satellite"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/switch.js:90
 msgid "Save & Apply"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:478
+#: htdocs/luci-static/resources/view/overthebox/register.js:473
 msgid "Select the service you wish to associate with this device"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:89
+msgid "Server"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:15
@@ -381,7 +647,7 @@ msgstr ""
 msgid "Service activation has been successful"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:536
+#: htdocs/luci-static/resources/view/overthebox/register.js:531
 msgid "Service description"
 msgstr ""
 
@@ -393,11 +659,11 @@ msgstr ""
 msgid "Service not registered"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:538
+#: htdocs/luci-static/resources/view/overthebox/register.js:533
 msgid "Service status"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/register.js:537
+#: htdocs/luci-static/resources/view/overthebox/register.js:532
 msgid "ServiceID"
 msgstr ""
 
@@ -406,12 +672,28 @@ msgstr ""
 msgid "Set Static"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:285
+msgid "Set link technology to adapt glorytun"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:229
+msgid "Setup Multipath and QoS"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:69
 msgid "ShadowSocks"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:82
+msgid "Share:"
+msgstr ""
+
 #: htdocs/luci-static/resources/tools/overthebox/ui.js:35
 msgid "Speed: %d Mibit/s, Duplex: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:15
+msgid "Speedtest"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:91
@@ -419,8 +701,8 @@ msgstr ""
 msgid "Static Lease"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:116
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:203
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:118
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:215
 msgid "Status"
 msgstr ""
 
@@ -434,6 +716,15 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/switch.js:68
 msgid "Switch Configuration"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:58
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:504
+msgid "TX"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:158
+msgid "The speedtest is running, please wait..."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:130
@@ -455,33 +746,76 @@ msgstr ""
 msgid "This will override previous device association, are you sure?"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:88
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:90
 msgid "Time"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:79
+msgid "Timestamp:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:129
+msgid "Timezone:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:53
+msgid "Type"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:95
+msgid "URL:"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:20
 msgid "Unknown"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:175
+msgid "Unsupported protocol type."
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/40_graph.js:222
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:340
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:533
 msgid "Upload"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:90
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:137
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:340
+msgid "Upload (kbit/s)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/speedtest.js:61
+msgid "Upload:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:92
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:139
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:92
 msgid "Uptime"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:288
+msgid "VDSL"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/register.js:113
 msgid "Validation URL is invalid"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:212
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:68
+msgid "Virtual dynamic interface"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:224
 msgid "WAN IP"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:214
+#: htdocs/luci-static/resources/view/overthebox/include/30_networkmap.js:226
 msgid "WHOIS"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:354
+msgid "Which link layer technology to account for"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:49
@@ -507,9 +841,29 @@ msgid ""
 "Your device has been correctly registered, you need to activate your service"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:270
+msgid "autoQoS"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:303
+msgid "backup"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:358
+msgid "default"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:102
 #: htdocs/luci-static/resources/view/overthebox/register.js:200
 msgid "deviceID"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:301
+msgid "disabled"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:300
+msgid "enabled"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:101
@@ -519,6 +873,18 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/switch.js:72
 msgid "go to expert mode"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:304
+msgid "handover"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:302
+msgid "master"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:55
+msgid "no"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/overthebox/include/10_service.js:98
@@ -537,4 +903,8 @@ msgstr ""
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:99
 #: htdocs/luci-static/resources/view/overthebox/include/50_dhcp.js:146
 msgid "unlimited"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/overthebox/multipath.js:55
+msgid "yes"
 msgstr ""

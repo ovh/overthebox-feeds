@@ -53,6 +53,9 @@
         "/bin/otb-action-speedtest": [
           "exec"
         ],
+        "/bin/otb-auto-sqm": [
+          "exec"
+        ],
         "/usr/bin/pgrep": [
           "exec"
         ],
