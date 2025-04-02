@@ -50,12 +50,12 @@
       ]
     }
   },
-  "admin/overthebox/help": {
-    "title": "Help",
+  "admin/overthebox/multipath": {
+    "title": "Multipath",
     "order": 4,
     "action": {
       "type": "view",
-      "path": "overthebox/help"
+      "path": "overthebox/multipath"
     },
     "depends": {
       "acl": [
@@ -65,7 +65,7 @@
   },
   "admin/overthebox/switch": {
     "title": "Switch Configuration",
-    "order": 4,
+    "order": 5,
     "action": {
       "type": "view",
       "path": "overthebox/switch"
@@ -82,6 +82,19 @@
           "@switch": true
         }
       }
+    }
+  },
+  "admin/overthebox/help": {
+    "title": "Help",
+    "order": 6,
+    "action": {
+      "type": "view",
+      "path": "overthebox/help"
+    },
+    "depends": {
+      "acl": [
+        "luci-mod-overthebox-overview"
+      ]
     }
   }
 }
