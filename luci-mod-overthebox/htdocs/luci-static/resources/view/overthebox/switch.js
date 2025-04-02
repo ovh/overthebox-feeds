@@ -86,9 +86,9 @@ return view.extend({
                         E('div', { 'class': 'portLine', 'id': 'line2' }),
                     ])
                 ]),
-                E('div', { 'class': 'cbi-page-actions control-group'}, [
-                    E('button', {'class': 'cbi-button cbi-button-apply', 'click': this.handleValidateButton}, _('Save & Apply')),
-                    E('button', {'class': 'cbi-button cbi-button-reset', 'click': this.handleResetButton}, _('Reset')),
+                E('div', { 'class': 'cbi-page-actions control-group' }, [
+                    E('button', { 'class': 'cbi-button cbi-button-apply', 'click': this.handleValidateButton }, _('Save & Apply')),
+                    E('button', { 'class': 'cbi-button cbi-button-reset', 'click': this.handleResetButton }, _('Reset')),
                 ])
             ])
         ]);
@@ -148,7 +148,7 @@ return view.extend({
         });
     },
 
-    handleResetButton: function(ev) {
+    handleResetButton: function (ev) {
         var wans = "13 14";
         // Update configuration file than restart service
         fs.exec("/usr/bin/swconfig-v2b-reset-todo", [wans]).then(function () {
