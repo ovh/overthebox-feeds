@@ -200,8 +200,8 @@ done
 uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
 
 # Get current IPv6 status
-lanV6=$(uci -q get network.lan.ipv6)
-brlanV6=$(uci -q get network.@device[0].ipv6)
+lanV6="$(uci -q get network.lan.ipv6)" || echo "0"
+brlanV6="$(uci -q get network.@device[0].ipv6)" || echo "0"
 
 # Activate IPv6 on glorytun depending on configuration
 glorytun_mud_conf=$(_get "glorytun_mud_conf")
