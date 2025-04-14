@@ -6,12 +6,12 @@
 
 # Let's wait a little that system start
 sleep 60
-otb_info "Starting otb-lte-watchdog"
+otb_debug "Starting otb-lte-watchdog"
 
 lte_device="$(mmcli -m 0 -J 2>/dev/null| jq '.modem.generic.device' | tr -d '"')"
 # No LTE remove device and exit
 if [ ! "$lte_device" ]; then
-		otb_info "No lte device found"
+		otb_debug "No lte device found"
 		if [ -n "$(uci -q get network.lte)" ]; then
 				otb_info "Deleting lte interface"
 				uci delete network.lte
