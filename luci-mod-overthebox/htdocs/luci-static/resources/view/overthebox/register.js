@@ -246,7 +246,7 @@ return view.extend({
             'title': 'Associate',
             'style': 'display:none',
             'click': () => {
-                    const serviceID = widget.getValue(),
+                const serviceID = widget.getValue(),
                     deviceID = uci.get('overthebox', 'me', 'device_id');
 
                 if (!serviceID) {
@@ -313,13 +313,13 @@ return view.extend({
             serviceInfos = E('div', { 'id': 'serviceInfos' }, [E('p', {}, '')]);
 
         let widget = new ui.Dropdown(null, {}, {
-            id:"serviceChoice",
-            multiple:false,
-            select_placeholder:"Select a service",
-            custom_placeholder:"Insert a service",
-            create:true,
-            validate: function(value) {
-                const regex= /^overthebox\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+            id: "serviceChoice",
+            multiple: false,
+            select_placeholder: "Select a service",
+            custom_placeholder: "Insert a service",
+            create: true,
+            validate: function (value) {
+                const regex = /^overthebox\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
                 if (!regex.test(value)) {
                     return _('Invalid format of service_name, it should begin with "overthebox." and followed by uuid')
                 }
@@ -327,12 +327,12 @@ return view.extend({
             }
         })
         let dropdown = widget.render();
-        dropdown.style.width='32rem';
+        dropdown.style.width = '32rem';
 
         const handleInfos = this.loadServiceInfos();
 
         dropdown.addEventListener('cbi-dropdown-change', function (ev) {
-            dropdown.style.width='32rem';
+            dropdown.style.width = '32rem';
             if (widget.getValue() === undefined) {
                 associateBtn.style.display = 'none';
                 serviceInfos.firstChild.replaceWith(E('p', ''));
@@ -368,7 +368,10 @@ return view.extend({
 
                     // Show customer description instead of service_name
                     let label = {};
-                    label[id] = details.values.customerDescription;
+                    label[id] = id;
+                    if (details.values.customerDescription && details.values.customerDescription.length > 0) {
+                        label[id] = details.values.customerDescription;
+                    }
 
                     widget.clearChoices(true)
                     widget.addChoices(id, label)
@@ -438,7 +441,12 @@ return view.extend({
                     return
                 }
 
-                labels.push({id: id, label: details.values.customerDescription});
+                let l = id;
+                if (details.values.customerDescription && details.values.customerDescription.length > 0) {
+                    l = details.values.customerDescription;
+                }
+
+                labels.push({ id: id, label: l });
 
                 services[id].infos = handleInfos.format(details, device)
                 services[id].state = 'ok';
