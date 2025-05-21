@@ -128,7 +128,9 @@ return baseclass.extend({
             summary = name;
         }
 
-        if (gateway) {
+        if (protocol.toLowerCase().includes('ppp')) {
+            summary += ' (' + address + ')';
+        } else if (gateway) {
             summary += ' (' + gateway + ')';
         }
 
@@ -195,7 +197,7 @@ return baseclass.extend({
                     )
                     .catch(
                         err => {
-                            console.log(_('Fail to get otb data'));
+                            console.log(_('Fail to get otb data') + ' ' + name);
                             otbdata = false;
                         }
                     );
