@@ -1,19 +1,32 @@
-#!/bin/sh
+#!/bin/bash
 # shellcheck disable=SC1091
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
-
-set -e
 
 ME=$(basename "$0")
 
 . /lib/overthebox
 
-[ "$OTB_SERVICE_ID" ]
+otb_info "executing otb-action-configure"
+
+if [ -z "$OTB_SERVICE_ID" ]; then
+	otb_err "no service_id, skipping"
+	exit 1
+fi
+
+if [ "$(uci -q get overthebox.me.needs_activation)" = 'true' ]; then
+	otb_err "service not activated, skipping"
+	exit 1
+fi
+
 
 config="$(otb_device_get config | jq -r .)"
 if [ -z "$config" ]; then
 	otb_info "failed to get configuration"
-	return
+	exit 1
+# // empty is used to return a empty string instead of null
+elif [ -n "$(echo "$config" |jq -r '.class // empty')" ]; then
+	otb_err "failed to get service $config"
+	exit 1
 fi
 
 _get() {
@@ -21,133 +34,115 @@ _get() {
 }
 
 _setup_glorytun() {
-	jq -r '@text "
-	set glorytun.\(.dev)=mud
-	set glorytun.\(.dev).enable=1
-	set glorytun.\(.dev).dev=\(.dev)
-	set glorytun.\(.dev).server=\(.server)
-	set glorytun.\(.dev).port=\(.port)
-	set glorytun.\(.dev).key=\(.key)
-	set glorytun.\(.dev).mtu=\(.mtu)
-	set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
+	local glorytun_mud_conf=$1
+	local lan_ipv6_conf=$2
 
-	delete network.\(.dev)
-	set network.\(.dev)=interface
-	set network.\(.dev).device=\(.dev)
-	set network.\(.dev).proto=static
-	set network.\(.dev).ipaddr=\(.ip_local)
-	set network.\(.dev).netmask=255.255.255.0
-	set network.\(.dev).gateway=\(.ip_peer)
-	set network.\(.dev).metric=\(.metric)
-	set network.\(.dev).ip4table=\(.table)
-	set network.\(.dev).txqueuelen=1000
-	set network.\(.dev).type=tunnel
-	set network.\(.dev).multipath=off
-	set network.\(.dev).ipv6=0
-	set network.\(.dev).generatedby='"$ME"'
+	tun_dev=$(echo "$glorytun_mud_conf" | jq -r '.dev')
+	ipv6_peer=$(echo "$glorytun_mud_conf" | jq -r '.ipv6_peer // empty')
+	ipv6_lan_status=$(uci -q get network.lan.ipv6)
 
-	del_list firewall.wan.network=\(.dev)
-	delete firewall.tun.network
-	delete firewall.tunv6.network
-	add_list firewall.tun.network=\(.dev)
-	"'
-}
+	if [ -z "$tun_dev" ]; then
+		otb_err "invalid tun device"
+		return
+	fi
 
-_setup_glorytun_dual_stack() {
-	jq -r '@text "
-	set glorytun.\(.dev)=mud
-	set glorytun.\(.dev).enable=1
-	set glorytun.\(.dev).dev=\(.dev)
-	set glorytun.\(.dev).server=\(.server)
-	set glorytun.\(.dev).port=\(.port)
-	set glorytun.\(.dev).key=\(.key)
-	set glorytun.\(.dev).mtu=\(.mtu)
-	set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
+	otb_debug "setting up glorytun on $tun_dev"
+	otb_debug "setting up glorytun config"
+	echo "$glorytun_mud_conf" | jq -r '@text "
+		set glorytun.\(.dev)=mud
+		set glorytun.\(.dev).enable=1
+		set glorytun.\(.dev).dev=\(.dev)
+		set glorytun.\(.dev).server=\(.server)
+		set glorytun.\(.dev).port=\(.port)
+		set glorytun.\(.dev).key=\(.key)
+		set glorytun.\(.dev).mtu=\(.mtu)
+		set glorytun.\(.dev).mtu_auto=\(.mtu_auto)
+	"' | uci -q batch
 
-	delete network.\(.dev)
-	set network.\(.dev)=interface
-	set network.\(.dev).device=\(.dev)
-	set network.\(.dev).proto=static
-	set network.\(.dev).ipaddr=\(.ip_local)
-	set network.\(.dev).netmask=255.255.255.0
-	set network.\(.dev).gateway=\(.ip_peer)
-	set network.\(.dev).metric=\(.metric)
-	set network.\(.dev).ip4table=\(.table)
-	set network.\(.dev).ip6addr=\(.ipv6_local)'"/112"'
-	set network.\(.dev).ip6gw=\(.ipv6_peer)
-	set network.\(.dev).ip6table=\(.table)
-	set network.\(.dev).txqueuelen=1000
-	set network.\(.dev).type=tunnel
-	set network.\(.dev).multipath=off
-	set network.\(.dev).ipv6=1
-	set network.\(.dev).delegate=0
-	set network.\(.dev).generatedby='"$ME"'
+	otb_debug "setting up glorytun network"
+	echo "$glorytun_mud_conf" | jq -r '@text "
+		set network.\(.dev)=interface
+		set network.\(.dev).device=\(.dev)
+		set network.\(.dev).proto=static
+		set network.\(.dev).ipaddr=\(.ip_local)
+		set network.\(.dev).netmask=255.255.255.0
+		set network.\(.dev).gateway=\(.ip_peer)
+		set network.\(.dev).metric=\(.metric)
+		set network.\(.dev).ip4table=\(.table)
+		set network.\(.dev).txqueuelen=1000
+		set network.\(.dev).type=tunnel
+		set network.\(.dev).multipath=off
+		set network.\(.dev).generatedby='"$ME"'
+	"' | uci -q batch
 
-	del_list firewall.wan.network=\(.dev)
-	delete firewall.tun.network
-	delete firewall.tunv6.network
-	add_list firewall.tun.network=\(.dev)
-	add_list firewall.tunv6.network=\(.dev)
-	"'
-}
+	if [[ $(uci get firewall.wan.network) == *"$tun_dev"* ]]; then
+		otb_debug "removing $tun_dev from firewall zone"
+		uci -q del_list firewall.wan.network="$tun_dev"
+	fi
 
-enable_lan_ipv6() {
-	# Don't override current lan configuration
-	ip=$(uci -q get network.lan.ipaddr)
-	mask=$(uci -q get network.lan.netmask)
-
-	jq -r '@text "
-		delete network.lan
-		set network.lan=interface
-		set network.lan.device=br-lan
-		set network.lan.proto=static
-		set network.lan.ipaddr='"$ip"'
-		set network.lan.netmask='"$mask"'
-		set network.lan.multipath=off
-		set network.lan.ip4table=lan
-		set network.lan.ip6table=lan
-		set network.lan.physicallayer=ethernet
-		set network.lan.ip6addr=\(.ipv6_prefix)1/\(.ipv6_range)
-		set network.lan.ip6assign=\(.ipv6_range)
-		set network.lan.ipv6=1
-		set network.lan.generatedby='"$ME"'
-
-		set network.@device[0].ipv6=1
-
-		set dhcp.lan.ra=server
-		set dhcp.lan.dhcpv6=server
-
-		set dhcp.@dnsmasq[0].filter_aaaa=0
-	"'
-}
-
-disable_lan_ipv6() {
-	# Don't override current lan configuration
-	ip=$(uci -q get network.lan.ipaddr)
-	mask=$(uci -q get network.lan.netmask)
-
+	otb_debug "setting up glorytun firewall"
 	uci -q batch <<-EOF
-		delete network.lan
-		set network.lan=interface
-		set network.lan.device=br-lan
-		set network.lan.proto=static
-		set network.lan.ipaddr=$ip
-		set network.lan.netmask=$mask
-		set network.lan.multipath=off
-		set network.lan.ip4table=lan
-		set network.lan.physicallayer=ethernet
-		set network.lan.generatedby='"$ME"'
-
-		set network.@device[0].ipv6=0
-
-		set dhcp.lan.ra=disabled
-		set dhcp.lan.dhcpv6=disabled
-
-		set dhcp.dnsmasq[0].filter_aaaa=1
+		delete firewall.tun.network
+		delete firewall.tunv6.network
+		add_list firewall.tun.network=$tun_dev
 	EOF
+
+	if [ -n "$ipv6_peer" ]; then
+		otb_debug "setting up glorytun ipv6"
+		echo "$glorytun_mud_conf" | jq -r '@text "
+			set network.\(.dev).ip6addr=\(.ipv6_local)'"/112"'
+			set network.\(.dev).ip6gw=\(.ipv6_peer)
+			set network.\(.dev).ip6table=\(.table)
+			set network.\(.dev).ipv6=1
+			set network.\(.dev).delegate=0
+			add_list firewall.tunv6.network=\(.dev)
+		"' | uci -q batch
+
+
+		if [ "$ipv6_lan_status" = "0" ]; then
+			otb_debug "setting up lan ipv6"
+			echo "$lan_ipv6_conf" | jq -r '@text "
+				set network.lan.ip6table=lan
+				set network.lan.ip6addr=\(.ipv6_prefix)1/\(.ipv6_range)
+				set network.lan.ip6assign=\(.ipv6_range)
+				set network.lan.ipv6=1
+				set network.@device[0].ipv6=1
+				set dhcp.lan.ra=server
+				set dhcp.lan.dhcpv6=server
+				set dhcp.@dnsmasq[0].filter_aaaa=0
+			"' | uci -q batch
+		fi
+	else
+		otb_debug "checking that ipv6 is disabled"
+		if [ "$(uci -q get network."$tun_dev".ipv6)" != 0 ]; then
+			otb_debug "disabling ipv6 on glorytun"
+			uci -q batch <<-EOF
+				set network."$tun_dev".ipv6=0
+				delete network."$tun_dev".ip6addr
+				delete network."$tun_dev".ip6gw
+				delete network."$tun_dev".ip6table
+				delete network."$tun_dev".delegate
+			EOF
+		fi
+
+		if [ "$ipv6_lan_status" = "1" ]; then
+			otb_debug "disabling lan ipv6"
+			uci -q batch <<-EOF
+				delete network.lan.ip6table
+				delete network.lan.ip6addr
+				delete network.lan.ip6assign
+				set network.lan.ipv6=0
+				set network.@device[0].ipv6=0
+				set dhcp.lan.ra=disabled
+				set dhcp.lan.dhcpv6=disabled
+				set dhcp.dnsmasq[0].filter_aaaa=1
+			EOF
+		fi
+	fi
 }
 
 _setup_shadowsocks() {
+	otb_debug "setting up shadowsocks"
 	jq -r '@text "
 	set shadowsocks.proxy=client
 	set shadowsocks.proxy.server=\(.server)
@@ -168,6 +163,7 @@ _setup_shadowsocks() {
 }
 
 _setup_log() {
+	otb_debug "setting up log"
 	jq -r '@text "
 	set system.@system[0].log_ip=\(.host)
 	set system.@system[0].log_port=\(.port)
@@ -177,6 +173,7 @@ _setup_log() {
 }
 
 _setup_graph() {
+	otb_debug "setting up graph"
 	jq -r '@text "
 	set graph.opentsdb=opentsdb
 	set graph.opentsdb.url=\(.host)
@@ -200,31 +197,18 @@ for conf in glorytun shadowsocks graph otb-graph; do
 	uci -q revert "$conf"
 done
 
-uci -q show | sed -n "s/.generatedby='$ME'//p" | xargs -r -n 1 uci -q delete
-
-# Get current IPv6 status
-lanV6="$(uci -q get network.lan.ipv6)" || echo "0"
-brlanV6="$(uci -q get network.@device[0].ipv6)" || echo "0"
-
 # Activate IPv6 on glorytun depending on configuration
 glorytun_mud_conf=$(_get "glorytun_mud_conf")
-ipv6_peer=$(echo "$glorytun_mud_conf" | jq '.ipv6_peer')
-ipv6_local=$(echo "$glorytun_mud_conf" | jq '.ipv6_local')
-if [ "$ipv6_peer" != "null" ] && [ "$ipv6_local"  != "null" ] ; then
-	echo "$glorytun_mud_conf" | _setup_glorytun_dual_stack | uci -q batch
+lan_ipv6_conf=$(_get "ipv6_conf.lan_conf")
 
-	if  [ "$lanV6" != 1 ] || [ "$brlanV6" != 1 ]; then
-		_get ipv6_conf.lan_conf | enable_lan_ipv6 | uci -q batch
-	fi
-else
-	echo "$glorytun_mud_conf" | _setup_glorytun | uci -q batch
-
-	if  [ "$lanV6" = 1 ] || [ "$brlanV6" = 1 ]; then
-		disable_lan_ipv6
-	fi
-fi
+_setup_glorytun "$glorytun_mud_conf" "$lan_ipv6_conf"
 
 _get shadow_conf | _setup_shadowsocks | uci -q batch
 _get log_conf | _setup_log | uci -q batch
 _get graph_conf | _setup_graph | uci -q batch
+
+# Log changes in debug mode
+readarray -t changes <<< "$(uci changes)"
+for x in "${changes[@]}"; do otb_debug "c: $x" ; done
+
 uci -q commit

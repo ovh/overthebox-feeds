@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=dash
 # shellcheck disable=SC1091,SC2039
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
