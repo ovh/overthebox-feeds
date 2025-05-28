@@ -70,18 +70,19 @@ return baseclass.extend({
         const time = system.localtime ? otbui.formatLocalTime(system.localtime) : null,
             uptime = system.uptime ? '%t'.format(system.uptime) : null,
             load = otbui.formatLoad(system.load),
-            model = otbui.formatModel(board.model);
-
+            model = otbui.formatModel(board.model),
+            ipv6 = uci.get('network', 'lan', 'ipv6') === '1' ? 'on' : 'off';
 
         return E('div', { 'class': 'network-otb' }, [
             E('div', { 'class': 'network-infos' }, [
                 E('div', { 'class': 'network-title' }, [board.hostname]),
                 E('div', { 'class': 'network-icon' }, [
-                    // E('img', {'src': '/luci-static/resources/ovh/images/overthebox.png'})
                     E('img', { 'src': '/luci-static/resources/ovh/images/otb.svg' })
                 ]),
                 E('div', { 'class': 'network-content' }, [
                     E('span', { 'class': 'nowrap' }, [_('Model') + " : " + model]),
+                    E('br'),
+                    E('span', { 'class': 'nowrap' }, [_('IPv6') + " : " + ipv6]),
                     E('br'),
                     E('span', { 'class': 'nowrap' }, [_('Firmware') + " : " + version[0]]),
                     E('br'),
@@ -105,6 +106,7 @@ return baseclass.extend({
             expiry = net.getExpiry(),
             uptime = net.getUptime(),
             ipv4Addrs = net.getIPAddrs(),
+            ipv6Addrs = net.getIP6Addrs(),
             address = ipv4Addrs[0],
             protocol = net.getI18n(),
             connected = (uptime > 0) ? '%t'.format(uptime) : null,
@@ -136,8 +138,20 @@ return baseclass.extend({
 
         if (net.isUp()) {
             details.push(
-                E('span', { 'class': 'nowrap' }, [_('Address') + " : " + address]),
+                E('span', { 'class': 'nowrap' }, [_('IPv4') + " : " + address]),
                 E('br'),
+            )
+
+            if (ipv6Addrs.length !== '0') {
+                for (let ip6 of ipv6Addrs) {
+                    details.push(
+                        E('span', { 'class': 'nowrap' }, [_('IPv6') + " : " + ip6]),
+                        E('br'),
+                    )
+                }
+            }
+
+            details.push(
                 E('span', { 'class': 'nowrap' }, [_('Uptime') + " : " + connected]),
                 E('br'),
                 E('span', { 'class': 'nowrap' }, [_('MPTCP') + " : " + mptcp]),
