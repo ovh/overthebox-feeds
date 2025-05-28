@@ -28,32 +28,32 @@ otb_init() {
 }
 
 otb_alert() {
-	logger -t otb -p 1 "$*" || true
+	logger -t "$(basename "$0")" -p 1 "$*" || true
 }
 
 otb_crit() {
-	logger -t otb -p 2 "$*" || true
+	logger -t "$(basename "$0")" -p 2 "$*" || true
 }
 
 otb_err() {
-	logger -t otb -p 3 "$*" || true
+	logger -t "$(basename "$0")" -p 3 "$*" || true
 }
 
 otb_warn() {
-	logger -t otb -p 4 "$*" || true
+	logger -t "$(basename "$0")" -p 4 "$*" || true
 }
 
 otb_notice() {
-	logger -t otb -p 5 "$*" || true
+	logger -t "$(basename "$0")" -p 5 "$*" || true
 }
 
 otb_info() {
-	logger -t otb -p 6 "$*" || true
+	logger -t "$(basename "$0")" -p 6 "$*" || true
 }
 
 otb_debug()  {
 	# shellcheck disable=SC2015
-	[ "$OTB_DEBUG" ] && logger -t otb -p 7 "$*" || true
+	[ "$OTB_DEBUG" ] && logger -t "$(basename "$0")" -p 7 "$*" || true
 }
 
 otb_pretty_print() {

@@ -12,6 +12,7 @@ set firewall.tun.output=ACCEPT
 set firewall.tun.forward=REJECT
 set firewall.tun.masq=1
 set firewall.tun.mtu_fix=1
+set firewall.tun.family='ipv4'
 
 set firewall.lan_tun=forwarding
 set firewall.lan_tun.src=lan
@@ -35,6 +36,18 @@ add_list firewall.tun.masq_dest='!172.16.0.0/12'
 add_list firewall.tun.masq_dest='!192.168.0.0/16'
 add_list firewall.tun.masq_src='!151.127.0.0/16'
 add_list firewall.tun.masq_src='!109.190.0.0/16'
+
+set firewall.tunv6=zone
+set firewall.tunv6.name=tunv6
+set firewall.tunv6.input=REJECT
+set firewall.tunv6.output=ACCEPT
+set firewall.tunv6.forward=REJECT
+set firewall.tunv6.mtu_fix=1
+set firewall.tunv6.family=ipv6
+
+set firewall.lan_tunv6=forwarding
+set firewall.lan_tunv6.src=lan
+set firewall.lan_tunv6.dest=tunv6
 EOF
 
 _setup() {
