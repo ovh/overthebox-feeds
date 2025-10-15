@@ -40,13 +40,13 @@ function render_iface(dev, alias) {
 
     return E('span', { class: 'cbi-tooltip-container' }, [
         E('img', {
-            'class': 'middle', 'src': L.resource('icons/%s%s.png').format(
+            'class': 'middle', 'src': L.resource('icons/%s%s.svg').format(
                 alias ? 'alias' : type,
                 up ? '' : '_disabled')
         }),
         E('span', { 'class': 'cbi-tooltip ifacebadge large' }, [
             E('img', {
-                'src': L.resource('icons/%s%s.png').format(
+                'src': L.resource('icons/%s%s.svg').format(
                     type, up ? '' : '_disabled')
             }),
             L.itemlist(E('span', { 'class': 'left' }), [
@@ -183,7 +183,7 @@ return view.extend({
                 let dev = ifc.getDevice();
                 dom.content(stat, [
                     E('img', {
-                        'src': L.resource('icons/%s%s.png').format(dev ? dev.getType() : 'ethernet', (dev && dev.isUp()) ? '' : '_disabled'),
+                        'src': L.resource('icons/%s%s.svg').format(dev ? dev.getType() : 'ethernet', (dev && dev.isUp()) ? '' : '_disabled'),
                         'title': dev ? dev.getTypeI18n() : _('Not present')
                     }),
                     render_status(E('span'), ifc, true)
@@ -430,7 +430,7 @@ return view.extend({
                 }, [
 
                     E('img', {
-                        'src': L.resource('icons/ethernet_disabled.png'),
+                        'src': L.resource('icons/ethernet_disabled.svg'),
                         'style': 'width:16px; height:16px'
                     }),
                     E('br'), E('small', '?')
