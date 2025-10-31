@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=otb-v2b
-PKG_VERSION:=1.1.3
+PKG_VERSION:=1.1.4
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
