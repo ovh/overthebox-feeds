@@ -56,7 +56,7 @@ uci -q batch >/dev/null <<-EOF
     set network.@switch_vlan[-1].vlan='2'
     set network.@switch_vlan[-1].ports='$LAN 15t'
 
-    set network.lan.device='eth0.2'
+    set network.@device[0].ports='eth0.2'
 EOF
 
 # Reserve vlan 3,4 for port 13,14
