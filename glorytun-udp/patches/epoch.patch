@@ -1,0 +1,12 @@
+diff --git a/mud/mud.c b/mud/mud.c
+index 2b12d6c..b9a810b 100644
+--- a/mud/mud.c
++++ b/mud/mud.c
+@@ -47,7 +47,7 @@
+ #define MUD_ONE_MIN (60 * MUD_ONE_SEC)
+ 
+ #ifndef MUD_EPOCH
+-#define MUD_EPOCH UINT64_C(1483228800)  // 1 Jan 2017
++#define MUD_EPOCH UINT64_C(1765290306)  // 9 Dec 2025
+ #endif
+
