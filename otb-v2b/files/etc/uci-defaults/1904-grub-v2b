@@ -1,0 +1,9 @@
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
+
+case "$(cat /tmp/sysinfo/board_name)" in
+	*overthebox-v2b) ;;
+	*) return 0
+esac 2>/dev/null
+
+sed -i 's/ console=ttyS0,115200n8//g' /boot/grub/grub.cfg
